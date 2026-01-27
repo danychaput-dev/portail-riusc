@@ -1,19 +1,41 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function HomePage() {
-  const supabase = await createClient()
-  
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    redirect('/login')
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
+export default function HomePage() {
+  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+  const supabase = createClient()
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+      } else {
+        setUser(user)
+        setLoading(false)
+      }
+    }
+    getUser()
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  if (loading) {
+    return <div style={{ padding: '50px' }}>Chargement...</div>
   }
 
   return (
     <div style={{ maxWidth: '800px', margin: '50px auto', padding: '20px' }}>
       <h1>Portail RIUSC</h1>
-      <p>Bienvenue, <strong>{user.email}</strong> !</p>
+      <p>Bienvenue, <strong>{user?.email}</strong> !</p>
       
       <div style={{ marginTop: '30px' }}>
         <h2>Menu</h2>
@@ -25,9 +47,9 @@ export default async function HomePage() {
         </ul>
       </div>
 
-      <form action="/auth/signout" method="post" style={{ marginTop: '30px' }}>
+      <div style={{ marginTop: '30px' }}>
         <button 
-          type="submit"
+          onClick={handleSignOut}
           style={{
             padding: '10px 20px',
             backgroundColor: '#dc2626',
@@ -39,7 +61,7 @@ export default async function HomePage() {
         >
           🚪 Déconnexion
         </button>
-      </form>
+      </div>
     </div>
   )
 }
