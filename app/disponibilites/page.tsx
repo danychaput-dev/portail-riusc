@@ -23,7 +23,7 @@ export default function DisponibilitesPage() {
 
       setUser(user)
 
-      // Charger les infos du réserviste (pour avoir le benevole_id)
+      // Charger les infos du réserviste
       const { data: reservisteData } = await supabase
         .from('reservistes')
         .select('*')
@@ -34,7 +34,7 @@ export default function DisponibilitesPage() {
         setReserviste(reservisteData)
       }
 
-      // Charger les disponibilités ACTIVES de l'utilisateur
+      // Charger les disponibilités ACTIVES
       const { data: dispos, error } = await supabase
         .from('disponibilites')
         .select('*')
@@ -52,7 +52,6 @@ export default function DisponibilitesPage() {
     loadData()
   }, [])
 
-  // Fonction pour formater les dates joliment
   const formatDateRange = (dateDebut: string, dateFin: string) => {
     if (!dateDebut || !dateFin) return 'Dates non disponibles'
 
@@ -163,22 +162,74 @@ export default function DisponibilitesPage() {
                   }`
                 }}
               >
-                {/* Nom du déploiement */}
-                <h3 style={{ 
-                  color: '#1e3a5f', 
-                  margin: '0 0 15px 0',
-                  fontSize: '18px',
-                  fontWeight: '600'
-                }}>
-                  {dispo.nom_deploiement || 'Déploiement sans nom'}
-                </h3>
+                {/* Hiérarchie complète */}
+                <div style={{ marginBottom: '20px' }}>
+                  {/* Sinistre */}
+                  {dispo.nom_sinistre && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                      fontSize: '15px',
+                      color: '#666'
+                    }}>
+                      <span style={{ fontSize: '18px' }}>🔥</span>
+                      <strong style={{ color: '#1e3a5f' }}>Sinistre :</strong>
+                      <span>{dispo.nom_sinistre}</span>
+                    </div>
+                  )}
+
+                  {/* Demande */}
+                  {dispo.nom_demande && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '8px',
+                      fontSize: '15px',
+                      color: '#666'
+                    }}>
+                      <span style={{ fontSize: '18px' }}>📋</span>
+                      <strong style={{ color: '#1e3a5f' }}>Demande :</strong>
+                      <span>{dispo.nom_demande}</span>
+                      {dispo.organisme_demande && (
+                        <span style={{
+                          padding: '2px 8px',
+                          backgroundColor: '#e3f2fd',
+                          color: '#1976d2',
+                          borderRadius: '4px',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}>
+                          {dispo.organisme_demande}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Déploiement */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '16px'
+                  }}>
+                    <span style={{ fontSize: '18px' }}>🚨</span>
+                    <strong style={{ color: '#1e3a5f' }}>Déploiement :</strong>
+                    <span style={{ color: '#333', fontWeight: '500' }}>
+                      {dispo.nom_deploiement || 'Déploiement sans nom'}
+                    </span>
+                  </div>
+                </div>
 
                 {/* Dates */}
                 <div style={{ 
                   fontSize: '16px',
                   color: '#4a90e2',
                   fontWeight: '500',
-                  marginBottom: '15px'
+                  marginBottom: '15px',
+                  paddingLeft: '26px'
                 }}>
                   📅 {formatDateRange(dispo.date_debut, dispo.date_fin)}
                 </div>
@@ -187,7 +238,8 @@ export default function DisponibilitesPage() {
                   display: 'flex', 
                   gap: '20px',
                   alignItems: 'start',
-                  flexWrap: 'wrap'
+                  flexWrap: 'wrap',
+                  paddingLeft: '26px'
                 }}>
                   <div style={{ flex: 1, minWidth: '200px' }}>
                     {/* Statut badge */}
