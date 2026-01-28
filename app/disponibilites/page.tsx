@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 
 export default function DisponibilitesPage() {
   const [user, setUser] = useState<any>(null)
+  const [reserviste, setReserviste] = useState<any>(null)
   const [disponibilites, setDisponibilites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -22,12 +23,24 @@ export default function DisponibilitesPage() {
 
       setUser(user)
 
-      // Charger les disponibilités de l'utilisateur
+      // Charger les infos du réserviste (pour avoir le benevole_id)
+      const { data: reservisteData } = await supabase
+        .from('reservistes')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (reservisteData) {
+        setReserviste(reservisteData)
+      }
+
+      // Charger les disponibilités ACTIVES de l'utilisateur
       const { data: dispos, error } = await supabase
         .from('disponibilites')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+        .eq('statut_version', 'Active')
+        .order('date_debut', { ascending: false })
 
       if (!error && dispos) {
         setDisponibilites(dispos)
@@ -38,6 +51,24 @@ export default function DisponibilitesPage() {
 
     loadData()
   }, [])
+
+  // Fonction pour formater les dates joliment
+  const formatDateRange = (dateDebut: string, dateFin: string) => {
+    if (!dateDebut || !dateFin) return 'Dates non disponibles'
+
+    const debut = new Date(dateDebut)
+    const fin = new Date(dateFin)
+
+    const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
+    const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+
+    const jourDebutNom = jours[debut.getDay()]
+    const jourFinNom = jours[fin.getDay()]
+    const moisNom = mois[debut.getMonth()]
+    const annee = debut.getFullYear()
+
+    return `Du ${jourDebutNom} ${debut.getDate()} au ${jourFinNom} ${fin.getDate()} ${moisNom} ${annee}`
+  }
 
   if (loading) {
     return (
@@ -56,7 +87,7 @@ export default function DisponibilitesPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* Header Simple */}
+      {/* Header */}
       <div style={{
         backgroundColor: '#1e3a5f',
         color: 'white',
@@ -66,7 +97,7 @@ export default function DisponibilitesPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h1 style={{ margin: '0 0 10px 0', fontSize: '32px' }}>📅 Mes Disponibilités</h1>
           <p style={{ margin: 0, opacity: 0.9 }}>
-            Historique de vos confirmations de déploiement
+            Gérez vos disponibilités pour les déploiements d'urgence
           </p>
         </div>
       </div>
@@ -75,7 +106,7 @@ export default function DisponibilitesPage() {
         {/* Bouton Nouveau Formulaire */}
         <div style={{ marginBottom: '30px', textAlign: 'center' }}>
           <a 
-            href="https://form.jotform.com/253475614808262"
+            href={`https://form.jotform.com/253475614808262${reserviste?.benevole_id ? `?BenevoleID=${reserviste.benevole_id}` : ''}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -93,7 +124,7 @@ export default function DisponibilitesPage() {
             onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#357abd'}
             onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4a90e2'}
           >
-            ➕ Confirmer une disponibilité
+            ➕ Soumettre une nouvelle disponibilité
           </a>
         </div>
 
@@ -107,9 +138,9 @@ export default function DisponibilitesPage() {
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '48px', marginBottom: '20px' }}>📭</div>
-            <h3 style={{ color: '#1e3a5f', marginBottom: '10px' }}>Aucune disponibilité enregistrée</h3>
+            <h3 style={{ color: '#1e3a5f', marginBottom: '10px' }}>Aucune disponibilité active</h3>
             <p style={{ color: '#666' }}>
-              Cliquez sur le bouton ci-dessus pour confirmer votre première disponibilité
+              Cliquez sur le bouton ci-dessus pour soumettre votre première disponibilité
             </p>
           </div>
         ) : (
@@ -126,30 +157,50 @@ export default function DisponibilitesPage() {
                   borderRadius: '12px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   borderLeft: `4px solid ${
-                    dispo.statut === 'Confirmé' ? '#10b981' : 
-                    dispo.statut === 'En attente' ? '#f59e0b' : 
+                    dispo.statut === 'Disponible' ? '#10b981' : 
+                    dispo.statut === 'Peut-être' ? '#f59e0b' : 
                     '#ef4444'
                   }`
                 }}
               >
+                {/* Nom du déploiement */}
+                <h3 style={{ 
+                  color: '#1e3a5f', 
+                  margin: '0 0 15px 0',
+                  fontSize: '18px',
+                  fontWeight: '600'
+                }}>
+                  {dispo.nom_deploiement || 'Déploiement sans nom'}
+                </h3>
+
+                {/* Dates */}
+                <div style={{ 
+                  fontSize: '16px',
+                  color: '#4a90e2',
+                  fontWeight: '500',
+                  marginBottom: '15px'
+                }}>
+                  📅 {formatDateRange(dispo.date_debut, dispo.date_fin)}
+                </div>
+
                 <div style={{ 
                   display: 'flex', 
-                  justifyContent: 'space-between',
+                  gap: '20px',
                   alignItems: 'start',
-                  flexWrap: 'wrap',
-                  gap: '15px'
+                  flexWrap: 'wrap'
                 }}>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    {/* Statut badge */}
                     <div style={{
                       display: 'inline-block',
                       padding: '6px 12px',
                       backgroundColor: 
-                        dispo.statut === 'Confirmé' ? '#d1fae5' : 
-                        dispo.statut === 'En attente' ? '#fef3c7' : 
+                        dispo.statut === 'Disponible' ? '#d1fae5' : 
+                        dispo.statut === 'Peut-être' ? '#fef3c7' : 
                         '#fee2e2',
                       color:
-                        dispo.statut === 'Confirmé' ? '#065f46' : 
-                        dispo.statut === 'En attente' ? '#92400e' : 
+                        dispo.statut === 'Disponible' ? '#065f46' : 
+                        dispo.statut === 'Peut-être' ? '#92400e' : 
                         '#991b1b',
                       borderRadius: '6px',
                       fontSize: '14px',
@@ -159,25 +210,17 @@ export default function DisponibilitesPage() {
                       {dispo.statut}
                     </div>
 
-                    <div style={{ marginBottom: '10px' }}>
-                      <strong style={{ color: '#1e3a5f' }}>Déploiement ID :</strong>{' '}
-                      <span style={{ color: '#666' }}>{dispo.deploiement_id}</span>
-                    </div>
-
-                    <div style={{ marginBottom: '10px' }}>
-                      <strong style={{ color: '#1e3a5f' }}>Bénévole ID :</strong>{' '}
-                      <span style={{ color: '#666' }}>{dispo.benevole_id}</span>
-                    </div>
-
+                    {/* Commentaire */}
                     {dispo.commentaire && (
-                      <div style={{ marginTop: '15px' }}>
-                        <strong style={{ color: '#1e3a5f' }}>Commentaire :</strong>
+                      <div style={{ marginTop: '10px' }}>
+                        <strong style={{ color: '#1e3a5f', fontSize: '14px' }}>Commentaire :</strong>
                         <p style={{ 
                           color: '#666', 
                           margin: '5px 0 0 0',
                           padding: '10px',
                           backgroundColor: '#f8f9fa',
-                          borderRadius: '6px'
+                          borderRadius: '6px',
+                          fontSize: '14px'
                         }}>
                           {dispo.commentaire}
                         </p>
@@ -185,21 +228,28 @@ export default function DisponibilitesPage() {
                     )}
                   </div>
 
+                  {/* Date de soumission */}
                   <div style={{ 
                     textAlign: 'right',
                     color: '#999',
-                    fontSize: '14px'
+                    fontSize: '13px',
+                    minWidth: '150px'
                   }}>
-                    <div>{new Date(dispo.created_at).toLocaleDateString('fr-CA', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}</div>
-                    <div style={{ marginTop: '5px' }}>
-                      {new Date(dispo.created_at).toLocaleTimeString('fr-CA', {
+                    <div style={{ marginBottom: '5px' }}>
+                      <strong>Soumis le :</strong>
+                    </div>
+                    <div>
+                      {dispo.repondu_le ? new Date(dispo.repondu_le).toLocaleDateString('fr-CA', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      }) : 'Date inconnue'}
+                    </div>
+                    <div style={{ marginTop: '5px', fontSize: '12px' }}>
+                      {dispo.repondu_le ? new Date(dispo.repondu_le).toLocaleTimeString('fr-CA', {
                         hour: '2-digit',
                         minute: '2-digit'
-                      })}
+                      }) : ''}
                     </div>
                   </div>
                 </div>
@@ -215,7 +265,8 @@ export default function DisponibilitesPage() {
             style={{
               color: '#4a90e2',
               textDecoration: 'none',
-              fontSize: '16px'
+              fontSize: '16px',
+              fontWeight: '500'
             }}
           >
             ← Retour à l'accueil
