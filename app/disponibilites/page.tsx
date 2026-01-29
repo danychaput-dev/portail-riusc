@@ -20,6 +20,7 @@ interface Disponibilite {
   commentaire?: string;
   envoye_le: string;
   repondu_le: string;
+  user_id: string;
 }
 
 interface DeploiementActif {
@@ -374,14 +375,47 @@ export default function DisponibilitesPage() {
                   {dispo.nom_deploiement}
                 </div>
                 
+                {/* BLOC DEBUG - DATES */}
                 <div style={{
-                  fontSize: '14px',
-                  color: '#4b5563',
-                  marginBottom: '12px'
+                  fontSize: '13px',
+                  backgroundColor: '#fff3cd',
+                  border: '3px solid #ff0000',
+                  padding: '12px',
+                  marginBottom: '12px',
+                  borderRadius: '6px'
                 }}>
-                  <span style={{ marginRight: '6px' }}>📅</span>
-                  Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
+                  <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#000' }}>
+                    🔍 DEBUG - INFORMATIONS BRUTES
+                  </div>
+                  <div style={{ color: '#000', marginBottom: '4px' }}>
+                    <strong>ID Supabase:</strong> {dispo.id}
+                  </div>
+                  <div style={{ color: '#000', marginBottom: '4px' }}>
+                    <strong>Monday Item ID:</strong> {dispo.monday_item_id}
+                  </div>
+                  <div style={{ color: '#000', marginBottom: '4px' }}>
+                    <strong>Benevole ID:</strong> {dispo.benevole_id}
+                  </div>
+                  <div style={{ color: '#000', marginBottom: '4px' }}>
+                    <strong>User ID:</strong> {dispo.user_id}
+                  </div>
+                  <div style={{ color: '#d32f2f', fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>
+                    DATES BRUTES (de Supabase):
+                  </div>
+                  <div style={{ color: '#000', marginBottom: '4px' }}>
+                    <strong>date_debut:</strong> {dispo.date_debut}
+                  </div>
+                  <div style={{ color: '#000', marginBottom: '4px' }}>
+                    <strong>date_fin:</strong> {dispo.date_fin}
+                  </div>
+                  <div style={{ color: '#1976d2', fontWeight: 'bold', marginTop: '8px', marginBottom: '4px' }}>
+                    DATES FORMATÉES (affichées):
+                  </div>
+                  <div style={{ color: '#000' }}>
+                    Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
+                  </div>
                 </div>
+                {/* FIN BLOC DEBUG */}
                 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <span style={{
