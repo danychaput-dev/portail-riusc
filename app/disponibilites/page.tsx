@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -52,10 +52,32 @@ export default function DisponibilitesPage() {
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+
+  // Fonction de rafraîchissement des données
+  const refreshData = useCallback(async (userId: string) => {
+    setRefreshing(true);
+    await fetchDisponibilites(userId);
+    await fetchDeploiementsActifs();
+    setLastRefresh(new Date());
+    setRefreshing(false);
+  }, []);
 
   useEffect(() => {
     checkUser();
   }, []);
+
+  // Auto-refresh toutes les 30 secondes
+  useEffect(() => {
+    if (!user) return;
+    
+    const interval = setInterval(() => {
+      refreshData(user.id);
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, [user, refreshData]);
 
   async function checkUser() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -146,6 +168,10 @@ export default function DisponibilitesPage() {
     return date.toLocaleDateString('fr-CA', options);
   }
 
+  function formatHeure(date: Date): string {
+    return date.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+  }
+
   if (loading) {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -165,29 +191,65 @@ export default function DisponibilitesPage() {
 
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Bouton Retour */}
-      <button
-        onClick={() => router.push('/')}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 16px',
-          backgroundColor: '#f3f4f6',
-          color: '#374151',
-          border: '1px solid #d1d5db',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: '500',
-          cursor: 'pointer',
-          marginBottom: '20px',
-          transition: 'background-color 0.2s'
-        }}
-        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
-        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-      >
-        ← Retour à l'accueil
-      </button>
+      {/* Header avec bouton retour et rafraîchir */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '10px'
+      }}>
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            backgroundColor: '#f3f4f6',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+        >
+          ← Retour à l'accueil
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+            Mis à jour : {formatHeure(lastRefresh)}
+          </span>
+          <button
+            onClick={() => user && refreshData(user.id)}
+            disabled={refreshing}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 16px',
+              backgroundColor: refreshing ? '#9ca3af' : '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => !refreshing && (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+            onMouseOut={(e) => !refreshing && (e.currentTarget.style.backgroundColor = '#2563eb')}
+          >
+            {refreshing ? '⏳ Actualisation...' : '🔄 Rafraîchir'}
+          </button>
+        </div>
+      </div>
 
       <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '30px' }}>
         Mes Disponibilités
@@ -450,6 +512,16 @@ export default function DisponibilitesPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Indicateur auto-refresh */}
+      <div style={{
+        marginTop: '40px',
+        textAlign: 'center',
+        fontSize: '12px',
+        color: '#9ca3af'
+      }}>
+        🔄 Actualisation automatique toutes les 30 secondes
       </div>
     </div>
   );
