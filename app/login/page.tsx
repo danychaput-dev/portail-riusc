@@ -24,13 +24,13 @@ export default function LoginPage() {
     setMessageType('')
 
     // Vérifier si l'email existe dans la table reservistes
-    const { data: reserviste, error: checkError } = await supabase
+    const { data: reservistes, error: checkError } = await supabase
       .from('reservistes')
       .select('email')
-      .eq('email', email.toLowerCase())
-      .single()
+      .ilike('email', email)
+      .limit(1)
 
-    if (checkError || !reserviste) {
+    if (checkError || !reservistes || reservistes.length === 0) {
       setMessage('Cet email n\'est pas associé à un compte réserviste. Contactez l\'administration.')
       setMessageType('error')
       setLoading(false)
