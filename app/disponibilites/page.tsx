@@ -119,7 +119,6 @@ export default function DisponibilitesPage() {
   function formatDate(dateString: string): string {
     if (!dateString) return '';
     
-    // Parser manuellement pour éviter les problèmes de timezone
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     
@@ -136,7 +135,6 @@ export default function DisponibilitesPage() {
   function formatDateCourt(dateString: string): string {
     if (!dateString) return '';
     
-    // Parser manuellement pour éviter les problèmes de timezone
     const [year, month, day] = dateString.split('-').map(Number);
     const date = new Date(year, month - 1, day);
     
@@ -167,6 +165,30 @@ export default function DisponibilitesPage() {
 
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Bouton Retour */}
+      <button
+        onClick={() => router.push('/')}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: '10px 16px',
+          backgroundColor: '#f3f4f6',
+          color: '#374151',
+          border: '1px solid #d1d5db',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '500',
+          cursor: 'pointer',
+          marginBottom: '20px',
+          transition: 'background-color 0.2s'
+        }}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#e5e7eb'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+      >
+        ← Retour à l'accueil
+      </button>
+
       <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '30px' }}>
         Mes Disponibilités
       </h1>
@@ -386,8 +408,14 @@ export default function DisponibilitesPage() {
                   color: '#4b5563',
                   marginBottom: '12px'
                 }}>
-                  <span style={{ marginRight: '6px' }}>📅</span>
-                  Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
+                  {dispo.date_debut && dispo.date_fin ? (
+                    <>
+                      <span style={{ marginRight: '6px' }}>📅</span>
+                      Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
+                    </>
+                  ) : (
+                    <span style={{ color: '#9ca3af' }}>Aucune date spécifiée</span>
+                  )}
                 </div>
                 
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

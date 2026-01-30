@@ -5,28 +5,90 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
+interface DeploiementActif {
+  id: string;
+  deploiement_id: string;
+  nom_deploiement: string;
+  nom_sinistre?: string;
+  nom_demande?: string;
+  organisme?: string;
+  date_debut: string;
+  date_fin: string;
+  lieu?: string;
+  statut: string;
+}
+
+interface Reserviste {
+  benevole_id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
+  const [reserviste, setReserviste] = useState<Reserviste | null>(null)
+  const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    const getUser = async () => {
+    const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
-      } else {
-        setUser(user)
-        setLoading(false)
+        return
       }
+      
+      setUser(user)
+      
+      // Fetch reserviste pour le lien Jotform
+      const { data: reservisteData } = await supabase
+        .from('reservistes')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (reservisteData) {
+        setReserviste(reservisteData)
+      }
+      
+      // Fetch déploiements actifs
+      const { data: deploiements } = await supabase
+        .from('deploiements_actifs')
+        .select('*')
+        .order('date_debut', { ascending: true })
+      
+      if (deploiements) {
+        setDeploiementsActifs(deploiements)
+      }
+      
+      setLoading(false)
     }
-    getUser()
+    loadData()
   }, [])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  function genererLienJotform(deploiementId: string): string {
+    if (!reserviste) return '#';
+    return `https://form.jotform.com/253475614808262?BenevoleID=${reserviste.benevole_id}&DeploiementID=${deploiementId}`;
+  }
+
+  function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const options: Intl.DateTimeFormatOptions = { 
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    };
+    return date.toLocaleDateString('fr-CA', options);
   }
 
   if (loading) {
@@ -88,11 +150,122 @@ export default function HomePage() {
           marginBottom: '30px'
         }}>
           <h2 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>
-            Bienvenue, {user?.email} !
+            Bienvenue, {reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email} !
           </h2>
           <p style={{ color: '#666', margin: 0 }}>
             Accédez à vos informations et gérez votre profil de réserviste
           </p>
+        </div>
+
+        {/* Section Missions Actives */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '30px',
+          borderRadius: '12px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          marginBottom: '30px',
+          border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ 
+            color: '#1e3a5f', 
+            margin: '0 0 20px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{ fontSize: '24px' }}>🚨</span>
+            Déploiements en recherche de réservistes
+            {deploiementsActifs.length > 0 && (
+              <span style={{
+                backgroundColor: '#fef3c7',
+                color: '#92400e',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}>
+                {deploiementsActifs.length} actif{deploiementsActifs.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </h3>
+          
+          {deploiementsActifs.length === 0 ? (
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                Aucun déploiement actif pour le moment.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {deploiementsActifs.map((dep) => (
+                <div
+                  key={dep.id}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '10px',
+                    padding: '20px',
+                    backgroundColor: '#fffbeb',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '16px'
+                  }}
+                >
+                  <div style={{ flex: '1', minWidth: '250px' }}>
+                    {dep.nom_sinistre && (
+                      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
+                        🔥 {dep.nom_sinistre}
+                      </div>
+                    )}
+                    <div style={{ 
+                      fontSize: '16px', 
+                      fontWeight: '600', 
+                      color: '#111827',
+                      marginBottom: '8px'
+                    }}>
+                      {dep.nom_deploiement}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#4b5563' }}>
+                      📅 {dep.date_debut && formatDate(dep.date_debut)}
+                      {dep.date_fin && ` → ${formatDate(dep.date_fin)}`}
+                    </div>
+                    {dep.lieu && (
+                      <div style={{ fontSize: '14px', color: '#4b5563', marginTop: '4px' }}>
+                        📍 {dep.lieu}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <a
+                    href={genererLienJotform(dep.deploiement_id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '12px 20px',
+                      backgroundColor: '#2563eb',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      transition: 'background-color 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  >
+                    Soumettre ma disponibilité
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Menu Cards */}
@@ -158,36 +331,6 @@ export default function HomePage() {
               <h3 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>Mes Disponibilités</h3>
               <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
                 Gérez vos disponibilités pour les déploiements
-              </p>
-            </div>
-          </a>
-
-          {/* Missions Card */}
-          <a href="/missions" style={{ textDecoration: 'none' }}>
-            <div style={{
-              backgroundColor: 'white',
-              padding: '30px',
-              borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              cursor: 'pointer',
-              border: '2px solid transparent'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
-              e.currentTarget.style.borderColor = '#ff8c42'
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-              e.currentTarget.style.borderColor = 'transparent'
-            }}
-            >
-              <div style={{ fontSize: '48px', marginBottom: '15px' }}>🚨</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>Missions Actives</h3>
-              <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
-                Consultez les déploiements et missions en cours
               </p>
             </div>
           </a>
