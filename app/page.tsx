@@ -25,10 +25,26 @@ interface Reserviste {
   email: string;
 }
 
+interface CampInfo {
+  nom: string;
+  dates: string;
+  site: string;
+  location: string;
+}
+
+interface CampStatus {
+  is_certified: boolean;
+  has_inscription: boolean;
+  camp: CampInfo | null;
+  lien_inscription: string | null;
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([])
+  const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
+  const [loadingCamp, setLoadingCamp] = useState(true)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -52,6 +68,20 @@ export default function HomePage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
+        
+        // Fetch camp status depuis n8n
+        try {
+          const response = await fetch(
+            `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`
+          )
+          if (response.ok) {
+            const data = await response.json()
+            setCampStatus(data)
+          }
+        } catch (error) {
+          console.error('Erreur fetch camp status:', error)
+        }
+        setLoadingCamp(false)
       }
       
       // Fetch déploiements actifs
@@ -156,6 +186,124 @@ export default function HomePage() {
             Accédez à vos informations et gérez votre profil de réserviste
           </p>
         </div>
+
+        {/* Section Camp de Qualification */}
+        {!loadingCamp && campStatus && !campStatus.is_certified && (
+          <div style={{
+            backgroundColor: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            marginBottom: '30px',
+            border: campStatus.has_inscription ? '2px solid #10b981' : '2px solid #3b82f6'
+          }}>
+            <h3 style={{ 
+              color: '#1e3a5f', 
+              margin: '0 0 20px 0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <span style={{ fontSize: '24px' }}>🎓</span>
+              Camp de Qualification
+              {campStatus.has_inscription && (
+                <span style={{
+                  backgroundColor: '#d1fae5',
+                  color: '#065f46',
+                  padding: '4px 12px',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  Inscrit
+                </span>
+              )}
+            </h3>
+            
+            {campStatus.has_inscription && campStatus.camp ? (
+              /* Affichage des infos du camp si inscrit */
+              <div style={{
+                backgroundColor: '#f0fdf4',
+                padding: '20px',
+                borderRadius: '10px'
+              }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
+                    {campStatus.camp.nom}
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '8px', fontSize: '15px', color: '#4b5563' }}>
+                  {campStatus.camp.dates && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📅</span>
+                      <span><strong>Dates :</strong> {campStatus.camp.dates}</span>
+                    </div>
+                  )}
+                  {campStatus.camp.site && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>🏢</span>
+                      <span><strong>Site :</strong> {campStatus.camp.site}</span>
+                    </div>
+                  )}
+                  {campStatus.camp.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>📍</span>
+                      <span><strong>Lieu :</strong> {campStatus.camp.location}</span>
+                    </div>
+                  )}
+                </div>
+                <p style={{ 
+                  marginTop: '16px', 
+                  fontSize: '14px', 
+                  color: '#065f46',
+                  backgroundColor: '#dcfce7',
+                  padding: '10px 15px',
+                  borderRadius: '8px'
+                }}>
+                  ✅ Vous êtes inscrit à ce camp de qualification. À bientôt !
+                </p>
+              </div>
+            ) : (
+              /* Bouton d'inscription si pas inscrit */
+              <div style={{
+                backgroundColor: '#eff6ff',
+                padding: '20px',
+                borderRadius: '10px',
+                textAlign: 'center'
+              }}>
+                <p style={{ color: '#1e40af', marginBottom: '16px', fontSize: '15px' }}>
+                  Pour devenir réserviste certifié, vous devez compléter un camp de qualification.
+                </p>
+                {campStatus.lien_inscription ? (
+                  <a
+                    href={campStatus.lien_inscription}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '14px 28px',
+                      backgroundColor: '#2563eb',
+                      color: '#ffffff',
+                      borderRadius: '8px',
+                      textDecoration: 'none',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  >
+                    📝 S'inscrire à un camp de qualification
+                  </a>
+                ) : (
+                  <p style={{ color: '#6b7280', fontSize: '14px' }}>
+                    Aucun camp disponible pour le moment. Vous serez contacté prochainement.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Section Missions Actives */}
         <div style={{
