@@ -139,38 +139,6 @@ export default function HomePage() {
     setCancellingInscription(false)
   }
 
-  const handleCancelInscription = async () => {
-    if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp de qualification ?')) {
-      return
-    }
-    
-    setCancellingInscription(true)
-    
-    try {
-      const response = await fetch(
-        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
-        { method: 'POST' }
-      )
-      
-      if (response.ok) {
-        // Rafraîchir le statut
-        setCampStatus({
-          ...campStatus!,
-          has_inscription: false,
-          camp: null
-        })
-        alert('Votre inscription a été annulée.')
-      } else {
-        alert('Erreur lors de l\'annulation. Veuillez réessayer.')
-      }
-    } catch (error) {
-      console.error('Erreur annulation:', error)
-      alert('Erreur lors de l\'annulation. Veuillez réessayer.')
-    }
-    
-    setCancellingInscription(false)
-  }
-
   function genererLienJotform(deploiementId: string): string {
     if (!reserviste) return '#';
     return `https://form.jotform.com/253475614808262?BenevoleID=${reserviste.benevole_id}&DeploiementID=${deploiementId}`;
