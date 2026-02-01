@@ -114,7 +114,7 @@ export default function HomePage() {
     
     try {
       const response = await fetch(
-        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
+        `/api/camp/cancel?benevole_id=${reserviste.benevole_id}`,
         { method: 'POST' }
       )
       
