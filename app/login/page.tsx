@@ -1,386 +1,181 @@
 'use client'
 
-import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
 import Image from 'next/image'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [otpCode, setOtpCode] = useState('')
+function LoginContent() {
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('')
-  const [step, setStep] = useState<'email' | 'code'>('email')
-  
-  const supabase = createClient()
+  const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const supabase = createClient()
 
-  // Étape 1 : Envoyer le code OTP par email
-  const handleSendCode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-    setMessageType('')
-
-    // Vérifier si l'email existe dans la table reservistes
-    const { data: reserviste, error: checkError } = await supabase
-      .from('reservistes')
-      .select('email')
-      .eq('email', email.toLowerCase())
-      .single()
-
-    if (checkError || !reserviste) {
-      setMessage('Cet email n\'est pas associé à un compte réserviste. Contactez l\'administration.')
-      setMessageType('error')
-      setLoading(false)
-      return
+  useEffect(() => {
+    // Vérifier les erreurs dans l'URL
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'not_authorized') {
+      setError('Votre courriel n\'est pas autorisé. Contactez l\'administrateur.')
+    } else if (errorParam === 'auth_failed') {
+      setError('Erreur de connexion. Veuillez réessayer.')
     }
 
-    // Envoyer le code OTP
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
+    // Vérifier si déjà connecté
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        router.push('/')
+      }
+    }
+    checkUser()
+  }, [searchParams])
+
+  const handleGoogleLogin = async () => {
+    setLoading(true)
+    setError('')
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
       options: {
-        shouldCreateUser: true,
-      },
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
     })
 
     if (error) {
-      setMessage(`Erreur: ${error.message}`)
-      setMessageType('error')
-    } else {
-      setMessage('Code envoyé ! Vérifiez votre boîte de réception (et vos spams).')
-      setMessageType('success')
-      setStep('code')
-    }
-    setLoading(false)
-  }
-
-  // Étape 2 : Vérifier le code OTP
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setMessage('')
-    setMessageType('')
-
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: otpCode,
-      type: 'email',
-    })
-
-    if (error) {
-      setMessage('Code invalide ou expiré. Veuillez réessayer.')
-      setMessageType('error')
+      setError('Erreur de connexion avec Google')
       setLoading(false)
-    } else {
-      setMessage('Connexion réussie !')
-      setMessageType('success')
-      router.push('/')
     }
-  }
-
-  // Renvoyer le code
-  const handleResendCode = async () => {
-    setLoading(true)
-    setMessage('')
-    setMessageType('')
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
-      },
-    })
-
-    if (error) {
-      setMessage(`Erreur: ${error.message}`)
-      setMessageType('error')
-    } else {
-      setMessage('Nouveau code envoyé !')
-      setMessageType('success')
-    }
-    setLoading(false)
-  }
-
-  // Retour à l'étape email
-  const handleBackToEmail = () => {
-    setStep('email')
-    setOtpCode('')
-    setMessage('')
-    setMessageType('')
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: '#1e3a5f',
-        color: 'white',
-        padding: '20px 0',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '20px'
-        }}>
-          <Image
-            src="/logo.png"
-            alt="Logo RIUSC"
-            width={60}
-            height={60}
-            style={{ borderRadius: '50%' }}
-          />
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ margin: 0, fontSize: '24px' }}>Portail RIUSC</h1>
-            <p style={{ margin: '5px 0 0 0', opacity: 0.9, fontSize: '12px' }}>
-              Réserve d'Intervention d'Urgence - Sécurité Civile
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main style={{ 
-        maxWidth: '420px', 
-        margin: '0 auto', 
-        padding: '60px 20px'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '40px 30px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{ 
-            textAlign: 'center', 
-            color: '#1e3a5f', 
-            marginTop: 0,
-            marginBottom: '10px',
-            fontSize: '22px'
-          }}>
-            {step === 'email' ? 'Connexion' : 'Entrez le code'}
-          </h2>
-          
-          <p style={{ 
-            textAlign: 'center', 
-            color: '#6b7280', 
-            marginBottom: '30px',
-            fontSize: '14px'
-          }}>
-            {step === 'email' 
-              ? 'Entrez votre email pour recevoir un code de connexion'
-              : `Un code à 6 chiffres a été envoyé à ${email}`
-            }
-          </p>
-
-          {/* Étape 1 : Entrer l'email */}
-          {step === 'email' && (
-            <form onSubmit={handleSendCode}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '500',
-                  color: '#374151',
-                  fontSize: '14px'
-                }}>
-                  Adresse courriel
-                </label>
-                <input
-                  type="email"
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    fontSize: '16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  backgroundColor: loading ? '#9ca3af' : '#2563eb',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => !loading && (e.currentTarget.style.backgroundColor = '#1d4ed8')}
-                onMouseOut={(e) => !loading && (e.currentTarget.style.backgroundColor = '#2563eb')}
-              >
-                {loading ? 'Envoi en cours...' : '📧 Envoyer le code'}
-              </button>
-            </form>
-          )}
-
-          {/* Étape 2 : Entrer le code OTP */}
-          {step === 'code' && (
-            <form onSubmit={handleVerifyCode}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '500',
-                  color: '#374151',
-                  fontSize: '14px'
-                }}>
-                  Code à 6 chiffres
-                </label>
-                <input
-                  type="text"
-                  placeholder="123456"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  required
-                  maxLength={6}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    fontSize: '24px',
-                    fontWeight: '600',
-                    letterSpacing: '8px',
-                    textAlign: 'center',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxSizing: 'border-box',
-                    outline: 'none',
-                    transition: 'border-color 0.2s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#2563eb'}
-                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                  autoFocus
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || otpCode.length !== 6}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  backgroundColor: (loading || otpCode.length !== 6) ? '#9ca3af' : '#2563eb',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: (loading || otpCode.length !== 6) ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s',
-                  marginBottom: '12px'
-                }}
-              >
-                {loading ? 'Vérification...' : '✅ Vérifier le code'}
-              </button>
-
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                gap: '10px'
-              }}>
-                <button
-                  type="button"
-                  onClick={handleBackToEmail}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    backgroundColor: 'transparent',
-                    color: '#6b7280',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ← Changer d'email
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResendCode}
-                  disabled={loading}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    backgroundColor: 'transparent',
-                    color: '#2563eb',
-                    border: '1px solid #2563eb',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    cursor: loading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  🔄 Renvoyer le code
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Message de feedback */}
-          {message && (
-            <div style={{
-              marginTop: '20px',
-              padding: '12px 16px',
-              backgroundColor: messageType === 'success' ? '#d1fae5' : '#fee2e2',
-              color: messageType === 'success' ? '#065f46' : '#991b1b',
-              borderRadius: '8px',
-              fontSize: '14px',
-              textAlign: 'center'
-            }}>
-              {message}
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <p style={{ 
-          textAlign: 'center', 
-          color: '#9ca3af', 
-          fontSize: '13px',
-          marginTop: '30px'
-        }}>
-          Vous recevrez un code de connexion valide pour 10 minutes.
-          <br />
-          Vérifiez vos spams si vous ne le recevez pas.
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#f8f9fa',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '20px'
+    }}>
+      {/* Logo et titre */}
+      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <Image
+          src="/logo.png"
+          alt="Logo RIUSC"
+          width={120}
+          height={120}
+          style={{ borderRadius: '50%', marginBottom: '20px' }}
+        />
+        <h1 style={{ color: '#1e3a5f', margin: '0 0 10px 0', fontSize: '32px' }}>
+          Portail RIUSC
+        </h1>
+        <p style={{ color: '#666', margin: 0, fontSize: '16px' }}>
+          Réserve d'Intervention d'Urgence - Sécurité Civile du Québec
         </p>
-      </main>
+      </div>
+
+      {/* Boîte de connexion */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '40px',
+        borderRadius: '16px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+        width: '100%',
+        maxWidth: '420px'
+      }}>
+        <h2 style={{ 
+          color: '#1e3a5f', 
+          margin: '0 0 30px 0', 
+          textAlign: 'center',
+          fontSize: '24px'
+        }}>
+          Connexion
+        </h2>
+
+        {error && (
+          <div style={{
+            backgroundColor: '#fee2e2',
+            color: '#dc2626',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+            textAlign: 'center'
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Bouton Google */}
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '14px 20px',
+            backgroundColor: 'white',
+            color: '#333',
+            border: '2px solid #e5e7eb',
+            borderRadius: '10px',
+            fontSize: '16px',
+            fontWeight: '500',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            transition: 'all 0.2s',
+            opacity: loading ? 0.7 : 1
+          }}
+          onMouseOver={(e) => {
+            if (!loading) {
+              e.currentTarget.style.backgroundColor = '#f9fafb'
+              e.currentTarget.style.borderColor = '#d1d5db'
+            }
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = 'white'
+            e.currentTarget.style.borderColor = '#e5e7eb'
+          }}
+        >
+          {/* Google Icon */}
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          {loading ? 'Connexion en cours...' : 'Se connecter avec Google'}
+        </button>
+
+        <p style={{
+          marginTop: '24px',
+          fontSize: '13px',
+          color: '#6b7280',
+          textAlign: 'center',
+          lineHeight: '1.5'
+        }}>
+          En vous connectant, vous acceptez que votre adresse courriel soit utilisée pour vous identifier dans le système RIUSC.
+        </p>
+      </div>
 
       {/* Footer */}
-      <footer style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#1e3a5f',
-        color: 'white',
-        padding: '15px',
-        textAlign: 'center'
+      <p style={{
+        marginTop: '40px',
+        fontSize: '14px',
+        color: '#9ca3af'
       }}>
-        <p style={{ margin: 0, fontSize: '12px', opacity: 0.9 }}>
-          © 2026 AQBRS - Tous droits réservés
-        </p>
-      </footer>
+        © 2026 AQBRS - Tous droits réservés
+      </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Chargement...</div>}>
+      <LoginContent />
+    </Suspense>
   )
 }
