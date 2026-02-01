@@ -45,6 +45,7 @@ export default function HomePage() {
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([])
   const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
   const [loadingCamp, setLoadingCamp] = useState(true)
+  const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -102,6 +103,72 @@ export default function HomePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/login')
+  }
+
+  const handleCancelInscription = async () => {
+    if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp ?')) {
+      return
+    }
+    
+    setCancellingInscription(true)
+    
+    try {
+      const response = await fetch(
+        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
+        { method: 'POST' }
+      )
+      
+      if (response.ok) {
+        // Rafraîchir le statut du camp
+        const statusResponse = await fetch(
+          `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}`
+        )
+        if (statusResponse.ok) {
+          const data = await statusResponse.json()
+          setCampStatus(data)
+        }
+        alert('Votre inscription a été annulée.')
+      } else {
+        alert('Erreur lors de l\'annulation. Veuillez réessayer.')
+      }
+    } catch (error) {
+      console.error('Erreur annulation:', error)
+      alert('Erreur lors de l\'annulation. Veuillez réessayer.')
+    }
+    
+    setCancellingInscription(false)
+  }
+
+  const handleCancelInscription = async () => {
+    if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp de qualification ?')) {
+      return
+    }
+    
+    setCancellingInscription(true)
+    
+    try {
+      const response = await fetch(
+        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
+        { method: 'POST' }
+      )
+      
+      if (response.ok) {
+        // Rafraîchir le statut
+        setCampStatus({
+          ...campStatus!,
+          has_inscription: false,
+          camp: null
+        })
+        alert('Votre inscription a été annulée.')
+      } else {
+        alert('Erreur lors de l\'annulation. Veuillez réessayer.')
+      }
+    } catch (error) {
+      console.error('Erreur annulation:', error)
+      alert('Erreur lors de l\'annulation. Veuillez réessayer.')
+    }
+    
+    setCancellingInscription(false)
   }
 
   function genererLienJotform(deploiementId: string): string {
@@ -252,16 +319,56 @@ export default function HomePage() {
                     </div>
                   )}
                 </div>
-                <p style={{ 
-                  marginTop: '16px', 
-                  fontSize: '14px', 
-                  color: '#065f46',
-                  backgroundColor: '#dcfce7',
-                  padding: '10px 15px',
-                  borderRadius: '8px'
+                
+                {/* Boutons d'action */}
+                <div style={{ 
+                  marginTop: '20px', 
+                  display: 'flex', 
+                  gap: '12px',
+                  flexWrap: 'wrap'
                 }}>
-                  ✅ Vous êtes inscrit à ce camp de qualification. À bientôt !
-                </p>
+                  {campStatus.lien_inscription && (
+                    <a
+                      href={campStatus.lien_inscription}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#2563eb',
+                        color: '#ffffff',
+                        borderRadius: '8px',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                    >
+                      🔄 Modifier mon inscription
+                    </a>
+                  )}
+                  <button
+                    onClick={handleCancelInscription}
+                    disabled={cancellingInscription}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#dc2626',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: cancellingInscription ? 'not-allowed' : 'pointer',
+                      opacity: cancellingInscription ? 0.7 : 1,
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => { if (!cancellingInscription) e.currentTarget.style.backgroundColor = '#b91c1c' }}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                  >
+                    {cancellingInscription ? '⏳ Annulation...' : '❌ Je ne suis plus disponible'}
+                  </button>
+                </div>
               </div>
             ) : (
               /* Bouton d'inscription si pas inscrit */
