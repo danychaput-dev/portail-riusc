@@ -23,6 +23,7 @@ interface Reserviste {
   prenom: string;
   nom: string;
   email: string;
+  telephone?: string;
 }
 
 interface CampInfo {
@@ -35,6 +36,7 @@ interface CampInfo {
 interface CampStatus {
   is_certified: boolean;
   has_inscription: boolean;
+  session_id: string | null;
   camp: CampInfo | null;
   lien_inscription: string | null;
 }
@@ -47,6 +49,13 @@ export default function HomePage() {
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
+  
+  // États pour le formulaire d'inscription
+  const [showInscriptionModal, setShowInscriptionModal] = useState(false)
+  const [inscriptionLoading, setInscriptionLoading] = useState(false)
+  const [inscriptionError, setInscriptionError] = useState<string | null>(null)
+  const [inscriptionSuccess, setInscriptionSuccess] = useState(false)
+  
   const router = useRouter()
   const supabase = createClient()
 
@@ -139,6 +148,74 @@ export default function HomePage() {
     setCancellingInscription(false)
   }
 
+  // Nouvelle fonction : inscription au camp via n8n
+  const handleInscriptionCamp = async () => {
+    if (!reserviste || !campStatus?.session_id) {
+      setInscriptionError('Données manquantes pour l\'inscription')
+      return
+    }
+    
+    setInscriptionLoading(true)
+    setInscriptionError(null)
+    
+    try {
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          session_id: campStatus.session_id,
+          presence: 'confirme',
+          courriel: reserviste.email,
+          telephone: reserviste.telephone || null,
+          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setInscriptionSuccess(true)
+        
+        // Rafraîchir le statut du camp après 2 secondes
+        setTimeout(async () => {
+          const statusResponse = await fetch(
+            `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}`
+          )
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json()
+            setCampStatus(statusData)
+          }
+          setShowInscriptionModal(false)
+          setInscriptionSuccess(false)
+        }, 2000)
+      } else {
+        setInscriptionError(data.error || 'Erreur lors de l\'inscription')
+      }
+    } catch (error) {
+      console.error('Erreur inscription:', error)
+      setInscriptionError('Erreur de connexion. Veuillez réessayer.')
+    }
+    
+    setInscriptionLoading(false)
+  }
+
+  // Extraire session_id du lien Fillout si non fourni directement
+  const getSessionIdFromLink = (link: string | null): string | null => {
+    if (!link) return null
+    try {
+      const url = new URL(link)
+      return url.searchParams.get('SessionID')
+    } catch {
+      return null
+    }
+  }
+
+  // Session ID effectif (soit direct, soit extrait du lien)
+  const effectiveSessionId = campStatus?.session_id || getSessionIdFromLink(campStatus?.lien_inscription)
+
   function genererLienJotform(deploiementId: string): string {
     if (!reserviste) return '#';
     return `https://form.jotform.com/253475614808262?BenevoleID=${reserviste.benevole_id}&DeploiementID=${deploiementId}`;
@@ -173,6 +250,158 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+      {/* Modal d'inscription au camp */}
+      {showInscriptionModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+          }}>
+            {inscriptionSuccess ? (
+              // Message de succès
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                <h3 style={{ color: '#065f46', margin: '0 0 10px 0' }}>
+                  Inscription confirmée !
+                </h3>
+                <p style={{ color: '#4b5563', margin: 0 }}>
+                  Vous recevrez une confirmation par {reserviste?.telephone ? 'SMS' : 'courriel'}.
+                </p>
+              </div>
+            ) : (
+              // Formulaire de confirmation
+              <>
+                <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0' }}>
+                  📝 Confirmer votre inscription
+                </h3>
+                
+                <div style={{
+                  backgroundColor: '#f0fdf4',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#111827' }}>
+                    {campStatus?.camp?.nom || 'Camp de qualification'}
+                  </p>
+                  {campStatus?.camp?.dates && (
+                    <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
+                      📅 {campStatus.camp.dates}
+                    </p>
+                  )}
+                  {campStatus?.camp?.site && (
+                    <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
+                      🏢 {campStatus.camp.site}
+                    </p>
+                  )}
+                  {campStatus?.camp?.location && (
+                    <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
+                      📍 {campStatus.camp.location}
+                    </p>
+                  )}
+                </div>
+                
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#111827' }}>
+                    Vos informations
+                  </p>
+                  <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
+                    👤 {reserviste?.prenom} {reserviste?.nom}
+                  </p>
+                  <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
+                    ✉️ {reserviste?.email}
+                  </p>
+                  {reserviste?.telephone && (
+                    <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
+                      📱 {reserviste.telephone}
+                    </p>
+                  )}
+                </div>
+                
+                {inscriptionError && (
+                  <div style={{
+                    backgroundColor: '#fef2f2',
+                    color: '#dc2626',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    fontSize: '14px'
+                  }}>
+                    ❌ {inscriptionError}
+                  </div>
+                )}
+                
+                <p style={{ 
+                  color: '#6b7280', 
+                  fontSize: '13px', 
+                  margin: '0 0 20px 0',
+                  fontStyle: 'italic'
+                }}>
+                  En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => {
+                      setShowInscriptionModal(false)
+                      setInscriptionError(null)
+                    }}
+                    disabled={inscriptionLoading}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#f3f4f6',
+                      color: '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      cursor: inscriptionLoading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleInscriptionCamp}
+                    disabled={inscriptionLoading || !effectiveSessionId}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: inscriptionLoading ? '#9ca3af' : '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: inscriptionLoading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {inscriptionLoading ? '⏳ Inscription...' : '✅ Confirmer mon inscription'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header style={{
         backgroundColor: '#1e3a5f',
@@ -295,27 +524,6 @@ export default function HomePage() {
                   gap: '12px',
                   flexWrap: 'wrap'
                 }}>
-                  {campStatus.lien_inscription && (
-                    <a
-                      href={campStatus.lien_inscription}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#2563eb',
-                        color: '#ffffff',
-                        borderRadius: '8px',
-                        textDecoration: 'none',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                    >
-                      🔄 Modifier mon inscription
-                    </a>
-                  )}
                   <button
                     onClick={handleCancelInscription}
                     disabled={cancellingInscription}
@@ -349,27 +557,26 @@ export default function HomePage() {
                 <p style={{ color: '#1e40af', marginBottom: '16px', fontSize: '15px' }}>
                   Pour devenir réserviste certifié, vous devez compléter un camp de qualification.
                 </p>
-                {campStatus.lien_inscription ? (
-                  <a
-                    href={campStatus.lien_inscription}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                {effectiveSessionId ? (
+                  <button
+                    onClick={() => setShowInscriptionModal(true)}
                     style={{
                       display: 'inline-block',
                       padding: '14px 28px',
                       backgroundColor: '#2563eb',
                       color: '#ffffff',
+                      border: 'none',
                       borderRadius: '8px',
-                      textDecoration: 'none',
                       fontSize: '16px',
                       fontWeight: '600',
+                      cursor: 'pointer',
                       transition: 'background-color 0.2s'
                     }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
                   >
                     📝 S'inscrire à un camp de qualification
-                  </a>
+                  </button>
                 ) : (
                   <p style={{ color: '#6b7280', fontSize: '14px' }}>
                     Aucun camp disponible pour le moment. Vous serez contacté prochainement.
