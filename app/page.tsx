@@ -214,7 +214,7 @@ export default function HomePage() {
   }
 
   // Session ID effectif (soit direct, soit extrait du lien)
-  const effectiveSessionId = campStatus?.session_id || getSessionIdFromLink(campStatus?.lien_inscription)
+  const effectiveSessionId = campStatus?.session_id || getSessionIdFromLink(campStatus?.lien_inscription ?? null)
 
   function genererLienJotform(deploiementId: string): string {
     if (!reserviste) return '#';
