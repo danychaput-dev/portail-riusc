@@ -131,13 +131,7 @@ export default function HomePage() {
     setLoadingSessions(true)
     setInscriptionError(null)
     setInscriptionSuccess(false)
-    
-    // Pré-sélectionner la session actuelle si inscrit
-    if (campStatus?.session_id) {
-      setSelectedSessionId(campStatus.session_id)
-    } else {
-      setSelectedSessionId('')
-    }
+    setSelectedSessionId('')
     
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps')
@@ -194,16 +188,10 @@ export default function HomePage() {
       if (response.ok && data.success) {
         setInscriptionSuccess(true)
         
-        // Rafraîchir le statut du camp après 2 secondes
-        setTimeout(async () => {
-          const statusResponse = await fetch(
-            `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}`
-          )
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json()
-            setCampStatus(statusData)
-          }
+        // Rafraîchir la page après 2 secondes
+        setTimeout(() => {
           closeCampModal()
+          window.location.reload()
         }, 2000)
       } else {
         setInscriptionError(data.error || 'Erreur lors de l\'inscription')
@@ -231,15 +219,8 @@ export default function HomePage() {
       )
       
       if (response.ok) {
-        // Rafraîchir le statut du camp
-        const statusResponse = await fetch(
-          `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}`
-        )
-        if (statusResponse.ok) {
-          const data = await statusResponse.json()
-          setCampStatus(data)
-        }
-        alert('Votre inscription a été annulée.')
+        // Rafraîchir la page
+        window.location.reload()
       } else {
         alert('Erreur lors de l\'annulation. Veuillez réessayer.')
       }
@@ -250,9 +231,6 @@ export default function HomePage() {
     
     setCancellingInscription(false)
   }
-
-  // Trouver les infos de la session sélectionnée
-  const selectedSession = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
 
   function genererLienJotform(deploiementId: string): string {
     if (!reserviste) return '#';
@@ -380,7 +358,7 @@ export default function HomePage() {
                     }}>
                       ⏳ Chargement des camps disponibles...
                     </div>
-                  ) : sessionsDisponibles.length === 0 ? (
+                  ) : sessionsDisponibles.filter(s => s.session_id !== campStatus?.session_id).length === 0 ? (
                     <div style={{ 
                       padding: '20px', 
                       textAlign: 'center', 
@@ -388,11 +366,13 @@ export default function HomePage() {
                       backgroundColor: '#fef3c7',
                       borderRadius: '8px'
                     }}>
-                      Aucun camp disponible pour le moment.
+                      Aucun autre camp disponible pour le moment.
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {sessionsDisponibles.map((session) => (
+                      {sessionsDisponibles
+                        .filter(session => session.session_id !== campStatus?.session_id)
+                        .map((session) => (
                         <label
                           key={session.session_id}
                           style={{
@@ -420,18 +400,6 @@ export default function HomePage() {
                           <span style={{ fontWeight: '600', color: '#111827' }}>
                             {session.nom}
                           </span>
-                          {campStatus?.session_id === session.session_id && (
-                            <span style={{
-                              marginLeft: '8px',
-                              backgroundColor: '#d1fae5',
-                              color: '#065f46',
-                              padding: '2px 8px',
-                              borderRadius: '12px',
-                              fontSize: '12px'
-                            }}>
-                              Inscription actuelle
-                            </span>
-                          )}
                           <div style={{ 
                             marginTop: '8px', 
                             paddingLeft: '24px',
