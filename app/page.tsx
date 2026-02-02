@@ -204,7 +204,7 @@ export default function HomePage() {
     setInscriptionLoading(false)
   }
 
-  // Annuler l'inscription (dire qu'on n'est plus disponible)
+  // Annuler l'inscription via n8n directement
   const handleCancelInscription = async () => {
     if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp ?')) {
       return
@@ -214,7 +214,7 @@ export default function HomePage() {
     
     try {
       const response = await fetch(
-        `/api/camp/cancel?benevole_id=${reserviste.benevole_id}`,
+        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
         { method: 'POST' }
       )
       
