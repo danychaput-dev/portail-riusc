@@ -13,10 +13,12 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
 
-  // États pour le login par téléphone
-  const [phone, setPhone] = useState('')
+  // États pour le login
+  const [email, setEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
+  const [otpMethod, setOtpMethod] = useState<'sms' | 'email' | null>(null)
+  const [maskedPhone, setMaskedPhone] = useState('')
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
@@ -35,39 +37,20 @@ function LoginContent() {
     checkUser()
   }, [searchParams])
 
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    setError('')
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`
-      }
-    })
-
-    if (error) {
-      setError('Erreur de connexion avec Google')
-      setLoading(false)
+  // Masquer le numéro de téléphone pour l'affichage (ex: *** ***-7313)
+  const maskPhone = (phone: string) => {
+    const numbers = phone.replace(/\D/g, '')
+    if (numbers.length >= 4) {
+      return `*** ***-${numbers.slice(-4)}`
     }
-  }
-
-  // Formater le numéro de téléphone
-  const formatPhoneNumber = (value: string) => {
-    // Garder seulement les chiffres
-    const numbers = value.replace(/\D/g, '')
-    
-    // Formater pour affichage: (XXX) XXX-XXXX
-    if (numbers.length <= 3) return numbers
-    if (numbers.length <= 6) return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`
-    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`
+    return '***'
   }
 
   // Convertir en format E.164 pour Twilio
   const toE164 = (phoneNumber: string) => {
     const numbers = phoneNumber.replace(/\D/g, '')
     if (numbers.length === 10) {
-      return `+1${numbers}` // Ajouter +1 pour Canada/US
+      return `+1${numbers}`
     }
     if (numbers.length === 11 && numbers.startsWith('1')) {
       return `+${numbers}`
@@ -77,10 +60,8 @@ function LoginContent() {
 
   // Envoyer le code OTP
   const handleSendOtp = async () => {
-    const phoneNumbers = phone.replace(/\D/g, '')
-    
-    if (phoneNumbers.length < 10) {
-      setError('Veuillez entrer un numéro de téléphone valide (10 chiffres)')
+    if (!email || !email.includes('@')) {
+      setError('Veuillez entrer une adresse courriel valide')
       return
     }
 
@@ -88,25 +69,62 @@ function LoginContent() {
     setError('')
     setSuccess('')
 
-    const formattedPhone = toE164(phone)
+    try {
+      // 1. Chercher le réserviste par email
+      const { data: reserviste, error: fetchError } = await supabase
+        .from('reservistes')
+        .select('email, telephone')
+        .eq('email', email.toLowerCase().trim())
+        .single()
 
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: formattedPhone
-    })
-
-    if (error) {
-      console.error('OTP Error:', error)
-      if (error.message.includes('not authorized')) {
-        setError('Ce numéro n\'est pas autorisé. Contactez l\'administrateur.')
-      } else {
-        setError(`Erreur d'envoi du code: ${error.message}`)
+      if (fetchError || !reserviste) {
+        setError('Ce courriel n\'est pas enregistré dans le système. Contactez l\'administrateur.')
+        setLoading(false)
+        return
       }
-      setLoading(false)
-      return
+
+      // 2. Déterminer la méthode d'envoi
+      if (reserviste.telephone) {
+        // Envoyer par SMS
+        const formattedPhone = toE164(reserviste.telephone)
+        
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          phone: formattedPhone
+        })
+
+        if (otpError) {
+          console.error('SMS OTP Error:', otpError)
+          setError(`Erreur d'envoi SMS: ${otpError.message}`)
+          setLoading(false)
+          return
+        }
+
+        setOtpMethod('sms')
+        setMaskedPhone(maskPhone(reserviste.telephone))
+        setSuccess(`Code envoyé par SMS au ${maskPhone(reserviste.telephone)}`)
+      } else {
+        // Envoyer par email
+        const { error: otpError } = await supabase.auth.signInWithOtp({
+          email: email.toLowerCase().trim()
+        })
+
+        if (otpError) {
+          console.error('Email OTP Error:', otpError)
+          setError(`Erreur d'envoi courriel: ${otpError.message}`)
+          setLoading(false)
+          return
+        }
+
+        setOtpMethod('email')
+        setSuccess(`Code envoyé par courriel à ${email}`)
+      }
+
+      setOtpSent(true)
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      setError('Une erreur inattendue est survenue. Réessayez.')
     }
 
-    setOtpSent(true)
-    setSuccess('Code envoyé! Vérifiez vos SMS.')
     setLoading(false)
   }
 
@@ -120,30 +138,58 @@ function LoginContent() {
     setLoading(true)
     setError('')
 
-    const formattedPhone = toE164(phone)
+    try {
+      let verifyResult
 
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otpCode,
-      type: 'sms'
-    })
+      if (otpMethod === 'sms') {
+        // Récupérer le téléphone pour la vérification
+        const { data: reserviste } = await supabase
+          .from('reservistes')
+          .select('telephone')
+          .eq('email', email.toLowerCase().trim())
+          .single()
 
-    if (error) {
-      console.error('Verify Error:', error)
-      setError('Code invalide ou expiré. Réessayez.')
-      setLoading(false)
-      return
+        if (reserviste?.telephone) {
+          const formattedPhone = toE164(reserviste.telephone)
+          verifyResult = await supabase.auth.verifyOtp({
+            phone: formattedPhone,
+            token: otpCode,
+            type: 'sms'
+          })
+        }
+      } else {
+        // Vérification par email
+        verifyResult = await supabase.auth.verifyOtp({
+          email: email.toLowerCase().trim(),
+          token: otpCode,
+          type: 'email'
+        })
+      }
+
+      if (verifyResult?.error) {
+        console.error('Verify Error:', verifyResult.error)
+        setError('Code invalide ou expiré. Réessayez.')
+        setLoading(false)
+        return
+      }
+
+      if (verifyResult?.data?.user) {
+        router.push('/')
+      }
+    } catch (err) {
+      console.error('Verify unexpected error:', err)
+      setError('Erreur de vérification. Réessayez.')
     }
 
-    if (data.user) {
-      router.push('/')
-    }
+    setLoading(false)
   }
 
-  // Réinitialiser pour changer de numéro
+  // Réinitialiser
   const handleReset = () => {
     setOtpSent(false)
     setOtpCode('')
+    setOtpMethod(null)
+    setMaskedPhone('')
     setError('')
     setSuccess('')
   }
@@ -221,200 +267,162 @@ function LoginContent() {
           </div>
         )}
 
-        {/* ===== SECTION TÉLÉPHONE OTP ===== */}
-        <div style={{ marginBottom: '24px' }}>
-          {!otpSent ? (
-            // Étape 1: Entrer le numéro
-            <>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
+        {!otpSent ? (
+          // Étape 1: Entrer le courriel
+          <>
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontSize: '14px', 
+              fontWeight: '500',
+              color: '#374151'
+            }}>
+              Adresse courriel
+            </label>
+            <input
+              type="email"
+              placeholder="votre.nom@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                fontSize: '16px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <button
+              onClick={handleSendOtp}
+              disabled={loading || !email.includes('@')}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                backgroundColor: '#1e3a5f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '16px',
                 fontWeight: '500',
-                color: '#374151'
-              }}>
-                Numéro de téléphone
-              </label>
-              <input
-                type="tel"
-                placeholder="(514) 555-1234"
-                value={phone}
-                onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  fontSize: '16px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  marginBottom: '12px',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <button
-                onClick={handleSendOtp}
-                disabled={loading || phone.replace(/\D/g, '').length < 10}
-                style={{
-                  width: '100%',
-                  padding: '14px 20px',
-                  backgroundColor: '#1e3a5f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading || phone.replace(/\D/g, '').length < 10 ? 0.7 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {loading ? 'Envoi en cours...' : '📱 Recevoir un code par SMS'}
-              </button>
-            </>
-          ) : (
-            // Étape 2: Entrer le code
-            <>
-              <p style={{ 
-                fontSize: '14px', 
-                color: '#6b7280', 
-                marginBottom: '12px',
-                textAlign: 'center'
-              }}>
-                Code envoyé au <strong>{phone}</strong>
-                <br />
-                <button 
-                  onClick={handleReset}
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: '#2563eb', 
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  Changer de numéro
-                </button>
-              </p>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500',
-                color: '#374151'
-              }}>
-                Code de vérification (6 chiffres)
-              </label>
-              <input
-                type="text"
-                placeholder="123456"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                maxLength={6}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  letterSpacing: '8px',
-                  textAlign: 'center',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  marginBottom: '12px',
-                  boxSizing: 'border-box'
-                }}
-              />
-              <button
-                onClick={handleVerifyOtp}
-                disabled={loading || otpCode.length !== 6}
-                style={{
-                  width: '100%',
-                  padding: '14px 20px',
-                  backgroundColor: '#059669',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading || otpCode.length !== 6 ? 0.7 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                {loading ? 'Vérification...' : '✓ Valider le code'}
-              </button>
-              <button
-                onClick={handleSendOtp}
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  backgroundColor: 'transparent',
-                  color: '#6b7280',
-                  border: 'none',
-                  fontSize: '14px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading || !email.includes('@') ? 0.7 : 1,
+                transition: 'all 0.2s'
+              }}
+            >
+              {loading ? 'Vérification en cours...' : 'Recevoir un code de connexion'}
+            </button>
+            <p style={{
+              marginTop: '16px',
+              fontSize: '13px',
+              color: '#6b7280',
+              textAlign: 'center',
+              lineHeight: '1.5'
+            }}>
+              Un code vous sera envoyé par SMS si votre numéro est enregistré, sinon par courriel.
+            </p>
+          </>
+        ) : (
+          // Étape 2: Entrer le code
+          <>
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#6b7280', 
+              marginBottom: '16px',
+              textAlign: 'center',
+              lineHeight: '1.6'
+            }}>
+              {otpMethod === 'sms' ? (
+                <>Code envoyé par <strong>SMS</strong> au <strong>{maskedPhone}</strong></>
+              ) : (
+                <>Code envoyé par <strong>courriel</strong> à <strong>{email}</strong></>
+              )}
+              <br />
+              <button 
+                onClick={handleReset}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#2563eb', 
                   cursor: 'pointer',
-                  marginTop: '8px'
+                  fontSize: '13px',
+                  textDecoration: 'underline',
+                  marginTop: '4px'
                 }}
               >
-                Renvoyer le code
+                Changer de courriel
               </button>
-            </>
-          )}
-        </div>
-
-        {/* Séparateur */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          margin: '24px 0',
-          gap: '16px'
-        }}>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }} />
-          <span style={{ color: '#9ca3af', fontSize: '14px' }}>ou</span>
-          <div style={{ flex: 1, height: '1px', backgroundColor: '#e5e7eb' }} />
-        </div>
-
-        {/* Bouton Google */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '14px 20px',
-            backgroundColor: 'white',
-            color: '#333',
-            border: '2px solid #e5e7eb',
-            borderRadius: '10px',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            transition: 'all 0.2s',
-            opacity: loading ? 0.7 : 1
-          }}
-          onMouseOver={(e) => {
-            if (!loading) {
-              e.currentTarget.style.backgroundColor = '#f9fafb'
-              e.currentTarget.style.borderColor = '#d1d5db'
-            }
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = 'white'
-            e.currentTarget.style.borderColor = '#e5e7eb'
-          }}
-        >
-          {/* Google Icon */}
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Se connecter avec Google
-        </button>
+            </p>
+            
+            <label style={{ 
+              display: 'block', 
+              marginBottom: '8px', 
+              fontSize: '14px', 
+              fontWeight: '500',
+              color: '#374151'
+            }}>
+              Code de vérification (6 chiffres)
+            </label>
+            <input
+              type="text"
+              placeholder="123456"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyDown={(e) => e.key === 'Enter' && otpCode.length === 6 && handleVerifyOtp()}
+              maxLength={6}
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '14px 16px',
+                fontSize: '24px',
+                fontWeight: 'bold',
+                letterSpacing: '8px',
+                textAlign: 'center',
+                border: '2px solid #e5e7eb',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                boxSizing: 'border-box'
+              }}
+            />
+            <button
+              onClick={handleVerifyOtp}
+              disabled={loading || otpCode.length !== 6}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                backgroundColor: '#059669',
+                color: 'white',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '16px',
+                fontWeight: '500',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                opacity: loading || otpCode.length !== 6 ? 0.7 : 1,
+                transition: 'all 0.2s'
+              }}
+            >
+              {loading ? 'Vérification...' : '✓ Valider le code'}
+            </button>
+            <button
+              onClick={handleSendOtp}
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '10px',
+                backgroundColor: 'transparent',
+                color: '#6b7280',
+                border: 'none',
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginTop: '8px'
+              }}
+            >
+              Renvoyer le code
+            </button>
+          </>
+        )}
 
         <p style={{
           marginTop: '24px',
