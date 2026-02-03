@@ -293,6 +293,7 @@ function LoginContent() {
                 borderRadius: '10px',
                 marginBottom: '16px',
                 boxSizing: 'border-box'
+                color: '#111827'  
               }}
             />
             <button
@@ -384,6 +385,7 @@ function LoginContent() {
                 borderRadius: '10px',
                 marginBottom: '16px',
                 boxSizing: 'border-box'
+                color: '#111827'
               }}
             />
             <button
