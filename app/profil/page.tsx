@@ -263,6 +263,25 @@ export default function ProfilPage() {
     setUploadingPhoto(false)
   }
 
+  // Synchroniser vers Monday.com
+const syncToMonday = async (benevoleId: string, data: typeof formData) => {
+  try {
+    const response = await fetch('/api/sync-monday', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_id: benevoleId, ...data })
+    })
+    if (!response.ok) {
+      console.error('Erreur sync Monday:', await response.json())
+      return false
+    }
+    return true
+  } catch (error) {
+    console.error('Erreur sync Monday:', error)
+    return false
+  }
+}
+
   // Sauvegarder le profil
   const handleSave = async () => {
     if (!reserviste) return
@@ -290,7 +309,14 @@ export default function ProfilPage() {
 
       if (error) throw error
 
-      setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
+// Sync vers Monday.com
+const mondaySuccess = await syncToMonday(reserviste.benevole_id, formData)
+
+if (mondaySuccess) {
+  setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
+} else {
+  setMessage({ type: 'success', text: 'Profil sauvegardé (synchronisation Monday en attente)' })
+}
       
       // Mettre à jour l'état local
       setReserviste(prev => prev ? { ...prev, ...formData } : null)
