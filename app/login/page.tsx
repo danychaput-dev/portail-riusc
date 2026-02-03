@@ -205,7 +205,13 @@ function LoginContent() {
       padding: '20px'
     }}>
       {/* Logo et titre */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: '40px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
         <Image
           src="/logo.png"
           alt="Logo RIUSC"
@@ -217,7 +223,7 @@ function LoginContent() {
           Portail RIUSC
         </h1>
         <p style={{ color: '#666', margin: 0, fontSize: '16px' }}>
-          Réserve d'Intervention d'Urgence - Sécurité Civile du Québec
+          Réserve d'Intervention d'Urgence en Sécurité Civile
         </p>
       </div>
 
