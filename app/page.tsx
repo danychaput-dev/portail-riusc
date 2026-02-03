@@ -24,6 +24,7 @@ interface Reserviste {
   nom: string;
   email: string;
   telephone?: string;
+  photo_url?: string;
 }
 
 interface CampInfo {
@@ -585,20 +586,33 @@ export default function HomePage() {
                   Réserviste
                 </div>
               </div>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: '#1e3a5f',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '600',
-                fontSize: '14px'
-              }}>
-                {getInitials()}
-              </div>
+              {reserviste?.photo_url ? (
+                <img
+                  src={reserviste.photo_url}
+                  alt="Photo de profil"
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    objectFit: 'cover'
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  backgroundColor: '#1e3a5f',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '600',
+                  fontSize: '14px'
+                }}>
+                  {getInitials()}
+                </div>
+              )}
               <svg width="16" height="16" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
