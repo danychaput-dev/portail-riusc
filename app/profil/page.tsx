@@ -103,13 +103,23 @@ export default function ProfilPage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
+        
+        // Formater la date de naissance pour l'input HTML (yyyy-MM-dd)
+        let dateNaissance = ''
+        if (reservisteData.date_naissance) {
+          const d = new Date(reservisteData.date_naissance)
+          if (!isNaN(d.getTime())) {
+            dateNaissance = d.toISOString().split('T')[0]
+          }
+        }
+        
         setFormData({
           prenom: reservisteData.prenom || '',
           nom: reservisteData.nom || '',
           email: reservisteData.email || '',
           telephone: reservisteData.telephone || '',
           telephone_secondaire: reservisteData.telephone_secondaire || '',
-          date_naissance: reservisteData.date_naissance || '',
+          date_naissance: dateNaissance,
           adresse: reservisteData.adresse || '',
           ville: reservisteData.ville || '',
           region: reservisteData.region || '',
