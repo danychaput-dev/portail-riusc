@@ -174,6 +174,12 @@ function LoginContent() {
       }
 
       if (verifyResult?.data?.user) {
+        // Synchroniser le user_id du reserviste avec le user authentifié
+        await supabase
+          .from('reservistes')
+          .update({ user_id: verifyResult.data.user.id })
+          .eq('email', email.toLowerCase().trim())
+        
         router.push('/')
       }
     } catch (err) {
