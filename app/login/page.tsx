@@ -292,7 +292,7 @@ function LoginContent() {
                 border: '2px solid #e5e7eb',
                 borderRadius: '10px',
                 marginBottom: '16px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
                 color: '#111827'  
               }}
             />
@@ -384,7 +384,7 @@ function LoginContent() {
                 border: '2px solid #e5e7eb',
                 borderRadius: '10px',
                 marginBottom: '16px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
                 color: '#111827'
               }}
             />
