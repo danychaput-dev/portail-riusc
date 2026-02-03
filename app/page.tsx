@@ -693,6 +693,26 @@ export default function HomePage() {
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
+                   href="/tournee-camps"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Tournée des camps
+                </a>
                   Déconnexion
                 </button>
               </div>
@@ -1059,7 +1079,36 @@ export default function HomePage() {
               </p>
             </div>
           </a>
-
+<a href="/tournee-camps" style={{ textDecoration: 'none' }}>
+            <div style={{
+              backgroundColor: 'white',
+              padding: '24px',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s',
+              cursor: 'pointer',
+              border: '1px solid transparent'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+              e.currentTarget.style.borderColor = '#1e3a5f'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
+              e.currentTarget.style.borderColor = 'transparent'
+            }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏕️</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                Tournée des camps
+              </h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+                Calendrier des camps de qualification par région
+              </p>
+            </div>
+          </a>
           <a href="/formulaires" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
