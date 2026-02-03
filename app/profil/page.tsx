@@ -718,8 +718,26 @@ export default function ProfilPage() {
                 </div>
                 
                 <div>
-                  <label style={labelStyle}>Région / District</label>
-                  <input
+                  <div>
+  <label style={labelStyle}>Région / District</label>
+  <select
+    value={formData.region}
+    onChange={(e) => handleInputChange('region', e.target.value)}
+    style={inputStyle}
+  >
+    <option value="">-- Sélectionnez une région --</option>
+    <option value="Abitibi-Témiscamingue / Nord-du-Québec">Abitibi-Témiscamingue / Nord-du-Québec</option>
+    <option value="Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine">Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine</option>
+    <option value="Capitale-Nationale / Chaudière-Appalaches">Capitale-Nationale / Chaudière-Appalaches</option>
+    <option value="Côte-Nord">Côte-Nord</option>
+    <option value="Estrie">Estrie</option>
+    <option value="Mauricie / Centre-du-Québec">Mauricie / Centre-du-Québec</option>
+    <option value="Montréal / Laval / Laurentides / Lanaudière">Montréal / Laval / Laurentides / Lanaudière</option>
+    <option value="Montérégie">Montérégie</option>
+    <option value="Outaouais">Outaouais</option>
+    <option value="Saguenay / Lac-St-Jean">Saguenay / Lac-St-Jean</option>
+  </select>
+</div>
                     type="text"
                     value={formData.region}
                     onChange={(e) => handleInputChange('region', e.target.value)}
