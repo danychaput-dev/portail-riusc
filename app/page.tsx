@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 
 interface DeploiementActif {
@@ -58,6 +58,10 @@ export default function HomePage() {
   const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
   
+  // Menu utilisateur
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  
   // États pour le modal d'inscription/modification
   const [showCampModal, setShowCampModal] = useState(false)
   const [sessionsDisponibles, setSessionsDisponibles] = useState<SessionCamp[]>([])
@@ -69,6 +73,17 @@ export default function HomePage() {
   
   const router = useRouter()
   const supabase = createClient()
+
+  // Fermer le menu utilisateur quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     const loadData = async () => {
@@ -249,6 +264,14 @@ export default function HomePage() {
     return date.toLocaleDateString('fr-CA', options);
   }
 
+  // Obtenir les initiales
+  function getInitials(): string {
+    if (reserviste) {
+      return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase()
+    }
+    return user?.email?.charAt(0).toUpperCase() || 'U'
+  }
+
   if (loading) {
     return (
       <div style={{ 
@@ -265,7 +288,7 @@ export default function HomePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       {/* Modal d'inscription/modification au camp */}
       {showCampModal && (
         <div style={{
@@ -284,19 +307,31 @@ export default function HomePage() {
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            padding: '30px',
+            padding: '32px',
             maxWidth: '550px',
             width: '100%',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
             {inscriptionSuccess ? (
-              // Message de succès
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                <h3 style={{ color: '#065f46', margin: '0 0 10px 0' }}>
-                  {campStatus?.has_inscription ? 'Modification confirmée !' : 'Inscription confirmée !'}
+                <div style={{ 
+                  width: '64px', 
+                  height: '64px', 
+                  backgroundColor: '#d1fae5', 
+                  borderRadius: '50%', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  margin: '0 auto 16px'
+                }}>
+                  <svg width="32" height="32" fill="none" stroke="#059669" strokeWidth="3" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 style={{ color: '#065f46', margin: '0 0 10px 0', fontSize: '20px' }}>
+                  {campStatus?.has_inscription ? 'Modification confirmée' : 'Inscription confirmée'}
                 </h3>
                 <p style={{ color: '#4b5563', margin: 0 }}>
                   Vous recevrez une confirmation par {reserviste?.telephone ? 'SMS' : 'courriel'}.
@@ -304,8 +339,8 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '20px' }}>
-                  🎓 {campStatus?.has_inscription ? 'Modifier mon inscription' : 'Inscription au camp de qualification'}
+                <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '22px', fontWeight: '600' }}>
+                  {campStatus?.has_inscription ? 'Modifier mon inscription' : 'Inscription au camp de qualification'}
                 </h3>
                 <p style={{ color: '#6b7280', margin: '0 0 24px 0', fontSize: '14px' }}>
                   {campStatus?.has_inscription 
@@ -318,20 +353,21 @@ export default function HomePage() {
                   backgroundColor: '#f9fafb',
                   padding: '16px',
                   borderRadius: '8px',
-                  marginBottom: '20px'
+                  marginBottom: '20px',
+                  borderLeft: '4px solid #1e3a5f'
                 }}>
-                  <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#111827', fontSize: '14px' }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     Vos informations
                   </p>
-                  <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
-                    👤 {reserviste?.prenom} {reserviste?.nom}
+                  <p style={{ margin: '4px 0', color: '#374151', fontSize: '14px' }}>
+                    {reserviste?.prenom} {reserviste?.nom}
                   </p>
-                  <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
-                    ✉️ {reserviste?.email}
+                  <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>
+                    {reserviste?.email}
                   </p>
                   {reserviste?.telephone && (
-                    <p style={{ margin: '4px 0', color: '#4b5563', fontSize: '14px' }}>
-                      📱 {reserviste.telephone}
+                    <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>
+                      {reserviste.telephone}
                     </p>
                   )}
                 </div>
@@ -340,29 +376,29 @@ export default function HomePage() {
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ 
                     display: 'block', 
-                    marginBottom: '8px', 
+                    marginBottom: '12px', 
                     fontWeight: '600',
-                    color: '#111827',
+                    color: '#1e3a5f',
                     fontSize: '14px'
                   }}>
-                    Sélectionnez un camp de qualification *
+                    Sélectionnez un camp de qualification
                   </label>
                   
                   {loadingSessions ? (
                     <div style={{ 
-                      padding: '20px', 
+                      padding: '24px', 
                       textAlign: 'center', 
                       color: '#6b7280',
                       backgroundColor: '#f9fafb',
                       borderRadius: '8px'
                     }}>
-                      ⏳ Chargement des camps disponibles...
+                      Chargement des camps disponibles...
                     </div>
                   ) : sessionsDisponibles.filter(s => s.session_id !== campStatus?.session_id).length === 0 ? (
                     <div style={{ 
-                      padding: '20px', 
+                      padding: '24px', 
                       textAlign: 'center', 
-                      color: '#6b7280',
+                      color: '#92400e',
                       backgroundColor: '#fef3c7',
                       borderRadius: '8px'
                     }}>
@@ -379,42 +415,35 @@ export default function HomePage() {
                             display: 'block',
                             padding: '16px',
                             border: selectedSessionId === session.session_id 
-                              ? '2px solid #2563eb' 
-                              : '2px solid #e5e7eb',
+                              ? '2px solid #1e3a5f' 
+                              : '1px solid #e5e7eb',
                             borderRadius: '8px',
                             cursor: 'pointer',
                             backgroundColor: selectedSessionId === session.session_id 
-                              ? '#eff6ff' 
+                              ? '#f0f4f8' 
                               : 'white',
                             transition: 'all 0.2s'
                           }}
                         >
-                          <input
-                            type="radio"
-                            name="session"
-                            value={session.session_id}
-                            checked={selectedSessionId === session.session_id}
-                            onChange={(e) => setSelectedSessionId(e.target.value)}
-                            style={{ marginRight: '12px' }}
-                          />
-                          <span style={{ fontWeight: '600', color: '#111827' }}>
-                            {session.nom}
-                          </span>
-                          <div style={{ 
-                            marginTop: '8px', 
-                            paddingLeft: '24px',
-                            fontSize: '13px',
-                            color: '#4b5563'
-                          }}>
-                            {session.dates && (
-                              <div>📅 {session.dates}</div>
-                            )}
-                            {session.site && (
-                              <div>🏢 {session.site}</div>
-                            )}
-                            {session.location && (
-                              <div>📍 {session.location}</div>
-                            )}
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <input
+                              type="radio"
+                              name="session"
+                              value={session.session_id}
+                              checked={selectedSessionId === session.session_id}
+                              onChange={(e) => setSelectedSessionId(e.target.value)}
+                              style={{ marginTop: '4px' }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: '600', color: '#111827', marginBottom: '6px' }}>
+                                {session.nom}
+                              </div>
+                              <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+                                {session.dates && <div>{session.dates}</div>}
+                                {session.site && <div>{session.site}</div>}
+                                {session.location && <div style={{ color: '#9ca3af' }}>{session.location}</div>}
+                              </div>
+                            </div>
                           </div>
                         </label>
                       ))}
@@ -427,26 +456,26 @@ export default function HomePage() {
                   <div style={{
                     backgroundColor: '#fef2f2',
                     color: '#dc2626',
-                    padding: '12px',
+                    padding: '12px 16px',
                     borderRadius: '8px',
                     marginBottom: '16px',
                     fontSize: '14px'
                   }}>
-                    ❌ {inscriptionError}
+                    {inscriptionError}
                   </div>
                 )}
                 
                 {/* Note d'engagement */}
                 <p style={{ 
-                  color: '#6b7280', 
+                  color: '#92400e', 
                   fontSize: '13px', 
-                  margin: '0 0 20px 0',
-                  fontStyle: 'italic',
-                  backgroundColor: '#fefce8',
-                  padding: '12px',
-                  borderRadius: '8px'
+                  margin: '0 0 24px 0',
+                  backgroundColor: '#fffbeb',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #f59e0b'
                 }}>
-                  ⚠️ En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.
+                  En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.
                 </p>
                 
                 {/* Boutons */}
@@ -456,9 +485,9 @@ export default function HomePage() {
                     disabled={inscriptionLoading}
                     style={{
                       padding: '12px 24px',
-                      backgroundColor: '#f3f4f6',
+                      backgroundColor: 'white',
                       color: '#374151',
-                      border: 'none',
+                      border: '1px solid #d1d5db',
                       borderRadius: '8px',
                       fontSize: '14px',
                       cursor: inscriptionLoading ? 'not-allowed' : 'pointer',
@@ -472,7 +501,7 @@ export default function HomePage() {
                     disabled={inscriptionLoading || !selectedSessionId || loadingSessions}
                     style={{
                       padding: '12px 24px',
-                      backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#10b981',
+                      backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#1e3a5f',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -482,10 +511,10 @@ export default function HomePage() {
                     }}
                   >
                     {inscriptionLoading 
-                      ? '⏳ Traitement...' 
+                      ? 'Traitement...' 
                       : campStatus?.has_inscription 
-                        ? '✅ Confirmer la modification'
-                        : '✅ Confirmer mon inscription'}
+                        ? 'Confirmer la modification'
+                        : 'Confirmer mon inscription'}
                   </button>
                 </div>
               </>
@@ -496,50 +525,182 @@ export default function HomePage() {
 
       {/* Header */}
       <header style={{
-        backgroundColor: '#1e3a5f',
-        color: 'white',
-        padding: '20px 0',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
       }}>
         <div style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: '0 20px',
+          padding: '0 24px',
+          height: '72px',
           display: 'flex',
           alignItems: 'center',
-          gap: '20px'
+          justifyContent: 'space-between'
         }}>
-          <Image
-            src="/logo.png"
-            alt="Logo RIUSC"
-            width={80}
-            height={80}
-            style={{ borderRadius: '50%' }}
-          />
-          <div>
-            <h1 style={{ margin: 0, fontSize: '28px' }}>Portail RIUSC</h1>
-            <p style={{ margin: '5px 0 0 0', opacity: 0.9, fontSize: '14px' }}>
-              Réserve d'Intervention d'Urgence - Sécurité Civile du Québec
-            </p>
+          {/* Logo et titre */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Image
+              src="/logo.png"
+              alt="Logo RIUSC"
+              width={48}
+              height={48}
+              style={{ borderRadius: '8px' }}
+            />
+            <div>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>
+                Portail RIUSC
+              </h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                Réserve d'Intervention d'Urgence
+              </p>
+            </div>
+          </div>
+          
+          {/* Menu utilisateur */}
+          <div ref={userMenuRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '8px 12px',
+                backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = showUserMenu ? '#f3f4f6' : 'transparent'}
+            >
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
+                  {reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Réserviste
+                </div>
+              </div>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: '#1e3a5f',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '600',
+                fontSize: '14px'
+              }}>
+                {getInitials()}
+              </div>
+              <svg width="16" height="16" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {/* Dropdown menu */}
+            {showUserMenu && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                border: '1px solid #e5e7eb',
+                minWidth: '200px',
+                overflow: 'hidden'
+              }}>
+                <a
+                  href="/profil"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Mon profil
+                </a>
+                <a
+                  href="/disponibilites"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Mes disponibilités
+                </a>
+                <button
+                  onClick={handleSignOut}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    color: '#dc2626',
+                    backgroundColor: 'white',
+                    border: 'none',
+                    width: '100%',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Déconnexion
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 20px' }}>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         {/* Welcome Section */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '30px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px'
-        }}>
-          <h2 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>
-            Bienvenue, {reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email} !
+        <div style={{ marginBottom: '32px' }}>
+          <h2 style={{ 
+            color: '#1e3a5f', 
+            margin: '0 0 8px 0', 
+            fontSize: '28px',
+            fontWeight: '700'
+          }}>
+            Bonjour, {reserviste?.prenom || 'Réserviste'}
           </h2>
-          <p style={{ color: '#666', margin: 0 }}>
-            Accédez à vos informations et gérez votre profil de réserviste
+          <p style={{ color: '#6b7280', margin: 0, fontSize: '16px' }}>
+            Bienvenue sur votre espace personnel
           </p>
         </div>
 
@@ -547,144 +708,147 @@ export default function HomePage() {
         {!loadingCamp && campStatus && !campStatus.is_certified && (
           <div style={{
             backgroundColor: 'white',
-            padding: '30px',
+            padding: '24px',
             borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            marginBottom: '30px',
-            border: campStatus.has_inscription ? '2px solid #10b981' : '2px solid #3b82f6'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            marginBottom: '24px',
+            border: campStatus.has_inscription ? '1px solid #10b981' : '1px solid #e5e7eb'
           }}>
-            <h3 style={{ 
-              color: '#1e3a5f', 
-              margin: '0 0 20px 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px'
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '20px',
+              flexWrap: 'wrap',
+              gap: '12px'
             }}>
-              <span style={{ fontSize: '24px' }}>🎓</span>
-              Camp de Qualification
+              <h3 style={{ 
+                color: '#1e3a5f', 
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: '600'
+              }}>
+                Camp de qualification
+              </h3>
               {campStatus.has_inscription && (
                 <span style={{
                   backgroundColor: '#d1fae5',
                   color: '#065f46',
-                  padding: '4px 12px',
+                  padding: '6px 14px',
                   borderRadius: '20px',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontWeight: '600'
                 }}>
                   Inscrit
                 </span>
               )}
-            </h3>
+            </div>
             
             {campStatus.has_inscription && campStatus.camp ? (
-              /* Affichage des infos du camp si inscrit */
-              <div style={{
-                backgroundColor: '#f0fdf4',
-                padding: '20px',
-                borderRadius: '10px'
-              }}>
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '18px', fontWeight: '600', color: '#111827' }}>
+              <div>
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: '#111827',
+                    marginBottom: '12px'
+                  }}>
                     {campStatus.camp.nom}
                   </div>
-                </div>
-                <div style={{ display: 'grid', gap: '8px', fontSize: '15px', color: '#4b5563' }}>
-                  {campStatus.camp.dates && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>📅</span>
-                      <span><strong>Dates :</strong> {campStatus.camp.dates}</span>
-                    </div>
-                  )}
-                  {campStatus.camp.site && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>🏢</span>
-                      <span><strong>Site :</strong> {campStatus.camp.site}</span>
-                    </div>
-                  )}
-                  {campStatus.camp.location && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>📍</span>
-                      <span><strong>Lieu :</strong> {campStatus.camp.location}</span>
-                    </div>
-                  )}
+                  <div style={{ display: 'grid', gap: '6px', fontSize: '14px', color: '#4b5563' }}>
+                    {campStatus.camp.dates && (
+                      <div><strong>Dates :</strong> {campStatus.camp.dates}</div>
+                    )}
+                    {campStatus.camp.site && (
+                      <div><strong>Site :</strong> {campStatus.camp.site}</div>
+                    )}
+                    {campStatus.camp.location && (
+                      <div style={{ color: '#6b7280' }}>{campStatus.camp.location}</div>
+                    )}
+                  </div>
                 </div>
                 
-                {/* Boutons d'action */}
-                <div style={{ 
-                  marginTop: '20px', 
-                  display: 'flex', 
-                  gap: '12px',
-                  flexWrap: 'wrap'
-                }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <button
                     onClick={openCampModal}
                     style={{
                       padding: '10px 20px',
-                      backgroundColor: '#2563eb',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      color: '#1e3a5f',
+                      border: '1px solid #1e3a5f',
+                      borderRadius: '6px',
                       fontSize: '14px',
                       fontWeight: '500',
                       cursor: 'pointer',
-                      transition: 'background-color 0.2s'
+                      transition: 'all 0.2s'
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#1e3a5f'
+                      e.currentTarget.style.color = 'white'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white'
+                      e.currentTarget.style.color = '#1e3a5f'
+                    }}
                   >
-                    🔄 Modifier mon inscription
+                    Modifier mon inscription
                   </button>
                   <button
                     onClick={handleCancelInscription}
                     disabled={cancellingInscription}
                     style={{
                       padding: '10px 20px',
-                      backgroundColor: '#dc2626',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      color: '#6b7280',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
                       fontSize: '14px',
                       fontWeight: '500',
                       cursor: cancellingInscription ? 'not-allowed' : 'pointer',
-                      opacity: cancellingInscription ? 0.7 : 1,
-                      transition: 'background-color 0.2s'
+                      opacity: cancellingInscription ? 0.7 : 1
                     }}
-                    onMouseOver={(e) => { if (!cancellingInscription) e.currentTarget.style.backgroundColor = '#b91c1c' }}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                    onMouseOver={(e) => {
+                      if (!cancellingInscription) {
+                        e.currentTarget.style.borderColor = '#ef4444'
+                        e.currentTarget.style.color = '#ef4444'
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.borderColor = '#d1d5db'
+                      e.currentTarget.style.color = '#6b7280'
+                    }}
                   >
-                    {cancellingInscription ? '⏳ Annulation...' : '❌ Je ne suis plus disponible'}
+                    {cancellingInscription ? 'Annulation...' : 'Je ne suis plus disponible'}
                   </button>
                 </div>
               </div>
             ) : (
-              /* Bouton d'inscription si pas inscrit */
-              <div style={{
-                backgroundColor: '#eff6ff',
-                padding: '20px',
-                borderRadius: '10px',
-                textAlign: 'center'
-              }}>
-                <p style={{ color: '#1e40af', marginBottom: '16px', fontSize: '15px' }}>
+              <div>
+                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
                   Pour devenir réserviste certifié, vous devez compléter un camp de qualification.
                 </p>
                 <button
                   onClick={openCampModal}
                   style={{
-                    display: 'inline-block',
-                    padding: '14px 28px',
-                    backgroundColor: '#2563eb',
-                    color: '#ffffff',
+                    padding: '12px 24px',
+                    backgroundColor: '#1e3a5f',
+                    color: 'white',
                     border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '16px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}
                 >
-                  📝 S'inscrire à un camp de qualification
+                  S'inscrire à un camp de qualification
                 </button>
               </div>
             )}
@@ -694,38 +858,44 @@ export default function HomePage() {
         {/* Section Missions Actives */}
         <div style={{
           backgroundColor: 'white',
-          padding: '30px',
+          padding: '24px',
           borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          marginBottom: '30px',
-          border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginBottom: '24px'
         }}>
-          <h3 style={{ 
-            color: '#1e3a5f', 
-            margin: '0 0 20px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '20px',
+            flexWrap: 'wrap',
+            gap: '12px'
           }}>
-            <span style={{ fontSize: '24px' }}>🚨</span>
-            Déploiements en recherche de réservistes
+            <h3 style={{ 
+              color: '#1e3a5f', 
+              margin: 0,
+              fontSize: '18px',
+              fontWeight: '600'
+            }}>
+              Déploiements en recherche de réservistes
+            </h3>
             {deploiementsActifs.length > 0 && (
               <span style={{
                 backgroundColor: '#fef3c7',
                 color: '#92400e',
-                padding: '4px 12px',
+                padding: '6px 14px',
                 borderRadius: '20px',
-                fontSize: '14px',
+                fontSize: '13px',
                 fontWeight: '600'
               }}>
                 {deploiementsActifs.length} actif{deploiementsActifs.length > 1 ? 's' : ''}
               </span>
             )}
-          </h3>
+          </div>
           
           {deploiementsActifs.length === 0 ? (
             <div style={{
-              padding: '20px',
+              padding: '40px 20px',
               backgroundColor: '#f9fafb',
               borderRadius: '8px',
               textAlign: 'center'
@@ -735,192 +905,177 @@ export default function HomePage() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {deploiementsActifs.map((dep) => (
                 <div
                   key={dep.id}
                   style={{
                     border: '1px solid #e5e7eb',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     padding: '20px',
-                    backgroundColor: '#fffbeb',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '16px'
+                    backgroundColor: '#fafafa'
                   }}
                 >
-                  <div style={{ flex: '1', minWidth: '250px' }}>
-                    {dep.nom_sinistre && (
-                      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
-                        🔥 {dep.nom_sinistre}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '16px'
+                  }}>
+                    <div style={{ flex: 1, minWidth: '280px' }}>
+                      {dep.nom_sinistre && (
+                        <div style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600',
+                          color: '#1e3a5f',
+                          marginBottom: '4px'
+                        }}>
+                          {dep.nom_sinistre}
+                        </div>
+                      )}
+                      <div style={{ 
+                        fontSize: '16px', 
+                        fontWeight: dep.nom_sinistre ? '500' : '600', 
+                        color: dep.nom_sinistre ? '#374151' : '#1e3a5f',
+                        marginBottom: '12px'
+                      }}>
+                        {dep.nom_deploiement}
                       </div>
-                    )}
-                    <div style={{ 
-                      fontSize: '16px', 
-                      fontWeight: '600', 
-                      color: '#111827',
-                      marginBottom: '8px'
-                    }}>
-                      {dep.nom_deploiement}
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#4b5563' }}>
-                      📅 {dep.date_debut && formatDate(dep.date_debut)}
-                      {dep.date_fin && ` → ${formatDate(dep.date_fin)}`}
-                    </div>
-                    {dep.lieu && (
-                      <div style={{ fontSize: '14px', color: '#4b5563', marginTop: '4px' }}>
-                        📍 {dep.lieu}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
+                        <div>
+                          {dep.date_debut && formatDate(dep.date_debut)}
+                          {dep.date_fin && ` — ${formatDate(dep.date_fin)}`}
+                        </div>
+                        {dep.lieu && <div>{dep.lieu}</div>}
                       </div>
-                    )}
+                    </div>
+                    
+                    <a
+                      href={genererLienJotform(dep.deploiement_id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        padding: '12px 20px',
+                        backgroundColor: '#1e3a5f',
+                        color: 'white',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'background-color 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}
+                    >
+                      Soumettre ma disponibilité
+                    </a>
                   </div>
-                  
-                  <a
-                    href={genererLienJotform(dep.deploiement_id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      padding: '12px 20px',
-                      backgroundColor: '#2563eb',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      textDecoration: 'none',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      transition: 'background-color 0.2s',
-                      whiteSpace: 'nowrap'
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                  >
-                    Soumettre ma disponibilité
-                  </a>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Menu Cards */}
+        {/* Quick Actions */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '20px',
-          marginBottom: '30px'
+          gap: '16px'
         }}>
-          {/* Profil Card */}
           <a href="/profil" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
-              padding: '30px',
+              padding: '24px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s',
               cursor: 'pointer',
-              border: '2px solid transparent'
+              border: '1px solid transparent'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
-              e.currentTarget.style.borderColor = '#4a90e2'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+              e.currentTarget.style.borderColor = '#1e3a5f'
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
               e.currentTarget.style.borderColor = 'transparent'
             }}
             >
-              <div style={{ fontSize: '48px', marginBottom: '15px' }}>👤</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>Mon Profil</h3>
-              <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
-                Consultez et mettez à jour vos informations personnelles
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>👤</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                Mon Profil
+              </h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+                Consultez et mettez à jour vos informations
               </p>
             </div>
           </a>
 
-          {/* Disponibilités Card */}
           <a href="/disponibilites" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
-              padding: '30px',
+              padding: '24px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s',
               cursor: 'pointer',
-              border: '2px solid transparent'
+              border: '1px solid transparent'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
-              e.currentTarget.style.borderColor = '#4a90e2'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+              e.currentTarget.style.borderColor = '#1e3a5f'
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
               e.currentTarget.style.borderColor = 'transparent'
             }}
             >
-              <div style={{ fontSize: '48px', marginBottom: '15px' }}>📅</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>Mes Disponibilités</h3>
-              <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📅</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                Mes Disponibilités
+              </h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
                 Gérez vos disponibilités pour les déploiements
               </p>
             </div>
           </a>
 
-          {/* Formulaires Card */}
           <a href="/formulaires" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
-              padding: '30px',
+              padding: '24px',
               borderRadius: '12px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s',
               cursor: 'pointer',
-              border: '2px solid transparent'
+              border: '1px solid transparent'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)'
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
-              e.currentTarget.style.borderColor = '#4a90e2'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'
+              e.currentTarget.style.borderColor = '#1e3a5f'
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.transform = 'translateY(0)'
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
               e.currentTarget.style.borderColor = 'transparent'
             }}
             >
-              <div style={{ fontSize: '48px', marginBottom: '15px' }}>📝</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 10px 0' }}>Formulaires</h3>
-              <p style={{ color: '#666', margin: 0, fontSize: '14px' }}>
-                Accédez aux formulaires et documents importants
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📝</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                Formulaires
+              </h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
+                Accédez aux formulaires et documents
               </p>
             </div>
           </a>
-        </div>
-
-        {/* Sign Out Button */}
-        <div style={{ textAlign: 'center' }}>
-          <button 
-            onClick={handleSignOut}
-            style={{
-              padding: '12px 30px',
-              backgroundColor: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-          >
-            🚪 Déconnexion
-          </button>
         </div>
       </main>
 
@@ -928,12 +1083,12 @@ export default function HomePage() {
       <footer style={{
         backgroundColor: '#1e3a5f',
         color: 'white',
-        padding: '20px',
+        padding: '24px',
         textAlign: 'center',
         marginTop: '60px'
       }}>
-        <p style={{ margin: 0, fontSize: '14px', opacity: 0.9 }}>
-          © 2026 AQBRS - Tous droits réservés
+        <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>
+          © 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage
         </p>
       </footer>
     </div>
