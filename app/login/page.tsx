@@ -18,7 +18,6 @@ function LoginContent() {
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [otpMethod, setOtpMethod] = useState<'sms' | 'email' | null>(null)
-  const [maskedPhone, setMaskedPhone] = useState('')
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
@@ -36,15 +35,6 @@ function LoginContent() {
     }
     checkUser()
   }, [searchParams])
-
-  // Masquer le numéro de téléphone pour l'affichage (ex: *** ***-7313)
-  const maskPhone = (phone: string) => {
-    const numbers = phone.replace(/\D/g, '')
-    if (numbers.length >= 4) {
-      return `*** ***-${numbers.slice(-4)}`
-    }
-    return '***'
-  }
 
   // Convertir en format E.164 pour Twilio
   const toE164 = (phoneNumber: string) => {
@@ -100,8 +90,7 @@ function LoginContent() {
         }
 
         setOtpMethod('sms')
-        setMaskedPhone(maskPhone(reserviste.telephone))
-        setSuccess(`Code envoyé par SMS au ${maskPhone(reserviste.telephone)}`)
+        setSuccess('Code de connexion envoyé par SMS')
       } else {
         // Envoyer par email
         const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -116,7 +105,7 @@ function LoginContent() {
         }
 
         setOtpMethod('email')
-        setSuccess(`Code envoyé par courriel à ${email}`)
+        setSuccess('Code de connexion envoyé par courriel')
       }
 
       setOtpSent(true)
@@ -174,12 +163,6 @@ function LoginContent() {
       }
 
       if (verifyResult?.data?.user) {
-        // Synchroniser le user_id du reserviste avec le user authentifié
-        await supabase
-          .from('reservistes')
-          .update({ user_id: verifyResult.data.user.id })
-          .eq('email', email.toLowerCase().trim())
-        
         router.push('/')
       }
     } catch (err) {
@@ -195,7 +178,6 @@ function LoginContent() {
     setOtpSent(false)
     setOtpCode('')
     setOtpMethod(null)
-    setMaskedPhone('')
     setError('')
     setSuccess('')
   }
@@ -348,7 +330,7 @@ function LoginContent() {
               lineHeight: '1.6'
             }}>
               {otpMethod === 'sms' ? (
-                <>Code envoyé par <strong>SMS</strong> au <strong>{maskedPhone}</strong></>
+                <>Code envoyé par <strong>SMS</strong> au numéro associé à votre compte</>
               ) : (
                 <>Code envoyé par <strong>courriel</strong> à <strong>{email}</strong></>
               )}

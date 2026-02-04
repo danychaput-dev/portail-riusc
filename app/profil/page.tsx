@@ -2,9 +2,11 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import * as faceapi from 'face-api.js'
+
+const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 
 interface Reserviste {
   id: number;
@@ -18,10 +20,21 @@ interface Reserviste {
   adresse?: string;
   ville?: string;
   region?: string;
+  latitude?: number;
+  longitude?: number;
   contact_urgence_nom?: string;
   contact_urgence_telephone?: string;
   statut: string;
   photo_url?: string;
+}
+
+interface MapboxFeature {
+  place_name: string;
+  center: [number, number];
+  context?: Array<{
+    id: string;
+    text: string;
+  }>;
 }
 
 // Fonction pour formater les numéros de téléphone à l'affichage
@@ -67,9 +80,18 @@ export default function ProfilPage() {
     adresse: '',
     ville: '',
     region: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     contact_urgence_nom: '',
     contact_urgence_telephone: ''
   })
+  
+  // États pour l'autocomplete adresse
+  const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+  const addressDropdownRef = useRef<HTMLDivElement>(null)
   
   // États pour la photo
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
@@ -122,7 +144,7 @@ export default function ProfilPage() {
       
       let reservisteData = null
       
-      // 1. Chercher par email si disponible
+      // Chercher par email si disponible
       if (user.email) {
         const { data } = await supabase
           .from('reservistes')
@@ -132,32 +154,27 @@ export default function ProfilPage() {
         reservisteData = data
       }
       
-      // 2. Sinon chercher par téléphone
+      // Sinon chercher par téléphone
       if (!reservisteData && user.phone) {
-        // Nettoyer le numéro (garder seulement les chiffres)
         const phoneDigits = user.phone.replace(/\D/g, '')
-        // Essayer différents formats (avec/sans le 1)
-        const phoneVariants = [
-          phoneDigits,
-          phoneDigits.startsWith('1') ? phoneDigits.slice(1) : '1' + phoneDigits
-        ]
-        
         const { data } = await supabase
           .from('reservistes')
           .select('*')
-          .or(phoneVariants.map(p => `telephone.eq.${p}`).join(','))
-          .limit(1)
+          .eq('telephone', phoneDigits)
           .single()
-        reservisteData = data
-      }
-      
-      // 3. Mettre à jour le user_id si trouvé (pour les prochaines fois)
-      if (reservisteData && reservisteData.user_id !== user.id) {
-        await supabase
-          .from('reservistes')
-          .update({ user_id: user.id })
-          .eq('id', reservisteData.id)
-        reservisteData.user_id = user.id
+        
+        if (!data) {
+          // Essayer sans le 1 au début
+          const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
+          const { data: data2 } = await supabase
+            .from('reservistes')
+            .select('*')
+            .eq('telephone', phoneWithout1)
+            .single()
+          reservisteData = data2
+        } else {
+          reservisteData = data
+        }
       }
       
       if (reservisteData) {
@@ -173,6 +190,8 @@ export default function ProfilPage() {
           adresse: reservisteData.adresse || '',
           ville: reservisteData.ville || '',
           region: reservisteData.region || '',
+          latitude: reservisteData.latitude || null,
+          longitude: reservisteData.longitude || null,
           contact_urgence_nom: reservisteData.contact_urgence_nom || '',
           contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone)
         })
@@ -185,6 +204,78 @@ export default function ProfilPage() {
     }
     loadData()
   }, [])
+
+  // Fermer le dropdown adresse quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (addressDropdownRef.current && !addressDropdownRef.current.contains(event.target as Node) &&
+          addressInputRef.current && !addressInputRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Rechercher des adresses avec Mapbox
+  const searchAddress = useCallback(async (query: string) => {
+    if (query.length < 3) {
+      setAddressSuggestions([])
+      return
+    }
+    
+    setIsLoadingAddress(true)
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
+        `access_token=${MAPBOX_TOKEN}&country=ca&language=fr&types=address&limit=5`
+      )
+      const data = await response.json()
+      setAddressSuggestions(data.features || [])
+      setShowAddressSuggestions(true)
+    } catch (error) {
+      console.error('Erreur recherche adresse:', error)
+    }
+    setIsLoadingAddress(false)
+  }, [])
+
+  // Debounce pour la recherche d'adresse
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const handleAddressChange = (value: string) => {
+    setFormData(prev => ({ ...prev, adresse: value, latitude: null, longitude: null }))
+    
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+    
+    debounceRef.current = setTimeout(() => {
+      searchAddress(value)
+    }, 300)
+  }
+
+  // Sélectionner une adresse
+  const selectAddress = (feature: MapboxFeature) => {
+    const [lng, lat] = feature.center
+    
+    // Extraire la ville du contexte
+    let ville = ''
+    if (feature.context) {
+      const placeContext = feature.context.find(c => c.id.startsWith('place'))
+      if (placeContext) {
+        ville = placeContext.text
+      }
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      adresse: feature.place_name,
+      latitude: lat,
+      longitude: lng,
+      ville: ville || prev.ville
+    }))
+    setShowAddressSuggestions(false)
+    setAddressSuggestions([])
+  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -333,6 +424,8 @@ export default function ProfilPage() {
     adresse: string;
     ville: string;
     region: string;
+    latitude: number | null;
+    longitude: number | null;
     contact_urgence_nom: string;
     contact_urgence_telephone: string;
   }) => {
@@ -375,6 +468,8 @@ export default function ProfilPage() {
           adresse: formData.adresse || null,
           ville: formData.ville || null,
           region: formData.region || null,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           contact_urgence_nom: formData.contact_urgence_nom || null,
           contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone) || null
         })
@@ -414,6 +509,8 @@ export default function ProfilPage() {
         adresse: formData.adresse,
         ville: formData.ville,
         region: formData.region,
+        latitude: formData.latitude,
+        longitude: formData.longitude,
         contact_urgence_nom: formData.contact_urgence_nom,
         contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone)
       })
@@ -841,15 +938,71 @@ export default function ProfilPage() {
                   />
                 </div>
                 
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div style={{ gridColumn: '1 / -1', position: 'relative' }}>
                   <label style={labelStyle}>Adresse</label>
                   <input
+                    ref={addressInputRef}
                     type="text"
                     value={formData.adresse}
-                    onChange={(e) => handleInputChange('adresse', e.target.value)}
+                    onChange={(e) => handleAddressChange(e.target.value)}
+                    onFocus={() => formData.adresse.length >= 3 && setShowAddressSuggestions(true)}
                     style={inputStyle}
-                    placeholder="123 rue Principale, Apt 4"
+                    placeholder="Commencez à taper votre adresse..."
+                    autoComplete="off"
                   />
+                  {isLoadingAddress && (
+                    <div style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '38px',
+                      fontSize: '12px',
+                      color: '#6b7280'
+                    }}>
+                      Recherche...
+                    </div>
+                  )}
+                  {formData.latitude && formData.longitude && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>
+                      ✓ Adresse validée
+                    </p>
+                  )}
+                  {showAddressSuggestions && addressSuggestions.length > 0 && (
+                    <div
+                      ref={addressDropdownRef}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                        zIndex: 1000,
+                        marginTop: '4px',
+                        maxHeight: '250px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {addressSuggestions.map((suggestion, index) => (
+                        <div
+                          key={index}
+                          onClick={() => selectAddress(suggestion)}
+                          style={{
+                            padding: '12px 16px',
+                            cursor: 'pointer',
+                            borderBottom: index < addressSuggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
+                            fontSize: '14px',
+                            color: '#374151'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          {suggestion.place_name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div>
