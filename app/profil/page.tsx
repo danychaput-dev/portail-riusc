@@ -20,8 +20,8 @@ interface Reserviste {
   adresse?: string;
   ville?: string;
   region?: string;
-  latitude?: number;
-  longitude?: number;
+  latitude?: number | null;
+  longitude?: number | null;
   contact_urgence_nom?: string;
   contact_urgence_telephone?: string;
   statut: string;
