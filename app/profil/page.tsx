@@ -1010,19 +1010,37 @@ export default function ProfilPage() {
                   <input
                     type="text"
                     value={formData.ville}
-                    onChange={(e) => handleInputChange('ville', e.target.value)}
-                    style={inputStyle}
+                    readOnly
+                    style={{
+                      ...inputStyle,
+                      backgroundColor: '#f3f4f6',
+                      cursor: 'not-allowed'
+                    }}
+                    placeholder="Rempli automatiquement par l'adresse"
                   />
                 </div>
                 
                 <div>
-                  <label style={labelStyle}>Région / District</label>
-                  <input
-                    type="text"
+                  <label style={labelStyle}>Région administrative</label>
+                  <select
                     value={formData.region}
                     onChange={(e) => handleInputChange('region', e.target.value)}
                     style={inputStyle}
-                  />
+                  >
+                    <option value="">-- Sélectionnez une région --</option>
+                    <option value="Abitibi-Témiscamingue / Nord-du-Québec">Abitibi-Témiscamingue / Nord-du-Québec</option>
+                    <option value="Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine">Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine</option>
+                    <option value="Capitale-Nationale / Chaudière-Appalaches">Capitale-Nationale / Chaudière-Appalaches</option>
+                    <option value="Côte-Nord">Côte-Nord</option>
+                    <option value="Estrie">Estrie</option>
+                    <option value="Mauricie / Centre-du-Québec">Mauricie / Centre-du-Québec</option>
+                    <option value="Montréal / Laval / Laurentides / Lanaudière">Montréal / Laval / Laurentides / Lanaudière</option>
+                    <option value="Montérégie">Montérégie</option>
+                    <option value="Nord du Québec">Nord du Québec</option>
+                    <option value="Ontario">Ontario</option>
+                    <option value="Outaouais">Outaouais</option>
+                    <option value="Saguenay / Lac-St-Jean">Saguenay / Lac-St-Jean</option>
+                  </select>
                 </div>
               </div>
             </div>
