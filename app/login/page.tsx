@@ -90,7 +90,7 @@ function LoginContent() {
         }
 
         setOtpMethod('sms')
-        setSuccess('Code de connexion envoyé par SMS')
+        setSuccess('')
       } else {
         // Envoyer par email
         const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -105,7 +105,7 @@ function LoginContent() {
         }
 
         setOtpMethod('email')
-        setSuccess('Code de connexion envoyé par courriel')
+        setSuccess('')
       }
 
       setOtpSent(true)
