@@ -1007,6 +1007,7 @@ export default function HomePage() {
                   </svg>
                   Mon profil
                 </a>
+                {reserviste?.groupe === 'Approuvé' && (
                 <a
                   href="/disponibilites"
                   style={{
@@ -1027,6 +1028,7 @@ export default function HomePage() {
                   </svg>
                   Mes disponibilités
                 </a>
+                )}
                 <a
                   href="/tournee-camps"
                   style={{
@@ -1412,6 +1414,7 @@ export default function HomePage() {
             </div>
           </a>
 
+          {reserviste?.groupe === 'Approuvé' && (
           <a href="/disponibilites" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
@@ -1442,6 +1445,7 @@ export default function HomePage() {
               </p>
             </div>
           </a>
+          )}
 
           <a href="/tournee-camps" style={{ textDecoration: 'none' }}>
             <div style={{
