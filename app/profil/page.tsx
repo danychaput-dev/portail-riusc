@@ -53,6 +53,9 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   
+  // Garder l'email original pour détecter les changements
+  const [originalEmail, setOriginalEmail] = useState('')
+  
   // États pour le formulaire
   const [formData, setFormData] = useState({
     prenom: '',
@@ -125,6 +128,7 @@ export default function ProfilPage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
+        setOriginalEmail(reservisteData.email || '')
         setFormData({
           prenom: reservisteData.prenom || '',
           nom: reservisteData.nom || '',
@@ -283,6 +287,34 @@ export default function ProfilPage() {
     setUploadingPhoto(false)
   }
 
+  // Synchroniser vers Monday.com via n8n
+  const syncToMonday = async (data: {
+    benevole_id: string;
+    prenom: string;
+    nom: string;
+    email: string;
+    telephone: string;
+    ville: string;
+    region: string;
+  }) => {
+    try {
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      })
+      
+      if (!response.ok) {
+        console.error('Erreur sync Monday:', await response.text())
+      }
+    } catch (error) {
+      console.error('Erreur sync Monday:', error)
+      // Ne pas bloquer la sauvegarde si Monday échoue
+    }
+  }
+
   // Sauvegarder le profil
   const handleSave = async () => {
     if (!reserviste) return
@@ -291,7 +323,8 @@ export default function ProfilPage() {
     setMessage(null)
 
     try {
-      const { error } = await supabase
+      // 1. Mettre à jour la table reservistes
+      const { error: reservisteError } = await supabase
         .from('reservistes')
         .update({
           prenom: formData.prenom,
@@ -308,16 +341,47 @@ export default function ProfilPage() {
         })
         .eq('id', reserviste.id)
 
-      if (error) throw error
+      if (reservisteError) throw reservisteError
+
+      // 2. Si l'email a changé, mettre à jour auth.users
+      if (formData.email !== originalEmail && formData.email) {
+        const { error: authError } = await supabase.auth.updateUser({
+          email: formData.email
+        })
+        
+        if (authError) {
+          // Rollback le changement d'email dans reservistes si auth échoue
+          await supabase
+            .from('reservistes')
+            .update({ email: originalEmail })
+            .eq('id', reserviste.id)
+          
+          throw new Error(`Erreur mise à jour email: ${authError.message}. Un email de confirmation a peut-être été envoyé.`)
+        }
+        
+        // Mettre à jour l'email original
+        setOriginalEmail(formData.email)
+      }
+
+      // 3. Synchroniser vers Monday.com (en arrière-plan)
+      syncToMonday({
+        benevole_id: reserviste.benevole_id,
+        prenom: formData.prenom,
+        nom: formData.nom,
+        email: formData.email,
+        telephone: cleanPhoneForSave(formData.telephone),
+        ville: formData.ville,
+        region: formData.region
+      })
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
       
       // Mettre à jour l'état local
       setReserviste(prev => prev ? { ...prev, ...formData } : null)
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur sauvegarde:', error)
-      setMessage({ type: 'error', text: 'Erreur lors de la sauvegarde' })
+      setMessage({ type: 'error', text: error.message || 'Erreur lors de la sauvegarde' })
     }
 
     setSaving(false)
@@ -688,6 +752,11 @@ export default function ProfilPage() {
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     style={inputStyle}
                   />
+                  {formData.email !== originalEmail && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#f59e0b' }}>
+                      ⚠️ Un email de confirmation sera envoyé à la nouvelle adresse
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
