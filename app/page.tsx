@@ -50,6 +50,12 @@ interface SessionCamp {
   location: string;
 }
 
+interface CertificatFile {
+  id: string;
+  name: string;
+  url?: string;
+}
+
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
@@ -58,6 +64,13 @@ export default function HomePage() {
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
+  
+  // États pour les certificats
+  const [certificats, setCertificats] = useState<CertificatFile[]>([])
+  const [loadingCertificats, setLoadingCertificats] = useState(true)
+  const [uploadingCertificat, setUploadingCertificat] = useState(false)
+  const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const certificatInputRef = useRef<HTMLInputElement>(null)
   
   // Menu utilisateur
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -86,6 +99,90 @@ export default function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Charger les certificats
+  const loadCertificats = async (benevoleId: string) => {
+    setLoadingCertificats(true)
+    try {
+      const response = await fetch(
+        `https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${benevoleId}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.files) {
+          setCertificats(data.files)
+        }
+      }
+    } catch (error) {
+      console.error('Erreur fetch certificats:', error)
+    }
+    setLoadingCertificats(false)
+  }
+
+  // Upload certificat
+  const handleCertificatUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !reserviste) return
+
+    // Vérifier le type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    if (!allowedTypes.includes(file.type)) {
+      setCertificatMessage({ type: 'error', text: 'Format accepté : PDF, JPG ou PNG' })
+      return
+    }
+
+    // Vérifier la taille (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setCertificatMessage({ type: 'error', text: 'Le fichier ne doit pas dépasser 10 Mo' })
+      return
+    }
+
+    setUploadingCertificat(true)
+    setCertificatMessage(null)
+
+    try {
+      // Convertir en base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          const base64Data = result.split(',')[1]
+          resolve(base64Data)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // Envoyer à n8n
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          file_name: file.name,
+          file_base64: base64
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
+        // Recharger la liste
+        await loadCertificats(reserviste.benevole_id)
+      } else {
+        setCertificatMessage({ type: 'error', text: data.error || 'Erreur lors de l\'envoi' })
+      }
+    } catch (error) {
+      console.error('Erreur upload certificat:', error)
+      setCertificatMessage({ type: 'error', text: 'Erreur lors de l\'envoi' })
+    }
+
+    setUploadingCertificat(false)
+    if (certificatInputRef.current) {
+      certificatInputRef.current.value = ''
+    }
+  }
+
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -96,12 +193,39 @@ export default function HomePage() {
       
       setUser(user)
       
-      // Fetch reserviste
-      const { data: reservisteData } = await supabase
-        .from('reservistes')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      let reservisteData = null
+      
+      // Chercher par email si disponible
+      if (user.email) {
+        const { data } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url')
+          .ilike('email', user.email)
+          .single()
+        reservisteData = data
+      }
+      
+      // Sinon chercher par téléphone
+      if (!reservisteData && user.phone) {
+        const phoneDigits = user.phone.replace(/\D/g, '')
+        const { data } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url')
+          .eq('telephone', phoneDigits)
+          .single()
+        
+        if (!data) {
+          const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
+          const { data: data2 } = await supabase
+            .from('reservistes')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url')
+            .eq('telephone', phoneWithout1)
+            .single()
+          reservisteData = data2
+        } else {
+          reservisteData = data
+        }
+      }
       
       if (reservisteData) {
         setReserviste(reservisteData)
@@ -119,6 +243,9 @@ export default function HomePage() {
           console.error('Erreur fetch camp status:', error)
         }
         setLoadingCamp(false)
+        
+        // Charger les certificats
+        await loadCertificats(reservisteData.benevole_id)
       }
       
       // Fetch déploiements actifs
@@ -204,7 +331,6 @@ export default function HomePage() {
       if (response.ok && data.success) {
         setInscriptionSuccess(true)
         
-        // Rafraîchir la page après 2 secondes
         setTimeout(() => {
           closeCampModal()
           window.location.reload()
@@ -235,7 +361,6 @@ export default function HomePage() {
       )
       
       if (response.ok) {
-        // Rafraîchir la page
         window.location.reload()
       } else {
         alert('Erreur lors de l\'annulation. Veuillez réessayer.')
@@ -265,7 +390,6 @@ export default function HomePage() {
     return date.toLocaleDateString('fr-CA', options);
   }
 
-  // Obtenir les initiales
   function getInitials(): string {
     if (reserviste) {
       return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase()
@@ -349,7 +473,6 @@ export default function HomePage() {
                     : 'Sélectionnez le camp auquel vous souhaitez participer.'}
                 </p>
                 
-                {/* Infos du bénévole */}
                 <div style={{
                   backgroundColor: '#f9fafb',
                   padding: '16px',
@@ -373,7 +496,6 @@ export default function HomePage() {
                   )}
                 </div>
                 
-                {/* Sélection du camp */}
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ 
                     display: 'block', 
@@ -452,7 +574,6 @@ export default function HomePage() {
                   )}
                 </div>
                 
-                {/* Message d'erreur */}
                 {inscriptionError && (
                   <div style={{
                     backgroundColor: '#fef2f2',
@@ -466,7 +587,6 @@ export default function HomePage() {
                   </div>
                 )}
                 
-                {/* Note d'engagement */}
                 <p style={{ 
                   color: '#92400e', 
                   fontSize: '13px', 
@@ -479,7 +599,6 @@ export default function HomePage() {
                   En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.
                 </p>
                 
-                {/* Boutons */}
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button
                     onClick={closeCampModal}
@@ -541,7 +660,6 @@ export default function HomePage() {
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          {/* Logo et titre */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Image
               src="/logo.png"
@@ -560,7 +678,6 @@ export default function HomePage() {
             </div>
           </div>
           
-          {/* Menu utilisateur */}
           <div ref={userMenuRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
@@ -618,7 +735,6 @@ export default function HomePage() {
               </svg>
             </button>
             
-            {/* Dropdown menu */}
             {showUserMenu && (
               <div style={{
                 position: 'absolute',
@@ -739,6 +855,242 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* Section Formation obligatoire / Certificats */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          border: certificats.length === 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            marginBottom: '20px',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <h3 style={{ 
+              color: '#1e3a5f', 
+              margin: 0,
+              fontSize: '18px',
+              fontWeight: '600'
+            }}>
+              📄 Formation et certificats
+            </h3>
+            {certificats.length > 0 && (
+              <span style={{
+                backgroundColor: '#d1fae5',
+                color: '#065f46',
+                padding: '6px 14px',
+                borderRadius: '20px',
+                fontSize: '13px',
+                fontWeight: '600'
+              }}>
+                {certificats.length} certificat{certificats.length > 1 ? 's' : ''} reçu{certificats.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Message si pas de certificat */}
+          {!loadingCertificats && certificats.length === 0 && (
+            <div style={{
+              backgroundColor: '#fffbeb',
+              border: '1px solid #fcd34d',
+              borderRadius: '8px',
+              padding: '20px',
+              marginBottom: '20px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span style={{ fontSize: '24px' }}>⚠️</span>
+                <div>
+                  <p style={{ 
+                    margin: '0 0 12px 0', 
+                    fontWeight: '600', 
+                    color: '#92400e',
+                    fontSize: '15px'
+                  }}>
+                    Formation obligatoire requise
+                  </p>
+                  <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                    Pour compléter votre inscription à la RIUSC, vous devez suivre la formation 
+                    <strong> « S'initier à la sécurité civile »</strong> sur la plateforme du Centre RISC, 
+                    puis nous soumettre votre certificat de réussite.
+                  </p>
+                  
+                  <div style={{ 
+                    backgroundColor: 'white', 
+                    padding: '16px', 
+                    borderRadius: '8px',
+                    marginBottom: '16px'
+                  }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}>
+                      <strong>Durée :</strong> environ 1 h 45
+                    </p>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}>
+                      <strong>Contenu :</strong> 5 modules à suivre à votre rythme
+                    </p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                      <strong>Délai :</strong> 30 jours après votre inscription
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                    <a
+                      href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '10px 16px',
+                        backgroundColor: '#1e3a5f',
+                        color: 'white',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      🎓 Accéder à la formation
+                    </a>
+                    <a
+                      href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '10px 16px',
+                        backgroundColor: 'white',
+                        color: '#374151',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      📺 Tutoriel vidéo
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Liste des certificats */}
+          {!loadingCertificats && certificats.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {certificats.map((cert) => (
+                  <div
+                    key={cert.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontSize: '20px' }}>📄</span>
+                      <span style={{ fontSize: '14px', color: '#374151' }}>
+                        {cert.name}
+                      </span>
+                    </div>
+                    {cert.url && (
+                      <a
+                        href={cert.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#1e3a5f',
+                          color: 'white',
+                          borderRadius: '6px',
+                          textDecoration: 'none',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        Télécharger
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {loadingCertificats && (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+              Chargement des certificats...
+            </div>
+          )}
+
+          {/* Message de succès/erreur */}
+          {certificatMessage && (
+            <div style={{
+              padding: '12px 16px',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2',
+              color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626',
+              fontSize: '14px'
+            }}>
+              {certificatMessage.text}
+            </div>
+          )}
+
+          {/* Bouton upload */}
+          <div>
+            <input
+              ref={certificatInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleCertificatUpload}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => certificatInputRef.current?.click()}
+              disabled={uploadingCertificat}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: uploadingCertificat ? 'not-allowed' : 'pointer',
+                opacity: uploadingCertificat ? 0.7 : 1
+              }}
+            >
+              {uploadingCertificat ? (
+                '⏳ Envoi en cours...'
+              ) : certificats.length === 0 ? (
+                '📤 Soumettre mon certificat'
+              ) : (
+                '➕ Ajouter un certificat'
+              )}
+            </button>
+            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+              Formats acceptés : PDF, JPG, PNG (max 10 Mo)
+            </p>
+          </div>
+        </div>
+
         {/* Section Camp de Qualification */}
         {!loadingCamp && campStatus && !campStatus.is_certified && (
           <div style={{
@@ -763,7 +1115,7 @@ export default function HomePage() {
                 fontSize: '18px',
                 fontWeight: '600'
               }}>
-                Camp de qualification
+                🏕️ Camp de qualification
               </h3>
               {campStatus.has_inscription && (
                 <span style={{
@@ -865,7 +1217,7 @@ export default function HomePage() {
             ) : (
               <div>
                 <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>
-                  Pour devenir réserviste certifié, vous devez compléter un camp de qualification.
+                  Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique.
                 </p>
                 <button
                   onClick={openCampModal}
@@ -912,7 +1264,7 @@ export default function HomePage() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              Déploiements en recherche de réservistes
+              🚨 Déploiements en recherche de réservistes
             </h3>
             {deploiementsActifs.length > 0 && (
               <span style={{
