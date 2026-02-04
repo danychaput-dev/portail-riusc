@@ -1378,7 +1378,8 @@ export default function HomePage() {
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '16px'
+          gap: '16px',
+          marginBottom: '24px'
         }}>
           <a href="/profil" style={{ textDecoration: 'none' }}>
             <div style={{
