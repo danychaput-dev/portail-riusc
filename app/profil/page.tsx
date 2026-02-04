@@ -120,11 +120,45 @@ export default function ProfilPage() {
       
       setUser(user)
       
-      const { data: reservisteData } = await supabase
-        .from('reservistes')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
+      let reservisteData = null
+      
+      // 1. Chercher par email si disponible
+      if (user.email) {
+        const { data } = await supabase
+          .from('reservistes')
+          .select('*')
+          .ilike('email', user.email)
+          .single()
+        reservisteData = data
+      }
+      
+      // 2. Sinon chercher par téléphone
+      if (!reservisteData && user.phone) {
+        // Nettoyer le numéro (garder seulement les chiffres)
+        const phoneDigits = user.phone.replace(/\D/g, '')
+        // Essayer différents formats (avec/sans le 1)
+        const phoneVariants = [
+          phoneDigits,
+          phoneDigits.startsWith('1') ? phoneDigits.slice(1) : '1' + phoneDigits
+        ]
+        
+        const { data } = await supabase
+          .from('reservistes')
+          .select('*')
+          .or(phoneVariants.map(p => `telephone.eq.${p}`).join(','))
+          .limit(1)
+          .single()
+        reservisteData = data
+      }
+      
+      // 3. Mettre à jour le user_id si trouvé (pour les prochaines fois)
+      if (reservisteData && reservisteData.user_id !== user.id) {
+        await supabase
+          .from('reservistes')
+          .update({ user_id: user.id })
+          .eq('id', reservisteData.id)
+        reservisteData.user_id = user.id
+      }
       
       if (reservisteData) {
         setReserviste(reservisteData)
