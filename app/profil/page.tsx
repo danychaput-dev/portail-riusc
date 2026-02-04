@@ -294,8 +294,13 @@ export default function ProfilPage() {
     nom: string;
     email: string;
     telephone: string;
+    telephone_secondaire: string;
+    date_naissance: string;
+    adresse: string;
     ville: string;
     region: string;
+    contact_urgence_nom: string;
+    contact_urgence_telephone: string;
   }) => {
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
@@ -370,8 +375,13 @@ export default function ProfilPage() {
         nom: formData.nom,
         email: formData.email,
         telephone: cleanPhoneForSave(formData.telephone),
+        telephone_secondaire: cleanPhoneForSave(formData.telephone_secondaire),
+        date_naissance: formData.date_naissance,
+        adresse: formData.adresse,
         ville: formData.ville,
-        region: formData.region
+        region: formData.region,
+        contact_urgence_nom: formData.contact_urgence_nom,
+        contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone)
       })
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
