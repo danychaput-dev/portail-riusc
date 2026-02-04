@@ -25,6 +25,7 @@ interface Reserviste {
   email: string;
   telephone?: string;
   photo_url?: string;
+  groupe?: string;
 }
 
 interface CampInfo {
@@ -199,7 +200,7 @@ export default function HomePage() {
       if (user.email) {
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .ilike('email', user.email)
           .single()
         reservisteData = data
@@ -210,7 +211,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -218,7 +219,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
             .eq('telephone', phoneWithout1)
             .single()
           reservisteData = data2
@@ -878,7 +879,7 @@ export default function HomePage() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              📄 Formation et certificats
+              Formation et certificats
             </h3>
             {certificats.length > 0 && (
               <span style={{
@@ -1115,7 +1116,7 @@ export default function HomePage() {
                 fontSize: '18px',
                 fontWeight: '600'
               }}>
-                🏕️ Camp de qualification
+                Camp de qualification
               </h3>
               {campStatus.has_inscription && (
                 <span style={{
@@ -1242,13 +1243,15 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Section Missions Actives */}
+        {/* Section Missions Actives - Seulement pour membres approuvés */}
+        {reserviste?.groupe === 'Approuvé' && (
         <div style={{
           backgroundColor: 'white',
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          border: '2px solid #f59e0b'
         }}>
           <div style={{ 
             display: 'flex', 
@@ -1264,7 +1267,7 @@ export default function HomePage() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              🚨 Déploiements en recherche de réservistes
+              Déploiements en recherche de réservistes
             </h3>
             {deploiementsActifs.length > 0 && (
               <span style={{
@@ -1364,6 +1367,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Quick Actions */}
         <div style={{
