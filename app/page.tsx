@@ -413,6 +413,244 @@ export default function HomePage() {
     )
   }
 
+  // Section Certificats - réutilisable selon le groupe
+  const certificatsSection = (
+    <div style={{
+      backgroundColor: 'white',
+      padding: '24px',
+      borderRadius: '12px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      marginBottom: '24px',
+      border: certificats.length === 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <h3 style={{ 
+          color: '#1e3a5f', 
+          margin: 0,
+          fontSize: '18px',
+          fontWeight: '600'
+        }}>
+          Formation et certificats
+        </h3>
+        {certificats.length > 0 && (
+          <span style={{
+            backgroundColor: '#d1fae5',
+            color: '#065f46',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontSize: '13px',
+            fontWeight: '600'
+          }}>
+            {certificats.length} certificat{certificats.length > 1 ? 's' : ''} reçu{certificats.length > 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Message si pas de certificat */}
+      {!loadingCertificats && certificats.length === 0 && (
+        <div style={{
+          backgroundColor: '#fffbeb',
+          border: '1px solid #fcd34d',
+          borderRadius: '8px',
+          padding: '20px',
+          marginBottom: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <span style={{ fontSize: '24px' }}>⚠️</span>
+            <div>
+              <p style={{ 
+                margin: '0 0 12px 0', 
+                fontWeight: '600', 
+                color: '#92400e',
+                fontSize: '15px'
+              }}>
+                Formation obligatoire requise
+              </p>
+              <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                Pour compléter votre inscription à la RIUSC, vous devez suivre la formation 
+                <strong> « S'initier à la sécurité civile »</strong> sur la plateforme du Centre RISC, 
+                puis nous soumettre votre certificat de réussite.
+              </p>
+              
+              <div style={{ 
+                backgroundColor: 'white', 
+                padding: '16px', 
+                borderRadius: '8px',
+                marginBottom: '16px'
+              }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}>
+                  <strong>Durée :</strong> environ 1 h 45
+                </p>
+                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}>
+                  <strong>Contenu :</strong> 5 modules à suivre à votre rythme
+                </p>
+                <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
+                  <strong>Délai :</strong> 30 jours après votre inscription
+                </p>
+              </div>
+              
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                <a
+                  href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: '#1e3a5f',
+                    color: 'white',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  🎓 Accéder à la formation
+                </a>
+                <a
+                  href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                  }}
+                >
+                  📺 Tutoriel vidéo
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Liste des certificats */}
+      {!loadingCertificats && certificats.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {certificats.map((cert) => (
+              <div
+                key={cert.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '20px' }}>📄</span>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>
+                    {cert.name}
+                  </span>
+                </div>
+                {cert.url && (
+                  <a
+                    href={cert.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#1e3a5f',
+                      color: 'white',
+                      borderRadius: '6px',
+                      textDecoration: 'none',
+                      fontSize: '13px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    Télécharger
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loadingCertificats && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+          Chargement des certificats...
+        </div>
+      )}
+
+      {/* Message de succès/erreur */}
+      {certificatMessage && (
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2',
+          color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626',
+          fontSize: '14px'
+        }}>
+          {certificatMessage.text}
+        </div>
+      )}
+
+      {/* Bouton upload */}
+      <div>
+        <input
+          ref={certificatInputRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          onChange={handleCertificatUpload}
+          style={{ display: 'none' }}
+        />
+        <button
+          onClick={() => certificatInputRef.current?.click()}
+          disabled={uploadingCertificat}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: uploadingCertificat ? 'not-allowed' : 'pointer',
+            opacity: uploadingCertificat ? 0.7 : 1
+          }}
+        >
+          {uploadingCertificat ? (
+            '⏳ Envoi en cours...'
+          ) : certificats.length === 0 ? (
+            '📤 Soumettre mon certificat'
+          ) : (
+            '➕ Ajouter un certificat'
+          )}
+        </button>
+        <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+          Formats acceptés : PDF, JPG, PNG (max 10 Mo)
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       {/* Modal d'inscription/modification au camp */}
@@ -856,14 +1094,15 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Section Formation obligatoire / Certificats */}
+        {/* Section Déploiements - En haut pour membres approuvés */}
+        {reserviste?.groupe === 'Approuvé' && (
         <div style={{
           backgroundColor: 'white',
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           marginBottom: '24px',
-          border: certificats.length === 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+          border: '2px solid #f59e0b'
         }}>
           <div style={{ 
             display: 'flex', 
@@ -879,218 +1118,110 @@ export default function HomePage() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              Formation et certificats
+              Déploiements en recherche de réservistes
             </h3>
-            {certificats.length > 0 && (
+            {deploiementsActifs.length > 0 && (
               <span style={{
-                backgroundColor: '#d1fae5',
-                color: '#065f46',
+                backgroundColor: '#fef3c7',
+                color: '#92400e',
                 padding: '6px 14px',
                 borderRadius: '20px',
                 fontSize: '13px',
                 fontWeight: '600'
               }}>
-                {certificats.length} certificat{certificats.length > 1 ? 's' : ''} reçu{certificats.length > 1 ? 's' : ''}
+                {deploiementsActifs.length} actif{deploiementsActifs.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
-
-          {/* Message si pas de certificat */}
-          {!loadingCertificats && certificats.length === 0 && (
+          
+          {deploiementsActifs.length === 0 ? (
             <div style={{
-              backgroundColor: '#fffbeb',
-              border: '1px solid #fcd34d',
+              padding: '40px 20px',
+              backgroundColor: '#f9fafb',
               borderRadius: '8px',
-              padding: '20px',
-              marginBottom: '20px'
+              textAlign: 'center'
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <span style={{ fontSize: '24px' }}>⚠️</span>
-                <div>
-                  <p style={{ 
-                    margin: '0 0 12px 0', 
-                    fontWeight: '600', 
-                    color: '#92400e',
-                    fontSize: '15px'
-                  }}>
-                    Formation obligatoire requise
-                  </p>
-                  <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
-                    Pour compléter votre inscription à la RIUSC, vous devez suivre la formation 
-                    <strong> « S'initier à la sécurité civile »</strong> sur la plateforme du Centre RISC, 
-                    puis nous soumettre votre certificat de réussite.
-                  </p>
-                  
-                  <div style={{ 
-                    backgroundColor: 'white', 
-                    padding: '16px', 
+              <p style={{ color: '#6b7280', margin: 0 }}>
+                Aucun déploiement actif pour le moment.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {deploiementsActifs.map((dep) => (
+                <div
+                  key={dep.id}
+                  style={{
+                    border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    marginBottom: '16px'
+                    padding: '20px',
+                    backgroundColor: '#fafafa'
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: '16px'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}>
-                      <strong>Durée :</strong> environ 1 h 45
-                    </p>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}>
-                      <strong>Contenu :</strong> 5 modules à suivre à votre rythme
-                    </p>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>
-                      <strong>Délai :</strong> 30 jours après votre inscription
-                    </p>
-                  </div>
-                  
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ flex: 1, minWidth: '280px' }}>
+                      {dep.nom_sinistre && (
+                        <div style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600',
+                          color: '#1e3a5f',
+                          marginBottom: '4px'
+                        }}>
+                          {dep.nom_sinistre}
+                        </div>
+                      )}
+                      <div style={{ 
+                        fontSize: '16px', 
+                        fontWeight: dep.nom_sinistre ? '500' : '600', 
+                        color: dep.nom_sinistre ? '#374151' : '#1e3a5f',
+                        marginBottom: '12px'
+                      }}>
+                        {dep.nom_deploiement}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
+                        <div>
+                          {dep.date_debut && formatDate(dep.date_debut)}
+                          {dep.date_fin && ` — ${formatDate(dep.date_fin)}`}
+                        </div>
+                        {dep.lieu && <div>{dep.lieu}</div>}
+                      </div>
+                    </div>
+                    
                     <a
-                      href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription"
+                      href={genererLienJotform(dep.deploiement_id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 16px',
+                        padding: '12px 20px',
                         backgroundColor: '#1e3a5f',
                         color: 'white',
                         borderRadius: '6px',
                         textDecoration: 'none',
                         fontSize: '14px',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        transition: 'background-color 0.2s',
+                        whiteSpace: 'nowrap'
                       }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}
                     >
-                      🎓 Accéder à la formation
-                    </a>
-                    <a
-                      href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 16px',
-                        backgroundColor: 'white',
-                        color: '#374151',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        textDecoration: 'none',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      📺 Tutoriel vidéo
+                      Soumettre ma disponibilité
                     </a>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           )}
-
-          {/* Liste des certificats */}
-          {!loadingCertificats && certificats.length > 0 && (
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {certificats.map((cert) => (
-                  <div
-                    key={cert.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      backgroundColor: '#f9fafb',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>📄</span>
-                      <span style={{ fontSize: '14px', color: '#374151' }}>
-                        {cert.name}
-                      </span>
-                    </div>
-                    {cert.url && (
-                      <a
-                        href={cert.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#1e3a5f',
-                          color: 'white',
-                          borderRadius: '6px',
-                          textDecoration: 'none',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        Télécharger
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {loadingCertificats && (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-              Chargement des certificats...
-            </div>
-          )}
-
-          {/* Message de succès/erreur */}
-          {certificatMessage && (
-            <div style={{
-              padding: '12px 16px',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2',
-              color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626',
-              fontSize: '14px'
-            }}>
-              {certificatMessage.text}
-            </div>
-          )}
-
-          {/* Bouton upload */}
-          <div>
-            <input
-              ref={certificatInputRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              onChange={handleCertificatUpload}
-              style={{ display: 'none' }}
-            />
-            <button
-              onClick={() => certificatInputRef.current?.click()}
-              disabled={uploadingCertificat}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: uploadingCertificat ? 'not-allowed' : 'pointer',
-                opacity: uploadingCertificat ? 0.7 : 1
-              }}
-            >
-              {uploadingCertificat ? (
-                '⏳ Envoi en cours...'
-              ) : certificats.length === 0 ? (
-                '📤 Soumettre mon certificat'
-              ) : (
-                '➕ Ajouter un certificat'
-              )}
-            </button>
-            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
-              Formats acceptés : PDF, JPG, PNG (max 10 Mo)
-            </p>
-          </div>
         </div>
+        )}
+
+        {/* Section Certificats - Affichée en haut pour groupe Intérêt */}
+        {reserviste?.groupe !== 'Approuvé' && certificatsSection}
 
         {/* Section Camp de Qualification */}
         {!loadingCamp && campStatus && !campStatus.is_certified && (
@@ -1243,132 +1374,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Section Missions Actives - Seulement pour membres approuvés */}
-        {reserviste?.groupe === 'Approuvé' && (
-        <div style={{
-          backgroundColor: 'white',
-          padding: '24px',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          marginBottom: '24px',
-          border: '2px solid #f59e0b'
-        }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'space-between',
-            marginBottom: '20px',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <h3 style={{ 
-              color: '#1e3a5f', 
-              margin: 0,
-              fontSize: '18px',
-              fontWeight: '600'
-            }}>
-              Déploiements en recherche de réservistes
-            </h3>
-            {deploiementsActifs.length > 0 && (
-              <span style={{
-                backgroundColor: '#fef3c7',
-                color: '#92400e',
-                padding: '6px 14px',
-                borderRadius: '20px',
-                fontSize: '13px',
-                fontWeight: '600'
-              }}>
-                {deploiementsActifs.length} actif{deploiementsActifs.length > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          
-          {deploiementsActifs.length === 0 ? (
-            <div style={{
-              padding: '40px 20px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              <p style={{ color: '#6b7280', margin: 0 }}>
-                Aucun déploiement actif pour le moment.
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {deploiementsActifs.map((dep) => (
-                <div
-                  key={dep.id}
-                  style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    padding: '20px',
-                    backgroundColor: '#fafafa'
-                  }}
-                >
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'flex-start',
-                    flexWrap: 'wrap',
-                    gap: '16px'
-                  }}>
-                    <div style={{ flex: 1, minWidth: '280px' }}>
-                      {dep.nom_sinistre && (
-                        <div style={{ 
-                          fontSize: '16px', 
-                          fontWeight: '600',
-                          color: '#1e3a5f',
-                          marginBottom: '4px'
-                        }}>
-                          {dep.nom_sinistre}
-                        </div>
-                      )}
-                      <div style={{ 
-                        fontSize: '16px', 
-                        fontWeight: dep.nom_sinistre ? '500' : '600', 
-                        color: dep.nom_sinistre ? '#374151' : '#1e3a5f',
-                        marginBottom: '12px'
-                      }}>
-                        {dep.nom_deploiement}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
-                        <div>
-                          {dep.date_debut && formatDate(dep.date_debut)}
-                          {dep.date_fin && ` — ${formatDate(dep.date_fin)}`}
-                        </div>
-                        {dep.lieu && <div>{dep.lieu}</div>}
-                      </div>
-                    </div>
-                    
-                    <a
-                      href={genererLienJotform(dep.deploiement_id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        padding: '12px 20px',
-                        backgroundColor: '#1e3a5f',
-                        color: 'white',
-                        borderRadius: '6px',
-                        textDecoration: 'none',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        transition: 'background-color 0.2s',
-                        whiteSpace: 'nowrap'
-                      }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}
-                    >
-                      Soumettre ma disponibilité
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        )}
-
         {/* Quick Actions */}
         <div style={{
           display: 'grid',
@@ -1499,6 +1504,9 @@ export default function HomePage() {
             </div>
           </a>
         </div>
+
+        {/* Section Certificats - Affichée en bas pour groupe Approuvé */}
+        {reserviste?.groupe === 'Approuvé' && certificatsSection}
       </main>
 
       {/* Footer */}
