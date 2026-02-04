@@ -206,8 +206,8 @@ export default function HomePage() {
         reservisteData = data
       }
       
-      // Sinon chercher par téléphone
-      if (!reservisteData && user.phone) {
+      // Chercher par téléphone SEULEMENT si connexion par téléphone (pas d'email dans auth)
+      if (!reservisteData && user.phone && !user.email) {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
@@ -1095,10 +1095,7 @@ export default function HomePage() {
             Bienvenue sur votre espace personnel
           </p>
         </div>
-{/* DEBUG - à supprimer */}
-<div style={{ backgroundColor: '#fef3c7', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '12px' }}>
-  <strong>DEBUG:</strong> groupe = "{reserviste?.groupe}" | Est Approuvé: {String(reserviste?.groupe === 'Approuvé')}
-</div>
+
         {/* Section Déploiements - En haut pour membres approuvés */}
         {reserviste?.groupe === 'Approuvé' && (
         <div style={{
