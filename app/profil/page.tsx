@@ -24,6 +24,28 @@ interface Reserviste {
   photo_url?: string;
 }
 
+// Fonction pour formater les numéros de téléphone à l'affichage
+function formatPhoneDisplay(phone: string | null | undefined): string {
+  if (!phone) return ''
+  // Enlève tout sauf les chiffres
+  const digits = phone.replace(/\D/g, '')
+  // Format (XXX) XXX-XXXX pour 10 chiffres
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  // Format (XXX) XXX-XXXX pour 11 chiffres commençant par 1
+  if (digits.length === 11 && digits[0] === '1') {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
+  }
+  // Retourne tel quel si format inconnu
+  return phone
+}
+
+// Fonction pour nettoyer le téléphone avant sauvegarde (garde seulement les chiffres)
+function cleanPhoneForSave(phone: string): string {
+  return phone.replace(/\D/g, '')
+}
+
 export default function ProfilPage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
@@ -103,28 +125,18 @@ export default function ProfilPage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
-        
-        // Formater la date de naissance pour l'input HTML (yyyy-MM-dd)
-        let dateNaissance = ''
-        if (reservisteData.date_naissance) {
-          const d = new Date(reservisteData.date_naissance)
-          if (!isNaN(d.getTime())) {
-            dateNaissance = d.toISOString().split('T')[0]
-          }
-        }
-        
         setFormData({
           prenom: reservisteData.prenom || '',
           nom: reservisteData.nom || '',
           email: reservisteData.email || '',
-          telephone: reservisteData.telephone || '',
-          telephone_secondaire: reservisteData.telephone_secondaire || '',
-          date_naissance: dateNaissance,
+          telephone: formatPhoneDisplay(reservisteData.telephone),
+          telephone_secondaire: formatPhoneDisplay(reservisteData.telephone_secondaire),
+          date_naissance: reservisteData.date_naissance || '',
           adresse: reservisteData.adresse || '',
           ville: reservisteData.ville || '',
           region: reservisteData.region || '',
           contact_urgence_nom: reservisteData.contact_urgence_nom || '',
-          contact_urgence_telephone: reservisteData.contact_urgence_telephone || ''
+          contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone)
         })
         if (reservisteData.photo_url) {
           setPhotoPreview(reservisteData.photo_url)
@@ -150,6 +162,14 @@ export default function ProfilPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Formater le téléphone quand l'utilisateur quitte le champ
+  const handlePhoneBlur = (field: 'telephone' | 'telephone_secondaire' | 'contact_urgence_telephone') => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: formatPhoneDisplay(prev[field])
+    }))
   }
 
   // Gérer l'upload de photo avec détection de visage
@@ -263,25 +283,6 @@ export default function ProfilPage() {
     setUploadingPhoto(false)
   }
 
-  // Synchroniser vers Monday.com
-const syncToMonday = async (benevoleId: string, data: typeof formData) => {
-  try {
-    const response = await fetch('/api/sync-monday', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ benevole_id: benevoleId, ...data })
-    })
-    if (!response.ok) {
-      console.error('Erreur sync Monday:', await response.json())
-      return false
-    }
-    return true
-  } catch (error) {
-    console.error('Erreur sync Monday:', error)
-    return false
-  }
-}
-
   // Sauvegarder le profil
   const handleSave = async () => {
     if (!reserviste) return
@@ -296,27 +297,20 @@ const syncToMonday = async (benevoleId: string, data: typeof formData) => {
           prenom: formData.prenom,
           nom: formData.nom,
           email: formData.email,
-          telephone: formData.telephone || null,
-          telephone_secondaire: formData.telephone_secondaire || null,
+          telephone: cleanPhoneForSave(formData.telephone) || null,
+          telephone_secondaire: cleanPhoneForSave(formData.telephone_secondaire) || null,
           date_naissance: formData.date_naissance || null,
           adresse: formData.adresse || null,
           ville: formData.ville || null,
           region: formData.region || null,
           contact_urgence_nom: formData.contact_urgence_nom || null,
-          contact_urgence_telephone: formData.contact_urgence_telephone || null
+          contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone) || null
         })
         .eq('id', reserviste.id)
 
       if (error) throw error
 
-// Sync vers Monday.com
-const mondaySuccess = await syncToMonday(reserviste.benevole_id, formData)
-
-if (mondaySuccess) {
-  setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
-} else {
-  setMessage({ type: 'success', text: 'Profil sauvegardé (synchronisation Monday en attente)' })
-}
+      setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
       
       // Mettre à jour l'état local
       setReserviste(prev => prev ? { ...prev, ...formData } : null)
@@ -716,8 +710,9 @@ if (mondaySuccess) {
                     type="tel"
                     value={formData.telephone}
                     onChange={(e) => handleInputChange('telephone', e.target.value)}
+                    onBlur={() => handlePhoneBlur('telephone')}
                     style={inputStyle}
-                    placeholder="514-123-4567"
+                    placeholder="(514) 123-4567"
                   />
                 </div>
                 
@@ -727,8 +722,9 @@ if (mondaySuccess) {
                     type="tel"
                     value={formData.telephone_secondaire}
                     onChange={(e) => handleInputChange('telephone_secondaire', e.target.value)}
+                    onBlur={() => handlePhoneBlur('telephone_secondaire')}
                     style={inputStyle}
-                    placeholder="514-123-4567"
+                    placeholder="(514) 123-4567"
                   />
                 </div>
                 
@@ -755,23 +751,12 @@ if (mondaySuccess) {
                 
                 <div>
                   <label style={labelStyle}>Région / District</label>
-                  <select
+                  <input
+                    type="text"
                     value={formData.region}
                     onChange={(e) => handleInputChange('region', e.target.value)}
                     style={inputStyle}
-                  >
-                    <option value="">-- Sélectionnez une région --</option>
-                    <option value="Abitibi-Témiscamingue / Nord-du-Québec">Abitibi-Témiscamingue / Nord-du-Québec</option>
-                    <option value="Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine">Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine</option>
-                    <option value="Capitale-Nationale / Chaudière-Appalaches">Capitale-Nationale / Chaudière-Appalaches</option>
-                    <option value="Côte-Nord">Côte-Nord</option>
-                    <option value="Estrie">Estrie</option>
-                    <option value="Mauricie / Centre-du-Québec">Mauricie / Centre-du-Québec</option>
-                    <option value="Montréal / Laval / Laurentides / Lanaudière">Montréal / Laval / Laurentides / Lanaudière</option>
-                    <option value="Montérégie">Montérégie</option>
-                    <option value="Outaouais">Outaouais</option>
-                    <option value="Saguenay / Lac-St-Jean">Saguenay / Lac-St-Jean</option>
-                  </select>
+                  />
                 </div>
               </div>
             </div>
@@ -805,8 +790,9 @@ if (mondaySuccess) {
                     type="tel"
                     value={formData.contact_urgence_telephone}
                     onChange={(e) => handleInputChange('contact_urgence_telephone', e.target.value)}
+                    onBlur={() => handlePhoneBlur('contact_urgence_telephone')}
                     style={inputStyle}
-                    placeholder="514-123-4567"
+                    placeholder="(514) 123-4567"
                   />
                 </div>
               </div>
