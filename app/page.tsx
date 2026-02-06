@@ -1112,7 +1112,7 @@ export default function HomePage() {
             fontSize: '15px', 
             lineHeight: '1.6',
             opacity: 0.9,
-            maxWidth: '700px'
+            
           }}>
             Votre espace unique où vous trouverez toutes les informations pertinentes pour votre rôle 
             au sein de la Réserve d&apos;intervenants d&apos;urgence en sécurité civile. Consultez vos documents, 
@@ -1502,7 +1502,7 @@ export default function HomePage() {
             </div>
           </a>
 
-          <a href="/formulaires" style={{ textDecoration: 'none' }}>
+          <a href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.4" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1525,10 +1525,10 @@ export default function HomePage() {
             >
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
-                Documentation et informations pertinentes
+                Protection légale des réservistes RIUSC lors d'un déploiement (LSCRS – art. 88)
               </h3>
               <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-                Documents, formulaires et ressources utiles
+                Loi sur la sécurité civile et la résilience des sinistres
               </p>
             </div>
           </a>
