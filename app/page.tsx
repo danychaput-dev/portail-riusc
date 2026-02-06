@@ -1081,18 +1081,42 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
-        {/* Welcome Section */}
-        <div style={{ marginBottom: '32px' }}>
+        {/* Bannière de bienvenue */}
+        <div style={{
+          backgroundColor: '#1e3a5f',
+          padding: '28px 32px',
+          borderRadius: '12px',
+          marginBottom: '28px',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '200px',
+            height: '100%',
+            background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.05) 100%)',
+            pointerEvents: 'none'
+          }} />
           <h2 style={{ 
-            color: '#1e3a5f', 
-            margin: '0 0 8px 0', 
-            fontSize: '28px',
+            margin: '0 0 10px 0', 
+            fontSize: '24px',
             fontWeight: '700'
           }}>
-            Bonjour, {reserviste?.prenom || 'Réserviste'}
+            Bienvenue sur la nouvelle plateforme du réserviste{reserviste ? `, ${reserviste.prenom}` : ''} !
           </h2>
-          <p style={{ color: '#6b7280', margin: 0, fontSize: '16px' }}>
-            Bienvenue sur votre espace personnel
+          <p style={{ 
+            margin: 0, 
+            fontSize: '15px', 
+            lineHeight: '1.6',
+            opacity: 0.9,
+            maxWidth: '700px'
+          }}>
+            Votre espace unique où vous trouverez toutes les informations pertinentes pour votre rôle 
+            au sein de la Réserve d&apos;intervenants d&apos;urgence en sécurité civile. Consultez vos documents, 
+            gérez vos inscriptions et restez informé des prochains événements.
           </p>
         </div>
 
@@ -1499,15 +1523,77 @@ export default function HomePage() {
               e.currentTarget.style.borderColor = 'transparent'
             }}
             >
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📝</div>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
-                Formulaires
+                Documentation et informations pertinentes
               </h3>
               <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-                Accédez aux formulaires et documents
+                Documents, formulaires et ressources utiles
               </p>
             </div>
           </a>
+        </div>
+
+        {/* Section Documents et ressources */}
+        <div style={{
+          backgroundColor: 'white',
+          padding: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginBottom: '24px',
+          border: '1px solid #e5e7eb'
+        }}>
+          <h3 style={{ 
+            color: '#1e3a5f', 
+            margin: '0 0 16px 0',
+            fontSize: '18px',
+            fontWeight: '600'
+          }}>
+            Documents et ressources
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <a
+              href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.4"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                padding: '14px 18px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                textDecoration: 'none',
+                color: '#374151',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.borderColor = '#1e3a5f'
+                e.currentTarget.style.backgroundColor = '#f0f4f8'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.borderColor = '#e5e7eb'
+                e.currentTarget.style.backgroundColor = '#f9fafb'
+              }}
+            >
+              <span style={{ fontSize: '22px', flexShrink: 0 }}>⚖️</span>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e3a5f', marginBottom: '2px' }}>
+                  Protection légale des réservistes RIUSC lors d&apos;un déploiement
+                </div>
+                <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                  LSCRS – art. 88
+                </div>
+              </div>
+              <svg width="18" height="18" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+          <p style={{ margin: '16px 0 0 0', fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>
+            D&apos;autres documents seront ajoutés prochainement.
+          </p>
         </div>
 
         {/* Section Certificats - Affichée en bas pour groupe Approuvé */}
