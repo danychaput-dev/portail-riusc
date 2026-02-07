@@ -61,6 +61,7 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([])
+  const [ciblages, setCiblages] = useState<string[]>([])
   const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
@@ -247,16 +248,28 @@ export default function HomePage() {
         
         // Charger les certificats
         await loadCertificats(reservisteData.benevole_id)
-      }
-      
-      // Fetch déploiements actifs
-      const { data: deploiements } = await supabase
-        .from('deploiements_actifs')
-        .select('*')
-        .order('date_debut', { ascending: true })
-      
-      if (deploiements) {
-        setDeploiementsActifs(deploiements)
+
+        // Fetch ciblages pour ce réserviste
+        const { data: ciblagesData } = await supabase
+          .from('ciblages')
+          .select('deploiement_id')
+          .eq('benevole_id', reservisteData.benevole_id)
+
+        if (ciblagesData && ciblagesData.length > 0) {
+          const deployIds = ciblagesData.map(c => c.deploiement_id)
+          setCiblages(deployIds)
+          
+          // Fetch seulement les déploiements ciblés
+          const { data: deploiements } = await supabase
+            .from('deploiements_actifs')
+            .select('*')
+            .in('deploiement_id', deployIds)
+            .order('date_debut', { ascending: true })
+          
+          if (deploiements) {
+            setDeploiementsActifs(deploiements)
+          }
+        }
       }
       
       setLoading(false)
@@ -1007,7 +1020,7 @@ export default function HomePage() {
                   </svg>
                   Mon profil
                 </a>
-                {reserviste?.groupe === 'Approuvé' && (
+                {ciblages.length > 0 && (
                 <a
                   href="/disponibilites"
                   style={{
@@ -1120,8 +1133,8 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Section Déploiements - En haut pour membres approuvés */}
-        {reserviste?.groupe === 'Approuvé' && (
+        {/* Section Déploiements - Visible seulement si ciblé */}
+        {ciblages.length > 0 && (
         <div style={{
           backgroundColor: 'white',
           padding: '24px',
@@ -1246,8 +1259,8 @@ export default function HomePage() {
         </div>
         )}
 
-        {/* Section Certificats - Affichée en haut pour groupe Intérêt */}
-        {reserviste?.groupe !== 'Approuvé' && certificatsSection}
+        {/* Section Certificats - Affichée en haut si pas ciblé */}
+        {ciblages.length === 0 && certificatsSection}
 
         {/* Section Camp de Qualification */}
         {!loadingCamp && campStatus && !campStatus.is_certified && (
@@ -1438,7 +1451,7 @@ export default function HomePage() {
             </div>
           </a>
 
-          {reserviste?.groupe === 'Approuvé' && (
+          {ciblages.length > 0 && (
           <a href="/disponibilites" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
@@ -1596,8 +1609,8 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Section Certificats - Affichée en bas pour groupe Approuvé */}
-        {reserviste?.groupe === 'Approuvé' && certificatsSection}
+        {/* Section Certificats - Affichée en bas si ciblé */}
+        {ciblages.length > 0 && certificatsSection}
       </main>
 
       {/* Footer */}

@@ -53,6 +53,7 @@ export default function DisponibilitesPage() {
   const [reserviste, setReserviste] = useState<Reserviste | null>(null);
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([]);
+  const [ciblages, setCiblages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -76,7 +77,7 @@ export default function DisponibilitesPage() {
   const refreshData = useCallback(async (benevoleId: string) => {
     setRefreshing(true);
     await fetchDisponibilites(benevoleId);
-    await fetchDeploiementsActifs();
+    await fetchDeploiementsActifs(benevoleId);
     setLastRefresh(new Date());
     setRefreshing(false);
   }, []);
@@ -143,7 +144,7 @@ export default function DisponibilitesPage() {
     if (reservisteData) {
       setReserviste(reservisteData);
       await fetchDisponibilites(reservisteData.benevole_id);
-      await fetchDeploiementsActifs();
+      await fetchDeploiementsActifs(reservisteData.benevole_id);
     }
     
     setLoading(false);
@@ -162,10 +163,26 @@ export default function DisponibilitesPage() {
     }
   }
 
-  async function fetchDeploiementsActifs() {
+  async function fetchDeploiementsActifs(benevoleId: string) {
+    // D'abord chercher les ciblages de ce réserviste
+    const { data: ciblagesData } = await supabase
+      .from('ciblages')
+      .select('deploiement_id')
+      .eq('benevole_id', benevoleId);
+    
+    if (!ciblagesData || ciblagesData.length === 0) {
+      setDeploiementsActifs([]);
+      setCiblages([]);
+      return;
+    }
+
+    const deployIds = ciblagesData.map(c => c.deploiement_id);
+    setCiblages(deployIds);
+
     const { data, error } = await supabase
       .from('deploiements_actifs')
       .select('*')
+      .in('deploiement_id', deployIds)
       .order('date_debut', { ascending: true });
     
     if (error) {
