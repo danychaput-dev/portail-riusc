@@ -1063,6 +1063,26 @@ export default function HomePage() {
                   </svg>
                   Tournée des camps
                 </a>
+                <a
+                  href="/informations"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  Informations pratiques
+                </a>
                 <button
                   onClick={handleSignOut}
                   style={{
@@ -1133,15 +1153,14 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Section Déploiements - Visible seulement si ciblé */}
-        {ciblages.length > 0 && (
+        {/* Section Déploiements - Toujours visible */}
         <div style={{
           backgroundColor: 'white',
           padding: '24px',
           borderRadius: '12px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
           marginBottom: '24px',
-          border: '2px solid #f59e0b'
+          border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
         }}>
           <div style={{ 
             display: 'flex', 
@@ -1157,7 +1176,9 @@ export default function HomePage() {
               fontSize: '18px',
               fontWeight: '600'
             }}>
-              Déploiements en recherche de réservistes
+              {deploiementsActifs.length > 0 
+                ? 'Appel à participation – Déploiement possible'
+                : 'Déploiements'}
             </h3>
             {deploiementsActifs.length > 0 && (
               <span style={{
@@ -1173,18 +1194,7 @@ export default function HomePage() {
             )}
           </div>
           
-          {deploiementsActifs.length === 0 ? (
-            <div style={{
-              padding: '40px 20px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              textAlign: 'center'
-            }}>
-              <p style={{ color: '#6b7280', margin: 0 }}>
-                Aucun déploiement actif pour le moment.
-              </p>
-            </div>
-          ) : (
+          {deploiementsActifs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {deploiementsActifs.map((dep) => (
                 <div
@@ -1255,12 +1265,23 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          ) : (
+            <div style={{
+              padding: '40px 20px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
+              <p style={{ color: '#374151', margin: '0 0 8px 0', fontWeight: '500', fontSize: '15px' }}>
+                Aucun appel en cours pour le moment
+              </p>
+              <p style={{ color: '#9ca3af', margin: 0, fontSize: '14px' }}>
+                Lorsqu&apos;un déploiement nécessitera votre profil, vous en serez informé ici.
+              </p>
+            </div>
           )}
         </div>
-        )}
-
-        {/* Section Certificats - Affichée en haut si pas ciblé */}
-        {ciblages.length === 0 && certificatsSection}
 
         {/* Section Camp de Qualification */}
         {!loadingCamp && campStatus && !campStatus.is_certified && (
@@ -1515,7 +1536,7 @@ export default function HomePage() {
             </div>
           </a>
 
-          <a href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.4" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+          <a href="/informations" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1538,79 +1559,17 @@ export default function HomePage() {
             >
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
-                Protection légale des réservistes RIUSC lors d'un déploiement (LSCRS – art. 88)
+                Informations pratiques
               </h3>
               <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>
-                Loi sur la sécurité civile et la résilience des sinistres
+                Documents, ressources et références utiles
               </p>
             </div>
           </a>
         </div>
 
-        {/* Section Documents et ressources */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '24px',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          marginBottom: '24px',
-          border: '1px solid #e5e7eb'
-        }}>
-          <h3 style={{ 
-            color: '#1e3a5f', 
-            margin: '0 0 16px 0',
-            fontSize: '18px',
-            fontWeight: '600'
-          }}>
-            Documents et ressources
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <a
-              href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.4"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                padding: '14px 18px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb',
-                textDecoration: 'none',
-                color: '#374151',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = '#1e3a5f'
-                e.currentTarget.style.backgroundColor = '#f0f4f8'
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = '#e5e7eb'
-                e.currentTarget.style.backgroundColor = '#f9fafb'
-              }}
-            >
-              <span style={{ fontSize: '22px', flexShrink: 0 }}>⚖️</span>
-              <div>
-                <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e3a5f', marginBottom: '2px' }}>
-                  Protection légale des réservistes RIUSC lors d&apos;un déploiement
-                </div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                  LSCRS – art. 88
-                </div>
-              </div>
-              <svg width="18" height="18" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24" style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
-          <p style={{ margin: '16px 0 0 0', fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>
-            D&apos;autres documents seront ajoutés prochainement.
-          </p>
-        </div>
-
-        {/* Section Certificats - Affichée en bas si ciblé */}
-        {ciblages.length > 0 && certificatsSection}
+        {/* Section Certificats */}
+        {certificatsSection}
       </main>
 
       {/* Footer */}

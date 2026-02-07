@@ -485,7 +485,9 @@ export default function DisponibilitesPage() {
           marginBottom: '24px'
         }}>
           <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
-            📋 Déploiements en recherche de réservistes
+            {deploiementsActifs.length > 0 
+              ? '📋 Appel à participation – Déploiement possible'
+              : '📋 Déploiements'}
           </h3>
           
           {deploiementsActifs.length === 0 ? (
@@ -495,11 +497,12 @@ export default function DisponibilitesPage() {
               borderRadius: '8px',
               textAlign: 'center'
             }}>
-              <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>
-                Aucun déploiement actif pour le moment.
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
+              <p style={{ color: '#374151', fontSize: '15px', margin: '0 0 8px 0', fontWeight: '500' }}>
+                Aucun appel en cours pour le moment
               </p>
-              <p style={{ color: '#9ca3af', fontSize: '14px', marginTop: '8px', marginBottom: 0 }}>
-                Les nouveaux déploiements apparaîtront ici dès qu'ils seront ouverts.
+              <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>
+                Lorsqu&apos;un déploiement nécessitera votre profil, vous en serez informé ici.
               </p>
             </div>
           ) : (
