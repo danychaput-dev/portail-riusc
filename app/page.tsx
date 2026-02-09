@@ -1153,7 +1153,8 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Section Déploiements - Toujours visible */}
+{/* Section Déploiements - Visible seulement pour les approuvés */}
+        {!loadingCertificats && certificats.length > 0 && (
         <div style={{
           backgroundColor: 'white',
           padding: '24px',
@@ -1282,6 +1283,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Section Camp de Qualification */}
         {!loadingCamp && campStatus && !campStatus.is_certified && (
