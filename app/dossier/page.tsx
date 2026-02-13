@@ -93,7 +93,7 @@ const OPTIONS = {
     'Classe 1 Ensemble de véhicules routiers / Heavy vehicle',
     'Classe 4a Véhicule d\'urgence / Emergency vehicle',
     'Classe 3 Camions / Trucks',
-    'Classe 6 Motocyclette / Motorcycle',
+    'Classe 6 Motocyclette / Motocycle',
   ],
   disponible_covoiturage: [
     'Je peux transporter des gens / I can transport people',
