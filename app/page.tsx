@@ -783,6 +783,7 @@ export default function HomePage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {sessionsDisponibles
                         .filter(session => session.session_id !== campStatus?.session_id)
+                        .sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA'))
                         .map((session) => (
                         <label
                           key={session.session_id}
