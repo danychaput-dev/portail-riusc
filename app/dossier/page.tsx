@@ -12,6 +12,7 @@ interface Reserviste {
   prenom: string
   nom: string
   email: string
+  groupe?: string
 }
 
 interface DossierData {
@@ -373,6 +374,13 @@ export default function DossierPage() {
         return
       }
       setReserviste(reservisteData)
+
+      // Protection: les new_group n'ont pas accès au dossier
+      if (reservisteData.groupe === 'new_group') {
+        router.push('/')
+        return
+      }
+
       setLoading(false)
 
       // Charger le dossier depuis Monday via n8n
