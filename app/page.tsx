@@ -91,7 +91,7 @@ export default function HomePage() {
   const supabase = createClient()
 
   // Helper: est-ce un membre approuvé (pas new_group)
-  const isApproved = reserviste?.groupe === 'new_group'
+  const isApproved = reserviste?.groupe === 'Approuvé'
 
   // Fermer le menu utilisateur quand on clique ailleurs
   useEffect(() => {
