@@ -1164,7 +1164,7 @@ export default function HomePage() {
             fontSize: '24px',
             fontWeight: '700'
           }}>
-            Bienvenue sur la nouvelle plateforme du réserviste{reserviste ? `, ${reserviste.prenom}` : ''} !
+            Bienvenue sur la plateforme du réserviste{reserviste ? `, ${reserviste.prenom}` : ''} !
           </h2>
           <p style={{ 
             margin: 0, 
