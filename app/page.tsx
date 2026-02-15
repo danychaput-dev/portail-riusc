@@ -1049,7 +1049,8 @@ const certificatsSection = (
                   Mon dossier réserviste
                 </a>
                 )}
-{isApproved && ciblages.length > 0 && (
+Oui, il manque le <a. Remplace ce bloc complet par :
+jsx                {isApproved && ciblages.length > 0 && (
                 
                   href="/disponibilites"
                   style={{
