@@ -83,7 +83,7 @@ const OPTIONS = {
     'Côte à côte / Side by Side',
   ],
   navire_marin: [
-    'Permis d\'embarcation de plaisance / Pleasure craft licence',
+    'Permis d\'embarcation de plaisance / Pleasure craf licence',
     'Petits bateaux / Small craft',
   ],
   permis_conduire: [
@@ -233,7 +233,7 @@ function TextInput({ label, value, onChange, placeholder, disabled, type = 'text
 }) {
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
       <input
         type={type}
         value={value}
@@ -253,7 +253,7 @@ function TextArea({ label, value, onChange, placeholder, rows = 3 }: {
 }) {
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -270,7 +270,7 @@ function RadioGroup({ label, options, value, onChange }: {
 }) {
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
       <div className="flex flex-wrap gap-3">
         {options.map((opt) => (
           <label key={opt} className="flex items-center gap-2 cursor-pointer">
@@ -303,7 +303,7 @@ function CheckboxGroup({ label, options, values, onChange, columns = 1 }: {
 
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
       <div className={`grid gap-2 ${columns === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         {options.map((opt) => (
           <label key={opt} className="flex items-start gap-2 cursor-pointer py-1">
@@ -376,7 +376,7 @@ export default function DossierPage() {
       setReserviste(reservisteData)
 
       // Protection: les new_group n'ont pas accès au dossier
-      if (reservisteData.groupe !== 'Approuvé') {
+      if (reservisteData.groupe === 'new_group') {
         router.push('/')
         return
       }
