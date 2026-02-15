@@ -1179,7 +1179,8 @@ export default function HomePage() {
             gérez vos inscriptions et restez informé des prochains événements.
           </p>
         </div>
-
+        {/* Section Certificats EN HAUT si pas de certificat */}
+        {!loadingCertificats && certificats.length === 0 && certificatsSection}
 {/* Section Déploiements - Visible seulement pour les approuvés */}
         {!loadingCertificats && certificats.length > 0 && (
         <div style={{
@@ -1651,8 +1652,8 @@ export default function HomePage() {
           </a>
         </div>
 
-        {/* Section Certificats */}
-        {certificatsSection}
+ {/* Section Certificats EN BAS si certificat(s) présent(s) */}
+        {!loadingCertificats && certificats.length > 0 && certificatsSection}
       </main>
 
       {/* Footer */}
