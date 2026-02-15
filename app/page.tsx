@@ -16,8 +16,9 @@ interface DeploiementActif {
   date_fin: string;
   lieu?: string;
   statut: string;
+  type_incident?: string;
+  tache?: string;
 }
-
 interface Reserviste {
   benevole_id: string;
   prenom: string;
@@ -1204,7 +1205,7 @@ export default function HomePage() {
               fontWeight: '600'
             }}>
               {deploiementsActifs.length > 0 
-                ? 'Appel à participation – Déploiement possible'
+                ? 'Sollicitation de déploiement'
                 : 'Déploiements'}
             </h3>
             {deploiementsActifs.length > 0 && (
@@ -1241,32 +1242,53 @@ export default function HomePage() {
                     gap: '16px'
                   }}>
                     <div style={{ flex: 1, minWidth: '280px' }}>
-                      {dep.nom_sinistre && (
-                        <div style={{ 
-                          fontSize: '16px', 
-                          fontWeight: '600',
-                          color: '#1e3a5f',
-                          marginBottom: '4px'
-                        }}>
-                          {dep.nom_sinistre}
-                        </div>
-                      )}
-                      <div style={{ 
-                        fontSize: '16px', 
-                        fontWeight: dep.nom_sinistre ? '500' : '600', 
-                        color: dep.nom_sinistre ? '#374151' : '#1e3a5f',
-                        marginBottom: '12px'
-                      }}>
-                        {dep.nom_deploiement}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
-                        <div>
-                          {dep.date_debut && formatDate(dep.date_debut)}
-                          {dep.date_fin && ` — ${formatDate(dep.date_fin)}`}
-                        </div>
-                        {dep.lieu && <div>{dep.lieu}</div>}
-                      </div>
-                    </div>
+  {dep.nom_sinistre && (
+    <div style={{ 
+      fontSize: '16px', 
+      fontWeight: '600',
+      color: '#1e3a5f',
+      marginBottom: '4px'
+    }}>
+      {dep.nom_sinistre}
+    </div>
+  )}
+  <div style={{ 
+    fontSize: '16px', 
+    fontWeight: dep.nom_sinistre ? '500' : '600', 
+    color: dep.nom_sinistre ? '#374151' : '#1e3a5f',
+    marginBottom: '12px'
+  }}>
+    {dep.nom_deploiement}
+  </div>
+  <div style={{
+    backgroundColor: '#f0f4f8',
+    borderLeft: '4px solid #2c5aa0',
+    padding: '12px 16px',
+    borderRadius: '0 8px 8px 0',
+    marginBottom: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+    fontSize: '14px',
+    color: '#374151'
+  }}>
+    {dep.type_incident && (
+      <div><strong>Type :</strong> {dep.type_incident}</div>
+    )}
+    {dep.lieu && (
+      <div><strong>Lieu :</strong> {dep.lieu}</div>
+    )}
+    {dep.tache && (
+      <div><strong>Tâche :</strong> {dep.tache}</div>
+    )}
+  </div>
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
+    <div>
+      {dep.date_debut && formatDate(dep.date_debut)}
+      {dep.date_fin && ` — ${formatDate(dep.date_fin)}`}
+    </div>
+  </div>
+</div>
                     
                     <a
                       href={genererLienJotform(dep.deploiement_id)}
