@@ -658,9 +658,16 @@ export default function HomePage() {
                         <div>{dep.date_debut && formatDate(dep.date_debut)}{dep.date_fin && ` — ${formatDate(dep.date_fin)}`}</div>
                       </div>
                     </div>
-                    <a href={genererLienJotform(dep.deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
-                      Soumettre ma disponibilité
-                    </a>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+                      <a href={genererLienJotform(dep.deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                        Soumettre ma disponibilité
+                      </a>
+                      {dep.tache && (
+                        <a href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1e3a5f'; e.currentTarget.style.color = 'white' }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#1e3a5f' }}>
+                          📋 Voir la fiche de tâche
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
