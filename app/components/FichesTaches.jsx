@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 const TACHES = [
   {
@@ -392,12 +393,12 @@ const Section = ({ title, children, defaultOpen = false }) => {
   );
 };
 
-const FicheTache = ({ tache, isOpen, onToggle }) => {
+const FicheTache = ({ tache, isOpen, onToggle, id }) => {
   const org = ORG_CONFIG[tache.org];
   const risk = RISK_CONFIG[tache.risque];
 
   return (
-    <div style={{
+    <div id={id} style={{
       backgroundColor: "white",
       borderRadius: 12,
       border: isOpen ? "2px solid #1e3a5f" : "1px solid #e5e7eb",
@@ -541,6 +542,26 @@ export default function FichesTachesRIUSC() {
   const [openId, setOpenId] = useState(null);
   const [filterOrg, setFilterOrg] = useState("TOUS");
   const [filterRisk, setFilterRisk] = useState("TOUS");
+  const searchParams = useSearchParams();
+
+  // Auto-ouvrir la fiche si ?tache=... est dans l'URL
+  useEffect(() => {
+    const tacheParam = searchParams.get("tache");
+    if (tacheParam) {
+      const match = TACHES.find(t =>
+        t.name.toLowerCase().includes(tacheParam.toLowerCase()) ||
+        tacheParam.toLowerCase().includes(t.name.split(" - ").pop().toLowerCase())
+      );
+      if (match) {
+        setOpenId(match.id);
+        // Scroll vers la fiche après un court délai
+        setTimeout(() => {
+          const el = document.getElementById(`fiche-${match.id}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
+      }
+    }
+  }, [searchParams]);
 
   const filtered = TACHES.filter(t => {
     if (filterOrg !== "TOUS" && t.org !== filterOrg) return false;
@@ -624,6 +645,7 @@ export default function FichesTachesRIUSC() {
         {filtered.map(tache => (
           <FicheTache
             key={tache.id}
+            id={`fiche-${tache.id}`}
             tache={tache}
             isOpen={openId === tache.id}
             onToggle={() => setOpenId(openId === tache.id ? null : tache.id)}

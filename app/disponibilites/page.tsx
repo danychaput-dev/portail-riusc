@@ -571,22 +571,43 @@ export default function DisponibilitesPage() {
                   </div>
                   
                   <a
-                    href={genererLienJotform(dep.deploiement_id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      padding: '10px 20px',
-                      backgroundColor: '#1e3a5f',
-                      color: '#ffffff',
-                      borderRadius: '8px',
-                      textDecoration: 'none',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Soumettre ma disponibilité
-                  </a>
+                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    
+                      href={genererLienJotform(dep.deploiement_id)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        padding: '10px 20px',
+                        backgroundColor: '#1e3a5f',
+                        color: '#ffffff',
+                        borderRadius: '8px',
+                        textDecoration: 'none',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Soumettre ma disponibilité
+                    </a>
+                    {dep.tache && (
+                      
+                        href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`}
+                        style={{
+                          display: 'inline-block',
+                          padding: '10px 20px',
+                          backgroundColor: 'white',
+                          color: '#1e3a5f',
+                          border: '1px solid #1e3a5f',
+                          borderRadius: '8px',
+                          textDecoration: 'none',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        📋 Voir la fiche de tâche
+                      </a>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
