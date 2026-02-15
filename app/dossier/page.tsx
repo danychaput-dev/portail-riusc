@@ -90,8 +90,8 @@ const OPTIONS = {
     'Classe 5 Voiture (G ontario) / Car',
     'Classe 4b Autobus (4-14 passagers) / Bus (4-14 passengers)',
     'Classe 2 Autobus (24+ passager) / Bus (24+ passenger)',
-    'Classe 1 Ensemble de véhicules routiers / Heavy vehicle',
-    'Classe 4a Véhicule d\'urgence / Emergency vehicle',
+    'Classe 1 Ensemble de véhicule combinations routiers / Heavy vehicule',
+    'Classe 4a Véhicule d'urgence / Emergency vehicule',
     'Classe 3 Camions / Trucks',
     'Classe 6 Motocyclette / Motocycle',
   ],
@@ -607,12 +607,12 @@ export default function DossierPage() {
             type="date"
           />
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
-              label="Certification CSI / ICS"
-              options={OPTIONS.certification_csi}
-              values={dossier.certification_csi}
-              onChange={(v) => updateField('certification_csi', v)}
-            />
+          <RadioGroup
+            label="Certification CSI / ICS"
+            options={['Aucune', ...OPTIONS.certification_csi]}
+            value={dossier.certification_csi[0] || 'Aucune'}
+            onChange={v => updateDossier('certification_csi', v === 'Aucune' ? [] : [v])}
+          />
           </div>
         </div>
 
