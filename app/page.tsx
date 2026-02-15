@@ -994,8 +994,7 @@ const certificatsSection = (
               </svg>
             </button>
             
-            Le <a manque toujours. Remplace tout ce bloc menu par la version corrigée. Sélectionne tout de {showUserMenu && ( jusqu'à Tournée des camps</a> et remplace par :
-jsx{showUserMenu && (
+{showUserMenu && (
               <div style={{
                 position: 'absolute',
                 top: '100%',
