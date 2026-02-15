@@ -1028,7 +1028,7 @@ const certificatsSection = (
                   Mon profil
                 </a>
                 {isApproved && (
-                
+                <a
                   href="/dossier"
                   style={{
                     display: 'flex',
