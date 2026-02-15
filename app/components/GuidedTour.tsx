@@ -351,7 +351,10 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
           maxWidth: '360px',
           width: '100%',
           textAlign: 'center',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+          position: 'relative',
+          left: '50%',
+          transform: 'translateX(-50%)'
         }}>
           <div style={{
             width: '64px',
