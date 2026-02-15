@@ -14,6 +14,8 @@ interface GuidedTourProps {
   hasCertificat: boolean
   hasDeploiements: boolean
   hasCiblages: boolean
+  forceStart?: boolean
+  onTourEnd?: () => void
 }
 
 // Steps pour un NOUVEAU membre (pas de certificat)
@@ -118,7 +120,7 @@ const approvedWithDeploiementsSteps: TourStep[] = [
   }
 ]
 
-export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements, hasCiblages }: GuidedTourProps) {
+export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements, hasCiblages, forceStart, onTourEnd }: GuidedTourProps) {
   const [isActive, setIsActive] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({})
@@ -140,18 +142,21 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
 
   const steps = getSteps()
 
-  // Vérifier si c'est la première visite
+ // Vérifier si c'est la première visite ou forceStart
   useEffect(() => {
+    if (forceStart) {
+      setShowStartModal(true)
+      return
+    }
     const tourKey = isApproved ? 'riusc-tour-approved' : 'riusc-tour-new'
     const hasSeenTour = localStorage.getItem(tourKey)
     if (!hasSeenTour) {
-      // Attendre que la page soit chargée
       const timer = setTimeout(() => {
         setShowStartModal(true)
       }, 1500)
       return () => clearTimeout(timer)
     }
-  }, [isApproved])
+  }, [isApproved, forceStart])
 
   // Positionner le tooltip par rapport à l'élément cible
   const positionTooltip = useCallback((stepIndex: number) => {
@@ -278,11 +283,12 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     setIsActive(true)
   }
 
-  const endTour = () => {
+const endTour = () => {
     setIsActive(false)
     setCurrentStep(0)
     const tourKey = isApproved ? 'riusc-tour-approved' : 'riusc-tour-new'
     localStorage.setItem(tourKey, 'true')
+    if (onTourEnd) onTourEnd()
   }
 
   const nextStep = () => {
