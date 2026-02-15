@@ -1651,11 +1651,6 @@ export default function HomePage() {
             </div>
           </a>
         </div>
-
- {/* Section Certificats EN BAS si certificat(s) présent(s) */}
-        {!loadingCertificats && certificats.length > 0 && certificatsSection}
-      </main>
-
 {/* Section Certificats EN BAS si certificat(s) présent(s) */}
         {!loadingCertificats && certificats.length > 0 && certificatsSection}
 
@@ -1674,3 +1669,8 @@ export default function HomePage() {
     </div>
   )
 }
+ {/* Section Certificats EN BAS si certificat(s) présent(s) */}
+        {!loadingCertificats && certificats.length > 0 && certificatsSection}
+      </main>
+
+
