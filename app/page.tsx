@@ -1651,8 +1651,9 @@ export default function HomePage() {
             </div>
           </a>
         </div>
-{/* Section Certificats EN BAS si certificat(s) présent(s) */}
+jsx        {/* Section Certificats EN BAS si certificat(s) présent(s) */}
         {!loadingCertificats && certificats.length > 0 && certificatsSection}
+      </main>
 
       {/* Footer */}
       <footer style={{
@@ -1669,8 +1670,3 @@ export default function HomePage() {
     </div>
   )
 }
- {/* Section Certificats EN BAS si certificat(s) présent(s) */}
-        {!loadingCertificats && certificats.length > 0 && certificatsSection}
-      </main>
-
-
