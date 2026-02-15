@@ -342,7 +342,6 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10000,
-        padding: '20px',
         boxSizing: 'border-box'
       }}>
         <div style={{
@@ -350,8 +349,7 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
           borderRadius: '16px',
           padding: '28px 24px',
           maxWidth: '360px',
-          width: 'calc(100% - 40px)',
-          margin: '0 auto',  
+          width: '100%',
           textAlign: 'center',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
         }}>
