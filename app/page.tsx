@@ -937,7 +937,7 @@ const certificatsSection = (
             </div>
           </div>
           
-          <div ref={userMenuRef} style={{ position: 'relative' }}>
+          <div ref={userMenuRef} data-tour="menu" style={{ position: 'relative' }}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               style={{
@@ -1049,8 +1049,8 @@ const certificatsSection = (
                   Mon dossier réserviste
                 </a>
                 )}
-                {ciblages.length > 0 && (
-                <a
+{isApproved && ciblages.length > 0 && (
+                
                   href="/disponibilites"
                   style={{
                     display: 'flex',
@@ -1582,8 +1582,8 @@ const certificatsSection = (
           </a>
           )}
 
-          {ciblages.length > 0 && (
-            <a href="/disponibilites" data-tour="disponibilites" style={{ textDecoration: 'none' }}>
+          {isApproved && ciblages.length > 0 && (
+          <a href="/disponibilites" data-tour="disponibilites" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',

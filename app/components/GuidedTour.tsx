@@ -22,25 +22,31 @@ interface GuidedTourProps {
 const newMemberSteps: TourStep[] = [
   {
     target: '[data-tour="welcome"]',
-    title: 'Bienvenue sur le Portail RIUSC ! 🎉',
+    title: 'Bienvenue sur le Portail RIUSC !',
     content: 'Voici votre espace personnel. Nous allons vous guider à travers les fonctionnalités principales.',
     position: 'bottom'
   },
   {
     target: '[data-tour="certificats"]',
-    title: 'Étape 1 : Compléter la formation 🎓',
+    title: 'Étape 1 : Compléter la formation',
     content: 'C\'est votre première priorité ! Suivez la formation en ligne « S\'initier à la sécurité civile » puis soumettez votre certificat ici.',
     position: 'bottom'
   },
   {
     target: '[data-tour="camp"]',
-    title: 'Étape 2 : Camp de qualification 🏕️',
-    content: 'Une fois la formation complétée, inscrivez-vous à un camp de qualification pratique pour devenir réserviste certifié.',
+    title: 'Étape 2 : Camp de qualification',
+    content: 'Inscrivez-vous à un camp de qualification pour devenir réserviste certifié.',
+    position: 'bottom'
+  },
+   {
+    target: '[data-tour="menu"]',
+    title: 'Votre menu',
+    content: 'Accédez à votre profil, à la tournée des camps, aux informations pratiques et relancez cette visite guidée à tout moment.',
     position: 'bottom'
   },
   {
     target: '[data-tour="profil"]',
-    title: 'Votre profil 👤',
+    title: 'Votre profil',
     content: 'Consultez et mettez à jour vos informations personnelles à tout moment.',
     position: 'bottom'
   },
@@ -67,6 +73,11 @@ const approvedMemberSteps: TourStep[] = [
     position: 'bottom'
   },
   {
+    target: '[data-tour="menu"]',
+    title: 'Votre menu',
+    content: 'Accédez à votre profil, dossier réserviste, disponibilités et relancez cette visite guidée à tout moment.',
+    position: 'bottom'
+  },{
     target: '[data-tour="profil"]',
     title: 'Votre profil 👤',
     content: 'Consultez et mettez à jour vos informations personnelles.',
@@ -98,6 +109,12 @@ const approvedWithDeploiementsSteps: TourStep[] = [
     target: '[data-tour="deploiements"]',
     title: 'Sollicitation de déploiement ⚠️',
     content: 'Vous avez des déploiements actifs ! Cliquez sur « Soumettre ma disponibilité » pour indiquer si vous êtes disponible.',
+    position: 'bottom'
+  },
+   {
+    target: '[data-tour="menu"]',
+    title: 'Votre menu',
+    content: 'Accédez à votre profil, dossier réserviste, disponibilités et relancez cette visite guidée à tout moment.',
     position: 'bottom'
   },
   {
