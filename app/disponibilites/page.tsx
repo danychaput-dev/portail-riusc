@@ -590,7 +590,7 @@ export default function DisponibilitesPage() {
                       Soumettre ma disponibilité
                     </a>
                     {dep.tache && (
-                      
+                      <a
                         href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`}
                         style={{
                           display: 'inline-block',
