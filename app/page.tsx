@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
+import GuidedTour from './components/GuidedTour'
 
 interface DeploiementActif {
   id: string;
@@ -431,8 +432,8 @@ export default function HomePage() {
   }
 
   // Section Certificats - réutilisable selon le groupe
-  const certificatsSection = (
-    <div style={{
+const certificatsSection = (
+    <div data-tour="certificats" style={{
       backgroundColor: 'white',
       padding: '24px',
       borderRadius: '12px',
@@ -1142,7 +1143,7 @@ export default function HomePage() {
       {/* Main Content */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         {/* Bannière de bienvenue */}
-        <div style={{
+        <div data-tour="welcome" style={{
           backgroundColor: '#1e3a5f',
           padding: '28px 32px',
           borderRadius: '12px',
@@ -1183,7 +1184,7 @@ export default function HomePage() {
         {!loadingCertificats && certificats.length === 0 && certificatsSection}
 {/* Section Déploiements - Visible seulement pour les approuvés */}
         {!loadingCertificats && certificats.length > 0 && (
-        <div style={{
+        <div data-tour="deploiements" style={{
           backgroundColor: 'white',
           padding: '24px',
           borderRadius: '12px',
@@ -1334,9 +1335,9 @@ export default function HomePage() {
         </div>
         )}
 
-        {/* Section Camp de Qualification */}
+ {/* Section Camp de Qualification */}
         {!loadingCamp && campStatus && !campStatus.is_certified && (
-          <div style={{
+          <div data-tour="camp" style={{
             backgroundColor: 'white',
             padding: '24px',
             borderRadius: '12px',
@@ -1492,7 +1493,7 @@ export default function HomePage() {
           gap: '16px',
           marginBottom: '24px'
         }}>
-          <a href="/profil" style={{ textDecoration: 'none' }}>
+ <a href="/profil" data-tour="profil" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1524,7 +1525,7 @@ export default function HomePage() {
           </a>
 
           {isApproved && (
-          <a href="/dossier" style={{ textDecoration: 'none' }}>
+  <a href="/dossier" data-tour="dossier" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1557,7 +1558,7 @@ export default function HomePage() {
           )}
 
           {ciblages.length > 0 && (
-          <a href="/disponibilites" style={{ textDecoration: 'none' }}>
+            <a href="/disponibilites" data-tour="disponibilites" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1589,7 +1590,7 @@ export default function HomePage() {
           </a>
           )}
 
-          <a href="/tournee-camps" style={{ textDecoration: 'none' }}>
+         <a href="/tournee-camps" data-tour="tournee" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1651,9 +1652,17 @@ export default function HomePage() {
             </div>
           </a>
         </div>
-jsx        {/* Section Certificats EN BAS si certificat(s) présent(s) */}
+        {/* Section Certificats EN BAS si certificat(s) présent(s) */}
         {!loadingCertificats && certificats.length > 0 && certificatsSection}
       </main>
+
+  {/* Guide d'onboarding */}
+      <GuidedTour
+        isApproved={isApproved}
+        hasCertificat={certificats.length > 0}
+        hasDeploiements={deploiementsActifs.length > 0}
+        hasCiblages={ciblages.length > 0}
+      />
 
       {/* Footer */}
       <footer style={{
