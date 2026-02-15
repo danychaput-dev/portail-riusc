@@ -562,16 +562,15 @@ export default function DisponibilitesPage() {
                         )}
                       </div>
                     )}
-                    {dep.lieu && (
+    {dep.lieu && (
                       <div>
                         <span style={{ marginRight: '8px' }}>📍</span>
                         {dep.lieu}
                       </div>
                     )}
                   </div>
-                  
-                  <a
-                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     
                       href={genererLienJotform(dep.deploiement_id)}
                       target="_blank"
@@ -590,7 +589,7 @@ export default function DisponibilitesPage() {
                       Soumettre ma disponibilité
                     </a>
                     {dep.tache && (
-                      <a
+                      
                         href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`}
                         style={{
                           display: 'inline-block',
