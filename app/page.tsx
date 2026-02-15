@@ -994,7 +994,8 @@ const certificatsSection = (
               </svg>
             </button>
             
-            {showUserMenu && (
+            Le <a manque toujours. Remplace tout ce bloc menu par la version corrigée. Sélectionne tout de {showUserMenu && ( jusqu'à Tournée des camps</a> et remplace par :
+jsx{showUserMenu && (
               <div style={{
                 position: 'absolute',
                 top: '100%',
@@ -1007,7 +1008,7 @@ const certificatsSection = (
                 minWidth: '200px',
                 overflow: 'hidden'
               }}>
-                <a
+                
                   href="/profil"
                   style={{
                     display: 'flex',
@@ -1028,7 +1029,7 @@ const certificatsSection = (
                   Mon profil
                 </a>
                 {isApproved && (
-                <a
+                
                   href="/dossier"
                   style={{
                     display: 'flex',
@@ -1071,7 +1072,7 @@ const certificatsSection = (
                   Mes disponibilités
                 </a>
                 )}
-                <a
+                
                   href="/tournee-camps"
                   style={{
                     display: 'flex',
