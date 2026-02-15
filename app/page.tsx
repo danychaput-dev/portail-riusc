@@ -1656,6 +1656,9 @@ export default function HomePage() {
         {!loadingCertificats && certificats.length > 0 && certificatsSection}
       </main>
 
+{/* Section Certificats EN BAS si certificat(s) présent(s) */}
+        {!loadingCertificats && certificats.length > 0 && certificatsSection}
+
       {/* Footer */}
       <footer style={{
         backgroundColor: '#1e3a5f',
