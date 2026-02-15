@@ -571,7 +571,7 @@ export default function DisponibilitesPage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    
+                    <a
                       href={genererLienJotform(dep.deploiement_id)}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -589,7 +589,7 @@ export default function DisponibilitesPage() {
                       Soumettre ma disponibilité
                     </a>
                     {dep.tache && (
-                      
+                      <a
                         href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`}
                         style={{
                           display: 'inline-block',
