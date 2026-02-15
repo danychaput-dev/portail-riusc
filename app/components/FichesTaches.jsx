@@ -1,3 +1,4 @@
+"use client";
 import { useState } from "react";
 
 const TACHES = [
@@ -30,7 +31,6 @@ const TACHES = [
     ],
     epiRequis: ["Casque", "Bottes imperméables", "Gants renforcés", "Veste réfléchissante", "Harnais (si requis)"],
     formations: ["Camp Qualification RIUSC"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2678227092/RIUSC_Tache6_Protection_Digues_SST.pdf"
   },
   {
     id: 2,
@@ -65,7 +65,6 @@ const TACHES = [
     ],
     epiRequis: ["Casque forestier avec visière grillagée et protection auditive", "Pantalon anti-coupure (ISO 11393)", "Bottes forestières avec protection anti-coupure", "Veste haute visibilité", "Lunettes de sécurité", "Trousse premiers secours"],
     formations: ["Camp Qualification RIUSC", "Certification Utilisation Scie Mécanique"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2659851277/Procedure_Securite_Ebranchage.pdf"
   },
   {
     id: 3,
@@ -98,7 +97,6 @@ const TACHES = [
     ],
     epiRequis: ["Casque", "Gants renforcés", "Bottes de sécurité", "Lunettes de protection", "Masque N95", "Vêtements longs et couvrants", "Protection auditive (si machinerie)"],
     formations: ["Camp Qualification RIUSC", "Formation identification matières dangereuses"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2678332463/RIUSC_Tache7_Gestion_Debris_SST.pdf"
   },
   {
     id: 4,
@@ -133,7 +131,6 @@ const TACHES = [
     ],
     epiRequis: ["Bottes de randonnée", "Gants de travail", "Veste haute visibilité", "Casque (si proximité structures)", "Lunettes de soleil", "Lampe frontale", "Vêtements adaptés", "Chasse-moustiques"],
     formations: ["Camp Qualification RIUSC", "Formation GPS et Radio"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2678377297/RIUSC_Tache9_Reconnaissance_Territoire_SST.pdf"
   },
   {
     id: 5,
@@ -168,7 +165,6 @@ const TACHES = [
     ],
     epiRequis: ["Veste / Dossard haute visibilité RIUSC", "Gants", "Bottes de sécurité", "Masque", "Casque", "Lampe frontale", "Vêtements adaptés"],
     formations: ["Camp Qualification RIUSC", "Premiers secours", "Premiers secours psychologiques"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683786851/RIUSC_Tache3_Soutien_Evacuations_SST.pdf"
   },
   {
     id: 6,
@@ -203,7 +199,6 @@ const TACHES = [
     ],
     epiRequis: ["Veste réfléchissante", "Casque (si déplacement zone avec activités)", "Bottes de sécurité (si déplacements terrain)", "Protection auditive (si environnement bruyant)"],
     formations: ["Camp Qualification RIUSC", "ICS-100", "ICS-200", "ICS-300"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683727732/RIUSC_Tache10_Coordination_Operations_SST.pdf"
   },
   {
     id: 7,
@@ -232,7 +227,6 @@ const TACHES = [
     ],
     epiRequis: ["Veste réfléchissante RIUSC", "Gants", "Chaussures fermées confortables", "Masque", "Vêtements confortables"],
     formations: ["Camp Qualification RIUSC"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683734003/RIUSC_Tache1_Preparation_Centres_Hebergement_SST.pdf"
   },
   {
     id: 8,
@@ -264,7 +258,6 @@ const TACHES = [
     ],
     epiRequis: ["Veste réfléchissante", "Masque (si requis)"],
     formations: ["Camp Qualification RIUSC", "Hygiène et salubrité alimentaire (base)", "Sensibilisation allergies alimentaires", "Communication empathique et bienveillante"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683746186/RIUSC_Tache2_Soutien_Besoins_Essentiels_SST.pdf"
   },
   {
     id: 9,
@@ -295,7 +288,6 @@ const TACHES = [
     ],
     epiRequis: ["Veste réfléchissante"],
     formations: ["Camp Qualification RIUSC", "Premiers secours psychologiques", "Communication empathique et bienveillante"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683751941/RIUSC_Tache4_Reconfort_Soutien_Moral_SST.pdf"
   },
   {
     id: 10,
@@ -327,7 +319,6 @@ const TACHES = [
     ],
     epiRequis: ["Veste réfléchissante", "Masque (si requis)"],
     formations: ["Camp Qualification RIUSC", "Premiers secours psychologiques"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683760189/RIUSC_Tache5_Suivi_Clienteles_Vulnerables_SST.pdf"
   },
   {
     id: 11,
@@ -359,143 +350,80 @@ const TACHES = [
     ],
     epiRequis: ["Veste réfléchissante", "Casque de construction", "Gants renforcés", "Bottes de sécurité", "Lunettes de protection", "Protection auditive"],
     formations: ["Camp Qualification RIUSC", "Utilisation radio VHF"],
-    procedureUrl: "https://aqbrs.monday.com/protected_static/27459850/resources/2683767063/RIUSC_Tache7_Soutien_Logistique_SOPFEU_SST.pdf"
   }
 ];
 
 const ORG_CONFIG = {
-  SOPFEU: {
-    label: "SOPFEU",
-    color: "#D97706",
-    bgLight: "#FEF3C7",
-    bgMed: "#FDE68A",
-    icon: "🔥",
-    accent: "#92400E"
-  },
-  "CROIX-ROUGE": {
-    label: "Croix-Rouge",
-    color: "#DC2626",
-    bgLight: "#FEE2E2",
-    bgMed: "#FECACA",
-    icon: "✚",
-    accent: "#991B1B"
-  },
-  MIXTE: {
-    label: "Mixte",
-    color: "#2563EB",
-    bgLight: "#DBEAFE",
-    bgMed: "#BFDBFE",
-    icon: "⬡",
-    accent: "#1E40AF"
-  }
+  SOPFEU: { label: "SOPFEU", bg: "#fef3c7", color: "#92400e" },
+  "CROIX-ROUGE": { label: "Croix-Rouge", bg: "#fef2f2", color: "#dc2626" },
+  MIXTE: { label: "Mixte", bg: "#dbeafe", color: "#1e40af" }
 };
 
 const RISK_CONFIG = {
-  "Très Élevé": { color: "#DC2626", bg: "#FEE2E2", border: "#F87171", icon: "▲▲", weight: 4 },
-  "Élevé": { color: "#EA580C", bg: "#FFF7ED", border: "#FB923C", icon: "▲", weight: 3 },
-  "Moyen": { color: "#CA8A04", bg: "#FEFCE8", border: "#FACC15", icon: "◆", weight: 2 },
-  "Faible": { color: "#16A34A", bg: "#F0FDF4", border: "#4ADE80", icon: "●", weight: 1 }
+  "Très Élevé": { bg: "#fef2f2", color: "#dc2626", border: "#fca5a5" },
+  "Élevé": { bg: "#fff7ed", color: "#ea580c", border: "#fdba74" },
+  "Moyen": { bg: "#fefce8", color: "#a16207", border: "#fde68a" },
+  "Faible": { bg: "#f0fdf4", color: "#16a34a", border: "#86efac" }
 };
 
-const Section = ({ title, icon, children, defaultOpen = false }) => {
+const Section = ({ title, children, defaultOpen = false }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 12, marginTop: 12 }}>
+    <div style={{ marginTop: 16 }}>
       <button
         onClick={() => setOpen(!open)}
         style={{
           display: "flex", alignItems: "center", gap: 8, width: "100%",
-          background: "none", border: "none", cursor: "pointer", padding: "4px 0",
-          fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600,
-          color: "#374151", letterSpacing: "0.02em"
+          background: "none", border: "none", cursor: "pointer", padding: "8px 0",
+          fontSize: 14, fontWeight: 600, color: "#1e3a5f", textAlign: "left"
         }}
       >
-        <span style={{ fontSize: 14, opacity: 0.6 }}>{icon}</span>
-        <span>{title}</span>
-        <span style={{
-          marginLeft: "auto", fontSize: 11, transition: "transform 0.2s",
-          transform: open ? "rotate(180deg)" : "rotate(0deg)", color: "#9CA3AF"
-        }}>▼</span>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transition: "transform 0.2s", transform: open ? "rotate(180deg)" : "rotate(0deg)", flexShrink: 0 }}
+        >
+          <path d="M19 9l-7 7-7-7" />
+        </svg>
+        {title}
       </button>
-      {open && <div style={{ paddingTop: 8, paddingLeft: 4 }}>{children}</div>}
+      {open && <div style={{ paddingLeft: 4, paddingTop: 4 }}>{children}</div>}
     </div>
   );
 };
-
-const ItemList = ({ items, color = "#6B7280" }) => (
-  <ul style={{ margin: 0, paddingLeft: 18, listStyle: "none" }}>
-    {items.map((item, i) => (
-      <li key={i} style={{
-        fontSize: 13, lineHeight: 1.7, color: "#4B5563", position: "relative",
-        fontFamily: "'DM Sans', sans-serif"
-      }}>
-        <span style={{
-          position: "absolute", left: -14, top: 0, color, fontSize: 8,
-          lineHeight: "23px"
-        }}>●</span>
-        {item}
-      </li>
-    ))}
-  </ul>
-);
-
-const Badge = ({ children, bg, color, border }) => (
-  <span style={{
-    display: "inline-flex", alignItems: "center", gap: 4,
-    padding: "3px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700,
-    background: bg, color, border: `1.5px solid ${border || bg}`,
-    fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.03em",
-    textTransform: "uppercase"
-  }}>{children}</span>
-);
 
 const FicheTache = ({ tache, isOpen, onToggle }) => {
   const org = ORG_CONFIG[tache.org];
   const risk = RISK_CONFIG[tache.risque];
 
   return (
-    <div
-      style={{
-        background: "#FFFFFF",
-        borderRadius: 14,
-        border: `1px solid ${isOpen ? org.color + "40" : "#E5E7EB"}`,
-        boxShadow: isOpen
-          ? `0 8px 32px ${org.color}12, 0 2px 8px rgba(0,0,0,0.04)`
-          : "0 1px 3px rgba(0,0,0,0.04)",
-        transition: "all 0.25s ease",
-        overflow: "hidden"
-      }}
-    >
-      {/* Header */}
+    <div style={{
+      backgroundColor: "white",
+      borderRadius: 12,
+      border: isOpen ? "2px solid #1e3a5f" : "1px solid #e5e7eb",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+      transition: "all 0.2s",
+      overflow: "hidden"
+    }}>
       <button
         onClick={onToggle}
         style={{
-          width: "100%", display: "flex", alignItems: "center", gap: 14,
-          padding: "16px 20px", background: "none", border: "none",
+          width: "100%", display: "flex", alignItems: "center", gap: 16,
+          padding: "18px 20px", background: "none", border: "none",
           cursor: "pointer", textAlign: "left"
         }}
+        onMouseOver={(e) => { if (!isOpen) e.currentTarget.parentElement.style.borderColor = "#1e3a5f" }}
+        onMouseOut={(e) => { if (!isOpen) e.currentTarget.parentElement.style.borderColor = "#e5e7eb" }}
       >
-        {/* Org indicator */}
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: org.bgLight, display: "flex", alignItems: "center",
-          justifyContent: "center", fontSize: 18, flexShrink: 0,
-          border: `1.5px solid ${org.bgMed}`
-        }}>
-          {org.icon}
-        </div>
-
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700,
-            color: "#111827", lineHeight: 1.3,
+            fontSize: 15, fontWeight: 600, color: "#1e3a5f",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
           }}>
             {tache.name}
           </div>
           <div style={{
-            fontFamily: "'DM Sans', sans-serif", fontSize: 12.5, color: "#6B7280",
-            marginTop: 2, lineHeight: 1.4,
+            fontSize: 13, color: "#6b7280", marginTop: 3,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
           }}>
             {tache.description}
@@ -503,107 +431,103 @@ const FicheTache = ({ tache, isOpen, onToggle }) => {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <Badge bg={org.bgLight} color={org.accent} border={org.bgMed}>
-            {org.label}
-          </Badge>
-          <Badge bg={risk.bg} color={risk.color} border={risk.border}>
-            {risk.icon} {tache.risque}
-          </Badge>
           <span style={{
-            fontSize: 14, color: "#9CA3AF", transition: "transform 0.25s",
-            transform: isOpen ? "rotate(180deg)" : "rotate(0deg)"
-          }}>▼</span>
+            padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+            backgroundColor: org.bg, color: org.color
+          }}>{org.label}</span>
+          <span style={{
+            padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+            backgroundColor: risk.bg, color: risk.color
+          }}>{tache.risque}</span>
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transition: "transform 0.2s", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+          >
+            <path d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </button>
 
-      {/* Expanded content */}
       {isOpen && (
-        <div style={{
-          padding: "0 20px 20px 20px",
-          borderTop: `1px solid #F3F4F6`,
-          animation: "fadeIn 0.2s ease"
-        }}>
-          {/* Description & Risk summary */}
-          <div style={{
-            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16,
-            marginTop: 16
-          }}>
+        <div style={{ padding: "0 20px 24px 20px", borderTop: "1px solid #e5e7eb" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20 }}>
             <div style={{
-              background: "#F9FAFB", borderRadius: 10, padding: 14,
-              border: "1px solid #F3F4F6"
+              backgroundColor: "#f0f4f8", borderLeft: "4px solid #2c5aa0",
+              padding: "14px 16px", borderRadius: "0 8px 8px 0"
             }}>
-              <div style={{
-                fontSize: 11, fontWeight: 700, color: "#9CA3AF",
-                textTransform: "uppercase", letterSpacing: "0.06em",
-                fontFamily: "'DM Sans', sans-serif", marginBottom: 6
-              }}>Description</div>
-              <div style={{
-                fontSize: 13.5, color: "#374151", lineHeight: 1.65,
-                fontFamily: "'DM Sans', sans-serif"
-              }}>{tache.description}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+                Description
+              </div>
+              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
+                {tache.description}
+              </div>
             </div>
             <div style={{
-              background: risk.bg, borderRadius: 10, padding: 14,
-              border: `1px solid ${risk.border}30`
+              backgroundColor: risk.bg, borderLeft: `4px solid ${risk.border}`,
+              padding: "14px 16px", borderRadius: "0 8px 8px 0"
             }}>
-              <div style={{
-                fontSize: 11, fontWeight: 700, color: risk.color,
-                textTransform: "uppercase", letterSpacing: "0.06em",
-                fontFamily: "'DM Sans', sans-serif", marginBottom: 6
-              }}>Analyse de risque — {tache.risque}</div>
-              <div style={{
-                fontSize: 13.5, color: "#374151", lineHeight: 1.65,
-                fontFamily: "'DM Sans', sans-serif"
-              }}>{tache.analyseRisque}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: risk.color, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+                Analyse de risque — {tache.risque}
+              </div>
+              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
+                {tache.analyseRisque}
+              </div>
             </div>
           </div>
 
-          {/* Collapsible sections */}
-          <Section title="Dangers identifiés" icon="⚠️" defaultOpen={true}>
-            <ItemList items={tache.dangers} color={risk.color} />
+          <Section title="Dangers identifiés" defaultOpen={true}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {tache.dangers.map((d, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>
+                  <span style={{ color: risk.color, fontSize: 8, marginTop: 6, flexShrink: 0 }}>●</span>
+                  {d}
+                </div>
+              ))}
+            </div>
           </Section>
 
-          <Section title="Mesures de prévention" icon="🛡️" defaultOpen={true}>
-            <ItemList items={tache.prevention} color="#16A34A" />
+          <Section title="Mesures de prévention" defaultOpen={true}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {tache.prevention.map((p, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>
+                  <span style={{ color: "#16a34a", fontSize: 8, marginTop: 6, flexShrink: 0 }}>●</span>
+                  {p}
+                </div>
+              ))}
+            </div>
           </Section>
 
-          <Section title="Équipement de protection individuelle (EPI)" icon="🦺">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingTop: 4 }}>
+          <Section title="Équipement de protection individuelle (EPI)">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
               {tache.epiRequis.map((epi, i) => (
                 <span key={i} style={{
-                  display: "inline-block", padding: "5px 12px", borderRadius: 8,
-                  background: "#F3F4F6", fontSize: 12.5, color: "#374151",
-                  fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-                  border: "1px solid #E5E7EB"
+                  padding: "6px 14px", borderRadius: 6, fontSize: 13,
+                  backgroundColor: "#f9fafb", color: "#374151",
+                  border: "1px solid #e5e7eb", fontWeight: 500
                 }}>{epi}</span>
               ))}
             </div>
           </Section>
 
-          <Section title="Formations requises" icon="🎓">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingTop: 4 }}>
+          <Section title="Formations requises">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
               {tache.formations.map((f, i) => (
                 <span key={i} style={{
-                  display: "inline-block", padding: "5px 12px", borderRadius: 8,
-                  background: org.bgLight, fontSize: 12.5, color: org.accent,
-                  fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
-                  border: `1px solid ${org.bgMed}`
+                  padding: "6px 14px", borderRadius: 6, fontSize: 13,
+                  backgroundColor: "#f0f4f8", color: "#1e3a5f",
+                  border: "1px solid #d1dce8", fontWeight: 600
                 }}>{f}</span>
               ))}
             </div>
           </Section>
 
-          {/* Procedure status */}
           <div style={{
-            marginTop: 16, paddingTop: 12, borderTop: "1px solid #E5E7EB",
-            display: "flex", alignItems: "center", gap: 8
+            marginTop: 20, paddingTop: 16, borderTop: "1px solid #e5e7eb",
+            display: "flex", alignItems: "center", gap: 10
           }}>
-            <span style={{ fontSize: 14 }}>📋</span>
-            <span style={{
-              fontSize: 13, color: "#9CA3AF",
-              fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-              fontStyle: "italic"
-            }}>
+            <span style={{ fontSize: 16 }}>📋</span>
+            <span style={{ fontSize: 14, color: "#9ca3af", fontStyle: "italic" }}>
               Procédure de sécurité SST — En processus de révision
             </span>
           </div>
@@ -624,112 +548,79 @@ export default function FichesTachesRIUSC() {
     return true;
   });
 
-  const FilterButton = ({ value, label, active, onClick, color }) => (
+  const FilterBtn = ({ label, active, onClick }) => (
     <button
       onClick={onClick}
       style={{
-        padding: "6px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600,
-        fontFamily: "'DM Sans', sans-serif", cursor: "pointer",
-        border: active ? `2px solid ${color || "#111827"}` : "1.5px solid #E5E7EB",
-        background: active ? (color ? color + "12" : "#F9FAFB") : "#FFFFFF",
-        color: active ? (color || "#111827") : "#6B7280",
-        transition: "all 0.15s ease",
-        letterSpacing: "0.01em"
+        padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 500,
+        border: active ? "1px solid #1e3a5f" : "1px solid #d1d5db",
+        backgroundColor: active ? "#1e3a5f" : "white",
+        color: active ? "white" : "#374151",
+        cursor: "pointer", transition: "all 0.2s"
       }}
     >{label}</button>
   );
 
   return (
-    <div style={{
-      maxWidth: 860, margin: "0 auto", padding: "32px 20px",
-      fontFamily: "'DM Sans', sans-serif"
-    }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap" rel="stylesheet" />
-
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @media (max-width: 640px) {
-          .grid-responsive { grid-template-columns: 1fr !important; }
-          .header-badges { flex-direction: column; align-items: flex-start !important; gap: 6px !important; }
-          .filter-row { flex-wrap: wrap; }
-        }
-      `}</style>
-
+    <div>
       {/* Bandeau préliminaire */}
       <div style={{
-        background: "#FEF3C7", border: "1.5px solid #F59E0B", borderRadius: 10,
-        padding: "14px 18px", marginBottom: 24, display: "flex",
+        backgroundColor: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8,
+        padding: "20px", marginBottom: 24, display: "flex",
         alignItems: "flex-start", gap: 12
       }}>
-        <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>⚠️</span>
+        <span style={{ fontSize: 24 }}>⚠️</span>
         <div>
-          <div style={{
-            fontSize: 13.5, fontWeight: 700, color: "#92400E",
-            fontFamily: "'DM Sans', sans-serif", marginBottom: 3
-          }}>Document préliminaire — Ne pas utiliser en contexte opérationnel</div>
-          <div style={{
-            fontSize: 12.5, color: "#A16207", lineHeight: 1.55,
-            fontFamily: "'DM Sans', sans-serif"
-          }}>
-            Ces fiches de tâches sont en cours de rédaction et de validation. Le contenu, les analyses de risque et les mesures de prévention sont sujets à modification. Les procédures de sécurité SST sont présentement en processus de révision.
-          </div>
+          <p style={{ margin: "0 0 8px 0", fontWeight: 600, color: "#92400e", fontSize: 15 }}>
+            Document préliminaire — Ne pas utiliser en contexte opérationnel
+          </p>
+          <p style={{ margin: 0, color: "#78350f", fontSize: 14, lineHeight: 1.6 }}>
+            Ces fiches de tâches sont en cours de rédaction et de validation. Le contenu, les analyses de risque
+            et les mesures de prévention sont sujets à modification. Les procédures de sécurité SST sont
+            présentement en processus de révision.
+          </p>
         </div>
       </div>
 
-      {/* Page header */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 700, color: "#9CA3AF",
-          textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6
-        }}>Catalogue des tâches</div>
-        <h1 style={{
-          fontSize: 26, fontWeight: 800, color: "#111827", margin: 0,
-          lineHeight: 1.2, letterSpacing: "-0.02em"
-        }}>Fiches de tâches RIUSC</h1>
-        <p style={{
-          fontSize: 14, color: "#6B7280", marginTop: 6, lineHeight: 1.5
-        }}>
-          {TACHES.length} tâches disponibles — Cliquez sur une tâche pour consulter la fiche complète incluant les dangers, mesures de prévention et équipements requis.
+      {/* Header */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ margin: "0 0 8px 0", fontSize: 18, fontWeight: 600, color: "#1e3a5f" }}>
+          Fiches de tâches RIUSC
+        </h3>
+        <p style={{ margin: 0, fontSize: 14, color: "#6b7280", lineHeight: 1.5 }}>
+          {TACHES.length} tâches disponibles — Cliquez sur une tâche pour consulter la fiche complète.
         </p>
       </div>
 
       {/* Filters */}
-      <div style={{
-        display: "flex", gap: 24, marginBottom: 20, flexWrap: "wrap",
-        alignItems: "flex-start"
-      }}>
+      <div style={{ display: "flex", gap: 20, marginBottom: 20, flexWrap: "wrap" }}>
         <div>
-          <div style={{
-            fontSize: 10.5, fontWeight: 700, color: "#9CA3AF",
-            textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6
-          }}>Organisme</div>
-          <div style={{ display: "flex", gap: 5 }} className="filter-row">
-            <FilterButton value="TOUS" label="Tous" active={filterOrg === "TOUS"} onClick={() => setFilterOrg("TOUS")} />
-            <FilterButton value="SOPFEU" label="🔥 SOPFEU" active={filterOrg === "SOPFEU"} onClick={() => setFilterOrg("SOPFEU")} color="#D97706" />
-            <FilterButton value="CROIX-ROUGE" label="✚ Croix-Rouge" active={filterOrg === "CROIX-ROUGE"} onClick={() => setFilterOrg("CROIX-ROUGE")} color="#DC2626" />
-            <FilterButton value="MIXTE" label="⬡ Mixte" active={filterOrg === "MIXTE"} onClick={() => setFilterOrg("MIXTE")} color="#2563EB" />
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Organisme
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <FilterBtn label="Tous" active={filterOrg === "TOUS"} onClick={() => setFilterOrg("TOUS")} />
+            <FilterBtn label="SOPFEU" active={filterOrg === "SOPFEU"} onClick={() => setFilterOrg("SOPFEU")} />
+            <FilterBtn label="Croix-Rouge" active={filterOrg === "CROIX-ROUGE"} onClick={() => setFilterOrg("CROIX-ROUGE")} />
+            <FilterBtn label="Mixte" active={filterOrg === "MIXTE"} onClick={() => setFilterOrg("MIXTE")} />
           </div>
         </div>
         <div>
-          <div style={{
-            fontSize: 10.5, fontWeight: 700, color: "#9CA3AF",
-            textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6
-          }}>Niveau de risque</div>
-          <div style={{ display: "flex", gap: 5 }} className="filter-row">
-            <FilterButton value="TOUS" label="Tous" active={filterRisk === "TOUS"} onClick={() => setFilterRisk("TOUS")} />
-            <FilterButton value="Très Élevé" label="▲▲ Très Élevé" active={filterRisk === "Très Élevé"} onClick={() => setFilterRisk("Très Élevé")} color="#DC2626" />
-            <FilterButton value="Élevé" label="▲ Élevé" active={filterRisk === "Élevé"} onClick={() => setFilterRisk("Élevé")} color="#EA580C" />
-            <FilterButton value="Moyen" label="◆ Moyen" active={filterRisk === "Moyen"} onClick={() => setFilterRisk("Moyen")} color="#CA8A04" />
-            <FilterButton value="Faible" label="● Faible" active={filterRisk === "Faible"} onClick={() => setFilterRisk("Faible")} color="#16A34A" />
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            Niveau de risque
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <FilterBtn label="Tous" active={filterRisk === "TOUS"} onClick={() => setFilterRisk("TOUS")} />
+            <FilterBtn label="Très Élevé" active={filterRisk === "Très Élevé"} onClick={() => setFilterRisk("Très Élevé")} />
+            <FilterBtn label="Élevé" active={filterRisk === "Élevé"} onClick={() => setFilterRisk("Élevé")} />
+            <FilterBtn label="Moyen" active={filterRisk === "Moyen"} onClick={() => setFilterRisk("Moyen")} />
+            <FilterBtn label="Faible" active={filterRisk === "Faible"} onClick={() => setFilterRisk("Faible")} />
           </div>
         </div>
       </div>
 
-      {/* Task list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Task cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {filtered.map(tache => (
           <FicheTache
             key={tache.id}
@@ -740,8 +631,8 @@ export default function FichesTachesRIUSC() {
         ))}
         {filtered.length === 0 && (
           <div style={{
-            textAlign: "center", padding: 40, color: "#9CA3AF",
-            fontSize: 14, fontFamily: "'DM Sans', sans-serif"
+            padding: "40px 20px", backgroundColor: "#f9fafb", borderRadius: 8,
+            textAlign: "center", color: "#9ca3af", fontSize: 14
           }}>
             Aucune tâche ne correspond aux filtres sélectionnés.
           </div>
