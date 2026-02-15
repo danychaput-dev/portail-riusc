@@ -15,6 +15,7 @@ interface Reserviste {
   groupe?: string
 }
 
+// Tous les dropdown sont maintenant des number[] (IDs Monday)
 interface DossierData {
   // Identité (lecture seule)
   prenom: string
@@ -25,204 +26,211 @@ interface DossierData {
   grandeur_bottes: string
   j_ai_18_ans: boolean
   // Santé
-  allergies_oui_non: string
+  allergies_oui_non: number[]
   allergie_detail: string
   // Compétences RS
-  competence_rs: string[]
+  competence_rs: number[]
   // Premiers soins
-  certificat_premiers_soins: string[]
+  certificat_premiers_soins: number[]
   date_expiration_certificat: string
   // Véhicules
-  vehicule_tout_terrain: string[]
-  navire_marin: string[]
-  permis_conduire: string[]
-  disponible_covoiturage: string[]
+  vehicule_tout_terrain: number[]
+  navire_marin: number[]
+  permis_conduire: number[]
+  disponible_covoiturage: number[]
   // Spécialisé
-  satp_drone: string[]
-  equipe_canine: string[]
-  competences_securite: string[]
-  competences_sauvetage: string[]
-  certification_csi: string[]
-  communication: string[]
-  cartographie_sig: string[]
-  operation_urgence: string[]
+  satp_drone: number[]
+  equipe_canine: number[]
+  competences_securite: number[]
+  competences_sauvetage: number[]
+  certification_csi: number[]
+  communication: number[]
+  cartographie_sig: number[]
+  operation_urgence: number[]
   // Langues
-  langues_parlees: string[]
+  langues_parlees: number[]
   autres_langues: string
   // Affiliation
-  provenance: string[]
-  membre_groupe_rs: string[]
+  provenance: number[]
+  membre_groupe_rs: number[]
   organisme_autre: string
   // Notes
   autres_competences: string
   commentaire: string
-  // Confidentialité
   confidentialite: boolean
 }
 
-// ─── Options dropdown (depuis le document structure Monday) ──────────────────
+// ─── OPTIONS: { id: number, label: string }[] ───────────────────────────────
+// L'id correspond au ID Monday du dropdown
 
-const OPTIONS = {
-  allergies_oui_non: ['Oui / Yes', 'Non / No'],
+const OPTIONS: Record<string, { id: number; label: string }[]> = {
+  allergies_oui_non: [
+    { id: 1, label: 'Oui / Yes' },
+    { id: 2, label: 'Non / No' },
+  ],
   competence_rs: [
-    'Niveau 1 - Chercheur',
-    'Niveau 2 - Chef d\'équipe',
-    'Niveau 3 - Gestionnaire de recherche',
+    { id: 1, label: 'Niveau 1 - Équipier' },
+    { id: 2, label: 'Niveau 2 - Chef d\'équipe' },
+    { id: 3, label: 'Niveau 3 - Responsable des opérations' },
   ],
   certificat_premiers_soins: [
-    'a) RCR/DEA (4-6h) certificat',
-    'b) Premiers soins standard (8-16h) / Standard first aid',
-    'c) Secourisme en milieu de travail (16h) / First aid in the workplace',
-    'd) Secourisme en milieu éloigné (20-40h) / Wilderness first aid',
-    'e) Premier répondant (80-120h) / First responder',
+    { id: 1, label: 'a) RCR/DEA (4-6h) certificat' },
+    { id: 2, label: 'b) Premiers soins standard (8-16h) / Standard first aid' },
+    { id: 3, label: 'c) Secourisme en milieu de travail (16h) / First aid in the workplace' },
+    { id: 4, label: 'd) Secourisme en milieu éloigné (20-40h) / Wilderness first aid' },
+    { id: 5, label: 'e) Premier répondant (80-120h) / First responder' },
   ],
   vehicule_tout_terrain: [
-    'VTT / ATV',
-    'Motoneige / Snowmobile',
-    'Argo',
-    'Côte à côte / Side by Side',
+    { id: 1, label: 'VTT / ATV' },
+    { id: 2, label: 'Motoneige / Snowmobile' },
+    { id: 3, label: 'Argo' },
+    { id: 4, label: 'Côte à côte / Side by side' },
   ],
   navire_marin: [
-    'Permis d\'embarcation de plaisance / Pleasure craf licence',
-    'Petits bateaux / Small craft',
+    { id: 1, label: 'Permis d\'embarcation de plaisance' },
+    { id: 2, label: 'Petits bateaux / Small craft' },
   ],
   permis_conduire: [
-    'Classe 5 Voiture (G ontario) / Car',
-    'Classe 4b Autobus (4-14 passagers) / Bus (4-14 passengers)',
-    'Classe 2 Autobus (24+ passager) / Bus (24+ passenger)',
-    'Classe 1 Ensemble de véhicule combinations routiers / Heavy vehicule',
-    'Classe 4a Véhicule d'urgence / Emergency vehicule',
-    'Classe 3 Camions / Trucks',
-    'Classe 6 Motocyclette / Motocycle',
+    { id: 1, label: 'Classe 5 Voiture (G ontario) / Car' },
+    { id: 2, label: 'Classe 4b Autobus (4-14 passagers) / Bus (4-14 passengers)' },
+    { id: 3, label: 'Classe 2 Autobus (24+ passager) / Bus (24+ passenger)' },
+    { id: 4, label: 'Classe 1 Ensemble de véhicules routiers / Heavy vehicle' },
+    { id: 5, label: 'Classe 4a Véhicule d\'urgence / Emergency vehicle' },
+    { id: 6, label: 'Classe 3 Camions / Trucks' },
+    { id: 7, label: 'Classe 6 Motocyclette / Motocycle' },
   ],
   disponible_covoiturage: [
-    'Je peux transporter des gens / I can transport people',
+    { id: 1, label: 'Je peux transporter des gens / I can transport people' },
   ],
   satp_drone: [
-    'SATP Obs / RPAS Visual Observer',
-    'SATP de base / RPAS Basic',
-    'SATP avancées / RPAS Advanced',
+    { id: 1, label: 'Observateur / Observer' },
+    { id: 2, label: 'Opérations de base / Basic operations' },
+    { id: 3, label: 'Opérations avancées / Advanced operations' },
   ],
   equipe_canine: [
-    'Ratissage',
-    'Pistage / Track-Trail',
-    'Avalanche / Avalanche',
-    'Décombres - Noyés - Restes humains / USAR - Water search - Human remains',
+    { id: 1, label: 'Ratissage / Area search' },
+    { id: 2, label: 'Pistage / Trailing-Tracking' },
+    { id: 3, label: 'Avalanche' },
+    { id: 4, label: 'Décombres / Disaster' },
   ],
   competences_securite: [
-    'Cours sur la sécurité des scies à chaînes / Chain saw safety course',
-    'Certification de contrôle du trafic / Traffic control and flagging certificate',
+    { id: 1, label: 'Scies à chaînes / Chainsaw' },
+    { id: 2, label: 'Contrôle de la circulation routière / Traffic control' },
   ],
   competences_sauvetage: [
-    'Sauvetage sur corde / Rope rescue',
-    'Sauvetage en eau vive / Swift water rescue',
-    'Sauvetage sur glace / Ice rescue',
+    { id: 1, label: 'Sauvetage sur corde / Rope rescue' },
+    { id: 2, label: 'Sauvetage en eau vive / Swift water rescue' },
+    { id: 3, label: 'Sauvetage sur glace / Ice rescue' },
   ],
   certification_csi: [
-    'CSI / ICS 100',
-    'CSI / ICS 200',
-    'CSI / ICS 300',
-    'CSI / ICS 400',
+    { id: 1, label: 'CSI / ICS 100' },
+    { id: 2, label: 'CSI / ICS 200' },
+    { id: 3, label: 'CSI / ICS 300' },
+    { id: 4, label: 'CSI / ICS 400' },
   ],
   communication: [
-    'Certificat restreint d\'opérateur radio - Aéronautique / Restricted operator certificate - aeronautic',
-    'Opérateur radio - maritime / Radio operator - maritime',
-    'Expérience en communications radio mobiles terrestres / Land mobile radio technical professional',
-    'Certificat d\'opérateur radioamateur - de base / Amateur radio operator certificate - basic',
-    'Certificat d\'opérateur radioamateur - de base avec distinction / Amateur radio operator certificate - basic with honors',
-    'Certificat d\'opérateur radioamateur - avancée / Amateur radio operator certificate - advanced',
-    'Professionnel de réseau ou expérience significative en matière de réseau IP / Networking professional or significant IP networking experience',
+    { id: 1, label: 'Radio aéronautique / Aeronautical radio' },
+    { id: 2, label: 'Radio maritime / Maritime radio' },
+    { id: 3, label: 'Radio amateur / Amateur radio' },
+    { id: 4, label: 'Radio générale opérateur / General radio operator' },
+    { id: 5, label: 'Radio restreinte / Restricted radio' },
+    { id: 6, label: 'PCRS / GSAR Radio operator' },
+    { id: 7, label: 'Télécommunication d\'urgence / Emergency telecommunication' },
   ],
   cartographie_sig: [
-    'ArcGIS Pro',
-    'ArcGIS Online',
-    'ArcGIS QuickCapture (Mobile)',
-    'Caltopo - Sartopo',
-    'Sartrack',
-    'Autre / Other',
+    { id: 1, label: 'ArcGIS Pro' },
+    { id: 2, label: 'ArcGIS Online' },
+    { id: 3, label: 'ArcGIS QuickCapture (Mobile)' },
+    { id: 4, label: 'Caltopo - Sartopo' },
+    { id: 5, label: 'Sartrack' },
+    { id: 6, label: 'Autre / Other' },
   ],
-  operation_urgence: [] as string[],
+  operation_urgence: [
+    { id: 1, label: 'Gestion de l\'hébergement / Shelter management' },
+    { id: 2, label: 'Gestion de point de service / Service point management' },
+    { id: 3, label: 'Accueil et inscription / Reception and registration' },
+    { id: 4, label: 'Alimentation / Food services' },
+    { id: 5, label: 'Services aux sinistrés / Victim services' },
+    { id: 6, label: 'Aide psychosociale / Psychosocial support' },
+    { id: 7, label: 'Gestion des dons / Donation management' },
+    { id: 8, label: 'Soutien logistique / Logistical support' },
+    { id: 9, label: 'Analyse et évaluation / Analysis and evaluation' },
+    { id: 10, label: 'Animaux / Animals' },
+  ],
   langues_parlees: [
-    'Anglais / English',
-    'Français / French',
-    'Espagnol / Spanish',
-    'Mandarin / Mandarin',
-    'Arabe',
-    'Créole haïtien / Haitian Creole',
-    'Cantonais / Cantonese',
-    'Portugais / Portuguese',
-    'Italien / Italian',
-    'Roumain / Romanian',
-    'Vietnamien / Vietnamese',
-    'Russe / Russian',
-    'Allemand / German',
-    'Coréen / Korean',
-    'Japonais / Japanese',
-    'Cri / Cree',
-    'Innu-aimun (Montagnais)',
-    'Atikamekw',
-    'Naskapi',
-    'Algonquin',
-    'Mohawk',
+    { id: 1, label: 'Anglais / English' },
+    { id: 2, label: 'Français / French' },
+    { id: 3, label: 'Espagnol / Spanish' },
+    { id: 4, label: 'Mandarin' },
+    { id: 5, label: 'Arabe / Arabic' },
+    { id: 6, label: 'Portugais / Portuguese' },
+    { id: 7, label: 'Russe / Russian' },
+    { id: 8, label: 'Japonais / Japanese' },
+    { id: 9, label: 'Allemand / German' },
+    { id: 10, label: 'Coréen / Korean' },
+    { id: 11, label: 'Italien / Italian' },
+    { id: 12, label: 'Néerlandais / Dutch' },
+    { id: 13, label: 'Turc / Turkish' },
+    { id: 14, label: 'Polonais / Polish' },
+    { id: 15, label: 'Ukrainien / Ukrainian' },
+    { id: 16, label: 'Roumain / Romanian' },
+    { id: 17, label: 'Grec / Greek' },
+    { id: 18, label: 'Hongrois / Hungarian' },
+    { id: 19, label: 'Tchèque / Czech' },
+    { id: 20, label: 'Suédois / Swedish' },
   ],
   provenance: [
-    'AQBRS - Association Québécoise des bénévoles en recherche et sauvetage',
-    'MSP - Ministère de la sécurité publique',
-    'Site Web de l\'AQBRS',
-    'ASJ - Ambulance St-Jean',
+    { id: 1, label: 'AQBRS' },
+    { id: 2, label: 'MSP' },
+    { id: 3, label: 'Site Web AQBRS' },
+    { id: 4, label: 'Association des scouts du Canada / ASJ' },
   ],
   membre_groupe_rs: [
-    'Recherche et Sauvetage Québec-Métro (RSQM)',
-    'District 1: Équipe de RS La Grande-Ourse',
-    'District 2: Sauvetage Région 02',
-    'District 3: Recherche et Sauvetage Québec-Métro (RSQM)',
-    'District 4: Eurêka Recherche et sauvetage',
-    'District 4: SIUCQ Drummondville',
-    'District 4: SIUCQ MRC Arthabaska',
-    'District 4: SIUSQ Division Mauricie',
-    'District 4: Sauvetage Mauricie K9',
-    'District 5: Recherche Sauvetage Estrie',
-    'District 6: Sauvetage Baie-D\'Urfé',
-    'District 6: Ambulance St-Jean - Div. 971 Laval',
-    'District 6: Québec Secours',
-    'District 6: Pointe-Claire Rescue',
-    'District 6: Recherche Sauvetage Laurentides Lanaudière',
-    'District 6: S&R Balise Beacon R&S',
-    'District 7: Sauvetage Bénévole Outaouais',
-    'District 7: SAR 360',
-    'District 8: Recherche et sauvetage du Témiscamingue R.E.S.Tem',
-    'District 9: Groupe de recherche Manicouagan',
-    'District 10: Groupe de recherche Manicouagas',
+    { id: 1, label: 'District 5: Recherche Sauvetage Estrie' },
+    { id: 2, label: 'District 4: Recherche Sauvetage Mauricie' },
+    { id: 3, label: 'District 3: Recherche Sauvetage Québec' },
+    { id: 4, label: 'District 1: Recherche Sauvetage Saguenay' },
+    { id: 5, label: 'District 6: Recherche Sauvetage Outaouais' },
+    { id: 6, label: 'District 2: Recherche Sauvetage Bas St-Laurent' },
+    { id: 7, label: 'District 7: Recherche Sauvetage Laurentides-Lanaudière' },
+    { id: 8, label: 'District 8: Recherche Sauvetage Montérégie' },
+    { id: 9, label: 'District 9: Recherche Sauvetage Abitibi' },
+    { id: 10, label: 'District 10: Recherche Sauvetage Côte-Nord' },
+    { id: 11, label: 'District 11: Recherche Sauvetage Chaudières-Appalaches' },
+    { id: 12, label: 'District 12: Recherche Sauvetage Centre-du-Québec' },
+    { id: 13, label: 'District 13: Recherche Sauvetage Gaspésie' },
+    { id: 14, label: 'District 14: Recherche Sauvetage Montréal-Laval' },
+    { id: 15, label: 'Autre' },
   ],
 }
-
-// ─── Valeurs par défaut ──────────────────────────────────────────────────────
 
 const DEFAULT_DOSSIER: DossierData = {
   prenom: '', nom: '', email: '', date_naissance: '',
   grandeur_bottes: '', j_ai_18_ans: false,
-  allergies_oui_non: '', allergie_detail: '',
+  allergies_oui_non: [], allergie_detail: '',
   competence_rs: [],
   certificat_premiers_soins: [], date_expiration_certificat: '',
-  vehicule_tout_terrain: [], navire_marin: [],
-  permis_conduire: [], disponible_covoiturage: [],
-  satp_drone: [], equipe_canine: [],
-  competences_securite: [], competences_sauvetage: [],
-  certification_csi: [], communication: [],
-  cartographie_sig: [], operation_urgence: [],
+  vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
+  satp_drone: [], equipe_canine: [], competences_securite: [],
+  competences_sauvetage: [], certification_csi: [],
+  communication: [], cartographie_sig: [], operation_urgence: [],
   langues_parlees: [], autres_langues: '',
   provenance: [], membre_groupe_rs: [], organisme_autre: '',
-  autres_competences: '', commentaire: '',
-  confidentialite: false,
+  autres_competences: '', commentaire: '', confidentialite: false,
 }
 
-// ─── Composants de formulaire ────────────────────────────────────────────────
+// ─── Composants UI ───────────────────────────────────────────────────────────
 
-function SectionTitle({ icon, title }: { icon: string; title: string }) {
+function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 mt-10 mb-4 pb-2 border-b-2 border-[#1e3a5f]">
-      <span className="text-xl">{icon}</span>
-      <h2 className="text-lg font-semibold text-[#1e3a5f]">{title}</h2>
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-[#1e3a5f]">
+        <span className="text-xl">{icon}</span>
+        <h2 className="text-lg font-semibold text-[#1e3a5f]">{title}</h2>
+      </div>
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        {children}
+      </div>
     </div>
   )
 }
@@ -235,13 +243,9 @@ function TextInput({ label, value, onChange, placeholder, disabled, type = 'text
     <div className="mb-4">
       <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
       <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent transition
-          ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white border-gray-300'}`}
+        type={type} value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} disabled={disabled}
+        className={`w-full px-3 py-2 border rounded-md text-sm ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'border-gray-300 focus:border-[#1e3a5f] focus:ring-1 focus:ring-[#1e3a5f]'}`}
       />
     </div>
   )
@@ -255,65 +259,59 @@ function TextArea({ label, value, onChange, placeholder, rows = 3 }: {
     <div className="mb-4">
       <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
       <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent transition resize-y"
+        value={value} onChange={e => onChange(e.target.value)}
+        placeholder={placeholder} rows={rows}
+        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:border-[#1e3a5f] focus:ring-1 focus:ring-[#1e3a5f]"
       />
     </div>
   )
 }
 
-function RadioGroup({ label, options, value, onChange }: {
-  label: string; options: string[]; value: string; onChange: (v: string) => void
+function RadioGroupId({ label, options, value, onChange }: {
+  label: string; options: { id: number; label: string }[]; value: number[]; onChange: (v: number[]) => void
 }) {
+  const selectedId = value[0] || 0
   return (
     <div className="mb-4">
       <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-      <div className="flex flex-wrap gap-3">
-        {options.map((opt) => (
-          <label key={opt} className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name={label}
-              checked={value === opt}
-              onChange={() => onChange(opt)}
-              className="w-4 h-4 text-[#1e3a5f] focus:ring-[#1e3a5f]"
-            />
-            <span className="text-sm text-gray-700">{opt}</span>
-          </label>
-        ))}
-      </div>
+      {options.map(opt => (
+        <label key={opt.id} className="flex items-center gap-2 cursor-pointer py-1">
+          <input
+            type="radio" checked={selectedId === opt.id}
+            name={label}
+            onChange={() => onChange([opt.id])}
+            className="text-[#1e3a5f]"
+          />
+          <span className="text-sm text-gray-700">{opt.label}</span>
+        </label>
+      ))}
     </div>
   )
 }
 
-function CheckboxGroup({ label, options, values, onChange, columns = 1 }: {
-  label: string; options: string[]; values: string[];
-  onChange: (v: string[]) => void; columns?: number
+function CheckboxGroupId({ label, options, values, onChange, columns = 1 }: {
+  label: string; options: { id: number; label: string }[]; values: number[];
+  onChange: (v: number[]) => void; columns?: number
 }) {
-  const toggle = (opt: string) => {
-    if (values.includes(opt)) {
-      onChange(values.filter(v => v !== opt))
+  const toggle = (id: number) => {
+    if (values.includes(id)) {
+      onChange(values.filter(v => v !== id))
     } else {
-      onChange([...values, opt])
+      onChange([...values, id])
     }
   }
-
   return (
     <div className="mb-4">
       <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-      <div className={`grid gap-2 ${columns === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-        {options.map((opt) => (
-          <label key={opt} className="flex items-start gap-2 cursor-pointer py-1">
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '4px' }}>
+        {options.map(opt => (
+          <label key={opt.id} className="flex items-start gap-2 cursor-pointer py-1">
             <input
-              type="checkbox"
-              checked={values.includes(opt)}
-              onChange={() => toggle(opt)}
-              className="w-4 h-4 mt-0.5 text-[#1e3a5f] rounded focus:ring-[#1e3a5f] shrink-0"
+              type="checkbox" checked={values.includes(opt.id)}
+              onChange={() => toggle(opt.id)}
+              className="mt-0.5 text-[#1e3a5f]"
             />
-            <span className="text-sm text-gray-700">{opt}</span>
+            <span className="text-sm text-gray-700">{opt.label}</span>
           </label>
         ))}
       </div>
@@ -327,10 +325,9 @@ function Checkbox({ label, checked, onChange }: {
   return (
     <label className="flex items-start gap-2 cursor-pointer mb-4 py-1">
       <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="w-4 h-4 mt-0.5 text-[#1e3a5f] rounded focus:ring-[#1e3a5f] shrink-0"
+        type="checkbox" checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="mt-0.5 text-[#1e3a5f]"
       />
       <span className="text-sm text-gray-700">{label}</span>
     </label>
@@ -343,47 +340,48 @@ export default function DossierPage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [dossier, setDossier] = useState<DossierData>(DEFAULT_DOSSIER)
+  const [originalDossier, setOriginalDossier] = useState<DossierData>(DEFAULT_DOSSIER)
   const [loading, setLoading] = useState(true)
-  const [loadingDossier, setLoadingDossier] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [saveSuccess, setSaveSuccess] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
-  const [originalDossier, setOriginalDossier] = useState<string>('')
-  
+
   const router = useRouter()
   const supabase = createClient()
 
-  // Charger le dossier depuis Monday via n8n
+  const updateDossier = (field: keyof DossierData, value: any) => {
+    setDossier(prev => {
+      const updated = { ...prev, [field]: value }
+      setHasChanges(JSON.stringify(updated) !== JSON.stringify(originalDossier))
+      return updated
+    })
+  }
+
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       setUser(user)
 
-      // Récupérer le réserviste depuis Supabase
       const { data: reservisteData } = await supabase
         .from('reservistes')
         .select('*')
         .eq('user_id', user.id)
         .single()
-      
-      if (!reservisteData) {
-        setLoading(false)
-        setLoadingDossier(false)
-        return
-      }
+
+      if (!reservisteData) { router.push('/'); return }
+
       setReserviste(reservisteData)
 
-      // Protection: les new_group n'ont pas accès au dossier
-      if (reservisteData.groupe === 'new_group') {
+      // Protection: les non-approuvés n'ont pas accès au dossier
+      if (reservisteData.groupe !== 'Approuvé') {
         router.push('/')
         return
       }
 
       setLoading(false)
 
-      // Charger le dossier depuis Monday via n8n
+      // Charger le dossier depuis n8n/Monday
       try {
         const response = await fetch(
           `https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`
@@ -391,37 +389,55 @@ export default function DossierPage() {
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.dossier) {
-            const merged = { ...DEFAULT_DOSSIER, ...data.dossier }
-            setDossier(merged)
-            setOriginalDossier(JSON.stringify(merged))
+            const d = data.dossier
+            const loaded: DossierData = {
+              prenom: d.prenom || '',
+              nom: d.nom || '',
+              email: d.email || '',
+              date_naissance: d.date_naissance || '',
+              grandeur_bottes: d.grandeur_bottes || '',
+              j_ai_18_ans: d.j_ai_18_ans || false,
+              allergies_oui_non: d.allergies_oui_non || [],
+              allergie_detail: d.allergie_detail || '',
+              competence_rs: d.competence_rs || [],
+              certificat_premiers_soins: d.certificat_premiers_soins || [],
+              date_expiration_certificat: d.date_expiration_certificat || '',
+              vehicule_tout_terrain: d.vehicule_tout_terrain || [],
+              navire_marin: d.navire_marin || [],
+              permis_conduire: d.permis_conduire || [],
+              disponible_covoiturage: d.disponible_covoiturage || [],
+              satp_drone: d.satp_drone || [],
+              equipe_canine: d.equipe_canine || [],
+              competences_securite: d.competences_securite || [],
+              competences_sauvetage: d.competences_sauvetage || [],
+              certification_csi: d.certification_csi || [],
+              communication: d.communication || [],
+              cartographie_sig: d.cartographie_sig || [],
+              operation_urgence: d.operation_urgence || [],
+              langues_parlees: d.langues_parlees || [],
+              autres_langues: d.autres_langues || '',
+              provenance: d.provenance || [],
+              membre_groupe_rs: d.membre_groupe_rs || [],
+              organisme_autre: d.organisme_autre || '',
+              autres_competences: d.autres_competences || '',
+              commentaire: d.commentaire || '',
+              confidentialite: d.confidentialite || false,
+            }
+            setDossier(loaded)
+            setOriginalDossier(loaded)
           }
         }
       } catch (error) {
         console.error('Erreur chargement dossier:', error)
       }
-      setLoadingDossier(false)
     }
     loadData()
   }, [])
 
-  // Détecter les changements
-  useEffect(() => {
-    setHasChanges(JSON.stringify(dossier) !== originalDossier)
-  }, [dossier, originalDossier])
-
-  // Helper pour mettre à jour un champ
-  const updateField = <K extends keyof DossierData>(key: K, value: DossierData[K]) => {
-    setDossier(prev => ({ ...prev, [key]: value }))
-    setSaveSuccess(false)
-    setSaveError(null)
-  }
-
-  // Sauvegarder
   const handleSave = async () => {
-    if (!reserviste || !hasChanges) return
+    if (!reserviste) return
     setSaving(true)
-    setSaveSuccess(false)
-    setSaveError(null)
+    setSaveMessage(null)
 
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
@@ -429,381 +445,353 @@ export default function DossierPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
-          dossier: dossier,
-        }),
+          dossier: {
+            grandeur_bottes: dossier.grandeur_bottes,
+            j_ai_18_ans: dossier.j_ai_18_ans,
+            allergies_oui_non: dossier.allergies_oui_non,
+            allergie_detail: dossier.allergie_detail,
+            competence_rs: dossier.competence_rs,
+            certificat_premiers_soins: dossier.certificat_premiers_soins,
+            date_expiration_certificat: dossier.date_expiration_certificat,
+            vehicule_tout_terrain: dossier.vehicule_tout_terrain,
+            navire_marin: dossier.navire_marin,
+            permis_conduire: dossier.permis_conduire,
+            disponible_covoiturage: dossier.disponible_covoiturage,
+            satp_drone: dossier.satp_drone,
+            equipe_canine: dossier.equipe_canine,
+            competences_securite: dossier.competences_securite,
+            competences_sauvetage: dossier.competences_sauvetage,
+            certification_csi: dossier.certification_csi,
+            communication: dossier.communication,
+            cartographie_sig: dossier.cartographie_sig,
+            operation_urgence: dossier.operation_urgence,
+            langues_parlees: dossier.langues_parlees,
+            autres_langues: dossier.autres_langues,
+            provenance: dossier.provenance,
+            membre_groupe_rs: dossier.membre_groupe_rs,
+            organisme_autre: dossier.organisme_autre,
+            autres_competences: dossier.autres_competences,
+            commentaire: dossier.commentaire,
+            confidentialite: dossier.confidentialite,
+          }
+        })
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setSaveSuccess(true)
-          setOriginalDossier(JSON.stringify(dossier))
-          setTimeout(() => setSaveSuccess(false), 4000)
-        } else {
-          setSaveError(result.error || 'Erreur lors de la sauvegarde')
-        }
+      const data = await response.json()
+      if (data.success) {
+        setSaveMessage({ type: 'success', text: 'Dossier sauvegardé avec succès !' })
+        setOriginalDossier({ ...dossier })
+        setHasChanges(false)
       } else {
-        setSaveError('Erreur de communication avec le serveur')
+        setSaveMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' })
       }
     } catch (error) {
-      setSaveError('Erreur réseau. Vérifiez votre connexion.')
+      console.error('Erreur sauvegarde:', error)
+      setSaveMessage({ type: 'error', text: 'Erreur de connexion' })
     }
     setSaving(false)
   }
 
-  // ─── Loading ──────────────────────────────────────────────────────────────
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1e3a5f] mx-auto mb-4"></div>
-          <p className="text-gray-500">Chargement...</p>
-        </div>
+      <div className="flex justify-center items-center h-screen text-[#1e3a5f] text-lg">
+        Chargement...
       </div>
     )
   }
-
-  if (!reserviste) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md">
-          <p className="text-red-600 font-medium">Profil réserviste introuvable</p>
-          <p className="text-gray-500 mt-2 text-sm">Votre compte n'est pas encore lié à un dossier réserviste.</p>
-          <button onClick={() => router.push('/')} className="mt-4 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm hover:bg-[#15304f] transition">
-            Retour à l'accueil
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ─── Rendu ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-[#1e3a5f] text-white py-4 px-6 shadow-md sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-[#f5f7fa]">
+      {/* Header sticky */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/')} className="text-white/70 hover:text-white transition">
-              ← Retour
-            </button>
-            <span className="text-white/30">|</span>
+            <a href="/" className="text-[#1e3a5f] hover:text-[#2d4a6f]">
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </a>
             <h1 className="text-lg font-semibold">Mon dossier réserviste</h1>
           </div>
-          <div className="flex items-center gap-3">
-            {hasChanges && (
-              <span className="text-xs bg-amber-500 text-white px-2 py-1 rounded-full animate-pulse">
-                Modifications non sauvegardées
-              </span>
-            )}
-            <button
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                saving || !hasChanges
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-[#e63946] hover:bg-[#d62b39] active:scale-95'
-              } text-white`}
-            >
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </button>
-          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              hasChanges
+                ? 'bg-[#1e3a5f] text-white hover:bg-[#2d4a6f] cursor-pointer'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+          </button>
         </div>
       </header>
 
-      {/* Contenu */}
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-32">
-        
-        {/* Bannière de succès / erreur */}
-        {saveSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-            <span className="text-green-600 text-lg">✓</span>
-            <p className="text-green-800 text-sm font-medium">Dossier sauvegardé avec succès !</p>
+      {/* Message de sauvegarde */}
+      {saveMessage && (
+        <div className={`max-w-4xl mx-auto px-6 mt-4`}>
+          <div className={`p-4 rounded-lg text-sm font-medium ${
+            saveMessage.type === 'success'
+              ? 'bg-green-100 text-green-800 border border-green-200'
+              : 'bg-red-100 text-red-800 border border-red-200'
+          }`}>
+            {saveMessage.text}
           </div>
-        )}
-        {saveError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-            <span className="text-red-600 text-lg">✕</span>
-            <p className="text-red-800 text-sm font-medium">{saveError}</p>
-          </div>
-        )}
+        </div>
+      )}
 
-        {loadingDossier && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#1e3a5f]"></div>
-            <p className="text-blue-800 text-sm">Chargement de votre dossier depuis Monday.com...</p>
-          </div>
-        )}
+      {/* Formulaire */}
+      <main className="max-w-4xl mx-auto px-6 py-8">
 
-        {/* ─── SECTION 1: Identité ─────────────────────────────────────── */}
-        <SectionTitle icon="👤" title="Informations personnelles" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+        {/* ── Identité ── */}
+        <Section title="Identité" icon="👤">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
             <TextInput label="Prénom" value={dossier.prenom} onChange={() => {}} disabled />
             <TextInput label="Nom de famille" value={dossier.nom} onChange={() => {}} disabled />
           </div>
           <TextInput label="Courriel" value={dossier.email} onChange={() => {}} disabled />
           <TextInput label="Date de naissance" value={dossier.date_naissance} onChange={() => {}} disabled type="text" />
-          <p className="text-xs text-gray-400 -mt-2 mb-4">Ces informations sont gérées dans votre profil.</p>
-          
-          <TextInput
-            label="Grandeur de bottes"
-            value={dossier.grandeur_bottes}
-            onChange={(v) => updateField('grandeur_bottes', v)}
-            placeholder="Ex: 10, 42, etc."
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+            <TextInput
+              label="Grandeur de bottes"
+              value={dossier.grandeur_bottes}
+              onChange={v => updateDossier('grandeur_bottes', v)}
+              placeholder="Ex: 10"
+            />
+          </div>
           <Checkbox
             label="Je confirme avoir 18 ans ou plus"
             checked={dossier.j_ai_18_ans}
-            onChange={(v) => updateField('j_ai_18_ans', v)}
+            onChange={v => updateDossier('j_ai_18_ans', v)}
           />
-        </div>
+        </Section>
 
-        {/* ─── SECTION 2: Santé ────────────────────────────────────────── */}
-        <SectionTitle icon="🏥" title="Santé et allergies" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <RadioGroup
+        {/* ── Santé ── */}
+        <Section title="Santé" icon="🏥">
+          <RadioGroupId
             label="Avez-vous des allergies ou d'autres problèmes médicaux dont l'équipe de gestion des incidents devrait être informée?"
             options={OPTIONS.allergies_oui_non}
             value={dossier.allergies_oui_non}
-            onChange={(v) => updateField('allergies_oui_non', v)}
+            onChange={v => updateDossier('allergies_oui_non', v)}
           />
-          {dossier.allergies_oui_non === 'Oui / Yes' && (
+          {dossier.allergies_oui_non.includes(1) && (
             <TextArea
               label="Détails (allergies, problèmes de santé)"
               value={dossier.allergie_detail}
-              onChange={(v) => updateField('allergie_detail', v)}
-              placeholder="Décrivez vos allergies ou conditions médicales..."
+              onChange={v => updateDossier('allergie_detail', v)}
+              placeholder="Décrivez vos allergies ou problèmes médicaux..."
             />
           )}
-        </div>
+        </Section>
 
-        {/* ─── SECTION 3: Compétences RS ───────────────────────────────── */}
-        <SectionTitle icon="🔍" title="Compétences en recherche et sauvetage" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Compétences RS ── */}
+        <Section title="Compétences en recherche et sauvetage" icon="🔍">
+          <RadioGroupId
             label="Compétence en recherche et sauvetage au sol"
             options={OPTIONS.competence_rs}
-            values={dossier.competence_rs}
-            onChange={(v) => updateField('competence_rs', v)}
+            value={dossier.competence_rs}
+            onChange={v => updateDossier('competence_rs', v)}
           />
-        </div>
+        </Section>
 
-        {/* ─── SECTION 4: Premiers soins & CSI ─────────────────────────── */}
-        <SectionTitle icon="🩺" title="Certifications" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Certifications ── */}
+        <Section title="Certifications" icon="🩺">
+          <CheckboxGroupId
             label="Certificat de premiers soins (en cours de validité)"
             options={OPTIONS.certificat_premiers_soins}
             values={dossier.certificat_premiers_soins}
-            onChange={(v) => updateField('certificat_premiers_soins', v)}
+            onChange={v => updateDossier('certificat_premiers_soins', v)}
           />
           <TextInput
             label="Date d'expiration du certificat"
             value={dossier.date_expiration_certificat}
-            onChange={(v) => updateField('date_expiration_certificat', v)}
+            onChange={v => updateDossier('date_expiration_certificat', v)}
             type="date"
           />
-          <div className="mt-4 pt-4 border-t border-gray-100">
-          <RadioGroup
-            label="Certification CSI / ICS"
-            options={['Aucune', ...OPTIONS.certification_csi]}
-            value={dossier.certification_csi[0] || 'Aucune'}
-            onChange={v => updateDossier('certification_csi', v === 'Aucune' ? [] : [v])}
-          />
+          <div className="mt-6">
+            <RadioGroupId
+              label="Certification CSI / ICS"
+              options={[{ id: 0, label: 'Aucune' }, ...OPTIONS.certification_csi]}
+              value={dossier.certification_csi.length > 0 ? dossier.certification_csi : [0]}
+              onChange={v => updateDossier('certification_csi', v[0] === 0 ? [] : v)}
+            />
           </div>
-        </div>
+        </Section>
 
-        {/* ─── SECTION 5: Transport et véhicules ──────────────────────── */}
-        <SectionTitle icon="🚗" title="Transport et véhicules" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Transport ── */}
+        <Section title="Transport et véhicules" icon="🚗">
+          <CheckboxGroupId
             label="Catégorie de permis de conduire"
             options={OPTIONS.permis_conduire}
             values={dossier.permis_conduire}
-            onChange={(v) => updateField('permis_conduire', v)}
+            onChange={v => updateDossier('permis_conduire', v)}
           />
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
+          <div className="mt-6">
+            <CheckboxGroupId
               label="Véhicule tout-terrain"
               options={OPTIONS.vehicule_tout_terrain}
               values={dossier.vehicule_tout_terrain}
-              onChange={(v) => updateField('vehicule_tout_terrain', v)}
-              columns={2}
+              onChange={v => updateDossier('vehicule_tout_terrain', v)}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
+          <div className="mt-6">
+            <CheckboxGroupId
               label="Navire marin"
               options={OPTIONS.navire_marin}
               values={dossier.navire_marin}
-              onChange={(v) => updateField('navire_marin', v)}
+              onChange={v => updateDossier('navire_marin', v)}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
+          <div className="mt-6">
+            <CheckboxGroupId
               label="Disponible pour offrir du covoiturage"
               options={OPTIONS.disponible_covoiturage}
               values={dossier.disponible_covoiturage}
-              onChange={(v) => updateField('disponible_covoiturage', v)}
+              onChange={v => updateDossier('disponible_covoiturage', v)}
             />
           </div>
-        </div>
+        </Section>
 
-        {/* ─── SECTION 6: Compétences spécialisées ────────────────────── */}
-        <SectionTitle icon="⚙️" title="Compétences spécialisées" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Compétences spécialisées ── */}
+        <Section title="Compétences spécialisées" icon="⚙️">
+          <CheckboxGroupId
             label="SATP Pilote (Drone) / RPAS Pilot"
             options={OPTIONS.satp_drone}
             values={dossier.satp_drone}
-            onChange={(v) => updateField('satp_drone', v)}
+            onChange={v => updateDossier('satp_drone', v)}
           />
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
+          <div className="mt-6">
+            <CheckboxGroupId
               label="Équipe Canine R-S / SAR Dog Team"
               options={OPTIONS.equipe_canine}
               values={dossier.equipe_canine}
-              onChange={(v) => updateField('equipe_canine', v)}
+              onChange={v => updateDossier('equipe_canine', v)}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
-              label="Compétences en matière de sécurité"
+          <div className="mt-6">
+            <CheckboxGroupId
+              label="Compétences en sécurité"
               options={OPTIONS.competences_securite}
               values={dossier.competences_securite}
-              onChange={(v) => updateField('competences_securite', v)}
+              onChange={v => updateDossier('competences_securite', v)}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
-              label="Compétences de sauvetage"
+          <div className="mt-6">
+            <CheckboxGroupId
+              label="Compétences en sauvetage"
               options={OPTIONS.competences_sauvetage}
               values={dossier.competences_sauvetage}
-              onChange={(v) => updateField('competences_sauvetage', v)}
+              onChange={v => updateDossier('competences_sauvetage', v)}
             />
           </div>
-        </div>
+        </Section>
 
-        {/* ─── SECTION 7: Communication & SIG ─────────────────────────── */}
-        <SectionTitle icon="📡" title="Communication et cartographie" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Communication & SIG ── */}
+        <Section title="Communication et cartographie" icon="📡">
+          <CheckboxGroupId
             label="Communication"
             options={OPTIONS.communication}
             values={dossier.communication}
-            onChange={(v) => updateField('communication', v)}
+            onChange={v => updateDossier('communication', v)}
           />
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
-              label="Expérience cartographie SIG / GIS Mapping"
+          <div className="mt-6">
+            <CheckboxGroupId
+              label="Cartographie / SIG"
               options={OPTIONS.cartographie_sig}
               values={dossier.cartographie_sig}
-              onChange={(v) => updateField('cartographie_sig', v)}
-              columns={2}
+              onChange={v => updateDossier('cartographie_sig', v)}
             />
           </div>
-        </div>
+        </Section>
 
-        {/* ─── SECTION 8: Langues ─────────────────────────────────────── */}
-        <SectionTitle icon="🌐" title="Langues" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Opération urgence ── */}
+        <Section title="Opérations d'urgence" icon="🚨">
+          <CheckboxGroupId
+            label="Expérience en opération d'urgence"
+            options={OPTIONS.operation_urgence}
+            values={dossier.operation_urgence}
+            onChange={v => updateDossier('operation_urgence', v)}
+          />
+        </Section>
+
+        {/* ── Langues ── */}
+        <Section title="Langues" icon="🌐">
+          <CheckboxGroupId
             label="Langues parlées"
             options={OPTIONS.langues_parlees}
             values={dossier.langues_parlees}
-            onChange={(v) => updateField('langues_parlees', v)}
+            onChange={v => updateDossier('langues_parlees', v)}
             columns={2}
           />
           <TextInput
             label="Autres langues"
             value={dossier.autres_langues}
-            onChange={(v) => updateField('autres_langues', v)}
-            placeholder="Langues non listées ci-dessus..."
+            onChange={v => updateDossier('autres_langues', v)}
+            placeholder="Précisez si non listée ci-dessus"
           />
-        </div>
+        </Section>
 
-        {/* ─── SECTION 9: Affiliation ─────────────────────────────────── */}
-        <SectionTitle icon="🏢" title="Affiliation" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <CheckboxGroup
+        {/* ── Affiliation ── */}
+        <Section title="Affiliation" icon="🏛️">
+          <CheckboxGroupId
             label="Provenance"
             options={OPTIONS.provenance}
             values={dossier.provenance}
-            onChange={(v) => updateField('provenance', v)}
+            onChange={v => updateDossier('provenance', v)}
           />
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <CheckboxGroup
-              label="Membres d'un groupe de R.S. de l'AQBRS"
+          <div className="mt-6">
+            <CheckboxGroupId
+              label="Membre d'un groupe de recherche et sauvetage"
               options={OPTIONS.membre_groupe_rs}
               values={dossier.membre_groupe_rs}
-              onChange={(v) => updateField('membre_groupe_rs', v)}
+              onChange={v => updateDossier('membre_groupe_rs', v)}
             />
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <TextInput
-              label="Organisme - Autre impliqué en sécurité civile"
-              value={dossier.organisme_autre}
-              onChange={(v) => updateField('organisme_autre', v)}
-              placeholder="Si applicable..."
-            />
-          </div>
-        </div>
+          <TextInput
+            label="Autre organisme"
+            value={dossier.organisme_autre}
+            onChange={v => updateDossier('organisme_autre', v)}
+            placeholder="Si applicable"
+          />
+        </Section>
 
-        {/* ─── SECTION 10: Notes & confidentialité ────────────────────── */}
-        <SectionTitle icon="📝" title="Notes et confidentialité" />
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        {/* ── Notes ── */}
+        <Section title="Notes et commentaires" icon="📝">
           <TextArea
-            label="Autres compétences ou expertises"
+            label="Autres compétences"
             value={dossier.autres_competences}
-            onChange={(v) => updateField('autres_competences', v)}
-            placeholder="Toute autre compétence pertinente..."
+            onChange={v => updateDossier('autres_competences', v)}
+            placeholder="Compétences supplémentaires non listées ci-dessus..."
           />
           <TextArea
             label="Commentaire"
             value={dossier.commentaire}
-            onChange={(v) => updateField('commentaire', v)}
-            placeholder="Commentaire additionnel..."
+            onChange={v => updateDossier('commentaire', v)}
+            placeholder="Commentaires ou informations additionnelles..."
           />
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <Checkbox
-              label="Je comprends et j'accepte les conditions de confidentialité de la RIUSC. Je m'engage à traiter toute information relative aux opérations et aux personnes de manière confidentielle."
-              checked={dossier.confidentialite}
-              onChange={(v) => updateField('confidentialite', v)}
-            />
-          </div>
-        </div>
+          <Checkbox
+            label="J'accepte les conditions de confidentialité et d'utilisation de mes données"
+            checked={dossier.confidentialite}
+            onChange={v => updateDossier('confidentialite', v)}
+          />
+        </Section>
 
       </main>
 
-      {/* Barre de sauvegarde fixe en bas */}
+      {/* Barre de sauvegarde sticky en bas */}
       {hasChanges && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg py-3 px-6 z-50">
-          <div className="max-w-3xl mx-auto flex items-center justify-between">
-            <p className="text-sm text-amber-600 font-medium">
-              ⚠ Vous avez des modifications non sauvegardées
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setDossier(JSON.parse(originalDossier))
-                  setSaveSuccess(false)
-                  setSaveError(null)
-                }}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-6 py-2 bg-[#e63946] text-white rounded-lg text-sm font-medium hover:bg-[#d62b39] transition disabled:bg-gray-400"
-              >
-                {saving ? 'Sauvegarde...' : 'Sauvegarder le dossier'}
-              </button>
-            </div>
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+          <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
+            <span className="text-sm text-amber-600 font-medium">
+              ⚠️ Vous avez des modifications non sauvegardées
+            </span>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="px-6 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-semibold hover:bg-[#2d4a6f] transition-colors"
+            >
+              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </button>
           </div>
         </div>
       )}
