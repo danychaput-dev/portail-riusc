@@ -35,6 +35,7 @@ interface DeploiementActif {
   date_fin: string;
   lieu?: string;
   statut: string;
+  tache?: string;
 }
 
 interface Reserviste {
