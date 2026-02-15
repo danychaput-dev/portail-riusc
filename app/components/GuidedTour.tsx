@@ -335,26 +335,22 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
         position: 'fixed',
         top: 0,
         left: 0,
-        right: 0,
-        bottom: 0,
+        width: '100vw',
+        height: '100vh',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10000,
-        boxSizing: 'border-box'
+        zIndex: 10000
       }}>
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           padding: '28px 24px',
           maxWidth: '360px',
-          width: '100%',
+          width: '85%',
           textAlign: 'center',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          position: 'relative',
-          left: '50%',
-          transform: 'translateX(-50%)'
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
         }}>
           <div style={{
             width: '64px',
