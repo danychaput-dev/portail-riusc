@@ -90,6 +90,9 @@ export default function HomePage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Helper: est-ce un membre approuvé (pas new_group)
+  const isApproved = reserviste?.groupe === 'new_group'
+
   // Fermer le menu utilisateur quand on clique ailleurs
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1021,6 +1024,28 @@ export default function HomePage() {
                   </svg>
                   Mon profil
                 </a>
+                {isApproved && (
+                <a
+                  href="/dossier"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    color: '#374151',
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                >
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Mon dossier réserviste
+                </a>
+                )}
                 {ciblages.length > 0 && (
                 <a
                   href="/disponibilites"
@@ -1474,7 +1499,9 @@ export default function HomePage() {
               </p>
             </div>
           </a>
-<a href="/dossier" style={{ textDecoration: 'none' }}>
+
+          {isApproved && (
+          <a href="/dossier" style={{ textDecoration: 'none' }}>
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -1504,6 +1531,8 @@ export default function HomePage() {
               </p>
             </div>
           </a>
+          )}
+
           {ciblages.length > 0 && (
           <a href="/disponibilites" style={{ textDecoration: 'none' }}>
             <div style={{

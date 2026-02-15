@@ -376,7 +376,7 @@ export default function DossierPage() {
       setReserviste(reservisteData)
 
       // Protection: les new_group n'ont pas accès au dossier
-      if (reservisteData.groupe === 'new_group') {
+      if (reservisteData.groupe !== 'new_group') {
         router.push('/')
         return
       }
