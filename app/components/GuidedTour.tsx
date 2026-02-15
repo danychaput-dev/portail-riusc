@@ -347,9 +347,9 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
-          padding: '32px',
-          maxWidth: '440px',
-          width: '100%',
+          padding: '28px 24px',
+          maxWidth: '360px',
+          width: 'calc(100% - 40px)',   
           textAlign: 'center',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
         }}>
