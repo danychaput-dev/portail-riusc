@@ -932,7 +932,7 @@ const certificatsSection = (
                 Portail RIUSC
               </h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                Réserve d'Intervention d'Urgence
+                Réserve d&apos;Intervention d&apos;Urgence
               </p>
             </div>
           </div>
@@ -994,7 +994,7 @@ const certificatsSection = (
               </svg>
             </button>
             
-{showUserMenu && (
+            {showUserMenu && (
               <div style={{
                 position: 'absolute',
                 top: '100%',
@@ -1028,7 +1028,7 @@ const certificatsSection = (
                   Mon profil
                 </a>
                 {isApproved && (
-                <a
+                
                   href="/dossier"
                   style={{
                     display: 'flex',
@@ -1092,7 +1092,7 @@ const certificatsSection = (
                   </svg>
                   Tournée des camps
                 </a>
-                <a
+                
                   href="/informations"
                   style={{
                     display: 'flex',
@@ -1112,7 +1112,7 @@ const certificatsSection = (
                   </svg>
                   Informations pratiques
                 </a>
-<button
+                <button
                   onClick={() => { setShowUserMenu(false); setShowTour(true); }}
                   style={{
                     display: 'flex',
