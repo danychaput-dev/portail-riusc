@@ -158,7 +158,7 @@ export default function InformationsPage() {
         </a>
 
         <h2 style={{ color: '#1e3a5f', margin: '0 0 32px 0', fontSize: '24px', fontWeight: '700' }}>
-          Informations pratiques
+          Ressources et documents
         </h2>
 
         {/* ========== SECTION 1 : Ressources générales ========== */}
