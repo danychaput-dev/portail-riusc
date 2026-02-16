@@ -60,14 +60,21 @@ function LoginContent() {
     setSuccess('')
 
     try {
-      // 1. Chercher le réserviste par email
+      // 1. Chercher le réserviste par email (case-insensitive) — maybeSingle pour éviter 406
       const { data: reserviste, error: fetchError } = await supabase
         .from('reservistes')
         .select('email, telephone')
-        .eq('email', email.toLowerCase().trim())
-        .single()
+        .ilike('email', email.trim())
+        .maybeSingle()
 
-      if (fetchError || !reserviste) {
+      if (fetchError) {
+        console.error('Erreur recherche réserviste:', fetchError)
+        setError('Erreur de connexion. Veuillez réessayer.')
+        setLoading(false)
+        return
+      }
+
+      if (!reserviste) {
         setError('Ce courriel n\'est pas enregistré dans le système. Contactez l\'administrateur.')
         setLoading(false)
         return
@@ -131,12 +138,12 @@ function LoginContent() {
       let verifyResult
 
       if (otpMethod === 'sms') {
-        // Récupérer le téléphone pour la vérification
+        // Récupérer le téléphone pour la vérification — maybeSingle pour éviter 406
         const { data: reserviste } = await supabase
           .from('reservistes')
           .select('telephone')
-          .eq('email', email.toLowerCase().trim())
-          .single()
+          .ilike('email', email.trim())
+          .maybeSingle()
 
         if (reserviste?.telephone) {
           const formattedPhone = toE164(reserviste.telephone)
@@ -318,6 +325,29 @@ function LoginContent() {
             }}>
               Un code vous sera envoyé par SMS si votre numéro est enregistré, sinon par courriel.
             </p>
+            
+            {/* Lien vers inscription */}
+            <div style={{
+              marginTop: '24px',
+              paddingTop: '20px',
+              borderTop: '1px solid #e5e7eb',
+              textAlign: 'center'
+            }}>
+              <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0' }}>
+                Vous n'avez pas de compte ?
+              </p>
+              <a
+                href="/inscription"
+                style={{
+                  color: '#1e3a5f',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  textDecoration: 'none'
+                }}
+              >
+                S'inscrire comme réserviste →
+              </a>
+            </div>
           </>
         ) : (
           // Étape 2: Entrer le code
