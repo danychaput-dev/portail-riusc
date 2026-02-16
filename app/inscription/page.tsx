@@ -660,7 +660,7 @@ export default function InscriptionPage() {
                   type="checkbox"
                   checked={formData.confirm_18}
                   onChange={(e) => handleInputChange('confirm_18', e.target.checked)}
-                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f' }}
+                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }}
                 />
                 <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
                   Je confirme être âgé(e) de 18 ans ou plus au moment de mon inscription. {requiredStar}
@@ -682,7 +682,7 @@ export default function InscriptionPage() {
                   type="checkbox"
                   checked={formData.consent_photos}
                   onChange={(e) => handleInputChange('consent_photos', e.target.checked)}
-                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f' }}
+                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }}
                 />
                 <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
                   Je comprends que des photos ou vidéos peuvent être prises lors des activités de formation, d'entraînement ou de déploiement et j'autorise l'AQBRS / RIUSC à utiliser les images captées par leurs représentants à des fins de communication. {requiredStar}
@@ -704,7 +704,7 @@ export default function InscriptionPage() {
                   type="checkbox"
                   checked={formData.consent_confidentialite}
                   onChange={(e) => handleInputChange('consent_confidentialite', e.target.checked)}
-                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f' }}
+                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }}
                 />
                 <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
                   Je comprends et j'accepte que mes informations soient utilisées conformément à la{' '}
