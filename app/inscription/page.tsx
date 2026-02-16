@@ -16,7 +16,6 @@ interface MapboxFeature {
   }>;
 }
 
-// Fonction pour formater les numéros de téléphone à l'affichage
 function formatPhoneDisplay(phone: string | null | undefined): string {
   if (!phone) return ''
   const digits = phone.replace(/\D/g, '')
@@ -30,7 +29,11 @@ function formatPhoneDisplay(phone: string | null | undefined): string {
 }
 
 function cleanPhoneForSave(phone: string): string {
-  return phone.replace(/\D/g, '')
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) {
+    return '1' + digits
+  }
+  return digits
 }
 
 const REGIONS = [
@@ -46,6 +49,30 @@ const REGIONS = [
   'Ontario',
   'Outaouais',
   'Saguenay / Lac-St-Jean'
+]
+
+const GROUPES_RS = [
+  'District 1: Équipe de RS La Grande-Ourse',
+  'District 1: EBRES du KRTB',
+  'District 2: Sauvetage Région 02',
+  'District 3: Recherche et Sauvetage Québec-Métro (RSQM)',
+  'District 3: Recherche Sauvetage Tourville',
+  'District 4: Eurêka Recherche et sauvetage',
+  'District 4: SIUCQ Drummondville',
+  'District 4: SIUCQ MRC Arthabaska',
+  'District 4: SIUSQ Division Mauricie',
+  'District 4: Sauvetage Mauricie K9',
+  'District 5: Recherche Sauvetage Estrie',
+  "District 6: Sauvetage Baie-D'Urfé",
+  'District 6: Ambulance St-Jean - Div. 971 Laval',
+  'District 6: Québec Secours',
+  'District 6: Pointe-Claire Rescue',
+  'District 6: Recherche Sauvetage Laurentides Lanaudière',
+  'District 6: S&R Balise Beacon R&S',
+  'District 7: Sauvetage Bénévole Outaouais',
+  'District 7: SAR 360',
+  'District 8: Recherche et sauvetage du Témiscamingue R.E.S.Tem',
+  'District 9: Groupe de recherche Manicouagan'
 ]
 
 export default function InscriptionPage() {
@@ -71,7 +98,6 @@ export default function InscriptionPage() {
     consent_confidentialite: false
   })
   
-  // États pour l'autocomplete adresse
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
@@ -84,7 +110,6 @@ export default function InscriptionPage() {
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-    // Effacer l'erreur du champ quand l'utilisateur tape
     if (fieldErrors[field]) {
       setFieldErrors(prev => ({ ...prev, [field]: '' }))
     }
@@ -97,7 +122,6 @@ export default function InscriptionPage() {
     }))
   }
 
-  // Rechercher des adresses avec Mapbox
   const searchAddress = useCallback(async (query: string) => {
     if (query.length < 3) {
       setAddressSuggestions([])
@@ -148,7 +172,6 @@ export default function InscriptionPage() {
     setAddressSuggestions([])
   }
 
-  // Validation complète
   const validate = (): boolean => {
     const errors: Record<string, string> = {}
     
@@ -157,9 +180,7 @@ export default function InscriptionPage() {
     if (!formData.email.trim() || !formData.email.includes('@')) errors.email = 'Courriel invalide'
     
     const phoneDigits = cleanPhoneForSave(formData.telephone)
-    if (!phoneDigits || (phoneDigits.length !== 10 && phoneDigits.length !== 11)) {
-      errors.telephone = 'Numéro de téléphone invalide (10 chiffres)'
-    }
+    if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
     
     if (!formData.adresse.trim()) errors.adresse = 'L\'adresse est requise'
     if (!formData.region) errors.region = 'La région est requise'
@@ -171,7 +192,6 @@ export default function InscriptionPage() {
     return Object.keys(errors).length === 0
   }
 
-  // Soumettre l'inscription
   const handleSubmit = async () => {
     if (!validate()) {
       setMessage({ type: 'error', text: 'Veuillez corriger les erreurs ci-dessous.' })
@@ -207,7 +227,6 @@ export default function InscriptionPage() {
         .maybeSingle()
 
       if (!phoneExists && phoneClean.startsWith('1')) {
-        // Essayer sans le 1
         const { data: phoneExists2 } = await supabase
           .from('reservistes')
           .select('benevole_id')
@@ -227,7 +246,7 @@ export default function InscriptionPage() {
         return
       }
 
-      // 3. Envoyer à n8n pour créer dans Monday (le sync Monday → Supabase fera le reste)
+      // 3. Envoyer à n8n pour créer dans Monday + Supabase Auth
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -250,7 +269,6 @@ export default function InscriptionPage() {
         throw new Error('Erreur lors de l\'inscription. Veuillez réessayer.')
       }
 
-      // 4. Succès !
       setStep('success')
 
     } catch (error: any) {
@@ -287,7 +305,6 @@ export default function InscriptionPage() {
 
   const requiredStar = <span style={{ color: '#dc2626', marginLeft: '2px' }}>*</span>
 
-  // Page de succès
   if (step === 'success') {
     return (
       <div style={{
@@ -341,7 +358,7 @@ export default function InscriptionPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      {/* Header simple */}
+      {/* Header */}
       <header style={{
         backgroundColor: 'white',
         borderBottom: '1px solid #e5e7eb',
@@ -405,7 +422,6 @@ export default function InscriptionPage() {
           Remplissez le formulaire ci-dessous pour vous inscrire comme réserviste bénévole.
         </p>
 
-        {/* Message global */}
         {message && (
           <div style={{
             padding: '12px 16px',
@@ -483,7 +499,7 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          {/* Section Adresse */}
+          {/* Section Localisation */}
           <div style={{
             backgroundColor: 'white',
             padding: '24px',
@@ -582,7 +598,7 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          {/* Section Optionnel */}
+          {/* Section Informations supplémentaires */}
           <div style={{
             backgroundColor: 'white',
             padding: '24px',
@@ -593,25 +609,25 @@ export default function InscriptionPage() {
               Informations supplémentaires
             </h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <label style={labelStyle}>Membre d'un groupe de R.S. de l'AQBRS</label>
-                <input
-                  type="text"
+                <select
                   value={formData.groupe_rs}
                   onChange={(e) => handleInputChange('groupe_rs', e.target.value)}
                   style={inputStyle}
-                  placeholder="Laisser vide si aucun"
-                />
+                >
+                  <option value="">Aucun / Je ne fais pas partie d'un groupe</option>
+                  {GROUPES_RS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
               </div>
               
               <div>
                 <label style={labelStyle}>Commentaire</label>
-                <input
-                  type="text"
+                <textarea
                   value={formData.commentaire}
                   onChange={(e) => handleInputChange('commentaire', e.target.value)}
-                  style={inputStyle}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
                   placeholder="Optionnel"
                 />
               </div>
@@ -630,7 +646,6 @@ export default function InscriptionPage() {
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* 18 ans */}
               <label style={{
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -653,7 +668,6 @@ export default function InscriptionPage() {
               </label>
               {fieldErrors.confirm_18 && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.confirm_18}</p>}
 
-              {/* Consentement photos */}
               <label style={{
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -676,7 +690,6 @@ export default function InscriptionPage() {
               </label>
               {fieldErrors.consent_photos && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.consent_photos}</p>}
 
-              {/* Consentement confidentialité */}
               <label style={{
                 display: 'flex',
                 alignItems: 'flex-start',
