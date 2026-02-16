@@ -598,7 +598,7 @@ export default function HomePage() {
                 </a>
                 <a href="/informations" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                  Ressources et documents
+                  Informations pratiques
                 </a>
                 <button onClick={() => { setShowUserMenu(false); setShowTour(true); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
@@ -643,31 +643,57 @@ export default function HomePage() {
           </div>
           {deploiementsActifs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {deploiementsActifs.map((dep) => (
-                <div key={dep.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', backgroundColor: '#fafafa' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-                    <div style={{ flex: 1, minWidth: '280px' }}>
-                      {dep.nom_sinistre && <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f', marginBottom: '4px' }}>{dep.nom_sinistre}</div>}
-                      <div style={{ fontSize: '16px', fontWeight: dep.nom_sinistre ? '500' : '600', color: dep.nom_sinistre ? '#374151' : '#1e3a5f', marginBottom: '12px' }}>{dep.nom_deploiement}</div>
-                      <div style={{ backgroundColor: '#f0f4f8', borderLeft: '4px solid #2c5aa0', padding: '12px 16px', borderRadius: '0 8px 8px 0', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#374151' }}>
-                        {dep.type_incident && <div><strong>Type :</strong> {dep.type_incident}</div>}
-                        {dep.lieu && <div><strong>Lieu :</strong> {dep.lieu}</div>}
-                        {dep.tache && <div><strong>Tâche :</strong> {dep.tache}</div>}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
-                        <div>{dep.date_debut && formatDate(dep.date_debut)}{dep.date_fin && ` — ${formatDate(dep.date_fin)}`}</div>
+              {Object.entries(
+                deploiementsActifs.reduce((groups: Record<string, DeploiementActif[]>, dep) => {
+                  const key = dep.nom_sinistre || dep.nom_deploiement;
+                  if (!groups[key]) groups[key] = [];
+                  groups[key].push(dep);
+                  return groups;
+                }, {})
+              ).map(([sinistre, deps]) => (
+                <div key={sinistre} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
+                  {/* En-tête du sinistre */}
+                  <div style={{ padding: '16px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '20px' }}>🔥</span>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>{sinistre}</div>
+                        {deps[0].type_incident && <div style={{ fontSize: '13px', color: '#6b7280' }}>{deps[0].type_incident}</div>}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
-                      <a href={genererLienJotform(dep.deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
-                        Soumettre ma disponibilité
-                      </a>
-                      {dep.tache && (
-                        <a href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500', transition: 'all 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1e3a5f'; e.currentTarget.style.color = 'white' }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#1e3a5f' }}>
-                          📋 Voir la fiche de tâche
-                        </a>
-                      )}
+                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                      {deps.length} tâche{deps.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  {/* Dates du sinistre */}
+                  {deps[0].date_debut && (
+                    <div style={{ padding: '10px 20px', fontSize: '13px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
+                      📅 {formatDate(deps[0].date_debut)}{deps[0].date_fin && ` — ${formatDate(deps[0].date_fin)}`}
                     </div>
+                  )}
+
+                  {/* Liste des tâches/déploiements */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {deps.map((dep, idx) => (
+                      <div key={dep.id} style={{ padding: '16px 20px', borderBottom: idx < deps.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>{dep.nom_deploiement}</div>
+                          {dep.tache && <div style={{ fontSize: '13px', color: '#6b7280' }}>Tâche : {dep.tache}</div>}
+                          {dep.lieu && <div style={{ fontSize: '13px', color: '#6b7280' }}>📍 {dep.lieu}</div>}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+                          <a href={genererLienJotform(dep.deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                            Soumettre ma disponibilité
+                          </a>
+                          {dep.tache && (
+                            <a href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`} style={{ padding: '8px 16px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '12px', fontWeight: '500', transition: 'all 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1e3a5f'; e.currentTarget.style.color = 'white' }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#1e3a5f' }}>
+                              📋 Voir la fiche de tâche
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -732,7 +758,7 @@ export default function HomePage() {
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Mon dossier réserviste</h3>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Consultez votre dossier et certifications</p>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Compétences, certifications et informations complémentaires</p>
             </div>
           </a>
           )}
@@ -758,7 +784,7 @@ export default function HomePage() {
           <a href="/informations" style={{ textDecoration: 'none' }}>
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Ressources et documents</h3>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Informations pratiques</h3>
               <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Documents, ressources et références utiles</p>
             </div>
           </a>
