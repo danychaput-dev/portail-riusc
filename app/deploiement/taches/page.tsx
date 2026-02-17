@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
@@ -303,7 +303,7 @@ function TableauSynthese({ tasks, onOpen }: { tasks: TacheData[]; onOpen: (id: n
 /* =============================
    PAGE PRINCIPALE
 ============================= */
-export default function FichesTachesRIUSC() {
+function FichesTachesContent() {
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -443,7 +443,7 @@ export default function FichesTachesRIUSC() {
         </div>
       </header>
 
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ marginBottom: '24px' }}>
           <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
         </div>
@@ -528,5 +528,12 @@ export default function FichesTachesRIUSC() {
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>
       </footer>
     </div>
+  );
+}
+export default function FichesTachesRIUSC() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>}>
+      <FichesTachesContent />
+    </Suspense>
   );
 }
