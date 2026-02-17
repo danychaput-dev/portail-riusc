@@ -291,7 +291,7 @@ ou ajuster votre disponibilité.</div>
                   <span style={{ fontSize: '24px', flexShrink: 0 }}>⏳</span>
                   <div>
                     <p style={{ margin: '0 0 8px 0', fontWeight: '700', color: '#92400e', fontSize: '15px' }}>Confirmation requise dans les 48 heures</p>
-                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>Indiquez les dates souhaitées. Un suivi sera fait dans les <strong>48 heures</strong> pour confirmer ou ajuster votre disponibilité.</p>
+                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}></p>
                   </div>
                 </div>
               </div>
