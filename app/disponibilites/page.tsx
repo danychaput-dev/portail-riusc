@@ -71,6 +71,7 @@ export default function DisponibilitesPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -179,6 +180,69 @@ export default function DisponibilitesPage() {
   }
 
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login'); };
+
+  // Confirmer une dispo "En attente" → "Répondu"
+  const handleConfirmer = async (rep: CiblageReponse) => {
+    if (!reserviste) return;
+    setActionLoading(`confirmer-${rep.id}`);
+    try {
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          deploiement_id: rep.deploiement_id,
+          prenom: reserviste.prenom,
+          nom: reserviste.nom,
+          email: reserviste.email,
+          telephone: null,
+          date_debut: rep.date_disponible_debut,
+          date_fin: rep.date_disponible_fin,
+          transport: rep.transport,
+          commentaires: rep.commentaires || null,
+          statut: 'Disponible'
+        })
+      });
+      if (response.ok) {
+        await refreshData(reserviste.benevole_id);
+      }
+    } catch (e) {
+      console.error('Erreur confirmation:', e);
+    }
+    setActionLoading(null);
+  };
+
+  // Annuler une dispo → "Non disponible"
+  const handleAnnuler = async (rep: CiblageReponse) => {
+    if (!reserviste) return;
+    if (!confirm('Êtes-vous sûr de vouloir annuler votre disponibilité ?')) return;
+    setActionLoading(`annuler-${rep.id}`);
+    try {
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          deploiement_id: rep.deploiement_id,
+          prenom: reserviste.prenom,
+          nom: reserviste.nom,
+          email: reserviste.email,
+          telephone: null,
+          date_debut: null,
+          date_fin: null,
+          transport: null,
+          commentaires: 'Annulé par le réserviste',
+          statut: 'Non disponible'
+        })
+      });
+      if (response.ok) {
+        await refreshData(reserviste.benevole_id);
+      }
+    } catch (e) {
+      console.error('Erreur annulation:', e);
+    }
+    setActionLoading(null);
+  };
 
   const getInitials = () => {
     if (reserviste) return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase();
@@ -391,6 +455,58 @@ export default function DisponibilitesPage() {
                   {rep.commentaires && (
                     <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '13px', color: '#4b5563' }}>
                       <strong>Commentaire :</strong> {rep.commentaires}
+                    </div>
+                  )}
+
+                  {/* Boutons d'action */}
+                  {rep.statut_envoi !== 'Non disponible' && (
+                    <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {/* En attente → Confirmer */}
+                      {rep.statut_envoi === 'En attente' && (
+                        <button
+                          onClick={() => handleConfirmer(rep)}
+                          disabled={actionLoading === `confirmer-${rep.id}`}
+                          style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                            backgroundColor: actionLoading === `confirmer-${rep.id}` ? '#9ca3af' : '#059669',
+                            color: 'white', border: 'none', borderRadius: '6px',
+                            cursor: actionLoading === `confirmer-${rep.id}` ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {actionLoading === `confirmer-${rep.id}` ? '⏳ Confirmation...' : '✅ Confirmer ma disponibilité'}
+                        </button>
+                      )}
+
+                      {/* Répondu → Modifier */}
+                      {rep.statut_envoi === 'Répondu' && (
+                        <a
+                          href={`/disponibilites/soumettre?deploiement=${rep.deploiement_id}`}
+                          style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                            backgroundColor: '#1e3a5f', color: 'white',
+                            border: 'none', borderRadius: '6px', textDecoration: 'none',
+                            display: 'inline-block'
+                          }}
+                        >
+                          ✏️ Modifier
+                        </a>
+                      )}
+
+                      {/* Annuler (pour Répondu et En attente) */}
+                      <button
+                        onClick={() => handleAnnuler(rep)}
+                        disabled={actionLoading === `annuler-${rep.id}`}
+                        style={{
+                          padding: '8px 16px', fontSize: '13px', fontWeight: '500',
+                          backgroundColor: 'white',
+                          color: actionLoading === `annuler-${rep.id}` ? '#9ca3af' : '#dc2626',
+                          border: `1px solid ${actionLoading === `annuler-${rep.id}` ? '#d1d5db' : '#dc2626'}`,
+                          borderRadius: '6px',
+                          cursor: actionLoading === `annuler-${rep.id}` ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {actionLoading === `annuler-${rep.id}` ? '⏳ Annulation...' : '❌ Annuler'}
+                      </button>
                     </div>
                   )}
                 </div>
