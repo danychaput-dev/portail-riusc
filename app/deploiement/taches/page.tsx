@@ -34,16 +34,15 @@ interface TacheData {
 const ORG_CONFIG: Record<string, { label: string; full: string; bg: string; color: string }> = {
   SOPFEU: { label: 'SP', full: 'SOPFEU', bg: '#fef3c7', color: '#92400e' },
   'CROIX-ROUGE': { label: 'CR', full: 'Croix-Rouge', bg: '#fef2f2', color: '#dc2626' },
-  MIXTE: { label: 'Mixte', full: 'Intervention conjointe SOPFEU / Croix-Rouge', bg: '#dbeafe', color: '#1e40af' },
 };
 
 /* =============================
-   DONNÉES — 11 TÂCHES
+   DONNÉES - 11 TÂCHES
 ============================= */
 const TACHES: TacheData[] = [
   {
     id: 1,
-    name: 'SP — Protection d\u2019infrastructures (digues temporaires)',
+    name: 'SP - Protection d\u2019infrastructures (digues temporaires)',
     org: 'SOPFEU',
     description: 'Remplissage, transport et empilement de sacs et matériaux temporaires pour renforcer une berge/digue en phase d\u2019urgence (zone froide confirmée).',
     messagePortail: 'La construction d\u2019une digue temporaire se fait en travail d\u2019équipe et comprend plusieurs tâches. Certaines impliquent la manipulation de charges ou des mouvements répétitifs. L\u2019application des techniques de levage et de transfert apprises en formation est essentielle afin de réduire le risque de blessure.',
@@ -54,18 +53,18 @@ const TACHES: TacheData[] = [
   },
   {
     id: 2,
-    name: 'SP — Dégagement d\u2019accès par ébranchage (au sol uniquement)',
+    name: 'SP - Dégagement d\u2019accès par ébranchage (au sol uniquement)',
     org: 'SOPFEU',
     description: 'Dégagement ponctuel d\u2019arbres/branches AU SOL bloquant des accès afin de permettre le passage de personnes/véhicules d\u2019urgence (dégagement opérationnel).',
     messagePortail: 'Le dégagement vise uniquement à rétablir un accès pour l\u2019opération d\u2019urgence (pas de nettoyage). Lorsque des outils de coupe sont utilisés, le respect strict des consignes apprises en formation et du périmètre de sécurité est essentiel.',
     aSavoir: ['AU SOL uniquement : aucun abattage d\u2019arbre debout.', 'Deux pieds au sol : aucun travail en hauteur (pas d\u2019échelle, pas d\u2019escalade).', 'Périmètre de sécurité et coactivité : on s\u2019organise avant de couper.', 'Si une situation est instable (bois sous tension complexe), on s\u2019arrête et on réfère.'],
-    limites: ['AU SOL uniquement — aucun abattage.', 'Aucun travail en hauteur.', 'Activité réservée aux personnes habilitées à l\u2019outil requis.'],
+    limites: ['AU SOL uniquement - aucun abattage.', 'Aucun travail en hauteur.', 'Activité réservée aux personnes habilitées à l\u2019outil requis.'],
     epiRequis: ['Casque + protection oculaire', 'Protection auditive (si requis)', 'Gants', 'Bottes robustes', 'Haute visibilité'],
     formations: ['Camp de qualification RIUSC', 'Habilitation outil (si requis)'],
   },
   {
     id: 3,
-    name: 'SP — Gestion des débris (dégagement opérationnel)',
+    name: 'SP - Gestion des débris (dégagement opérationnel)',
     org: 'SOPFEU',
     description: 'Retrait ponctuel de débris qui nuisent à l\u2019opération d\u2019urgence afin de dégager un accès/zone de travail. Pas une activité de nettoyage/rétablissement.',
     messagePortail: 'Le dégagement de débris sert à rendre un accès sécuritaire et fonctionnel pour l\u2019intervention. Les objets peuvent être lourds, tranchants ou contaminés. Le respect des consignes de manipulation et l\u2019utilisation des équipements requis réduisent le risque de blessure.',
@@ -76,18 +75,18 @@ const TACHES: TacheData[] = [
   },
   {
     id: 4,
-    name: 'Mixte — Reconnaissance du territoire (inspection extérieure)',
-    org: 'MIXTE',
+    name: 'SP - Reconnaissance du territoire (inspection extérieure)',
+    org: 'SOPFEU',
     description: 'Observation/documentation extérieure (photos/notes) de secteurs, accès et dommages en zone froide. Interdiction d\u2019entrée dans structures.',
     messagePortail: 'La reconnaissance sert à documenter et orienter l\u2019intervention. Elle se fait en binôme, avec communications, et uniquement à l\u2019extérieur. La vigilance (terrain, météo, débris, structures fragilisées) est la principale mesure de sécurité.',
     aSavoir: ['EXTÉRIEUR uniquement : on n\u2019entre pas dans les structures.', 'Binômes + itinéraire/zone définis + check-in réguliers.', 'Distance sécuritaire des structures endommagées.', 'On priorise la sécurité : si c\u2019est instable, on recule et on signale.'],
-    limites: ['EXTÉRIEUR uniquement — interdiction d\u2019entrer.', 'Binôme obligatoire + communications.', 'Distance sécuritaire des structures endommagées.'],
+    limites: ['EXTÉRIEUR uniquement - interdiction d\u2019entrer.', 'Binôme obligatoire + communications.', 'Distance sécuritaire des structures endommagées.'],
     epiRequis: ['Bottes adaptées', 'Haute visibilité', 'Vêtements météo', 'Casque (au besoin)', 'Répulsif (au besoin)'],
     formations: ['Camp de qualification RIUSC', 'Radio/GPS (selon rôle)'],
   },
   {
     id: 5,
-    name: 'CR — Soutien aux évacuations (porte-à-porte / assistance)',
+    name: 'CR - Soutien aux évacuations (porte-à-porte / assistance)',
     org: 'CROIX-ROUGE',
     description: 'Assistance à l\u2019évacuation et au soutien aux personnes, selon directives Croix-Rouge et autorités (binômes, sécurité personnelle).',
     messagePortail: 'Certaines évacuations peuvent être émotionnellement exigeantes. Le travail en binôme, l\u2019encadrement et les techniques de communication apprises (approche calme, respectueuse et sécuritaire) aident à réduire les tensions et à protéger les réservistes.',
@@ -98,8 +97,8 @@ const TACHES: TacheData[] = [
   },
   {
     id: 6,
-    name: 'Mixte — Coordination des opérations (poste de coordination)',
-    org: 'MIXTE',
+    name: 'SP - Coordination des opérations (poste de coordination)',
+    org: 'SOPFEU',
     description: 'Support coordination logistique (communications, suivi équipes, liaison inter-organisations) en zone sécurisée, sous l\u2019autorité du Responsable terrain.',
     messagePortail: 'La coordination est surtout exigeante sur le plan mental : radio, suivi, priorités, décisions. Les pauses, la relève et l\u2019utilisation d\u2019outils (check-lists, procédures) protègent la qualité des décisions et la santé des intervenants.',
     aSavoir: ['Pauses et hydratation : la fatigue cognitive arrive vite.', 'Relève planifiée : on évite les quarts trop longs quand c\u2019est possible.', 'Outils simples (check-lists) pour réduire la charge mentale.', 'Débriefing en fin de quart : suivi des enjeux et transfert clair.'],
@@ -109,7 +108,7 @@ const TACHES: TacheData[] = [
   },
   {
     id: 7,
-    name: 'CR — Préparation des centres d\u2019hébergement (installation)',
+    name: 'CR - Préparation des centres d\u2019hébergement (installation)',
     org: 'CROIX-ROUGE',
     description: 'Installation et organisation d\u2019espaces (lits de camp, tables, chaises) dans un centre d\u2019hébergement temporaire, selon procédures Croix-Rouge.',
     messagePortail: 'La préparation d\u2019un centre d\u2019hébergement repose sur la collaboration et l\u2019organisation. Certaines tâches impliquent de déplacer du matériel; appliquer les techniques de levage et travailler en équipe pour les charges volumineuses réduit le risque de blessure.',
@@ -120,7 +119,7 @@ const TACHES: TacheData[] = [
   },
   {
     id: 8,
-    name: 'CR — Soutien aux besoins essentiels (distribution)',
+    name: 'CR - Soutien aux besoins essentiels (distribution)',
     org: 'CROIX-ROUGE',
     description: 'Distribution d\u2019eau, nourriture, vêtements et articles d\u2019hygiène aux sinistrés en centre d\u2019hébergement ou point de distribution.',
     messagePortail: 'La distribution demande un bon rythme, de l\u2019écoute et une communication respectueuse. L\u2019organisation de l\u2019espace, la rotation des tâches et l\u2019hygiène réduisent les inconforts et soutiennent un service sécuritaire.',
@@ -131,7 +130,7 @@ const TACHES: TacheData[] = [
   },
   {
     id: 9,
-    name: 'CR — Réconfort et soutien moral',
+    name: 'CR - Réconfort et soutien moral',
     org: 'CROIX-ROUGE',
     description: 'Écoute active et soutien de base aux personnes sinistrées en centre d\u2019hébergement, selon pratiques Croix-Rouge.',
     messagePortail: 'Cette tâche est surtout humaine. Écouter la détresse peut être exigeant. La rotation, les pauses et les débriefings aident à préserver l\u2019équilibre émotionnel. Le réserviste n\u2019est pas thérapeute : on réfère les situations complexes aux ressources prévues.',
@@ -142,7 +141,7 @@ const TACHES: TacheData[] = [
   },
   {
     id: 10,
-    name: 'CR — Suivi des clientèles vulnérables',
+    name: 'CR - Suivi des clientèles vulnérables',
     org: 'CROIX-ROUGE',
     description: 'Vérifications auprès des personnes vulnérables en centre d\u2019hébergement pour assurer que les besoins essentiels sont couverts et référer rapidement au besoin.',
     messagePortail: 'Le suivi des clientèles vulnérables demande attention, rigueur et communication. L\u2019important est de repérer tôt un besoin et de référer rapidement vers les ressources compétentes selon les procédures du site.',
@@ -153,7 +152,7 @@ const TACHES: TacheData[] = [
   },
   {
     id: 11,
-    name: 'SP — Soutien logistique SOPFEU (terrain)',
+    name: 'SP - Soutien logistique SOPFEU (terrain)',
     org: 'SOPFEU',
     description: 'Soutien logistique en zone froide : transport matériel léger/modéré, installation d\u2019équipements temporaires, ravitaillement, sous supervision SOPFEU.',
     messagePortail: 'Le soutien logistique est varié et se fait sous supervision. L\u2019organisation du site (zones piétons/véhicules), les techniques de manutention et la communication sont les clés pour travailler efficacement et de façon sécuritaire.',
@@ -410,11 +409,11 @@ function FichesTachesContent() {
                 Les consignes sont précisées au <strong>briefing</strong> en début de quart et adaptées au contexte réel du terrain. Référence : Programme SST RIUSC (v7.x).
               </p>
               <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px' }}>
-                <p style={{ margin: 0, color: '#991b1b', fontSize: '14px', fontWeight: 700 }}>⚠️ Document en cours d&apos;élaboration — Ne pas utiliser comme référence opérationnelle. Les consignes officielles sont transmises au briefing terrain.</p>
+                <p style={{ margin: 0, color: '#991b1b', fontSize: '14px', fontWeight: 700 }}>⚠️ Document en cours d&apos;élaboration - Ne pas utiliser comme référence opérationnelle. Les consignes officielles sont transmises au briefing terrain.</p>
               </div>
               <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #f59e0b' }}>
                 
-                <p style={{ margin: '0 0 6px 0', fontWeight: 700, color: '#92400e', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Légende — acronymes</p>
+                <p style={{ margin: '0 0 6px 0', fontWeight: 700, color: '#92400e', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Légende - acronymes</p>
                 <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>
                   <strong>SP</strong> : SOPFEU &nbsp;•&nbsp; <strong>CR</strong> : Croix-Rouge &nbsp;•&nbsp; <strong>SST</strong> : Santé et sécurité du travail &nbsp;•&nbsp; <strong>ÉPI</strong> : Équipement de protection individuelle &nbsp;•&nbsp; <strong>RIUSC</strong> : Réserve d&apos;intervention d&apos;urgence en sécurité civile
                 </p>
@@ -428,7 +427,7 @@ function FichesTachesContent() {
 
         <h2 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>Fiches de tâches RIUSC</h2>
         <p style={{ margin: '0 0 24px 0', fontSize: 14, color: '#6b7280', lineHeight: 1.7 }}>
-          {TACHES.length} tâches — Vue synthèse + fiches détaillées. (Contenu informatif; les consignes terrain prévalent.)
+          {TACHES.length} tâches - Vue synthèse + fiches détaillées. (Contenu informatif; les consignes terrain prévalent.)
         </p>
 
         {/* Filtres */}
