@@ -18,7 +18,6 @@ interface DeploiementActif {
   lieu?: string;
   statut: string;
   type_incident?: string;
-  tache?: string;
 }
 interface Reserviste {
   benevole_id: string;
@@ -368,9 +367,9 @@ export default function HomePage() {
     setCancellingInscription(false)
   }
 
-  function genererLienJotform(deploiementId: string): string {
+  function genererLienDisponibilite(deploiementId: string): string {
     if (!reserviste) return '#';
-    return `https://form.jotform.com/253475614808262?BenevoleID=${reserviste.benevole_id}&DeploiementID=${deploiementId}`;
+    return `/disponibilites/soumettre?deploiement=${deploiementId}`;
   }
 
   function formatDate(dateString: string): string {
@@ -643,58 +642,22 @@ export default function HomePage() {
           </div>
           {deploiementsActifs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {Object.entries(
-                deploiementsActifs.reduce((groups: Record<string, DeploiementActif[]>, dep) => {
-                  const key = dep.nom_sinistre || dep.nom_deploiement;
-                  if (!groups[key]) groups[key] = [];
-                  groups[key].push(dep);
-                  return groups;
-                }, {})
-              ).map(([sinistre, deps]) => (
-                <div key={sinistre} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
-                  {/* En-tête du sinistre */}
-                  <div style={{ padding: '16px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '20px' }}>🔥</span>
-                      <div>
-                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>{sinistre}</div>
-                        {deps[0].type_incident && <div style={{ fontSize: '13px', color: '#6b7280' }}>{deps[0].type_incident}</div>}
+              {deploiementsActifs.map((dep) => (
+                <div key={dep.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', backgroundColor: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ flex: 1, minWidth: '280px' }}>
+                      {dep.nom_sinistre && <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f', marginBottom: '4px' }}>{dep.nom_sinistre}</div>}
+                      <div style={{ fontSize: '16px', fontWeight: dep.nom_sinistre ? '500' : '600', color: dep.nom_sinistre ? '#374151' : '#1e3a5f', marginBottom: '12px' }}>{dep.nom_deploiement}</div>
+                      <div style={{ backgroundColor: '#f0f4f8', borderLeft: '4px solid #2c5aa0', padding: '12px 16px', borderRadius: '0 8px 8px 0', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#374151' }}>
+                        {dep.type_incident && <div><strong>Type :</strong> {dep.type_incident}</div>}
+                        {dep.lieu && <div><strong>Lieu :</strong> {dep.lieu}</div>}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
+                        <div>{dep.date_debut && formatDate(dep.date_debut)}{dep.date_fin && ` — ${formatDate(dep.date_fin)}`}</div>
                       </div>
                     </div>
-                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
-                      {deps.length} tâche{deps.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-
-                  {/* Dates du sinistre */}
-                  {deps[0].date_debut && (
-                    <div style={{ padding: '10px 20px', fontSize: '13px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
-                      📅 {formatDate(deps[0].date_debut)}{deps[0].date_fin && ` — ${formatDate(deps[0].date_fin)}`}
-                    </div>
-                  )}
-
-                  {/* Liste des tâches/déploiements */}
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {deps.map((dep, idx) => (
-                      <div key={dep.id} style={{ padding: '14px 20px', borderBottom: idx < deps.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '2px' }}>{dep.nom_deploiement}</div>
-                          {dep.tache && <div style={{ fontSize: '13px', color: '#6b7280' }}>Tâche : {dep.tache}</div>}
-                          {dep.lieu && <div style={{ fontSize: '13px', color: '#6b7280' }}>📍 {dep.lieu}</div>}
-                        </div>
-                        {dep.tache && (
-                          <a href={`/deploiement/taches?tache=${encodeURIComponent(dep.tache)}`} style={{ padding: '8px 16px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '12px', fontWeight: '500', transition: 'all 0.2s', whiteSpace: 'nowrap', textAlign: 'center' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1e3a5f'; e.currentTarget.style.color = 'white' }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#1e3a5f' }}>
-                            📋 Voir la fiche de tâche
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Bouton soumettre au niveau du sinistre */}
-                  <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', textAlign: 'center' }}>
-                    <a href={genererLienJotform(deps[0].deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
-                      Soumettre mes disponibilités
+                    <a href={genererLienDisponibilite(dep.deploiement_id)} style={{ padding: '12px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                      Soumettre ma disponibilité
                     </a>
                   </div>
                 </div>
