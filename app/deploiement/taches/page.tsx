@@ -425,6 +425,16 @@ function FichesTachesContent() {
           </div>
         </div>
 
+ {/* Dimension humaine */}
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}><strong>Dimension humaine des interventions</strong></div>
+          <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>
+            Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
+            Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
+            les débriefings et l&apos;encadrement afin de soutenir les réservistes. Si une situation t&apos;affecte, tu en parles rapidement au Responsable terrain.
+          </div>
+        </div>
+
         <h2 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>Fiches de tâches RIUSC</h2>
         <p style={{ margin: '0 0 24px 0', fontSize: 14, color: '#6b7280', lineHeight: 1.7 }}>
           {TACHES.length} tâches - Vue synthèse + fiches détaillées. (Contenu informatif; les consignes terrain prévalent.)
@@ -439,8 +449,7 @@ function FichesTachesContent() {
                 { label: 'Tous', value: 'TOUS' },
                 { label: 'SOPFEU', value: 'SOPFEU' },
                 { label: 'Croix-Rouge', value: 'CROIX-ROUGE' },
-                { label: 'Mixte', value: 'MIXTE' },
-              ].map((btn) => (
+               ].map((btn) => (
                 <button key={btn.value} onClick={() => setFilterOrg(btn.value)} style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700,
                   border: filterOrg === btn.value ? '1px solid #1e3a5f' : '1px solid #d1d5db',
@@ -454,18 +463,6 @@ function FichesTachesContent() {
             </div>
           </div>
         </div>
-
-        <div style={{ marginTop: 18, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>Dimension humaine des interventions</div>
-          <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>
-            Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
-            Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
-            les débriefings et l&apos;encadrement afin de soutenir les réservistes. Si une situation t&apos;affecte, tu en parles rapidement au Responsable terrain.
-          </div>
-          <div>
-          </div>
-        </div>
-
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((tache) => (
