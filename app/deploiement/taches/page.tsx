@@ -462,8 +462,10 @@ function FichesTachesContent() {
             Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
             les débriefings et l&apos;encadrement afin de soutenir les réservistes. Si une situation t&apos;affecte, tu en parles rapidement au Responsable terrain.
           </div>
+          <div>
+          </div>
         </div>
-        
+
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((tache) => (
@@ -474,16 +476,7 @@ function FichesTachesContent() {
               Aucune tâche ne correspond aux filtres sélectionnés.
             </div>
           )}
-        </div>
-
-        <div style={{ marginTop: 18, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>Dimension humaine des interventions</div>
-          <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>
-            Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
-            Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
-            les débriefings et l&apos;encadrement afin de soutenir les réservistes. Si une situation t&apos;affecte, tu en parles rapidement au Responsable terrain.
-          </div>
-        </div>
+        </div>    
       </main>
 
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
