@@ -162,7 +162,7 @@ function SoumettreContent() {
         icon: '⏳',
         bg: '#fef3c7',
         texte: `Merci, ${reserviste?.prenom} ! Vos dates ont été enregistrées sous réserve de confirmation.`,
-        rappel: 'Vous recevrez un rappel dans 48 heures. Veuillez revenir confirmer ou annuler vos dates une fois que vous aurez la réponse de votre employeur.'
+        rappel: 'Un suivi sera fait dans les 48 prochaines heures pour confirmer vos dates.'
       }
     }
     const msg = messages[reponse || 'disponible']
@@ -254,7 +254,7 @@ function SoumettreContent() {
               <span style={{ fontSize: '28px', flexShrink: 0 }}>⏳</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e' }}>Je dois confirmer avec mon employeur</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Dates souhaitées sous réserve — vous aurez 48h pour confirmer</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Dates souhaitées sous réserve — un suivi sera fait dans 48h pour confirmer</div>
               </div>
             </button>
 
@@ -289,8 +289,8 @@ function SoumettreContent() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <span style={{ fontSize: '24px', flexShrink: 0 }}>⏳</span>
                   <div>
-                    <p style={{ margin: '0 0 8px 0', fontWeight: '700', color: '#92400e', fontSize: '15px' }}>Confirmation requise dans les 48 heures</p>
-                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>Indiquez les dates souhaitées. Vous recevrez un rappel dans <strong>48 heures</strong> pour confirmer ou annuler. Passé ce délai sans réponse, votre soumission sera considérée comme annulée.</p>
+                    <p style={{ margin: '0 0 8px 0', fontWeight: '700', color: '#92400e', fontSize: '15px' }}>Dates souhaitées sous réserve</p>
+                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>Indiquez les dates souhaitées. Un suivi sera fait dans les <strong>48 heures</strong> pour confirmer ou ajuster votre disponibilité.</p>
                   </div>
                 </div>
               </div>
