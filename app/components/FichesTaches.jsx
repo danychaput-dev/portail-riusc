@@ -3,31 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 /* =============================
-   RISQUE (R = G x P)
+   ORG / ACRONYMES
 ============================= */
-const riskLevelFromR = (R) => {
-  if (R >= 13) return "Critique";
-  if (R >= 9) return "Élevé";
-  if (R >= 5) return "Modéré";
-  return "Faible";
-};
-
-const RISK_CONFIG = {
-  Critique: { bg: "#fef2f2", color: "#dc2626", border: "#fca5a5" },
-  "Élevé": { bg: "#fff7ed", color: "#ea580c", border: "#fdba74" },
-  Modéré: { bg: "#fefce8", color: "#a16207", border: "#fde68a" },
-  Faible: { bg: "#f0fdf4", color: "#16a34a", border: "#86efac" },
-};
-
 const ORG_CONFIG = {
   SOPFEU: { label: "SP", full: "SOPFEU", bg: "#fef3c7", color: "#92400e" },
   "CROIX-ROUGE": { label: "CR", full: "Croix-Rouge", bg: "#fef2f2", color: "#dc2626" },
   MIXTE: { label: "Mixte", full: "Intervention conjointe SOPFEU / Croix-Rouge", bg: "#dbeafe", color: "#1e40af" },
 };
 
-/* =============================
-   TOOLTIP (simple via title)
-============================= */
 const TT = ({ title, children }) => (
   <span title={title} style={{ cursor: "help" }}>
     {children}
@@ -35,7 +18,8 @@ const TT = ({ title, children }) => (
 );
 
 /* =============================
-   DONNÉES — 11 TÂCHES (alignées)
+   DONNÉES — 11 TÂCHES (PORTAIL)
+   (On garde un contenu “soft” : description + message + à savoir + EPI + formations)
 ============================= */
 const TACHES = [
   {
@@ -44,37 +28,19 @@ const TACHES = [
     org: "SOPFEU",
     description:
       "Remplissage, transport et empilement de sacs et matériaux temporaires pour renforcer une berge/digue en phase d’urgence (zone froide confirmée).",
-    analyseRisque:
-      "Manutention répétée, terrain humide/instable, fatigue et pression opérationnelle augmentent le risque de TMS et de chute.",
-    cotationInitiale: { G: 3, P: 3, R: 9 },
-    cotationResiduelle: { G: 3, P: 2, R: 6 },
+    messagePortail:
+      "La construction d’une digue temporaire se fait en travail d’équipe et comprend plusieurs tâches. Certaines impliquent la manipulation de charges ou des mouvements répétitifs. L’application des techniques de levage et de transfert apprises en formation est essentielle afin de réduire le risque de blessure.",
+    aSavoir: [
+      "Travail en équipe (binômes) et supervision active sur le terrain.",
+      "Rotations et pauses planifiées : suivez le rythme prévu et signalez la fatigue tôt.",
+      "Intervention uniquement en zone froide sécurisée (confirmée avant le début).",
+      "Briefing en début de quart : consignes, critères d’arrêt, communications.",
+    ],
     limites: [
       "Phase d’urgence uniquement (aucun rétablissement/nettoyage complet).",
-      "Zone froide confirmée avant le début des travaux.",
-      "Aucune machinerie lourde opérée par les réservistes.",
-      "Arrêt immédiat si instabilité/montée des eaux/visibilité insuffisante.",
+      "Arrêt immédiat si instabilité, montée des eaux ou visibilité insuffisante.",
+      "Aucune opération de machinerie lourde par les réservistes.",
     ],
-    dangers: [
-      "TMS (dos, épaules, genoux) – levage/postures",
-      "Glissades/chutes (boue/eau/obstacles)",
-      "Fatigue thermique (chaleur/froid), déshydratation/hypothermie",
-      "Effondrement/instabilité d’un empilement temporaire",
-      "Stress, baisse de vigilance",
-    ],
-    controles: {
-      elimination: [
-        "Refuser toute intervention hors zone froide ou sans validation terrain.",
-        "Interrompre si montée des eaux / instabilité / visibilité réduite.",
-      ],
-      ingenierie: ["Balisage des voies de circulation et zones de dépôt.", "Organisation de l’aire de travail (accès, empilement)."],
-      administratif: [
-        "Rotation des tâches + pauses planifiées.",
-        "Binômes obligatoires + supervision active.",
-        "Briefing SST en début de quart (risques + critères d’arrêt).",
-        "Hydratation et surveillance météo.",
-      ],
-      epi: ["Bottes antidérapantes imperméables", "Gants de manutention", "Haute visibilité", "Protection oculaire si projections"],
-    },
     epiRequis: ["Bottes antidérapantes imperméables", "Gants", "Haute visibilité", "Protection oculaire (au besoin)", "Casque (selon contexte)"],
     formations: ["Camp de qualification RIUSC", "Briefing SST manutention (sur place)"],
   },
@@ -85,31 +51,15 @@ const TACHES = [
     org: "SOPFEU",
     description:
       "Dégagement ponctuel d’arbres/branches AU SOL bloquant des accès afin de permettre le passage de personnes/véhicules d’urgence (dégagement opérationnel).",
-    analyseRisque:
-      "Risque de coupure/projection et d’instabilité du bois sous tension. La fatigue et le terrain irrégulier augmentent le risque d’erreur.",
-    cotationInitiale: { G: 4, P: 2, R: 8 },
-    cotationResiduelle: { G: 4, P: 1, R: 4 },
-    limites: [
-      "AU SOL uniquement — aucun abattage d’arbre debout.",
-      "Deux pieds au sol — aucun travail en hauteur (pas d’échelle, pas d’escalade).",
-      "Activité réservée aux personnes habilitées à l’outil requis.",
-      "Refus si tension complexe ou environnement non contrôlable.",
+    messagePortail:
+      "Le dégagement vise uniquement à rétablir un accès pour l’opération d’urgence (pas de nettoyage). Lorsque des outils de coupe sont utilisés, le respect strict des consignes apprises en formation et du périmètre de sécurité est essentiel.",
+    aSavoir: [
+      "AU SOL uniquement : aucun abattage d’arbre debout.",
+      "Deux pieds au sol : aucun travail en hauteur (pas d’échelle, pas d’escalade).",
+      "Périmètre de sécurité et coactivité : on s’organise avant de couper.",
+      "Si une situation est instable (bois sous tension complexe), on s’arrête et on réfère.",
     ],
-    dangers: [
-      "Coupures/lacérations (outil manuel/motorisé)",
-      "Rebond (kickback) et perte de contrôle",
-      "Bois sous tension (relâchement brusque)",
-      "Projection de débris (atteinte oculaire)",
-      "Chutes/trébuchements (terrain accidenté)",
-      "Bruit/vibrations (fatigue, TMS)",
-    ],
-    controles: {
-      elimination: ["Refus abattage et travail en hauteur.", "Refus près de lignes électriques / météo défavorable."],
-      substitution: ["Privilégier outils manuels si possible et sécuritaire."],
-      ingenierie: ["Balisage périmètre de sécurité.", "Aire de coupe dégagée et stable."],
-      administratif: ["Binôme obligatoire.", "Inspection outil; rotation; critères d’arrêt (fatigue/visibilité/météo).", "Briefing tension du bois."],
-      epi: ["Casque + protection oculaire", "Protection auditive (si requis)", "Gants", "Bottes robustes", "Haute visibilité"],
-    },
+    limites: ["AU SOL uniquement — aucun abattage.", "Aucun travail en hauteur.", "Activité réservée aux personnes habilitées à l’outil requis."],
     epiRequis: ["Casque + protection oculaire", "Protection auditive (si requis)", "Gants", "Bottes robustes", "Haute visibilité"],
     formations: ["Camp de qualification RIUSC", "Habilitation outil (si requis)"],
   },
@@ -120,29 +70,15 @@ const TACHES = [
     org: "SOPFEU",
     description:
       "Retrait ponctuel de débris qui nuisent à l’opération d’urgence afin de dégager un accès/zone de travail. Pas une activité de nettoyage/rétablissement.",
-    analyseRisque:
-      "Objets tranchants/irréguliers, risque de coupure, TMS, instabilité d’amas de débris et contamination possible.",
-    cotationInitiale: { G: 3, P: 3, R: 9 },
-    cotationResiduelle: { G: 3, P: 2, R: 6 },
-    limites: [
-      "Dégagement d’accès uniquement (pas de nettoyage complet / rétablissement).",
-      "Aucun déblaiement lourd; pas de machinerie lourde opérée par réservistes.",
-      "Refus sous structures instables ou zone non confirmée.",
-      "Isoler et signaler matières dangereuses; ne pas manipuler sans protocole.",
+    messagePortail:
+      "Le dégagement de débris sert à rendre un accès sécuritaire et fonctionnel pour l’intervention. Les objets peuvent être lourds, tranchants ou contaminés. Le respect des consignes de manipulation et l’utilisation des équipements requis réduisent le risque de blessure.",
+    aSavoir: [
+      "On dégage pour intervenir (accès/zone), pas pour nettoyer au complet.",
+      "On identifie d’abord les dangers avant de manipuler (verre, clous, métal, contamination).",
+      "Si un objet semble dangereux (bonbonne, batterie, produit), on isole et on signale.",
+      "Travail en équipe et rotations : la fatigue augmente les erreurs.",
     ],
-    dangers: [
-      "Coupures/perforations (clous, verre, métal)",
-      "TMS (levage, postures, traction)",
-      "Écrasement/instabilité (amas, objets)",
-      "Contamination (moisissures, eaux souillées)",
-      "Chutes/trébuchements (terrain encombré)",
-    ],
-    controles: {
-      elimination: ["Refuser nettoyage/rétablissement.", "Isoler matières dangereuses; référer autorités compétentes."],
-      ingenierie: ["Délimiter zone; voies sécurisées; éloignement machinerie externe."],
-      administratif: ["Équipe (≥2) + rotation.", "Inspection visuelle avant manipulation; outils d’appoint si dispo.", "Briefing SST + critères d’arrêt."],
-      epi: ["Gants anti-coupure", "Bottes robustes", "Protection oculaire", "Masque (au besoin)", "Haute visibilité"],
-    },
+    limites: ["Dégagement d’accès uniquement (pas de rétablissement).", "Aucune machinerie lourde par les réservistes.", "Isoler et signaler les objets potentiellement dangereux."],
     epiRequis: ["Gants anti-coupure", "Bottes robustes", "Protection oculaire", "Masque (au besoin)", "Haute visibilité", "Casque (au besoin)"],
     formations: ["Camp de qualification RIUSC", "Sensibilisation dangers/MD (base)"],
   },
@@ -153,29 +89,15 @@ const TACHES = [
     org: "MIXTE",
     description:
       "Observation/documentation extérieure (photos/notes) de secteurs, accès et dommages en zone froide. Interdiction d’entrée dans structures.",
-    analyseRisque:
-      "Déplacements terrain variable, météo, proximité de structures fragilisées. Charge cognitive/isolement relatif.",
-    cotationInitiale: { G: 3, P: 3, R: 9 },
-    cotationResiduelle: { G: 3, P: 2, R: 6 },
-    limites: [
-      "EXTÉRIEUR uniquement — interdiction d’entrer dans structures.",
-      "Binôme obligatoire + itinéraire/périmètre définis.",
+    messagePortail:
+      "La reconnaissance sert à documenter et orienter l’intervention. Elle se fait en binôme, avec communications, et uniquement à l’extérieur. La vigilance (terrain, météo, débris, structures fragilisées) est la principale mesure de sécurité.",
+    aSavoir: [
+      "EXTÉRIEUR uniquement : on n’entre pas dans les structures.",
+      "Binômes + itinéraire/zone définis + check-in réguliers.",
       "Distance sécuritaire des structures endommagées.",
+      "On priorise la sécurité : si c’est instable, on recule et on signale.",
     ],
-    dangers: [
-      "Chutes/trébuchements (boue, débris)",
-      "Chute d’objets (proximité structure)",
-      "Exposition météo (froid/chaleur/pluie)",
-      "Désorientation/isolement",
-      "Insectes/plantes irritantes",
-      "Stress/charge émotionnelle",
-    ],
-    controles: {
-      elimination: ["Interdiction d’entrée en structure.", "Refus si visibilité réduite/terrain instable."],
-      ingenierie: ["GPS/carte; points de repère; balisage au besoin."],
-      administratif: ["Binôme + communications + check-in périodique.", "Briefing mission (objectifs/critères d’arrêt)."],
-      epi: ["Bottes antidérapantes", "Haute visibilité", "Casque si risque chute d’objets (au besoin)"],
-    },
+    limites: ["EXTÉRIEUR uniquement — interdiction d’entrer.", "Binôme obligatoire + communications.", "Distance sécuritaire des structures endommagées."],
     epiRequis: ["Bottes adaptées", "Haute visibilité", "Vêtements météo", "Casque (au besoin)", "Répulsif (au besoin)"],
     formations: ["Camp de qualification RIUSC", "Radio/GPS (selon rôle)"],
   },
@@ -186,29 +108,15 @@ const TACHES = [
     org: "CROIX-ROUGE",
     description:
       "Assistance à l’évacuation et au soutien aux personnes, selon directives Croix-Rouge et autorités (binômes, sécurité personnelle).",
-    analyseRisque:
-      "Exposition à détresse humaine, conflits possibles, fatigue et risques de chute. Communications et encadrement sont critiques.",
-    cotationInitiale: { G: 3, P: 2, R: 6 },
-    cotationResiduelle: { G: 3, P: 1, R: 3 },
-    limites: [
-      "Binôme minimal; pas d’intervention isolée.",
-      "Ne pas forcer l’entrée; conflit/violence = retrait et référer autorités.",
-      "Respect des consignes du Responsable terrain.",
+    messagePortail:
+      "Certaines évacuations peuvent être émotionnellement exigeantes. Le travail en binôme, l’encadrement et les techniques de communication apprises (approche calme, respectueuse et sécuritaire) aident à réduire les tensions et à protéger les réservistes.",
+    aSavoir: [
+      "Binôme minimal : aucune intervention isolée.",
+      "On ne force pas une entrée; en cas de menace, on se retire et on réfère aux autorités.",
+      "On suit les consignes du Responsable terrain et les procédures Croix-Rouge.",
+      "Rotation et débriefing : on ne garde pas tout pour soi.",
     ],
-    dangers: [
-      "Conflit/agressivité (verbale/intimidation)",
-      "Charge émotionnelle (stress aigu/vicariant)",
-      "Fatigue (marche, escaliers, quarts longs)",
-      "Chutes/trébuchements (obstacles)",
-      "Morsures (animaux stressés)",
-      "Risque infectieux (contact rapproché)",
-    ],
-    controles: {
-      elimination: ["Refuser intervention isolée; retrait si menace.", "Ne pas entrer si environnement non sécuritaire."],
-      ingenierie: ["Itinéraire planifié; point ralliement; zones d’attente sécurisées."],
-      administratif: ["Binômes + check-in.", "Désescalade (recommandée).", "Rotation + pauses + débriefing."],
-      epi: ["Haute visibilité", "Bottes adaptées", "Masque selon contexte"],
-    },
+    limites: ["Binôme minimal; pas d’intervention isolée.", "Conflit/violence = retrait et référence aux autorités.", "Respect des consignes du Responsable terrain."],
     epiRequis: ["Haute visibilité RIUSC", "Bottes adaptées", "Masque (si requis)", "Gants (au besoin)"],
     formations: ["Camp de qualification RIUSC", "PSS / désescalade (recommandé)", "Premiers secours (selon rôle)"],
   },
@@ -219,24 +127,15 @@ const TACHES = [
     org: "MIXTE",
     description:
       "Support coordination logistique (communications, suivi équipes, liaison inter-organisations) en zone sécurisée, sous l’autorité du Responsable terrain.",
-    analyseRisque:
-      "Risque surtout ergonomique et psychosocial : stress, surcharge informationnelle, fatigue mentale, postures statiques.",
-    cotationInitiale: { G: 2, P: 3, R: 6 },
-    cotationResiduelle: { G: 2, P: 2, R: 4 },
-    limites: ["Relève planifiée; quarts conformes aux directives opérationnelles.", "Déplacements terrain seulement si requis/autorisé."],
-    dangers: [
-      "Stress/pression décisionnelle",
-      "Fatigue mentale/surcharge info",
-      "TMS (posture statique)",
-      "Fatigue visuelle/auditive (radios/écrans)",
-      "Déshydratation/nutrition inadéquate",
+    messagePortail:
+      "La coordination est surtout exigeante sur le plan mental : radio, suivi, priorités, décisions. Les pauses, la relève et l’utilisation d’outils (check-lists, procédures) protègent la qualité des décisions et la santé des intervenants.",
+    aSavoir: [
+      "Pauses et hydratation : la fatigue cognitive arrive vite.",
+      "Relève planifiée : on évite les quarts trop longs quand c’est possible.",
+      "Outils simples (check-lists) pour réduire la charge mentale.",
+      "Débriefing en fin de quart : suivi des enjeux et transfert clair.",
     ],
-    controles: {
-      substitution: ["Checklists/procédures pour réduire variabilité."],
-      ingenierie: ["Poste ergonomique (si possible)."],
-      administratif: ["Pauses obligatoires; rotation/relève.", "Hydratation/collations accessibles.", "Débriefing post-quart."],
-      epi: ["Haute visibilité si déplacements", "Bottes robustes si déplacements terrain"],
-    },
+    limites: ["Relève planifiée; quarts selon directives opérationnelles.", "Déplacements terrain seulement si requis/autorisé."],
     epiRequis: ["Haute visibilité (si déplacements)", "Bottes robustes (si déplacements)"],
     formations: ["Camp de qualification RIUSC", "ICS de base (recommandé)"],
   },
@@ -247,17 +146,15 @@ const TACHES = [
     org: "CROIX-ROUGE",
     description:
       "Installation et organisation d’espaces (lits de camp, tables, chaises) dans un centre d’hébergement temporaire, selon procédures Croix-Rouge.",
-    analyseRisque:
-      "Manutention légère/modérée; risques de pincements, chutes/trébuchements et TMS mineurs.",
-    cotationInitiale: { G: 2, P: 3, R: 6 },
-    cotationResiduelle: { G: 2, P: 2, R: 4 },
+    messagePortail:
+      "La préparation d’un centre d’hébergement repose sur la collaboration et l’organisation. Certaines tâches impliquent de déplacer du matériel; appliquer les techniques de levage et travailler en équipe pour les charges volumineuses réduit le risque de blessure.",
+    aSavoir: [
+      "Circulation dégagée : on évite l’encombrement pendant l’installation.",
+      "Travail en équipe pour charges volumineuses.",
+      "Rotation des tâches si l’installation est prolongée.",
+      "Respect des procédures du site et de la Croix-Rouge.",
+    ],
     limites: ["Travail en équipe pour charges volumineuses.", "Respect procédures du site et Croix-Rouge."],
-    dangers: ["TMS mineurs", "Chutes/trébuchements", "Pincements (pliage/dépliage)", "Fatigue légère"],
-    controles: {
-      ingenierie: ["Circulation dégagée; zones de dépôt; éclairage adéquat si possible."],
-      administratif: ["Binômes; techniques de levage; rotation; pauses."],
-      epi: ["Chaussures fermées", "Gants (au besoin)"],
-    },
     epiRequis: ["Chaussures fermées", "Gants (au besoin)", "Haute visibilité (si requis)"],
     formations: ["Camp de qualification RIUSC"],
   },
@@ -268,17 +165,15 @@ const TACHES = [
     org: "CROIX-ROUGE",
     description:
       "Distribution d’eau, nourriture, vêtements et articles d’hygiène aux sinistrés en centre d’hébergement ou point de distribution.",
-    analyseRisque:
-      "Station debout + contact humain; risques sanitaires possibles et stress relationnel modéré.",
-    cotationInitiale: { G: 2, P: 3, R: 6 },
-    cotationResiduelle: { G: 2, P: 2, R: 4 },
+    messagePortail:
+      "La distribution demande un bon rythme, de l’écoute et une communication respectueuse. L’organisation de l’espace, la rotation des tâches et l’hygiène réduisent les inconforts et soutiennent un service sécuritaire.",
+    aSavoir: [
+      "Hygiène des mains et consignes sanitaires selon le contexte.",
+      "Rotation : alterner station debout / tâches de préparation.",
+      "En cas de tension avec un sinistré : on réfère au Responsable terrain.",
+      "On garde un environnement fluide (file, zones, dépôts).",
+    ],
     limites: ["Respect des directives sanitaires et procédures Croix-Rouge.", "Référer conflits/violence au Responsable terrain."],
-    dangers: ["TMS légers", "Chutes/trébuchements", "Fatigue (station debout)", "Risque infectieux", "Conflits occasionnels"],
-    controles: {
-      ingenierie: ["Aménagement du poste (flux, espace, zones dépôt)."],
-      administratif: ["Rotation; pauses.", "Hygiène des mains.", "Support superviseur; débriefing si incident."],
-      epi: ["Masque selon contexte", "Hygiène des mains"],
-    },
     epiRequis: ["Masque (si requis)", "Haute visibilité (si requis)"],
     formations: ["Camp de qualification RIUSC", "Hygiène/salubrité (recommandé)"],
   },
@@ -289,16 +184,15 @@ const TACHES = [
     org: "CROIX-ROUGE",
     description:
       "Écoute active et soutien de base aux personnes sinistrées en centre d’hébergement, selon pratiques Croix-Rouge.",
-    analyseRisque:
-      "Risque faible physiquement mais charge émotionnelle significative (stress vicariant, fatigue compassionnelle).",
-    cotationInitiale: { G: 3, P: 2, R: 6 },
-    cotationResiduelle: { G: 3, P: 1, R: 3 },
+    messagePortail:
+      "Cette tâche est surtout humaine. Écouter la détresse peut être exigeant. La rotation, les pauses et les débriefings aident à préserver l’équilibre émotionnel. Le réserviste n’est pas thérapeute : on réfère les situations complexes aux ressources prévues.",
+    aSavoir: [
+      "On offre une présence et une écoute, sans se substituer aux professionnels.",
+      "Rotation : éviter une exposition continue trop longue.",
+      "Débriefing : parler des situations difficiles est normal et encouragé.",
+      "Si tu sens que ça t’affecte, tu le dis tôt (au Responsable terrain).",
+    ],
     limites: ["Le réserviste n’est pas thérapeute; référer les cas complexes.", "Rotation pour limiter l’exposition émotionnelle."],
-    dangers: ["Stress vicariant", "Fatigue compassionnelle", "Épuisement émotionnel", "Situations difficiles verbalement"],
-    controles: {
-      administratif: ["Rotation + pauses.", "Débriefing quotidien.", "Soutien psychosocial disponible.", "Encadrement superviseur CR."],
-      epi: [],
-    },
     epiRequis: ["Haute visibilité (si requis)"],
     formations: ["Camp de qualification RIUSC", "Premiers secours psychologiques (recommandé)"],
   },
@@ -309,16 +203,15 @@ const TACHES = [
     org: "CROIX-ROUGE",
     description:
       "Vérifications auprès des personnes vulnérables en centre d’hébergement pour assurer que les besoins essentiels sont couverts et référer rapidement au besoin.",
-    analyseRisque:
-      "Risque surtout psychosocial/organisationnel (responsabilité, charge émotionnelle) et nécessité de référer aux professionnels.",
-    cotationInitiale: { G: 3, P: 2, R: 6 },
-    cotationResiduelle: { G: 3, P: 1, R: 3 },
-    limites: ["Référer toute situation médicale aux ressources compétentes.", "Utiliser une check-list et consigner alertes au Responsable terrain."],
-    dangers: ["Stress (responsabilité)", "Charge émotionnelle", "Situations médicales urgentes", "Fatigue compassionnelle"],
-    controles: {
-      administratif: ["Procédure de référence claire + check-list.", "Binômes; pauses; rotation.", "Débriefing; soutien psychosocial si requis."],
-      epi: ["Masque selon contexte", "Hygiène des mains"],
-    },
+    messagePortail:
+      "Le suivi des clientèles vulnérables demande attention, rigueur et communication. L’important est de repérer tôt un besoin et de référer rapidement vers les ressources compétentes selon les procédures du site.",
+    aSavoir: [
+      "Utiliser une approche structurée (check-list / routine de vérification).",
+      "Référer toute situation médicale aux ressources prévues.",
+      "Consigner les enjeux et les transmettre au Responsable terrain.",
+      "Pauses et soutien : la charge émotionnelle peut être réelle.",
+    ],
+    limites: ["Référer toute situation médicale aux ressources compétentes.", "Consigner les alertes et les transmettre au Responsable terrain."],
     epiRequis: ["Masque (si requis)"],
     formations: ["Camp de qualification RIUSC", "PSS (recommandé)"],
   },
@@ -329,17 +222,15 @@ const TACHES = [
     org: "SOPFEU",
     description:
       "Soutien logistique en zone froide : transport matériel léger/modéré, installation d’équipements temporaires, ravitaillement, sous supervision SOPFEU.",
-    analyseRisque:
-      "Manutention, déplacements sur terrain variable et coactivité avec véhicules/équipements. Risques gérables par organisation du site et supervision.",
-    cotationInitiale: { G: 3, P: 3, R: 9 },
-    cotationResiduelle: { G: 3, P: 2, R: 6 },
-    limites: ["Aucune machinerie lourde opérée par les réservistes.", "Respect des couloirs piétons/zones véhicules.", "Arrêt si coactivité non contrôlée."],
-    dangers: ["TMS", "Chutes/trébuchements", "Coactivité véhicules", "Chute d’objets/coincement", "Exposition météo"],
-    controles: {
-      ingenierie: ["Délimiter zones piétons/véhicules; signalisation; aire de dépôt stable."],
-      administratif: ["Binômes; rotation; levage sécuritaire; briefing SST; supervision SOPFEU; communications radio."],
-      epi: ["Haute visibilité", "Gants", "Bottes robustes", "Protection oculaire (au besoin)", "Casque (au besoin)"],
-    },
+    messagePortail:
+      "Le soutien logistique est varié et se fait sous supervision. L’organisation du site (zones piétons/véhicules), les techniques de manutention et la communication sont les clés pour travailler efficacement et de façon sécuritaire.",
+    aSavoir: [
+      "Respect des couloirs piétons/zones véhicules (coactivité).",
+      "Manutention : appliquer les techniques apprises, demander de l’aide tôt.",
+      "Briefing sécurité et communications en début de quart.",
+      "On s’arrête si la coactivité devient non contrôlable.",
+    ],
+    limites: ["Aucune machinerie lourde opérée par les réservistes.", "Respect des zones et consignes SOPFEU.", "Arrêt si coactivité non contrôlée."],
     epiRequis: ["Haute visibilité", "Gants", "Bottes robustes", "Protection oculaire (au besoin)", "Casque (au besoin)"],
     formations: ["Camp de qualification RIUSC", "Briefing radio/sécurité SOPFEU"],
   },
@@ -364,7 +255,7 @@ const Section = ({ title, children, defaultOpen = false }) => {
           cursor: "pointer",
           padding: "8px 0",
           fontSize: 14,
-          fontWeight: 600,
+          fontWeight: 800,
           color: "#1e3a5f",
           textAlign: "left",
         }}
@@ -377,21 +268,19 @@ const Section = ({ title, children, defaultOpen = false }) => {
   );
 };
 
+const Dots = ({ items, dotColor = "#16a34a" }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    {(items ?? []).map((x, i) => (
+      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>
+        <span style={{ color: dotColor, fontSize: 8, marginTop: 6, flexShrink: 0 }}>●</span>
+        {x}
+      </div>
+    ))}
+  </div>
+);
+
 const FicheTache = ({ tache, isOpen, onToggle, id }) => {
   const org = ORG_CONFIG[tache.org];
-  const riskLevel = riskLevelFromR(tache.cotationInitiale?.R ?? 0);
-  const risk = RISK_CONFIG[riskLevel];
-
-  const dots = (items, dotColor) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {(items ?? []).map((x, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>
-          <span style={{ color: dotColor, fontSize: 8, marginTop: 6, flexShrink: 0 }}>●</span>
-          {x}
-        </div>
-      ))}
-    </div>
-  );
 
   return (
     <div
@@ -420,7 +309,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#1e3a5f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#1e3a5f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {tache.name}
           </div>
           <div style={{ fontSize: 13, color: "#6b7280", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -430,102 +319,45 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <TT title={`${org.label} = ${org.full}`}>
-            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, backgroundColor: org.bg, color: org.color }}>
+            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 900, backgroundColor: org.bg, color: org.color }}>
               {org.label}
             </span>
           </TT>
-
-          <TT title="R = Gravité × Probabilité (matrice 4×4)">
-            <span
-              style={{
-                padding: "4px 12px",
-                borderRadius: 20,
-                fontSize: 12,
-                fontWeight: 700,
-                backgroundColor: risk.bg,
-                color: risk.color,
-                border: `1px solid ${risk.border}`,
-              }}
-            >
-              {riskLevel} (R={tache.cotationInitiale.R})
-            </span>
-          </TT>
-
-          <span style={{ color: "#6b7280" }}>{isOpen ? "▲" : "▼"}</span>
+          <span style={{ color: "#6b7280", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
         </div>
       </button>
 
       {isOpen && (
         <div style={{ padding: "0 20px 24px 20px", borderTop: "1px solid #e5e7eb" }}>
+          {/* Description + message portail */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20 }}>
             <div style={{ backgroundColor: "#f0f4f8", borderLeft: "4px solid #2c5aa0", padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                 Description
               </div>
               <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>{tache.description}</div>
             </div>
 
-            <div style={{ backgroundColor: risk.bg, borderLeft: `4px solid ${risk.border}`, padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: risk.color, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
-                Analyse de risque — {riskLevel} (R={tache.cotationInitiale.R})
+            <div style={{ backgroundColor: "#ecfeff", borderLeft: "4px solid #06b6d4", padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#0e7490", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+                Information sécurité (portail)
               </div>
-              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>{tache.analyseRisque}</div>
+              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>{tache.messagePortail}</div>
             </div>
           </div>
 
-          {/* Cotation + limites */}
+          {/* À savoir + limites */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
             <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>
-                Cotation (Matrice 4×4) — Note : R = G × P
-              </div>
-              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.7 }}>
-                <div>
-                  <TT title="Gravité"><b>G</b></TT>={tache.cotationInitiale.G} &nbsp;|&nbsp;{" "}
-                  <TT title="Probabilité"><b>P</b></TT>={tache.cotationInitiale.P} &nbsp;|&nbsp;{" "}
-                  <TT title="Risque = G×P"><b>R</b></TT>={tache.cotationInitiale.R}
-                </div>
-                {tache.cotationResiduelle && (
-                  <div style={{ marginTop: 4 }}>
-                    <b>Résiduelle</b> : G={tache.cotationResiduelle.G}, P={tache.cotationResiduelle.P}, R={tache.cotationResiduelle.R}
-                  </div>
-                )}
-              </div>
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#1e3a5f", marginBottom: 8 }}>À savoir</div>
+              <Dots items={tache.aSavoir} dotColor="#0ea5e9" />
             </div>
 
             <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 8 }}>
-                Limites d’intervention (RIUSC)
-              </div>
-              {dots(tache.limites, "#6b7280")}
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#1e3a5f", marginBottom: 8 }}>Limites d’intervention (RIUSC)</div>
+              <Dots items={tache.limites} dotColor="#6b7280" />
             </div>
           </div>
-
-          <Section title="Dangers identifiés" defaultOpen={true}>
-            {dots(tache.dangers, risk.color)}
-          </Section>
-
-          <Section title="Mesures de prévention (hiérarchie des contrôles)" defaultOpen={true}>
-            {["elimination", "substitution", "ingenierie", "administratif", "epi"].map((k) => {
-              const label = {
-                elimination: "Élimination",
-                substitution: "Substitution",
-                ingenierie: "Mesures techniques (ingénierie)",
-                administratif: "Mesures administratives",
-                epi: "ÉPI",
-              }[k];
-
-              const items = tache.controles?.[k] ?? [];
-              if (!items.length) return null;
-
-              return (
-                <div key={k} style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>{label}</div>
-                  {dots(items, "#16a34a")}
-                </div>
-              );
-            })}
-          </Section>
 
           <Section title="Équipement de protection individuelle (ÉPI)">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
@@ -539,7 +371,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
                     backgroundColor: "#f9fafb",
                     color: "#374151",
                     border: "1px solid #e5e7eb",
-                    fontWeight: 600,
+                    fontWeight: 800,
                   }}
                 >
                   {epi}
@@ -548,7 +380,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
             </div>
           </Section>
 
-          <Section title="Formations requises">
+          <Section title="Formations / consignes associées">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 4 }}>
               {tache.formations.map((f, i) => (
                 <span
@@ -560,7 +392,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
                     backgroundColor: "#f0f4f8",
                     color: "#1e3a5f",
                     border: "1px solid #d1dce8",
-                    fontWeight: 700,
+                    fontWeight: 900,
                   }}
                 >
                   {f}
@@ -581,7 +413,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
 };
 
 /* =============================
-   TABLEAU SYNTHÈSE (top)
+   TABLEAU SYNTHÈSE (top) — SANS RISQUE
 ============================= */
 const TableauSynthese = ({ tasks, onOpen }) => {
   return (
@@ -595,7 +427,7 @@ const TableauSynthese = ({ tasks, onOpen }) => {
         boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
       }}
     >
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", fontWeight: 700, color: "#1e3a5f" }}>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", fontWeight: 900, color: "#1e3a5f" }}>
         Tableau des tâches (synthèse)
       </div>
 
@@ -606,34 +438,28 @@ const TableauSynthese = ({ tasks, onOpen }) => {
               <th style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}>ID</th>
               <th style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}>Tâche</th>
               <th style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}>Org</th>
-              <th style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}>
-                <TT title="R = G×P (matrice 4×4)">Risque</TT>
-              </th>
+              <th style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}>Aperçu</th>
               <th style={{ padding: "10px 12px", borderBottom: "1px solid #e5e7eb" }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {tasks.map((t) => {
               const org = ORG_CONFIG[t.org];
-              const lvl = riskLevelFromR(t.cotationInitiale.R);
-              const rk = RISK_CONFIG[lvl];
               return (
                 <tr key={t.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "10px 12px", color: "#374151" }}>{t.id}</td>
-                  <td style={{ padding: "10px 12px", color: "#1e3a5f", fontWeight: 600 }}>{t.name}</td>
+                  <td style={{ padding: "10px 12px", color: "#1e3a5f", fontWeight: 800 }}>{t.name}</td>
                   <td style={{ padding: "10px 12px" }}>
                     <TT title={`${org.label} = ${org.full}`}>
-                      <span style={{ padding: "2px 10px", borderRadius: 999, background: org.bg, color: org.color, fontWeight: 700 }}>
+                      <span style={{ padding: "2px 10px", borderRadius: 999, background: org.bg, color: org.color, fontWeight: 900 }}>
                         {org.label}
                       </span>
                     </TT>
                   </td>
-                  <td style={{ padding: "10px 12px" }}>
-                    <TT title="R = G×P (matrice 4×4)">
-                      <span style={{ padding: "2px 10px", borderRadius: 999, background: rk.bg, color: rk.color, border: `1px solid ${rk.border}`, fontWeight: 800 }}>
-                        {lvl} (R={t.cotationInitiale.R})
-                      </span>
-                    </TT>
+                  <td style={{ padding: "10px 12px", color: "#6b7280" }}>
+                    <span style={{ display: "inline-block", maxWidth: 520, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {t.description}
+                    </span>
                   </td>
                   <td style={{ padding: "10px 12px" }}>
                     <button
@@ -644,7 +470,7 @@ const TableauSynthese = ({ tasks, onOpen }) => {
                         border: "1px solid #d1d5db",
                         background: "white",
                         cursor: "pointer",
-                        fontWeight: 600,
+                        fontWeight: 800,
                         color: "#1e3a5f",
                       }}
                     >
@@ -667,7 +493,6 @@ const TableauSynthese = ({ tasks, onOpen }) => {
 export default function FichesTachesRIUSC() {
   const [openId, setOpenId] = useState(null);
   const [filterOrg, setFilterOrg] = useState("TOUS");
-  const [filterRisk, setFilterRisk] = useState("TOUS");
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -687,13 +512,9 @@ export default function FichesTachesRIUSC() {
   const filtered = useMemo(() => {
     return TACHES.filter((t) => {
       if (filterOrg !== "TOUS" && t.org !== filterOrg) return false;
-      if (filterRisk !== "TOUS") {
-        const lvl = riskLevelFromR(t.cotationInitiale?.R ?? 0);
-        if (lvl !== filterRisk) return false;
-      }
       return true;
     });
-  }, [filterOrg, filterRisk]);
+  }, [filterOrg]);
 
   const FilterBtn = ({ label, active, onClick }) => (
     <button
@@ -702,7 +523,7 @@ export default function FichesTachesRIUSC() {
         padding: "8px 16px",
         borderRadius: 8,
         fontSize: 13,
-        fontWeight: 700,
+        fontWeight: 900,
         border: active ? "1px solid #1e3a5f" : "1px solid #d1d5db",
         backgroundColor: active ? "#1e3a5f" : "white",
         color: active ? "white" : "#374151",
@@ -724,7 +545,7 @@ export default function FichesTachesRIUSC() {
 
   return (
     <div>
-      {/* Bandeau + légende acronymes */}
+      {/* Bandeau + légende acronymes (sans risque) */}
       <div
         style={{
           backgroundColor: "#fffbeb",
@@ -737,18 +558,19 @@ export default function FichesTachesRIUSC() {
           gap: 12,
         }}
       >
-        <span style={{ fontSize: 24 }}>⚠️</span>
+        <span style={{ fontSize: 24 }}>ℹ️</span>
         <div style={{ width: "100%" }}>
-          <p style={{ margin: "0 0 8px 0", fontWeight: 800, color: "#92400e", fontSize: 15 }}>
-            Document préliminaire — Ne pas utiliser en contexte opérationnel
+          <p style={{ margin: "0 0 8px 0", fontWeight: 900, color: "#92400e", fontSize: 15 }}>
+            Information – Portail réserviste RIUSC
           </p>
           <p style={{ margin: 0, color: "#78350f", fontSize: 14, lineHeight: 1.6 }}>
-            Ces fiches de tâches sont en cours de rédaction et de validation. Le contenu, les analyses de risque et les mesures de prévention
-            sont sujets à modification. Référence : Programme SST RIUSC (v7.x).
+            Les réservistes RIUSC interviennent exclusivement en <b>zone froide sécurisée</b>, sous supervision des autorités responsables
+            (SOPFEU ou Croix-Rouge). Les consignes de sécurité sont précisées au <b>briefing</b> en début de quart et adaptées au contexte réel
+            du terrain. Référence : Programme SST RIUSC (v7.x).
           </p>
 
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed #fcd34d" }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#92400e", marginBottom: 6 }}>Légende — acronymes</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: "#92400e", marginBottom: 6 }}>Légende — acronymes</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
               <span><b>SP</b> : SOPFEU</span>
               <span>•</span>
@@ -756,13 +578,7 @@ export default function FichesTachesRIUSC() {
               <span>•</span>
               <span><b>SST</b> : Santé et sécurité du travail</span>
               <span>•</span>
-              <span><b>EPI</b> : Équipement de protection individuelle</span>
-              <span>•</span>
-              <span><b>G</b> : Gravité</span>
-              <span>•</span>
-              <span><b>P</b> : Probabilité</span>
-              <span>•</span>
-              <span><b>R</b> : Risque (G×P)</span>
+              <span><b>ÉPI</b> : Équipement de protection individuelle</span>
               <span>•</span>
               <span><b>RIUSC</b> : Réserve d’intervention d’urgence en sécurité civile</span>
             </div>
@@ -775,16 +591,16 @@ export default function FichesTachesRIUSC() {
 
       {/* Header */}
       <div style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 800, color: "#1e3a5f" }}>Fiches de tâches RIUSC</h3>
+        <h3 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 900, color: "#1e3a5f" }}>Fiches de tâches RIUSC</h3>
         <p style={{ margin: 0, fontSize: 14, color: "#6b7280", lineHeight: 1.5 }}>
-          {TACHES.length} tâches — Utilisez le tableau pour une vue synthèse, ou cliquez sur une carte pour le détail.
+          {TACHES.length} tâches — Vue synthèse + fiches détaillées. (Contenu informatif; les consignes terrain prévalent.)
         </p>
       </div>
 
-      {/* Filters */}
+      {/* Filters (org seulement) */}
       <div style={{ display: "flex", gap: 20, marginBottom: 16, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
             Organisme
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -794,22 +610,9 @@ export default function FichesTachesRIUSC() {
             <FilterBtn label="Mixte" active={filterOrg === "MIXTE"} onClick={() => setFilterOrg("MIXTE")} />
           </div>
         </div>
-
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Niveau de risque
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <FilterBtn label="Tous" active={filterRisk === "TOUS"} onClick={() => setFilterRisk("TOUS")} />
-            <FilterBtn label="Critique" active={filterRisk === "Critique"} onClick={() => setFilterRisk("Critique")} />
-            <FilterBtn label="Élevé" active={filterRisk === "Élevé"} onClick={() => setFilterRisk("Élevé")} />
-            <FilterBtn label="Modéré" active={filterRisk === "Modéré"} onClick={() => setFilterRisk("Modéré")} />
-            <FilterBtn label="Faible" active={filterRisk === "Faible"} onClick={() => setFilterRisk("Faible")} />
-          </div>
-        </div>
       </div>
 
-      {/* ✅ Tableau synthèse (ce que tu dis “le tableau”) */}
+      {/* Tableau synthèse */}
       <TableauSynthese tasks={filtered} onOpen={openFromTable} />
 
       {/* Cartes */}
@@ -829,6 +632,16 @@ export default function FichesTachesRIUSC() {
             Aucune tâche ne correspond aux filtres sélectionnés.
           </div>
         )}
+      </div>
+
+      {/* Dimension humaine (global) */}
+      <div style={{ marginTop: 18, background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: "#1e3a5f", marginBottom: 6 }}>Dimension humaine des interventions</div>
+        <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.65 }}>
+          Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
+          Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
+          les débriefings et l’encadrement afin de soutenir les réservistes. Si une situation t’affecte, tu en parles rapidement au Responsable terrain.
+        </div>
       </div>
     </div>
   );
