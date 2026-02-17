@@ -103,6 +103,15 @@ function SoumettreContent() {
       return
     }
 
+    // Validation minimum 4 jours
+    const debut = new Date(dateDebut)
+    const fin = new Date(dateFin)
+    const diffJours = Math.ceil((fin.getTime() - debut.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffJours < 4) {
+      setError('La durée minimale de disponibilité est de 4 jours.')
+      return
+    }
+
     if (!transport) {
       setError('Veuillez indiquer votre situation de transport.')
       return
@@ -303,9 +312,10 @@ function SoumettreContent() {
                 />
               </div>
             </div>
+            <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+              Durée minimale de disponibilité : 4 jours
+            </p>
           </div>
-
-          {/* Transport */}
           <div style={{ marginBottom: '28px' }}>
             <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
               Transport *
