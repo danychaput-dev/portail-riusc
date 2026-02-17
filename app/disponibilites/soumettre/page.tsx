@@ -191,7 +191,7 @@ function SoumettreContent() {
                 <p style={{ margin: 0, color: '#92400e', fontSize: '14px', fontWeight: '500' }}>{msg.rappel}</p>
               </div>
             )}
-            <a href="/" style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Retour au portail</a>
+            <a href="/disponibilites" style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Retour au portail</a>
           </div>
         </main>
       </div>
@@ -209,7 +209,7 @@ function SoumettreContent() {
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Soumission de disponibilité</p>
             </div>
           </div>
-          <a href="/" style={{ padding: '8px 16px', color: '#6b7280', textDecoration: 'none', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px' }}>← Retour</a>
+          <a href="/disponibilites" style={{ padding: '8px 16px', color: '#6b7280', textDecoration: 'none', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px' }}>← Retour</a>
         </div>
       </header>
 
