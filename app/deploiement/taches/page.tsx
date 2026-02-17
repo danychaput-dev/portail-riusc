@@ -406,10 +406,14 @@ function FichesTachesContent() {
             <div>
               <p style={{ margin: '0 0 8px 0', fontWeight: 700, color: '#92400e', fontSize: '15px' }}>Information – Portail réserviste RIUSC</p>
               <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>
-                Les réservistes RIUSC interviennent exclusivement en <strong>zone froide sécurisée</strong>, sous supervision des autorités responsables (SOPFEU ou Croix-Rouge).
+                Les réservistes RIUSC interviennent exclusivement en <strong>zone froide </strong>, sous supervision des autorités responsables (SOPFEU ou Croix-Rouge).
                 Les consignes sont précisées au <strong>briefing</strong> en début de quart et adaptées au contexte réel du terrain. Référence : Programme SST RIUSC (v7.x).
               </p>
+              <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px' }}>
+                <p style={{ margin: 0, color: '#991b1b', fontSize: '14px', fontWeight: 700 }}>⚠️ Document en cours d&apos;élaboration — Ne pas utiliser comme référence opérationnelle. Les consignes officielles sont transmises au briefing terrain.</p>
+              </div>
               <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #f59e0b' }}>
+                
                 <p style={{ margin: '0 0 6px 0', fontWeight: 700, color: '#92400e', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Légende — acronymes</p>
                 <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>
                   <strong>SP</strong> : SOPFEU &nbsp;•&nbsp; <strong>CR</strong> : Croix-Rouge &nbsp;•&nbsp; <strong>SST</strong> : Santé et sécurité du travail &nbsp;•&nbsp; <strong>ÉPI</strong> : Équipement de protection individuelle &nbsp;•&nbsp; <strong>RIUSC</strong> : Réserve d&apos;intervention d&apos;urgence en sécurité civile
