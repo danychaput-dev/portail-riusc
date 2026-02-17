@@ -7,7 +7,7 @@ import Image from 'next/image'
 
 function LoginContent() {
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<string | React.ReactNode>('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -19,12 +19,17 @@ function LoginContent() {
   const [otpSent, setOtpSent] = useState(false)
   const [otpMethod, setOtpMethod] = useState<'sms' | 'email' | null>(null)
 
+  // Lien de contact réutilisable
+  const contactLink = (
+    <span> Si le problème persiste, <a href="mailto:dany.chaput@aqbrs.ca" style={{ color: '#dc2626', fontWeight: '600', textDecoration: 'underline' }}>contactez-nous</a>.</span>
+  )
+
   useEffect(() => {
     const errorParam = searchParams.get('error')
     if (errorParam === 'not_authorized') {
-      setError('Votre courriel n\'est pas autorisé. Contactez l\'administrateur.')
+      setError(<>Votre courriel n'est pas autorisé.{contactLink}</>)
     } else if (errorParam === 'auth_failed') {
-      setError('Erreur de connexion. Veuillez réessayer.')
+      setError(<>Erreur de connexion. Veuillez réessayer.{contactLink}</>)
     }
 
     const checkUser = async () => {
@@ -69,56 +74,57 @@ function LoginContent() {
 
       if (fetchError) {
         console.error('Erreur recherche réserviste:', fetchError)
-        setError('Erreur de connexion. Veuillez réessayer.')
+        setError(<>Erreur de connexion. Veuillez réessayer.{contactLink}</>)
         setLoading(false)
         return
       }
 
       if (!reserviste) {
-        setError('Ce courriel n\'est pas enregistré dans le système. Contactez l\'administrateur.')
+        setError(<>Ce courriel n'est pas enregistré dans le système.{contactLink}</>)
         setLoading(false)
         return
       }
 
       // 2. Déterminer la méthode d'envoi
+      let smsSent = false
+
       if (reserviste.telephone) {
-        // Envoyer par SMS
+        // Tenter l'envoi par SMS
         const formattedPhone = toE164(reserviste.telephone)
         
-        const { error: otpError } = await supabase.auth.signInWithOtp({
+        const { error: smsError } = await supabase.auth.signInWithOtp({
           phone: formattedPhone
         })
 
-        if (otpError) {
-          console.error('SMS OTP Error:', otpError)
-          setError(`Erreur d'envoi SMS: ${otpError.message}`)
-          setLoading(false)
-          return
+        if (smsError) {
+          console.warn('SMS échoué, fallback email:', smsError.message)
+          // Fallback vers email
+        } else {
+          smsSent = true
+          setOtpMethod('sms')
         }
+      }
 
-        setOtpMethod('sms')
-        setSuccess('')
-      } else {
-        // Envoyer par email
-        const { error: otpError } = await supabase.auth.signInWithOtp({
+      // Si pas de téléphone ou SMS échoué → envoyer par email
+      if (!smsSent) {
+        const { error: emailError } = await supabase.auth.signInWithOtp({
           email: email.toLowerCase().trim()
         })
 
-        if (otpError) {
-          console.error('Email OTP Error:', otpError)
-          setError(`Erreur d'envoi courriel: ${otpError.message}`)
+        if (emailError) {
+          console.error('Email OTP Error:', emailError)
+          setError(<>Erreur d'envoi du code de connexion.{contactLink}</>)
           setLoading(false)
           return
         }
 
         setOtpMethod('email')
-        setSuccess('')
       }
 
       setOtpSent(true)
     } catch (err) {
       console.error('Unexpected error:', err)
-      setError('Une erreur inattendue est survenue. Réessayez.')
+      setError(<>Une erreur inattendue est survenue. Réessayez.{contactLink}</>)
     }
 
     setLoading(false)
@@ -164,7 +170,7 @@ function LoginContent() {
 
       if (verifyResult?.error) {
         console.error('Verify Error:', verifyResult.error)
-        setError('Code invalide ou expiré. Réessayez.')
+        setError(<>Code invalide ou expiré. Réessayez.{contactLink}</>)
         setLoading(false)
         return
       }
@@ -174,7 +180,7 @@ function LoginContent() {
       }
     } catch (err) {
       console.error('Verify unexpected error:', err)
-      setError('Erreur de vérification. Réessayez.')
+      setError(<>Erreur de vérification. Réessayez.{contactLink}</>)
     }
 
     setLoading(false)

@@ -708,7 +708,7 @@ export default function InscriptionPage() {
                 />
                 <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>
                   Je comprends et j'accepte que mes informations soient utilisées conformément à la{' '}
-                  <a href="https://www.aqbrs.ca/politique-de-confidentialite" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>
+                  <a href="https://aqbrs.ca/wp-content/uploads/2026/02/Loi-25-Politique-AQBRS-fr.pdf" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>
                     politique de confidentialité
                   </a>. {requiredStar}
                 </span>
