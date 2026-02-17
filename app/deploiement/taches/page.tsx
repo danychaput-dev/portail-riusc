@@ -259,47 +259,6 @@ function FicheTache({ tache, isOpen, onToggle, id }: { tache: TacheData; isOpen:
   );
 }
 
-function TableauSynthese({ tasks, onOpen }: { tasks: TacheData[]; onOpen: (id: number) => void }) {
-  return (
-    <div style={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1e3a5f' }}>Tableau des tâches (synthèse)</div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
-              <th style={{ padding: '10px 12px', borderBottom: '1px solid #e5e7eb' }}>ID</th>
-              <th style={{ padding: '10px 12px', borderBottom: '1px solid #e5e7eb' }}>Tâche</th>
-              <th style={{ padding: '10px 12px', borderBottom: '1px solid #e5e7eb' }}>Org</th>
-              <th style={{ padding: '10px 12px', borderBottom: '1px solid #e5e7eb' }}>Aperçu</th>
-              <th style={{ padding: '10px 12px', borderBottom: '1px solid #e5e7eb' }}>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((t) => {
-              const org = ORG_CONFIG[t.org];
-              return (
-                <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '10px 12px', color: '#374151' }}>{t.id}</td>
-                  <td style={{ padding: '10px 12px', color: '#1e3a5f', fontWeight: 700 }}>{t.name}</td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <span title={`${org.label} = ${org.full}`} style={{ padding: '2px 10px', borderRadius: 999, background: org.bg, color: org.color, fontWeight: 700, cursor: 'help' }}>{org.label}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px', color: '#6b7280' }}>
-                    <span style={{ display: 'inline-block', maxWidth: 520, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.description}</span>
-                  </td>
-                  <td style={{ padding: '10px 12px' }}>
-                    <button onClick={() => onOpen(t.id)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #d1d5db', background: 'white', cursor: 'pointer', fontWeight: 700, color: '#1e3a5f' }}>Ouvrir</button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 /* =============================
    PAGE PRINCIPALE
 ============================= */
@@ -378,15 +337,7 @@ function FichesTachesContent() {
     return TACHES.filter((t) => filterOrg === 'TOUS' || t.org === filterOrg);
   }, [filterOrg]);
 
-  const openFromTable = (id: number) => {
-    setOpenId(id);
-    setTimeout(() => {
-      const el = document.getElementById(`fiche-${id}`);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 80);
-  };
-
-  if (loading) {
+   if (loading) {
     return (<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>);
   }
 
@@ -500,8 +451,6 @@ function FichesTachesContent() {
             </div>
           </div>
         </div>
-
-        <TableauSynthese tasks={filtered} onOpen={openFromTable} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((tache) => (
