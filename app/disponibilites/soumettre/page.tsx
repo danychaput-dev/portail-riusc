@@ -44,6 +44,11 @@ function SoumettreContent() {
   const supabase = createClient()
   const deploiementId = searchParams.get('deploiement')
 
+  // Date minimum = demain
+  const demain = new Date()
+  demain.setDate(demain.getDate() + 1)
+  const minDate = demain.toISOString().split('T')[0]
+
   function formatDate(dateString: string): string {
     if (!dateString) return '';
     const [year, month, day] = dateString.split('-').map(Number);
@@ -84,8 +89,12 @@ function SoumettreContent() {
 
       if (dep) {
         setDeploiement(dep)
-        if (dep.date_debut) setDateDebut(dep.date_debut)
-        if (dep.date_fin) setDateFin(dep.date_fin)
+        // Ne pas pré-remplir avec des dates passées
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const tomorrowStr = tomorrow.toISOString().split('T')[0]
+        if (dep.date_debut && dep.date_debut >= tomorrowStr) setDateDebut(dep.date_debut)
+        if (dep.date_fin && dep.date_fin >= tomorrowStr) setDateFin(dep.date_fin)
       } else {
         setError('Déploiement introuvable.')
       }
@@ -100,6 +109,12 @@ function SoumettreContent() {
 
     if (!dateDebut || !dateFin) {
       setError('Veuillez indiquer vos dates de disponibilité.')
+      return
+    }
+
+    // Validation date de début minimum demain
+    if (dateDebut < minDate) {
+      setError('La date de début doit être au plus tôt demain.')
       return
     }
 
@@ -296,6 +311,7 @@ function SoumettreContent() {
                   type="date"
                   value={dateDebut}
                   onChange={(e) => setDateDebut(e.target.value)}
+                  min={minDate}
                   style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }}
                 />
               </div>
@@ -307,7 +323,7 @@ function SoumettreContent() {
                   type="date"
                   value={dateFin}
                   onChange={(e) => setDateFin(e.target.value)}
-                  min={dateDebut}
+                  min={dateDebut || minDate}
                   style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }}
                 />
               </div>
