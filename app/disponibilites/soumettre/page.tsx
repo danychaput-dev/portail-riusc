@@ -254,7 +254,8 @@ function SoumettreContent() {
               <span style={{ fontSize: '28px', flexShrink: 0 }}>⏳</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e' }}>Je dois confirmer avec mon employeur</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Dates souhaitées sous réserve — vous aurez 48h pour confirmer</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Indiquez les dates souhaitées. Un suivi sera fait dans 48 heures pour confirmer 
+ou ajuster votre disponibilité.</div>
               </div>
             </button>
 
