@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -19,7 +20,6 @@ const TT = ({ title, children }) => (
 
 /* =============================
    DONNÉES — 11 TÂCHES (PORTAIL)
-   (On garde un contenu “soft” : description + message + à savoir + EPI + formations)
 ============================= */
 const TACHES = [
   {
@@ -44,7 +44,6 @@ const TACHES = [
     epiRequis: ["Bottes antidérapantes imperméables", "Gants", "Haute visibilité", "Protection oculaire (au besoin)", "Casque (selon contexte)"],
     formations: ["Camp de qualification RIUSC", "Briefing SST manutention (sur place)"],
   },
-
   {
     id: 2,
     name: "SP — Dégagement d’accès par ébranchage (au sol uniquement)",
@@ -63,7 +62,6 @@ const TACHES = [
     epiRequis: ["Casque + protection oculaire", "Protection auditive (si requis)", "Gants", "Bottes robustes", "Haute visibilité"],
     formations: ["Camp de qualification RIUSC", "Habilitation outil (si requis)"],
   },
-
   {
     id: 3,
     name: "SP — Gestion des débris (dégagement opérationnel)",
@@ -82,7 +80,6 @@ const TACHES = [
     epiRequis: ["Gants anti-coupure", "Bottes robustes", "Protection oculaire", "Masque (au besoin)", "Haute visibilité", "Casque (au besoin)"],
     formations: ["Camp de qualification RIUSC", "Sensibilisation dangers/MD (base)"],
   },
-
   {
     id: 4,
     name: "Mixte — Reconnaissance du territoire (inspection extérieure)",
@@ -101,7 +98,6 @@ const TACHES = [
     epiRequis: ["Bottes adaptées", "Haute visibilité", "Vêtements météo", "Casque (au besoin)", "Répulsif (au besoin)"],
     formations: ["Camp de qualification RIUSC", "Radio/GPS (selon rôle)"],
   },
-
   {
     id: 5,
     name: "CR — Soutien aux évacuations (porte-à-porte / assistance)",
@@ -120,7 +116,6 @@ const TACHES = [
     epiRequis: ["Haute visibilité RIUSC", "Bottes adaptées", "Masque (si requis)", "Gants (au besoin)"],
     formations: ["Camp de qualification RIUSC", "PSS / désescalade (recommandé)", "Premiers secours (selon rôle)"],
   },
-
   {
     id: 6,
     name: "Mixte — Coordination des opérations (poste de coordination)",
@@ -139,7 +134,6 @@ const TACHES = [
     epiRequis: ["Haute visibilité (si déplacements)", "Bottes robustes (si déplacements)"],
     formations: ["Camp de qualification RIUSC", "ICS de base (recommandé)"],
   },
-
   {
     id: 7,
     name: "CR — Préparation des centres d’hébergement (installation)",
@@ -158,7 +152,6 @@ const TACHES = [
     epiRequis: ["Chaussures fermées", "Gants (au besoin)", "Haute visibilité (si requis)"],
     formations: ["Camp de qualification RIUSC"],
   },
-
   {
     id: 8,
     name: "CR — Soutien aux besoins essentiels (distribution)",
@@ -177,7 +170,6 @@ const TACHES = [
     epiRequis: ["Masque (si requis)", "Haute visibilité (si requis)"],
     formations: ["Camp de qualification RIUSC", "Hygiène/salubrité (recommandé)"],
   },
-
   {
     id: 9,
     name: "CR — Réconfort et soutien moral",
@@ -196,7 +188,6 @@ const TACHES = [
     epiRequis: ["Haute visibilité (si requis)"],
     formations: ["Camp de qualification RIUSC", "Premiers secours psychologiques (recommandé)"],
   },
-
   {
     id: 10,
     name: "CR — Suivi des clientèles vulnérables",
@@ -215,7 +206,6 @@ const TACHES = [
     epiRequis: ["Masque (si requis)"],
     formations: ["Camp de qualification RIUSC", "PSS (recommandé)"],
   },
-
   {
     id: 11,
     name: "SP — Soutien logistique SOPFEU (terrain)",
@@ -255,7 +245,7 @@ const Section = ({ title, children, defaultOpen = false }) => {
           cursor: "pointer",
           padding: "8px 0",
           fontSize: 14,
-          fontWeight: 800,
+          fontWeight: 700,
           color: "#1e3a5f",
           textAlign: "left",
         }}
@@ -271,8 +261,8 @@ const Section = ({ title, children, defaultOpen = false }) => {
 const Dots = ({ items, dotColor = "#16a34a" }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
     {(items ?? []).map((x, i) => (
-      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "#374151", lineHeight: 1.5 }}>
-        <span style={{ color: dotColor, fontSize: 8, marginTop: 6, flexShrink: 0 }}>●</span>
+      <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, color: "#374151", lineHeight: 1.7 }}>
+        <span style={{ color: dotColor, fontSize: 8, marginTop: 7, flexShrink: 0 }}>●</span>
         {x}
       </div>
     ))}
@@ -309,7 +299,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
         }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#1e3a5f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#1e3a5f", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {tache.name}
           </div>
           <div style={{ fontSize: 13, color: "#6b7280", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -319,42 +309,44 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <TT title={`${org.label} = ${org.full}`}>
-            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 900, backgroundColor: org.bg, color: org.color }}>
+            <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, backgroundColor: org.bg, color: org.color }}>
               {org.label}
             </span>
           </TT>
-          <span style={{ color: "#6b7280", fontWeight: 900 }}>{isOpen ? "▲" : "▼"}</span>
+          <span style={{ color: "#6b7280", fontWeight: 700 }}>{isOpen ? "▲" : "▼"}</span>
         </div>
       </button>
 
       {isOpen && (
         <div style={{ padding: "0 20px 24px 20px", borderTop: "1px solid #e5e7eb" }}>
-          {/* Description + message portail */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 20 }}>
-            <div style={{ backgroundColor: "#f0f4f8", borderLeft: "4px solid #2c5aa0", padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+            <div style={{ backgroundColor: "#f0f4f8", borderLeft: "4px solid #1e3a5f", padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                 Description
               </div>
-              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>{tache.description}</div>
+              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.7 }}>{tache.description}</div>
             </div>
 
-            <div style={{ backgroundColor: "#ecfeff", borderLeft: "4px solid #06b6d4", padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#0e7490", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+            <div style={{ backgroundColor: "#fffbeb", borderLeft: "4px solid #f59e0b", padding: "14px 16px", borderRadius: "0 8px 8px 0" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
                 Information sécurité (portail)
               </div>
-              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>{tache.messagePortail}</div>
+              <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.7 }}>{tache.messagePortail}</div>
             </div>
           </div>
 
-          {/* À savoir + limites */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-            <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#1e3a5f", marginBottom: 8 }}>À savoir</div>
-              <Dots items={tache.aSavoir} dotColor="#0ea5e9" />
+            <div style={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                À savoir
+              </div>
+              <Dots items={tache.aSavoir} dotColor="#1e3a5f" />
             </div>
 
-            <div style={{ backgroundColor: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 900, color: "#1e3a5f", marginBottom: 8 }}>Limites d’intervention (RIUSC)</div>
+            <div style={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1e3a5f", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Limites d’intervention (RIUSC)
+              </div>
               <Dots items={tache.limites} dotColor="#6b7280" />
             </div>
           </div>
@@ -366,12 +358,12 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
                   key={i}
                   style={{
                     padding: "6px 14px",
-                    borderRadius: 6,
+                    borderRadius: 8,
                     fontSize: 13,
                     backgroundColor: "#f9fafb",
                     color: "#374151",
                     border: "1px solid #e5e7eb",
-                    fontWeight: 800,
+                    fontWeight: 600,
                   }}
                 >
                   {epi}
@@ -387,12 +379,12 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
                   key={i}
                   style={{
                     padding: "6px 14px",
-                    borderRadius: 6,
+                    borderRadius: 8,
                     fontSize: 13,
                     backgroundColor: "#f0f4f8",
                     color: "#1e3a5f",
                     border: "1px solid #d1dce8",
-                    fontWeight: 900,
+                    fontWeight: 700,
                   }}
                 >
                   {f}
@@ -402,7 +394,7 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
           </Section>
 
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
-            <span style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic" }}>
+            <span style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", lineHeight: 1.7 }}>
               Responsable terrain : Chef d’équipe (SOPFEU) / Coordinateur (Croix-Rouge), selon l’organisation.
             </span>
           </div>
@@ -417,19 +409,8 @@ const FicheTache = ({ tache, isOpen, onToggle, id }) => {
 ============================= */
 const TableauSynthese = ({ tasks, onOpen }) => {
   return (
-    <div
-      style={{
-        backgroundColor: "white",
-        border: "1px solid #e5e7eb",
-        borderRadius: 12,
-        overflow: "hidden",
-        marginBottom: 16,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-      }}
-    >
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", fontWeight: 900, color: "#1e3a5f" }}>
-        Tableau des tâches (synthèse)
-      </div>
+    <div style={{ backgroundColor: "white", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", marginBottom: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", fontWeight: 700, color: "#1e3a5f" }}>Tableau des tâches (synthèse)</div>
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -448,31 +429,19 @@ const TableauSynthese = ({ tasks, onOpen }) => {
               return (
                 <tr key={t.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                   <td style={{ padding: "10px 12px", color: "#374151" }}>{t.id}</td>
-                  <td style={{ padding: "10px 12px", color: "#1e3a5f", fontWeight: 800 }}>{t.name}</td>
+                  <td style={{ padding: "10px 12px", color: "#1e3a5f", fontWeight: 700 }}>{t.name}</td>
                   <td style={{ padding: "10px 12px" }}>
                     <TT title={`${org.label} = ${org.full}`}>
-                      <span style={{ padding: "2px 10px", borderRadius: 999, background: org.bg, color: org.color, fontWeight: 900 }}>
-                        {org.label}
-                      </span>
+                      <span style={{ padding: "2px 10px", borderRadius: 999, background: org.bg, color: org.color, fontWeight: 700 }}>{org.label}</span>
                     </TT>
                   </td>
                   <td style={{ padding: "10px 12px", color: "#6b7280" }}>
-                    <span style={{ display: "inline-block", maxWidth: 520, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.description}
-                    </span>
+                    <span style={{ display: "inline-block", maxWidth: 520, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description}</span>
                   </td>
                   <td style={{ padding: "10px 12px" }}>
                     <button
                       onClick={() => onOpen(t.id)}
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #d1d5db",
-                        background: "white",
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        color: "#1e3a5f",
-                      }}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #d1d5db", background: "white", cursor: "pointer", fontWeight: 700, color: "#1e3a5f" }}
                     >
                       Ouvrir
                     </button>
@@ -488,7 +457,7 @@ const TableauSynthese = ({ tasks, onOpen }) => {
 };
 
 /* =============================
-   PAGE PRINCIPALE
+   PAGE PRINCIPALE (avec style Soumettre)
 ============================= */
 export default function FichesTachesRIUSC() {
   const [openId, setOpenId] = useState(null);
@@ -523,7 +492,7 @@ export default function FichesTachesRIUSC() {
         padding: "8px 16px",
         borderRadius: 8,
         fontSize: 13,
-        fontWeight: 900,
+        fontWeight: 700,
         border: active ? "1px solid #1e3a5f" : "1px solid #d1d5db",
         backgroundColor: active ? "#1e3a5f" : "white",
         color: active ? "white" : "#374151",
@@ -544,105 +513,108 @@ export default function FichesTachesRIUSC() {
   };
 
   return (
-    <div>
-      {/* Bandeau + légende acronymes (sans risque) */}
-      <div
-        style={{
-          backgroundColor: "#fffbeb",
-          border: "1px solid #fcd34d",
-          borderRadius: 10,
-          padding: "20px",
-          marginBottom: 18,
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-        }}
-      >
-        <span style={{ fontSize: 24 }}>ℹ️</span>
-        <div style={{ width: "100%" }}>
-          <p style={{ margin: "0 0 8px 0", fontWeight: 900, color: "#92400e", fontSize: 15 }}>
-            Information – Portail réserviste RIUSC
-          </p>
-          <p style={{ margin: 0, color: "#78350f", fontSize: 14, lineHeight: 1.6 }}>
-            Les réservistes RIUSC interviennent exclusivement en <b>zone froide sécurisée</b>, sous supervision des autorités responsables
-            (SOPFEU ou Croix-Rouge). Les consignes de sécurité sont précisées au <b>briefing</b> en début de quart et adaptées au contexte réel
-            du terrain. Référence : Programme SST RIUSC (v7.x).
-          </p>
-
-          <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px dashed #fcd34d" }}>
-            <div style={{ fontSize: 12, fontWeight: 900, color: "#92400e", marginBottom: 6 }}>Légende — acronymes</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 13, color: "#78350f", lineHeight: 1.6 }}>
-              <span><b>SP</b> : SOPFEU</span>
-              <span>•</span>
-              <span><b>CR</b> : Croix-Rouge</span>
-              <span>•</span>
-              <span><b>SST</b> : Santé et sécurité du travail</span>
-              <span>•</span>
-              <span><b>ÉPI</b> : Équipement de protection individuelle</span>
-              <span>•</span>
-              <span><b>RIUSC</b> : Réserve d’intervention d’urgence en sécurité civile</span>
-            </div>
-            <div style={{ marginTop: 8, fontSize: 12, color: "#7c2d12" }}>
-              <b>Responsable terrain</b> : Chef d’équipe (SOPFEU) / Coordinateur (Croix-Rouge), selon l’organisation.
+    <div style={{ minHeight: "100vh", backgroundColor: "#f5f7fa", display: "flex", flexDirection: "column" }}>
+      {/* Header sticky (comme Soumettre) */}
+      <header style={{ backgroundColor: "white", borderBottom: "1px solid #e5e7eb", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 24px", height: "72px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <img src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: "8px" }} />
+            <div>
+              <h1 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#1e3a5f" }}>Portail RIUSC</h1>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6b7280" }}>Fiches de tâches</p>
             </div>
           </div>
+
+          <a href="/" style={{ padding: "8px 16px", color: "#6b7280", textDecoration: "none", fontSize: "14px", border: "1px solid #d1d5db", borderRadius: "6px" }}>
+            ← Retour
+          </a>
         </div>
-      </div>
+      </header>
 
-      {/* Header */}
-      <div style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 900, color: "#1e3a5f" }}>Fiches de tâches RIUSC</h3>
-        <p style={{ margin: 0, fontSize: 14, color: "#6b7280", lineHeight: 1.5 }}>
-          {TACHES.length} tâches — Vue synthèse + fiches détaillées. (Contenu informatif; les consignes terrain prévalent.)
-        </p>
-      </div>
+      <main style={{ maxWidth: "900px", margin: "0 auto", padding: "32px 24px", width: "100%" }}>
+        {/* Bandeau info (même style que Soumettre) */}
+        <div style={{ backgroundColor: "#fef3c7", border: "2px solid #f59e0b", borderRadius: "12px", padding: "20px 24px", marginBottom: "24px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <span style={{ fontSize: "24px", flexShrink: 0 }}>ℹ️</span>
+            <div>
+              <p style={{ margin: "0 0 8px 0", fontWeight: 700, color: "#92400e", fontSize: "15px" }}>Information – Portail réserviste RIUSC</p>
+              <p style={{ margin: 0, color: "#78350f", fontSize: "14px", lineHeight: "1.7" }}>
+                Les réservistes RIUSC interviennent exclusivement en <strong>zone froide sécurisée</strong>, sous supervision des autorités responsables (SOPFEU ou Croix-Rouge).
+                Les consignes sont précisées au <strong>briefing</strong> en début de quart et adaptées au contexte réel du terrain. Référence : Programme SST RIUSC (v7.x).
+              </p>
 
-      {/* Filters (org seulement) */}
-      <div style={{ display: "flex", gap: 20, marginBottom: 16, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 900, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Organisme
-          </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <FilterBtn label="Tous" active={filterOrg === "TOUS"} onClick={() => setFilterOrg("TOUS")} />
-            <FilterBtn label="SOPFEU" active={filterOrg === "SOPFEU"} onClick={() => setFilterOrg("SOPFEU")} />
-            <FilterBtn label="Croix-Rouge" active={filterOrg === "CROIX-ROUGE"} onClick={() => setFilterOrg("CROIX-ROUGE")} />
-            <FilterBtn label="Mixte" active={filterOrg === "MIXTE"} onClick={() => setFilterOrg("MIXTE")} />
+              <div style={{ marginTop: "14px", paddingTop: "14px", borderTop: "1px dashed #f59e0b" }}>
+                <p style={{ margin: "0 0 6px 0", fontWeight: 700, color: "#92400e", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Légende — acronymes
+                </p>
+                <p style={{ margin: 0, color: "#78350f", fontSize: "14px", lineHeight: "1.7" }}>
+                  <strong>SP</strong> : SOPFEU &nbsp;•&nbsp; <strong>CR</strong> : Croix-Rouge &nbsp;•&nbsp; <strong>SST</strong> : Santé et sécurité du travail &nbsp;•&nbsp;{" "}
+                  <strong>ÉPI</strong> : Équipement de protection individuelle &nbsp;•&nbsp; <strong>RIUSC</strong> : Réserve d’intervention d’urgence en sécurité civile
+                </p>
+                <p style={{ margin: "10px 0 0 0", color: "#7c2d12", fontSize: "13px" }}>
+                  <strong>Responsable terrain</strong> : Chef d’équipe (SOPFEU) / Coordinateur (Croix-Rouge), selon l’organisation.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tableau synthèse */}
-      <TableauSynthese tasks={filtered} onOpen={openFromTable} />
-
-      {/* Cartes */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {filtered.map((tache) => (
-          <FicheTache
-            key={tache.id}
-            id={`fiche-${tache.id}`}
-            tache={tache}
-            isOpen={openId === tache.id}
-            onToggle={() => setOpenId(openId === tache.id ? null : tache.id)}
-          />
-        ))}
-
-        {filtered.length === 0 && (
-          <div style={{ padding: "40px 20px", backgroundColor: "#f9fafb", borderRadius: 8, textAlign: "center", color: "#9ca3af", fontSize: 14 }}>
-            Aucune tâche ne correspond aux filtres sélectionnés.
-          </div>
-        )}
-      </div>
-
-      {/* Dimension humaine (global) */}
-      <div style={{ marginTop: 18, background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 900, color: "#1e3a5f", marginBottom: 6 }}>Dimension humaine des interventions</div>
-        <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.65 }}>
-          Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
-          Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
-          les débriefings et l’encadrement afin de soutenir les réservistes. Si une situation t’affecte, tu en parles rapidement au Responsable terrain.
+        {/* Header section */}
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 700, color: "#1e3a5f" }}>Fiches de tâches RIUSC</h3>
+          <p style={{ margin: 0, fontSize: 14, color: "#6b7280", lineHeight: 1.7 }}>
+            {TACHES.length} tâches — Vue synthèse + fiches détaillées. (Contenu informatif; les consignes terrain prévalent.)
+          </p>
         </div>
-      </div>
+
+        {/* Filters (org seulement) */}
+        <div style={{ display: "flex", gap: 20, marginBottom: 16, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              Organisme
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <FilterBtn label="Tous" active={filterOrg === "TOUS"} onClick={() => setFilterOrg("TOUS")} />
+              <FilterBtn label="SOPFEU" active={filterOrg === "SOPFEU"} onClick={() => setFilterOrg("SOPFEU")} />
+              <FilterBtn label="Croix-Rouge" active={filterOrg === "CROIX-ROUGE"} onClick={() => setFilterOrg("CROIX-ROUGE")} />
+              <FilterBtn label="Mixte" active={filterOrg === "MIXTE"} onClick={() => setFilterOrg("MIXTE")} />
+            </div>
+          </div>
+        </div>
+
+        <TableauSynthese tasks={filtered} onOpen={openFromTable} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {filtered.map((tache) => (
+            <FicheTache
+              key={tache.id}
+              id={`fiche-${tache.id}`}
+              tache={tache}
+              isOpen={openId === tache.id}
+              onToggle={() => setOpenId(openId === tache.id ? null : tache.id)}
+            />
+          ))}
+
+          {filtered.length === 0 && (
+            <div style={{ padding: "40px 20px", backgroundColor: "#ffffff", borderRadius: 12, textAlign: "center", color: "#9ca3af", fontSize: 14, border: "1px solid #e5e7eb" }}>
+              Aucune tâche ne correspond aux filtres sélectionnés.
+            </div>
+          )}
+        </div>
+
+        <div style={{ marginTop: 18, background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1e3a5f", marginBottom: 6 }}>Dimension humaine des interventions</div>
+          <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.7 }}>
+            Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
+            Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
+            les débriefings et l’encadrement afin de soutenir les réservistes. Si une situation t’affecte, tu en parles rapidement au Responsable terrain.
+          </div>
+        </div>
+      </main>
+
+      <footer style={{ backgroundColor: "#1e3a5f", color: "white", padding: "24px", textAlign: "center", marginTop: "60px" }}>
+        <p style={{ margin: 0, fontSize: "14px", opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>
+      </footer>
     </div>
   );
 }
