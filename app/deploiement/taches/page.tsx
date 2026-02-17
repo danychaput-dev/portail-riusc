@@ -44,9 +44,9 @@ const TACHES: TacheData[] = [
     id: 1,
     name: 'SP - Protection d\u2019infrastructures (digues temporaires)',
     org: 'SOPFEU',
-    description: 'Remplissage, transport et empilement de sacs et matériaux temporaires pour renforcer une berge/digue en phase d\u2019urgence (zone froide confirmée).',
+    description: 'Remplissage, transport et empilement de sacs et matériaux temporaires pour renforcer une berge/digue en phase d\u2019urgence.',
     messagePortail: 'La construction d\u2019une digue temporaire se fait en travail d\u2019équipe et comprend plusieurs tâches. Certaines impliquent la manipulation de charges ou des mouvements répétitifs. L\u2019application des techniques de levage et de transfert apprises en formation est essentielle afin de réduire le risque de blessure.',
-    aSavoir: ['Travail en équipe (binômes) et supervision active sur le terrain.', 'Rotations et pauses planifiées : suivez le rythme prévu et signalez la fatigue tôt.', 'Intervention uniquement en zone froide sécurisée (confirmée avant le début).', 'Briefing en début de quart : consignes, critères d\u2019arrêt, communications.'],
+    aSavoir: ['Travail en équipe et supervision active sur le terrain.', 'Rotations et pauses planifiées : suivez le rythme prévu et signalez la fatigue tôt.', 'Intervention uniquement en zone froide (confirmée avant le début).', 'Briefing en début de quart : consignes, critères d\u2019arrêt, communications.'],
     limites: ['Phase d\u2019urgence uniquement (aucun rétablissement/nettoyage complet).', 'Arrêt immédiat si instabilité, montée des eaux ou visibilité insuffisante.', 'Aucune opération de machinerie lourde par les réservistes.'],
     epiRequis: ['Bottes antidérapantes imperméables', 'Gants', 'Haute visibilité', 'Protection oculaire (au besoin)', 'Casque (selon contexte)'],
     formations: ['Camp de qualification RIUSC', 'Briefing SST manutention (sur place)'],
@@ -454,6 +454,16 @@ function FichesTachesContent() {
             </div>
           </div>
         </div>
+
+        <div style={{ marginTop: 18, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>Dimension humaine des interventions</div>
+          <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7 }}>
+            Certaines tâches impliquent un contact direct avec des personnes sinistrées ou des situations émotionnellement chargées.
+            Il est normal de ressentir du stress ou une charge émotionnelle. La RIUSC privilégie le travail en binôme, la rotation des tâches,
+            les débriefings et l&apos;encadrement afin de soutenir les réservistes. Si une situation t&apos;affecte, tu en parles rapidement au Responsable terrain.
+          </div>
+        </div>
+        
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map((tache) => (
