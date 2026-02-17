@@ -502,17 +502,16 @@ export default function DossierPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
-      {/* Header sticky */}
+      {/* Header sticky — standardisé */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a href="/" className="text-[#1e3a5f] hover:text-[#2d4a6f]">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </a>
-            <h1 className="text-lg font-semibold">Mon dossier réserviste</h1>
-          </div>
+        <div className="max-w-4xl mx-auto px-6" style={{ height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
+            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
+            <div>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Mon dossier réserviste</p>
+            </div>
+          </a>
           <button
             onClick={handleSave}
             disabled={saving || !hasChanges}
@@ -542,6 +541,10 @@ export default function DossierPage() {
 
       {/* Formulaire */}
       <main className="max-w-4xl mx-auto px-6 py-8">
+        {/* Lien retour standardisé */}
+        <div style={{ marginBottom: '24px' }}>
+          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>&larr; Retour &agrave; l&apos;accueil</a>
+        </div>
 
         {/* ── Identité ── */}
         <Section title="Identité" icon="👤">
