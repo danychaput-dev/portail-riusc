@@ -19,7 +19,6 @@ interface Disponibilite {
   statut: string;
   statut_version: string;
   commentaire?: string;
-  transport?: string;
   envoye_le: string;
   repondu_le: string;
   user_id: string;
@@ -182,25 +181,25 @@ export default function DisponibilitesPage() {
 
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login'); };
 
-  // Confirmer une dispo "En attente" → "Disponible"
-  const handleConfirmer = async (dispo: Disponibilite) => {
+  // Confirmer une dispo "En attente" → "Répondu"
+  const handleConfirmer = async (rep: CiblageReponse) => {
     if (!reserviste) return;
-    setActionLoading(`confirmer-${dispo.id}`);
+    setActionLoading(`confirmer-${rep.id}`);
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
-          deploiement_id: dispo.deploiement_id,
+          deploiement_id: rep.deploiement_id,
           prenom: reserviste.prenom,
           nom: reserviste.nom,
           email: reserviste.email,
           telephone: null,
-          date_debut: dispo.date_debut,
-          date_fin: dispo.date_fin,
-          transport: dispo.transport,
-          commentaires: dispo.commentaire || null,
+          date_debut: rep.date_disponible_debut,
+          date_fin: rep.date_disponible_fin,
+          transport: rep.transport,
+          commentaires: rep.commentaires || null,
           statut: 'Disponible'
         })
       });
@@ -214,17 +213,17 @@ export default function DisponibilitesPage() {
   };
 
   // Annuler une dispo → "Non disponible"
-  const handleAnnuler = async (dispo: Disponibilite) => {
+  const handleAnnuler = async (rep: CiblageReponse) => {
     if (!reserviste) return;
     if (!confirm('Êtes-vous sûr de vouloir annuler votre disponibilité ?')) return;
-    setActionLoading(`annuler-${dispo.id}`);
+    setActionLoading(`annuler-${rep.id}`);
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
-          deploiement_id: dispo.deploiement_id,
+          deploiement_id: rep.deploiement_id,
           prenom: reserviste.prenom,
           nom: reserviste.nom,
           email: reserviste.email,
@@ -418,97 +417,15 @@ export default function DisponibilitesPage() {
         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>✅ Mes réponses</h3>
           
-          {disponibilites.length === 0 && ciblageReponses.filter(r => r.statut_envoi === 'Non disponible').length === 0 ? (
+          {disponibilites.length === 0 && ciblageReponses.length === 0 ? (
             <div style={{ padding: '30px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
               <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>Vous n&apos;avez pas encore soumis de disponibilités.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Disponibilités actives (plages soumises) */}
-              {disponibilites.map((dispo) => (
-                <div key={dispo.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#fafafa' }}>
-                  {dispo.nom_sinistre && (
-                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
-                      <span style={{ marginRight: '6px' }}>🔥</span><strong>Sinistre :</strong> {dispo.nom_sinistre}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '10px', marginTop: '6px' }}>
-                    <span style={{ marginRight: '6px' }}>🚨</span>{dispo.nom_deploiement}
-                  </div>
-                  {dispo.date_debut && dispo.date_fin && (
-                    <div style={{ fontSize: '14px', color: '#4b5563', marginBottom: '10px' }}>
-                      <span style={{ marginRight: '6px' }}>📅</span>Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
-                    </div>
-                  )}
-                  {dispo.transport && (
-                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
-                      🚗 {dispo.transport === 'autonome' ? 'Autonome' : dispo.transport === 'covoiturage_offre' ? 'Offre covoiturage' : dispo.transport === 'covoiturage_recherche' ? 'Recherche covoiturage' : dispo.transport === 'besoin_transport' ? 'Besoin transport' : dispo.transport}
-                    </div>
-                  )}
-                  <span style={{
-                    display: 'inline-block', padding: '4px 12px',
-                    backgroundColor: dispo.statut === 'Disponible' ? '#d1fae5' : dispo.statut === 'En attente' ? '#fef3c7' : '#fee2e2',
-                    color: dispo.statut === 'Disponible' ? '#065f46' : dispo.statut === 'En attente' ? '#92400e' : '#991b1b',
-                    borderRadius: '6px', fontSize: '13px', fontWeight: '500'
-                  }}>
-                    {dispo.statut === 'Disponible' ? '✅ Disponible' : dispo.statut === 'En attente' ? '⏳ En attente de confirmation' : '❌ ' + dispo.statut}
-                  </span>
-                  {dispo.commentaire && (
-                    <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '13px', color: '#4b5563' }}>
-                      <strong>Commentaire :</strong> {dispo.commentaire}
-                    </div>
-                  )}
-
-                  {/* Boutons d'action */}
-                  <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {dispo.statut === 'En attente' && (
-                      <button
-                        onClick={() => handleConfirmer(dispo)}
-                        disabled={actionLoading === `confirmer-${dispo.id}`}
-                        style={{
-                          padding: '8px 16px', fontSize: '13px', fontWeight: '600',
-                          backgroundColor: actionLoading === `confirmer-${dispo.id}` ? '#9ca3af' : '#059669',
-                          color: 'white', border: 'none', borderRadius: '6px',
-                          cursor: actionLoading === `confirmer-${dispo.id}` ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        {actionLoading === `confirmer-${dispo.id}` ? '⏳ Confirmation...' : '✅ Confirmer ma disponibilité'}
-                      </button>
-                    )}
-
-                    <a
-                      href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}`}
-                      style={{
-                        padding: '8px 16px', fontSize: '13px', fontWeight: '600',
-                        backgroundColor: '#1e3a5f', color: 'white',
-                        border: 'none', borderRadius: '6px', textDecoration: 'none',
-                        display: 'inline-block'
-                      }}
-                    >
-                      {dispo.statut === 'Disponible' ? '✏️ Modifier' : '📅 Ajouter une plage'}
-                    </a>
-
-                    <button
-                      onClick={() => handleAnnuler(dispo)}
-                      disabled={actionLoading === `annuler-${dispo.id}`}
-                      style={{
-                        padding: '8px 16px', fontSize: '13px', fontWeight: '500',
-                        backgroundColor: 'white',
-                        color: actionLoading === `annuler-${dispo.id}` ? '#9ca3af' : '#dc2626',
-                        border: `1px solid ${actionLoading === `annuler-${dispo.id}` ? '#d1d5db' : '#dc2626'}`,
-                        borderRadius: '6px',
-                        cursor: actionLoading === `annuler-${dispo.id}` ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      {actionLoading === `annuler-${dispo.id}` ? '⏳ Annulation...' : '❌ Annuler'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Ciblages "Non disponible" sans plage */}
-              {ciblageReponses.filter(r => r.statut_envoi === 'Non disponible').map((rep) => (
-                <div key={`nd-${rep.id}`} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#fafafa' }}>
+              {/* Réponses via nouveau formulaire (ciblages) */}
+              {ciblageReponses.map((rep) => (
+                <div key={rep.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#fafafa' }}>
                   {rep.nom_sinistre && (
                     <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
                       <span style={{ marginRight: '6px' }}>🔥</span><strong>Sinistre :</strong> {rep.nom_sinistre}
@@ -517,12 +434,121 @@ export default function DisponibilitesPage() {
                   <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '10px', marginTop: '6px' }}>
                     <span style={{ marginRight: '6px' }}>🚨</span>{rep.nom_deploiement}
                   </div>
-                  <span style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '13px', fontWeight: '500' }}>
-                    ❌ Non disponible
+                  {rep.date_disponible_debut && rep.date_disponible_fin && (
+                    <div style={{ fontSize: '14px', color: '#4b5563', marginBottom: '10px' }}>
+                      <span style={{ marginRight: '6px' }}>📅</span>Du {formatDateCourt(rep.date_disponible_debut)} au {formatDateCourt(rep.date_disponible_fin)}
+                    </div>
+                  )}
+                  {rep.transport && (
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+                      🚗 {rep.transport === 'autonome' ? 'Autonome' : rep.transport === 'covoiturage_offre' ? 'Offre covoiturage' : rep.transport === 'covoiturage_recherche' ? 'Recherche covoiturage' : 'Besoin transport'}
+                    </div>
+                  )}
+                  <span style={{
+                    display: 'inline-block', padding: '4px 12px',
+                    backgroundColor: rep.statut_envoi === 'Répondu' ? '#d1fae5' : rep.statut_envoi === 'En attente' ? '#fef3c7' : '#fee2e2',
+                    color: rep.statut_envoi === 'Répondu' ? '#065f46' : rep.statut_envoi === 'En attente' ? '#92400e' : '#991b1b',
+                    borderRadius: '6px', fontSize: '13px', fontWeight: '500'
+                  }}>
+                    {rep.statut_envoi === 'Répondu' ? '✅ Disponible' : rep.statut_envoi === 'En attente' ? '⏳ En attente de confirmation' : '❌ Non disponible'}
                   </span>
                   {rep.commentaires && (
                     <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '13px', color: '#4b5563' }}>
                       <strong>Commentaire :</strong> {rep.commentaires}
+                    </div>
+                  )}
+
+                  {/* Boutons d'action */}
+                  {rep.statut_envoi !== 'Non disponible' && (
+                    <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      {/* En attente → Confirmer */}
+                      {rep.statut_envoi === 'En attente' && (
+                        <button
+                          onClick={() => handleConfirmer(rep)}
+                          disabled={actionLoading === `confirmer-${rep.id}`}
+                          style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                            backgroundColor: actionLoading === `confirmer-${rep.id}` ? '#9ca3af' : '#059669',
+                            color: 'white', border: 'none', borderRadius: '6px',
+                            cursor: actionLoading === `confirmer-${rep.id}` ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {actionLoading === `confirmer-${rep.id}` ? '⏳ Confirmation...' : '✅ Confirmer ma disponibilité'}
+                        </button>
+                      )}
+
+                      {/* Répondu → Modifier */}
+                      {rep.statut_envoi === 'Répondu' && (
+                        <a
+                          href={`/disponibilites/soumettre?deploiement=${rep.deploiement_id}`}
+                          style={{
+                            padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+                            backgroundColor: '#1e3a5f', color: 'white',
+                            border: 'none', borderRadius: '6px', textDecoration: 'none',
+                            display: 'inline-block'
+                          }}
+                        >
+                          ✏️ Modifier
+                        </a>
+                      )}
+
+                      {/* Annuler (pour Répondu et En attente) */}
+                      <button
+                        onClick={() => handleAnnuler(rep)}
+                        disabled={actionLoading === `annuler-${rep.id}`}
+                        style={{
+                          padding: '8px 16px', fontSize: '13px', fontWeight: '500',
+                          backgroundColor: 'white',
+                          color: actionLoading === `annuler-${rep.id}` ? '#9ca3af' : '#dc2626',
+                          border: `1px solid ${actionLoading === `annuler-${rep.id}` ? '#d1d5db' : '#dc2626'}`,
+                          borderRadius: '6px',
+                          cursor: actionLoading === `annuler-${rep.id}` ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {actionLoading === `annuler-${rep.id}` ? '⏳ Annulation...' : '❌ Annuler'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Anciennes disponibilités (JotForm) */}
+              {disponibilites.map((dispo) => (
+                <div key={dispo.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#fafafa' }}>
+                  {dispo.nom_sinistre && (
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
+                      <span style={{ marginRight: '6px' }}>🔥</span><strong>Sinistre :</strong> {dispo.nom_sinistre}
+                    </div>
+                  )}
+                  {dispo.nom_demande && (
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span>📋</span><strong>Demande :</strong><span>{dispo.nom_demande}</span>
+                      {dispo.organisme_demande && (
+                        <span style={{ padding: '1px 6px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '3px', fontSize: '11px', fontWeight: '500' }}>{dispo.organisme_demande}</span>
+                      )}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '10px', marginTop: '6px' }}>
+                    <span style={{ marginRight: '6px' }}>🚨</span>{dispo.nom_deploiement}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#4b5563', marginBottom: '10px' }}>
+                    {dispo.date_debut && dispo.date_fin ? (
+                      <><span style={{ marginRight: '6px' }}>📅</span>Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}</>
+                    ) : (
+                      <span style={{ color: '#9ca3af' }}>Aucune date spécifiée</span>
+                    )}
+                  </div>
+                  <span style={{
+                    display: 'inline-block', padding: '4px 12px',
+                    backgroundColor: dispo.statut === 'Disponible' ? '#d1fae5' : dispo.statut === 'Peut-être' ? '#fef3c7' : '#fee2e2',
+                    color: dispo.statut === 'Disponible' ? '#065f46' : dispo.statut === 'Peut-être' ? '#92400e' : '#991b1b',
+                    borderRadius: '6px', fontSize: '13px', fontWeight: '500'
+                  }}>
+                    {dispo.statut === 'Disponible' ? '✅' : dispo.statut === 'Peut-être' ? '⚠️' : '❌'} {dispo.statut}
+                  </span>
+                  {dispo.commentaire && (
+                    <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '13px', color: '#4b5563' }}>
+                      <strong>Commentaire :</strong> {dispo.commentaire}
                     </div>
                   )}
                 </div>
