@@ -45,6 +45,19 @@ interface Reserviste {
   photo_url?: string;
 }
 
+interface CiblageReponse {
+  id: string;
+  benevole_id: string;
+  deploiement_id: string;
+  statut_envoi: string;
+  date_disponible_debut?: string;
+  date_disponible_fin?: string;
+  transport?: string;
+  commentaires?: string;
+  nom_deploiement?: string;
+  nom_sinistre?: string;
+}
+
 export default function DisponibilitesPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -54,6 +67,7 @@ export default function DisponibilitesPage() {
   const [disponibilites, setDisponibilites] = useState<Disponibilite[]>([]);
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([]);
   const [ciblages, setCiblages] = useState<string[]>([]);
+  const [ciblageReponses, setCiblageReponses] = useState<CiblageReponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -75,6 +89,7 @@ export default function DisponibilitesPage() {
     setRefreshing(true);
     await fetchDisponibilites(benevoleId);
     await fetchDeploiementsActifs(benevoleId);
+    await fetchCiblageReponses(benevoleId);
     setLastRefresh(new Date());
     setRefreshing(false);
   }, []);
@@ -114,6 +129,7 @@ export default function DisponibilitesPage() {
       setReserviste(reservisteData);
       await fetchDisponibilites(reservisteData.benevole_id);
       await fetchDeploiementsActifs(reservisteData.benevole_id);
+      await fetchCiblageReponses(reservisteData.benevole_id);
     }
     setLoading(false);
   }
@@ -131,6 +147,35 @@ export default function DisponibilitesPage() {
     const { data, error } = await supabase.from('deploiements_actifs').select('*').in('deploiement_id', deployIds).order('date_debut', { ascending: true });
     if (error) console.error('Erreur fetch déploiements:', error);
     if (data) setDeploiementsActifs(data);
+  }
+
+  async function fetchCiblageReponses(benevoleId: string) {
+    const { data } = await supabase
+      .from('ciblages')
+      .select('id, benevole_id, deploiement_id, statut_envoi, date_disponible_debut, date_disponible_fin, transport, commentaires')
+      .eq('benevole_id', benevoleId)
+      .in('statut_envoi', ['Répondu', 'Non disponible', 'En attente']);
+    
+    if (data && data.length > 0) {
+      // Enrichir avec les noms des déploiements
+      const deployIds = data.map(c => c.deploiement_id);
+      const { data: deps } = await supabase
+        .from('deploiements_actifs')
+        .select('deploiement_id, nom_deploiement, nom_sinistre')
+        .in('deploiement_id', deployIds);
+      
+      const depMap: Record<string, { nom_deploiement: string; nom_sinistre?: string }> = {};
+      if (deps) deps.forEach(d => { depMap[d.deploiement_id] = d; });
+
+      const enriched = data.map(c => ({
+        ...c,
+        nom_deploiement: depMap[c.deploiement_id]?.nom_deploiement || 'Déploiement',
+        nom_sinistre: depMap[c.deploiement_id]?.nom_sinistre || undefined
+      }));
+      setCiblageReponses(enriched);
+    } else {
+      setCiblageReponses([]);
+    }
   }
 
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login'); };
@@ -306,14 +351,52 @@ export default function DisponibilitesPage() {
 
         {/* Section Disponibilités soumises */}
         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>✅ Mes disponibilités soumises</h3>
+          <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>✅ Mes réponses</h3>
           
-          {disponibilites.length === 0 ? (
+          {disponibilites.length === 0 && ciblageReponses.length === 0 ? (
             <div style={{ padding: '30px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
               <p style={{ color: '#6b7280', fontSize: '15px', margin: 0 }}>Vous n&apos;avez pas encore soumis de disponibilités.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Réponses via nouveau formulaire (ciblages) */}
+              {ciblageReponses.map((rep) => (
+                <div key={rep.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#fafafa' }}>
+                  {rep.nom_sinistre && (
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
+                      <span style={{ marginRight: '6px' }}>🔥</span><strong>Sinistre :</strong> {rep.nom_sinistre}
+                    </div>
+                  )}
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '10px', marginTop: '6px' }}>
+                    <span style={{ marginRight: '6px' }}>🚨</span>{rep.nom_deploiement}
+                  </div>
+                  {rep.date_disponible_debut && rep.date_disponible_fin && (
+                    <div style={{ fontSize: '14px', color: '#4b5563', marginBottom: '10px' }}>
+                      <span style={{ marginRight: '6px' }}>📅</span>Du {formatDateCourt(rep.date_disponible_debut)} au {formatDateCourt(rep.date_disponible_fin)}
+                    </div>
+                  )}
+                  {rep.transport && (
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+                      🚗 {rep.transport === 'autonome' ? 'Autonome' : rep.transport === 'covoiturage_offre' ? 'Offre covoiturage' : rep.transport === 'covoiturage_recherche' ? 'Recherche covoiturage' : 'Besoin transport'}
+                    </div>
+                  )}
+                  <span style={{
+                    display: 'inline-block', padding: '4px 12px',
+                    backgroundColor: rep.statut_envoi === 'Répondu' ? '#d1fae5' : rep.statut_envoi === 'En attente' ? '#fef3c7' : '#fee2e2',
+                    color: rep.statut_envoi === 'Répondu' ? '#065f46' : rep.statut_envoi === 'En attente' ? '#92400e' : '#991b1b',
+                    borderRadius: '6px', fontSize: '13px', fontWeight: '500'
+                  }}>
+                    {rep.statut_envoi === 'Répondu' ? '✅ Disponible' : rep.statut_envoi === 'En attente' ? '⏳ En attente de confirmation' : '❌ Non disponible'}
+                  </span>
+                  {rep.commentaires && (
+                    <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f3f4f6', borderRadius: '6px', fontSize: '13px', color: '#4b5563' }}>
+                      <strong>Commentaire :</strong> {rep.commentaires}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Anciennes disponibilités (JotForm) */}
               {disponibilites.map((dispo) => (
                 <div key={dispo.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '16px', backgroundColor: '#fafafa' }}>
                   {dispo.nom_sinistre && (
