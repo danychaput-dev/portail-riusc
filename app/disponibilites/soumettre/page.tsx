@@ -162,7 +162,7 @@ function SoumettreContent() {
         icon: '⏳',
         bg: '#fef3c7',
         texte: `Merci, ${reserviste?.prenom} ! Vos dates ont été enregistrées sous réserve de confirmation.`,
-        rappel: 'Un suivi sera fait dans les 48 prochaines heures pour confirmer vos dates.'
+        rappel: 'Vous recevrez un rappel dans 48 heures. Veuillez revenir confirmer ou annuler vos dates une fois que vous aurez la réponse de votre employeur.'
       }
     }
     const msg = messages[reponse || 'disponible']
@@ -191,7 +191,7 @@ function SoumettreContent() {
                 <p style={{ margin: 0, color: '#92400e', fontSize: '14px', fontWeight: '500' }}>{msg.rappel}</p>
               </div>
             )}
-            <a href="/disponibilites" style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Voir mes disponibilités</a>
+            <a href="/" style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>Retour au portail</a>
           </div>
         </main>
       </div>
@@ -202,20 +202,18 @@ function SoumettreContent() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Soumission de disponibilité</p>
             </div>
-          </a>
+          </div>
+          <a href="/" style={{ padding: '8px 16px', color: '#6b7280', textDecoration: 'none', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px' }}>← Retour</a>
         </div>
       </header>
 
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 24px', width: '100%' }}>
-        <div style={{ marginBottom: '24px' }}>
-          <a href="/disponibilites" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour aux disponibilités</a>
-        </div>
         {deploiement && (
           <div style={{ backgroundColor: '#1e3a5f', padding: '24px 28px', borderRadius: '12px', marginBottom: '24px', color: 'white' }}>
             {deploiement.nom_sinistre && (<div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.8, marginBottom: '6px' }}>{deploiement.nom_sinistre}</div>)}
@@ -256,7 +254,7 @@ function SoumettreContent() {
               <span style={{ fontSize: '28px', flexShrink: 0 }}>⏳</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e' }}>Je dois confirmer avec mon employeur</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Dates souhaitées sous réserve — un suivi sera fait dans 48h pour confirmer</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Dates souhaitées sous réserve — vous aurez 48h pour confirmer</div>
               </div>
             </button>
 
@@ -291,8 +289,8 @@ function SoumettreContent() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <span style={{ fontSize: '24px', flexShrink: 0 }}>⏳</span>
                   <div>
-                    <p style={{ margin: '0 0 8px 0', fontWeight: '700', color: '#92400e', fontSize: '15px' }}>Dates souhaitées sous réserve</p>
-                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>Indiquez les dates souhaitées. Un suivi sera fait dans les <strong>48 heures</strong> pour confirmer ou ajuster votre disponibilité.</p>
+                    <p style={{ margin: '0 0 8px 0', fontWeight: '700', color: '#92400e', fontSize: '15px' }}>Confirmation requise dans les 48 heures</p>
+                    <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>Indiquez les dates souhaitées. Vous recevrez un rappel dans <strong>48 heures</strong> pour confirmer ou annuler. Passé ce délai sans réponse, votre soumission sera considérée comme annulée.</p>
                   </div>
                 </div>
               </div>
