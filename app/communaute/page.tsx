@@ -42,8 +42,16 @@ export default function CommunautePage() {
   const [canal, setCanal] = useState('general');
   const [sending, setSending] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -97,13 +105,13 @@ export default function CommunautePage() {
       } else { reservisteData = data; }
     }
     if (reservisteData) setReserviste(reservisteData);
+
     // Marquer la communauté comme vue
     await supabase.from('community_last_seen').upsert({
       user_id: user.id,
       last_seen_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
 
-    setLoading(false);
     setLoading(false);
   }
 
@@ -181,27 +189,28 @@ export default function CommunautePage() {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f5f7fa' }}>
       {/* Header */}
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', zIndex: 100, flexShrink: 0 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
-            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px', height: isMobile ? '56px' : '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px', textDecoration: 'none' }}>
+            <Image src="/logo.png" alt="Logo RIUSC" width={isMobile ? 36 : 48} height={isMobile ? 36 : 48} style={{ borderRadius: '8px' }} />
             <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Communauté des réservistes</p>
+              <h1 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
+              {!isMobile && <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Communauté des réservistes</p>}
             </div>
           </a>
           {reserviste ? (
             <div ref={userMenuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste.prenom} {reserviste.nom}</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
-                </div>
-                {reserviste.photo_url ? (
-                  <img src={reserviste.photo_url} alt="Photo" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '14px' }}>{getInitials()}</div>
+              <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                {!isMobile && (
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste.prenom} {reserviste.nom}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
+                  </div>
                 )}
-                <svg width="16" height="16" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                {reserviste.photo_url ? (
+                  <img src={reserviste.photo_url} alt="Photo" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '13px' }}>{getInitials()}</div>
+                )}
               </button>
               {showUserMenu && (
                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '200px', overflow: 'hidden', zIndex: 200 }}>
@@ -218,17 +227,15 @@ export default function CommunautePage() {
         </div>
       </header>
 
-      {/* Contenu */}
-      <div style={{ flex: 1, display: 'flex', maxWidth: '1200px', margin: '0 auto', width: '100%', padding: '16px 24px', gap: '16px', minHeight: 0 }}>
-
-        {/* Sidebar */}
-        <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>{'← Retour à l\'accueil'}</a>
-          <div style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Canaux</div>
+      {/* Canaux horizontaux (mobile) */}
+      {isMobile && (
+        <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px 12px', display: 'flex', gap: '8px', overflowX: 'auto', flexShrink: 0 }}>
+          <a href="/" style={{ padding: '8px 12px', fontSize: '13px', color: '#6b7280', textDecoration: 'none', flexShrink: 0 }}>{'← Accueil'}</a>
+          <div style={{ width: '1px', backgroundColor: '#e5e7eb', flexShrink: 0 }}></div>
           {CANAUX.map((c) => (
             <button key={c.id} onClick={() => setCanal(c.id)} style={{
-              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: canal === c.id ? '700' : '500', textAlign: 'left', width: '100%',
-              backgroundColor: canal === c.id ? '#1e3a5f' : 'transparent',
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: canal === c.id ? '700' : '500', flexShrink: 0,
+              backgroundColor: canal === c.id ? '#1e3a5f' : '#f3f4f6',
               color: canal === c.id ? 'white' : '#374151',
               transition: 'all 0.15s',
             }}>
@@ -236,32 +243,57 @@ export default function CommunautePage() {
               {c.label}
             </button>
           ))}
-          <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '4px' }}>{'💡 Astuce'}</div>
-            <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.6 }}>Appuyez sur Entrée pour envoyer.</div>
-          </div>
         </div>
+      )}
+
+      {/* Contenu */}
+      <div style={{ flex: 1, display: 'flex', maxWidth: '1200px', margin: '0 auto', width: '100%', padding: isMobile ? '0' : '16px 24px', gap: '16px', minHeight: 0 }}>
+
+        {/* Sidebar desktop */}
+        {!isMobile && (
+          <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>{'← Retour à l\'accueil'}</a>
+            <div style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Canaux</div>
+            {CANAUX.map((c) => (
+              <button key={c.id} onClick={() => setCanal(c.id)} style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: canal === c.id ? '700' : '500', textAlign: 'left', width: '100%',
+                backgroundColor: canal === c.id ? '#1e3a5f' : 'transparent',
+                color: canal === c.id ? 'white' : '#374151',
+                transition: 'all 0.15s',
+              }}>
+                <span>{c.emoji}</span>
+                {c.label}
+              </button>
+            ))}
+            <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '4px' }}>{'💡 Astuce'}</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.6 }}>Appuyez sur Entrée pour envoyer.</div>
+            </div>
+          </div>
+        )}
 
         {/* Chat */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : '1px solid #e5e7eb', boxShadow: isMobile ? 'none' : '0 1px 3px rgba(0,0,0,0.1)', minHeight: 0, overflow: 'hidden' }}>
 
-          {/* Titre canal */}
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>{CANAUX.find(c => c.id === canal)?.emoji}</span>
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e3a5f' }}>{CANAUX.find(c => c.id === canal)?.label}</div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {canal === 'general' && 'Discussions générales entre réservistes'}
-                  {canal === 'questions' && 'Posez vos questions sur les formations, déploiements, etc.'}
-                  {canal === 'entraide' && 'Conseils, partage d\'expérience et soutien entre pairs'}
+          {/* Titre canal (desktop seulement) */}
+          {!isMobile && (
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '20px' }}>{CANAUX.find(c => c.id === canal)?.emoji}</span>
+                <div>
+                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e3a5f' }}>{CANAUX.find(c => c.id === canal)?.label}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    {canal === 'general' && 'Discussions générales entre réservistes'}
+                    {canal === 'questions' && 'Posez vos questions sur les formations, déploiements, etc.'}
+                    {canal === 'entraide' && 'Conseils, partage d\'expérience et soutien entre pairs'}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px' : '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {messages.length === 0 && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: '8px' }}>
                 <span style={{ fontSize: '40px' }}>{CANAUX.find(c => c.id === canal)?.emoji}</span>
@@ -273,26 +305,26 @@ export default function CommunautePage() {
               const showHeader = shouldShowHeader(msg, idx);
               const isMe = reserviste?.benevole_id === msg.benevole_id;
               return (
-                <div key={msg.id} style={{ padding: showHeader ? '12px 8px 2px 8px' : '1px 8px', borderRadius: '8px', display: 'flex', gap: '12px', alignItems: 'flex-start', transition: 'background 0.15s' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <div style={{ width: '36px', flexShrink: 0 }}>
+                <div key={msg.id} style={{ padding: showHeader ? (isMobile ? '10px 4px 2px 4px' : '12px 8px 2px 8px') : (isMobile ? '1px 4px' : '1px 8px'), borderRadius: '8px', display: 'flex', gap: isMobile ? '8px' : '12px', alignItems: 'flex-start', transition: 'background 0.15s' }}
+                  onMouseOver={(e) => { if (!isMobile) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
+                  onMouseOut={(e) => { if (!isMobile) e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                  <div style={{ width: isMobile ? '30px' : '36px', flexShrink: 0 }}>
                     {showHeader && (
                       msg.auteur_photo ? (
-                        <img src={msg.auteur_photo} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                        <img src={msg.auteur_photo} alt="" style={{ width: isMobile ? '30px' : '36px', height: isMobile ? '30px' : '36px', borderRadius: '50%', objectFit: 'cover' }} />
                       ) : (
-                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: isMe ? '#1e3a5f' : '#6b7280', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '12px' }}>{getInitials(msg.auteur_nom)}</div>
+                        <div style={{ width: isMobile ? '30px' : '36px', height: isMobile ? '30px' : '36px', borderRadius: '50%', backgroundColor: isMe ? '#1e3a5f' : '#6b7280', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: isMobile ? '10px' : '12px' }}>{getInitials(msg.auteur_nom)}</div>
                       )
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {showHeader && (
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '700', color: isMe ? '#1e3a5f' : '#111827' }}>{msg.auteur_nom}</span>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: isMobile ? '13px' : '14px', fontWeight: '700', color: isMe ? '#1e3a5f' : '#111827' }}>{msg.auteur_nom}</span>
                         <span style={{ fontSize: '11px', color: '#9ca3af' }}>{formatTime(msg.created_at)}</span>
                       </div>
                     )}
-                    <div style={{ fontSize: '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.contenu}</div>
+                    <div style={{ fontSize: isMobile ? '13px' : '14px', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.contenu}</div>
                   </div>
                 </div>
               );
@@ -301,9 +333,9 @@ export default function CommunautePage() {
           </div>
 
           {/* Input */}
-          <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
+          <div style={{ padding: isMobile ? '10px 12px' : '16px 20px', borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
             {reserviste ? (
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                 <textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
@@ -311,20 +343,20 @@ export default function CommunautePage() {
                   placeholder={`Écrire dans #${CANAUX.find(c => c.id === canal)?.label}...`}
                   rows={1}
                   style={{
-                    flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5,
+                    flex: 1, padding: isMobile ? '10px 12px' : '12px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5,
                     outline: 'none', transition: 'border-color 0.2s', minHeight: '44px', maxHeight: '120px',
                   }}
                   onFocus={(e) => e.target.style.borderColor = '#1e3a5f'}
                   onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 />
                 <button onClick={sendMessage} disabled={!newMessage.trim() || sending} style={{
-                  padding: '12px 20px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '700',
+                  padding: isMobile ? '10px 14px' : '12px 20px', borderRadius: '12px', border: 'none', fontSize: '14px', fontWeight: '700',
                   cursor: newMessage.trim() && !sending ? 'pointer' : 'default',
                   backgroundColor: newMessage.trim() && !sending ? '#1e3a5f' : '#e5e7eb',
                   color: newMessage.trim() && !sending ? 'white' : '#9ca3af',
                   transition: 'all 0.2s', flexShrink: 0,
                 }}>
-                  {sending ? '...' : 'Envoyer'}
+                  {sending ? '...' : (isMobile ? '→' : 'Envoyer')}
                 </button>
               </div>
             ) : (
