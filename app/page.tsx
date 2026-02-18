@@ -18,7 +18,6 @@ interface DeploiementActif {
   lieu?: string;
   statut: string;
   type_incident?: string;
-  tache?: string;
 }
 interface Reserviste {
   benevole_id: string;
@@ -28,10 +27,6 @@ interface Reserviste {
   telephone?: string;
   photo_url?: string;
   groupe?: string;
-  allergies_alimentaires?: string;
-  allergies_autres?: string;
-  conditions_medicales?: string;
-  consent_photo?: boolean;
 }
 
 interface CampInfo {
@@ -72,7 +67,6 @@ export default function HomePage() {
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0)
   
   const [certificats, setCertificats] = useState<CertificatFile[]>([])
   const [loadingCertificats, setLoadingCertificats] = useState(true)
@@ -91,13 +85,8 @@ export default function HomePage() {
   const [inscriptionError, setInscriptionError] = useState<string | null>(null)
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false)
   
-  const [allergiesAlimentaires, setAllergiesAlimentaires] = useState('')
-  const [allergiesAutres, setAllergiesAutres] = useState('')
-  const [conditionsMedicales, setConditionsMedicales] = useState('')
-  const [consentPhoto, setConsentPhoto] = useState(false)
-  const [reservisteConsentPhoto, setReservisteConsentPhoto] = useState(false)
-  
   const [showTour, setShowTour] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const router = useRouter()
   const supabase = createClient()
 
@@ -205,7 +194,7 @@ export default function HomePage() {
       if (user.email) {
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .ilike('email', user.email)
           .single()
         reservisteData = data
@@ -215,7 +204,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -223,7 +212,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
             .eq('telephone', phoneWithout1)
             .single()
           reservisteData = data2
@@ -234,11 +223,6 @@ export default function HomePage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
-        setAllergiesAlimentaires(reservisteData.allergies_alimentaires || '')
-        setAllergiesAutres(reservisteData.allergies_autres || '')
-        setConditionsMedicales(reservisteData.conditions_medicales || '')
-        setConsentPhoto(reservisteData.consent_photo || false)
-        setReservisteConsentPhoto(reservisteData.consent_photo || false)
         
         try {
           const response = await fetch(
@@ -290,6 +274,7 @@ export default function HomePage() {
         .gt('created_at', since)
 
       if (count) setUnreadCount(count)
+
       setLoading(false)
     }
     loadData()
@@ -335,11 +320,6 @@ export default function HomePage() {
       setInscriptionError('Veuillez sélectionner un camp')
       return
     }
-
-    if (!reservisteConsentPhoto && !consentPhoto) {
-      setInscriptionError('Le consentement photo est requis pour participer au camp.')
-      return
-    }
     
     setInscriptionLoading(true)
     setInscriptionError(null)
@@ -354,25 +334,13 @@ export default function HomePage() {
           presence: 'confirme',
           courriel: reserviste.email,
           telephone: reserviste.telephone || null,
-          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`,
-          allergies_alimentaires: allergiesAlimentaires || null,
-          allergies_autres: allergiesAutres || null,
-          conditions_medicales: conditionsMedicales || null,
-          consent_photo: consentPhoto || reservisteConsentPhoto
+          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`
         })
       })
       
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // Sauvegarder les infos santé dans le profil
-        await supabase.from('reservistes').update({
-          allergies_alimentaires: allergiesAlimentaires || null,
-          allergies_autres: allergiesAutres || null,
-          conditions_medicales: conditionsMedicales || null,
-          consent_photo: consentPhoto || reservisteConsentPhoto
-        }).eq('benevole_id', reserviste.benevole_id)
-
         setInscriptionSuccess(true)
         setTimeout(() => {
           closeCampModal()
@@ -415,9 +383,9 @@ export default function HomePage() {
     setCancellingInscription(false)
   }
 
-  function genererLienJotform(deploiementId: string): string {
+  function genererLienDisponibilite(deploiementId: string): string {
     if (!reserviste) return '#';
-    return `https://form.jotform.com/253475614808262?BenevoleID=${reserviste.benevole_id}&DeploiementID=${deploiementId}`;
+    return `/disponibilites/soumettre?deploiement=${deploiementId}`;
   }
 
   function formatDate(dateString: string): string {
@@ -489,7 +457,6 @@ export default function HomePage() {
                   📺 Tutoriel vidéo
                 </a>
               </div>
-
             </div>
           </div>
         </div>
@@ -537,6 +504,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <style>{`@media (max-width: 640px) { .hide-mobile { display: none !important; } }`}</style>
       {showCampModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '550px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -585,46 +553,10 @@ export default function HomePage() {
                   )}
                 </div>
                 {inscriptionError && <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{inscriptionError}</div>}
-                
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Informations de santé</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>Allergies alimentaires</label>
-                      <input type="text" value={allergiesAlimentaires} onChange={(e) => setAllergiesAlimentaires(e.target.value)} placeholder="Ex: noix, fruits de mer, gluten..." style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>Autres allergies</label>
-                      <input type="text" value={allergiesAutres} onChange={(e) => setAllergiesAutres(e.target.value)} placeholder="Ex: piqûres d'abeilles, latex..." style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>Conditions médicales</label>
-                      <input type="text" value={conditionsMedicales} onChange={(e) => setConditionsMedicales(e.target.value)} placeholder="Ex: asthme, diabète, épilepsie..." style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                    </div>
-                  </div>
-                  <div style={{ backgroundColor: '#eff6ff', padding: '12px 16px', borderRadius: '8px', marginTop: '12px', borderLeft: '4px solid #3b82f6' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5' }}>
-                      Ces informations sont utilisées uniquement pour assurer votre sécurité lors du camp. Des accommodations alimentaires de base seront offertes dans la mesure du possible.
-                    </p>
-                  </div>
-                </div>
-
-                {!reservisteConsentPhoto && (
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '16px', borderRadius: '8px', border: consentPhoto ? '2px solid #059669' : '1px solid #d1d5db', backgroundColor: consentPhoto ? '#f0fdf4' : 'white', transition: 'all 0.2s' }}>
-                    <input type="checkbox" checked={consentPhoto} onChange={(e) => setConsentPhoto(e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px' }} />
-                    <div>
-                      <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px', marginBottom: '4px' }}>Consentement photo et vidéo</div>
-                      <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>J&apos;autorise la RIUSC à utiliser les photos et vidéos prises lors du camp à des fins de promotion et de communication.</div>
-                    </div>
-                  </label>
-                </div>
-                )}
-
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
-                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reservisteConsentPhoto && !consentPhoto)} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reservisteConsentPhoto && !consentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reservisteConsentPhoto && !consentPhoto)) ? 'not-allowed' : 'pointer' }}>
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
                     {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : 'Confirmer mon inscription'}
                   </button>
                 </div>
@@ -648,7 +580,21 @@ export default function HomePage() {
             <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = showUserMenu ? '#f3f4f6' : 'transparent'}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email}</div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
+                  {loadingCamp ? (
+                    <span style={{ color: '#6b7280' }}>Réserviste</span>
+                  ) : isApproved && campStatus?.is_certified ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <span className="hide-mobile" style={{ color: '#059669', fontWeight: '600' }}>Déployable</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      <span className="hide-mobile" style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
+                    </>
+                  )}
+                </div>
               </div>
               {reserviste?.photo_url ? (
                 <img src={reserviste.photo_url} alt="Photo de profil" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -713,7 +659,7 @@ export default function HomePage() {
 
         {!loadingCertificats && certificats.length === 0 && certificatsSection}
 
-        {isApproved && (
+        {!loadingCertificats && certificats.length > 0 && (
         <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
@@ -727,23 +673,49 @@ export default function HomePage() {
           </div>
           {deploiementsActifs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {deploiementsActifs.map((dep) => (
-                <div key={dep.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', backgroundColor: '#fafafa' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-                    <div style={{ flex: 1, minWidth: '280px' }}>
-                      {dep.nom_sinistre && <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f', marginBottom: '4px' }}>{dep.nom_sinistre}</div>}
-                      <div style={{ fontSize: '16px', fontWeight: dep.nom_sinistre ? '500' : '600', color: dep.nom_sinistre ? '#374151' : '#1e3a5f', marginBottom: '12px' }}>{dep.nom_deploiement}</div>
-                      <div style={{ backgroundColor: '#f0f4f8', borderLeft: '4px solid #2c5aa0', padding: '12px 16px', borderRadius: '0 8px 8px 0', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#374151' }}>
-                        {dep.type_incident && <div><strong>Type :</strong> {dep.type_incident}</div>}
-                        {dep.lieu && <div><strong>Lieu :</strong> {dep.lieu}</div>}
-                        {dep.tache && <div><strong>Tâche :</strong> {dep.tache}</div>}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
-                        <div>{dep.date_debut && formatDate(dep.date_debut)}{dep.date_fin && ` — ${formatDate(dep.date_fin)}`}</div>
+              {Object.entries(
+                deploiementsActifs.reduce((groups: Record<string, DeploiementActif[]>, dep) => {
+                  const key = dep.nom_sinistre || dep.nom_deploiement;
+                  if (!groups[key]) groups[key] = [];
+                  groups[key].push(dep);
+                  return groups;
+                }, {})
+              ).map(([sinistre, deps]) => (
+                <div key={sinistre} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
+                  {/* En-tête du sinistre */}
+                  <div style={{ padding: '16px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '20px' }}>🔥</span>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>{sinistre}</div>
+                        {deps[0].type_incident && <div style={{ fontSize: '13px', color: '#6b7280' }}>{deps[0].type_incident}</div>}
                       </div>
                     </div>
-                    <a href={genererLienJotform(dep.deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
-                      Soumettre ma disponibilité
+                  </div>
+
+                  {/* Dates du sinistre */}
+                  {deps[0].date_debut && (
+                    <div style={{ padding: '10px 20px', fontSize: '13px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
+                      📅 {formatDate(deps[0].date_debut)}{deps[0].date_fin && ` — ${formatDate(deps[0].date_fin)}`}
+                    </div>
+                  )}
+
+                  {/* Liste des déploiements */}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {deps.map((dep, idx) => (
+                      <div key={dep.id} style={{ padding: '14px 20px', borderBottom: idx < deps.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '2px' }}>{dep.nom_deploiement}</div>
+                          {dep.lieu && <div style={{ fontSize: '13px', color: '#6b7280' }}>📍 {dep.lieu}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bouton soumettre au niveau du sinistre */}
+                  <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', textAlign: 'center' }}>
+                    <a href={genererLienDisponibilite(deps[0].deploiement_id)} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                      Soumettre mes disponibilités
                     </a>
                   </div>
                 </div>
