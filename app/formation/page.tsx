@@ -19,6 +19,10 @@ interface Reserviste {
   region?: string;
   contact_urgence_nom?: string;
   contact_urgence_telephone?: string;
+  allergies_alimentaires?: string;
+  allergies_autres?: string;
+  conditions_medicales?: string;
+  consent_photo?: boolean;
 }
 
 interface CampInfo {
@@ -76,12 +80,18 @@ export default function FormationPage() {
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false);
   const [cancellingInscription, setCancellingInscription] = useState(false);
 
+  // États pour le formulaire d'inscription camp
+  const [modalAllergiesAlim, setModalAllergiesAlim] = useState('');
+  const [modalAllergiesAutres, setModalAllergiesAutres] = useState('');
+  const [modalConditions, setModalConditions] = useState('');
+  const [modalConsentPhoto, setModalConsentPhoto] = useState(false);
+
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -106,7 +116,7 @@ export default function FormationPage() {
       reservisteData = data;
     }
     if (!reservisteData && user.phone) {
-      const phoneDigits = user.phone.replace(/\D/g, '');
+      const phoneDigits = user.phone.replace(/\\D/g, '');
       const { data } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneDigits).single();
       if (!data) {
         const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits;
@@ -183,6 +193,11 @@ export default function FormationPage() {
 
   const openCampModal = async () => {
     setShowCampModal(true); setLoadingSessions(true); setInscriptionError(null); setInscriptionSuccess(false); setSelectedSessionId('');
+    // Pré-remplir depuis le profil
+    setModalAllergiesAlim(reserviste?.allergies_alimentaires || '');
+    setModalAllergiesAutres(reserviste?.allergies_autres || '');
+    setModalConditions(reserviste?.conditions_medicales || '');
+    setModalConsentPhoto(reserviste?.consent_photo || false);
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps');
       if (response.ok) { const data = await response.json(); if (data.success && data.sessions) setSessionsDisponibles(data.sessions); }
@@ -193,11 +208,36 @@ export default function FormationPage() {
 
   const handleSubmitInscription = async () => {
     if (!reserviste || !selectedSessionId) { setInscriptionError('Veuillez sélectionner un camp'); return; }
+    if (!reserviste.consent_photo && !modalConsentPhoto) { setInscriptionError('Veuillez accepter le consentement photo/vidéo pour continuer.'); return; }
     setInscriptionLoading(true); setInscriptionError(null);
     try {
+      // Sauvegarder allergies + consent dans Supabase
+      const { error: updateError } = await supabase
+        .from('reservistes')
+        .update({
+          allergies_alimentaires: modalAllergiesAlim || null,
+          allergies_autres: modalAllergiesAutres || null,
+          conditions_medicales: modalConditions || null,
+          consent_photo: modalConsentPhoto
+        })
+        .eq('benevole_id', reserviste.benevole_id);
+
+      if (updateError) console.error('Erreur sauvegarde allergies:', updateError);
+
       const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benevole_id: reserviste.benevole_id, session_id: selectedSessionId, presence: 'confirme', courriel: reserviste.email, telephone: reserviste.telephone || null, prenom_nom: `${reserviste.prenom} ${reserviste.nom}` })
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          session_id: selectedSessionId,
+          presence: 'confirme',
+          courriel: reserviste.email,
+          telephone: reserviste.telephone || null,
+          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`,
+          allergies_alimentaires: modalAllergiesAlim || null,
+          allergies_autres: modalAllergiesAutres || null,
+          conditions_medicales: modalConditions || null,
+          consent_photo: modalConsentPhoto
+        })
       });
       const data = await response.json();
       if (response.ok && data.success) { setInscriptionSuccess(true); setTimeout(() => { closeCampModal(); window.location.reload(); }, 2000); }
@@ -239,9 +279,9 @@ export default function FormationPage() {
   );
 
   const steps = [
-    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
-    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
+    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '??', description: 'Vérifiez et complétez vos informations personnelles' },
+    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '??', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
+    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '??️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
   ];
   const completedCount = steps.filter(s => s.done).length;
   const progressPercent = Math.round((completedCount / 3) * 100);
@@ -300,11 +340,79 @@ export default function FormationPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Section Santé et allergies */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Santé et allergies</label>
+                  <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+                    Ces informations nous aident à planifier les repas et assurer votre sécurité pendant le camp.
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>Allergies alimentaires</label>
+                      <input
+                        type="text"
+                        value={modalAllergiesAlim}
+                        onChange={(e) => setModalAllergiesAlim(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
+                        placeholder="Ex : arachides, fruits de mer, gluten..."
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>Autres allergies (médicaments, environnement)</label>
+                      <input
+                        type="text"
+                        value={modalAllergiesAutres}
+                        onChange={(e) => setModalAllergiesAutres(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
+                        placeholder="Ex : pénicilline, piqûres d'abeilles..."
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>Conditions médicales</label>
+                      <input
+                        type="text"
+                        value={modalConditions}
+                        onChange={(e) => setModalConditions(e.target.value)}
+                        style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
+                        placeholder="Ex : asthme, diabète, épilepsie..."
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ backgroundColor: '#f0f9ff', padding: '12px 16px', borderRadius: '8px', marginTop: '12px', borderLeft: '4px solid #3b82f6' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5' }}>
+                      Nous faisons notre possible pour accommoder les préférences et restrictions alimentaires (végétarien, végane, sans gluten, etc.), mais ne pouvons garantir un menu adapté à chaque situation. Les allergies sévères (anaphylaxie) seront toutefois prises en charge — assurez-vous de bien les indiquer ci-dessus et d&apos;apporter vos médicaments (EpiPen, etc.).
+                    </p>
+                  </div>
+                </div>
+
+                {/* Consentement photo */}
+                {!reserviste?.consent_photo && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '16px', backgroundColor: modalConsentPhoto ? '#f0fdf4' : '#f9fafb', border: modalConsentPhoto ? '1px solid #86efac' : '1px solid #e5e7eb', borderRadius: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={modalConsentPhoto}
+                        onChange={(e) => setModalConsentPhoto(e.target.checked)}
+                        style={{ marginTop: '2px', width: '18px', height: '18px', flexShrink: 0 }}
+                      />
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>Consentement photo et vidéo</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+                          J&apos;autorise l&apos;AQBRS et la RIUSC à utiliser des photos et vidéos prises lors des camps et déploiements à des fins de communication, de promotion et de formation.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                )}
+
                 {inscriptionError && <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{inscriptionError}</div>}
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
-                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reserviste?.consent_photo && !modalConsentPhoto)} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? 'not-allowed' : 'pointer' }}>
                     {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : 'Confirmer mon inscription'}
                   </button>
                 </div>
@@ -415,10 +523,10 @@ export default function FormationPage() {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                   <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                    🎓 Accéder à la formation
+                    ?? Accéder à la formation
                   </a>
                   <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                    📺 Tutoriel vidéo
+                    ?? Tutoriel vidéo
                   </a>
                 </div>
               </div>
@@ -429,7 +537,7 @@ export default function FormationPage() {
                 {certificats.map((cert) => (
                   <div key={cert.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>📄</span>
+                      <span style={{ fontSize: '20px' }}>??</span>
                       <span style={{ fontSize: '14px', color: '#374151' }}>{cert.name}</span>
                     </div>
                     {cert.url && (
@@ -450,7 +558,7 @@ export default function FormationPage() {
 
             <input ref={certificatInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertificatUpload} style={{ display: 'none' }} />
             <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
-              {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '📤 Soumettre mon certificat' : '➕ Ajouter un certificat'}
+              {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '?? Soumettre mon certificat' : '➕ Ajouter un certificat'}
             </button>
             <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
           </div>
@@ -498,7 +606,7 @@ export default function FormationPage() {
                       S&apos;inscrire à un camp de qualification
                     </button>
                     <a href="/tournee-camps" style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                      🏕️ Voir la tournée des camps
+                      ??️ Voir la tournée des camps
                     </a>
                   </div>
                 </div>
@@ -517,7 +625,7 @@ export default function FormationPage() {
           {isApproved && (
             <a href="/dossier" style={{ textDecoration: 'none' }}>
               <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e5e7eb'; }}>
-                <span style={{ fontSize: '28px' }}>📋</span>
+                <span style={{ fontSize: '28px' }}>??</span>
                 <div>
                   <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Mon dossier réserviste</div>
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>Compétences et certifications</div>
@@ -527,7 +635,7 @@ export default function FormationPage() {
           )}
           <a href="/informations" style={{ textDecoration: 'none' }}>
             <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e5e7eb'; }}>
-              <span style={{ fontSize: '28px' }}>📚</span>
+              <span style={{ fontSize: '28px' }}>??</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Informations pratiques</div>
                 <div style={{ fontSize: '13px', color: '#6b7280' }}>Documents, ressources et références</div>
@@ -536,7 +644,7 @@ export default function FormationPage() {
           </a>
           <a href="/communaute" style={{ textDecoration: 'none' }}>
             <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e5e7eb'; }}>
-              <span style={{ fontSize: '28px' }}>💬</span>
+              <span style={{ fontSize: '28px' }}>??</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Communauté</div>
                 <div style={{ fontSize: '13px', color: '#6b7280' }}>Échangez avec les réservistes</div>
