@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
+const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Reserviste {
@@ -15,7 +17,16 @@ interface Reserviste {
   groupe?: string
 }
 
-// Tous les dropdown sont maintenant des number[] (IDs Monday)
+interface Organisation {
+  id: string
+  nom: string
+}
+
+interface Langue {
+  id: string
+  nom: string
+}
+
 interface DossierData {
   // Identité (lecture seule)
   prenom: string
@@ -26,9 +37,11 @@ interface DossierData {
   grandeur_bottes: string
   j_ai_18_ans: boolean
   // Santé
-  allergies_oui_non: number[]
-  allergie_detail: string
-  // Compétences RS
+  allergies_alimentaires: string
+  allergies_autres: string
+  problemes_sante: string
+  groupe_sanguin: string
+  // Compétences RS (conditionnel AQBRS)
   competence_rs: number[]
   // Premiers soins
   certificat_premiers_soins: number[]
@@ -43,31 +56,25 @@ interface DossierData {
   equipe_canine: number[]
   competences_securite: number[]
   competences_sauvetage: number[]
+  // Système de commandement
   certification_csi: number[]
+  // Communication
   communication: number[]
+  // Cartographie
   cartographie_sig: number[]
+  // Opérations urgence
   operation_urgence: number[]
-  // Langues
-  langues_parlees: number[]
-  autres_langues: string
-  // Affiliation
-  provenance: number[]
-  membre_groupe_rs: number[]
-  organisme_autre: string
   // Notes
   autres_competences: string
   commentaire: string
   confidentialite: boolean
 }
 
-// ─── OPTIONS: { id: number, label: string }[] ───────────────────────────────
-// L'id correspond au ID Monday du dropdown
+// ─── OPTIONS ─────────────────────────────────────────────────────────────────
+
+const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
 
 const OPTIONS: Record<string, { id: number; label: string }[]> = {
-  allergies_oui_non: [
-    { id: 1, label: 'Oui / Yes' },
-    { id: 2, label: 'Non / No' },
-  ],
   competence_rs: [
     { id: 1, label: 'Niveau 1 - Équipier' },
     { id: 2, label: 'Niveau 2 - Chef d\'équipe' },
@@ -123,10 +130,10 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 3, label: 'Sauvetage sur glace / Ice rescue' },
   ],
   certification_csi: [
-    { id: 1, label: 'CSI / ICS 100' },
-    { id: 2, label: 'CSI / ICS 200' },
-    { id: 3, label: 'CSI / ICS 300' },
-    { id: 4, label: 'CSI / ICS 400' },
+    { id: 1, label: 'SCI / ICS 100' },
+    { id: 2, label: 'SCI / ICS 200' },
+    { id: 3, label: 'SCI / ICS 300' },
+    { id: 4, label: 'SCI / ICS 400' },
   ],
   communication: [
     { id: 1, label: 'Radio aéronautique / Aeronautical radio' },
@@ -157,78 +164,56 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 9, label: 'Analyse et évaluation / Analysis and evaluation' },
     { id: 10, label: 'Animaux / Animals' },
   ],
-  langues_parlees: [
-    { id: 1, label: 'Anglais / English' },
-    { id: 2, label: 'Français / French' },
-    { id: 3, label: 'Espagnol / Spanish' },
-    { id: 4, label: 'Mandarin' },
-    { id: 5, label: 'Arabe / Arabic' },
-    { id: 6, label: 'Portugais / Portuguese' },
-    { id: 7, label: 'Russe / Russian' },
-    { id: 8, label: 'Japonais / Japanese' },
-    { id: 9, label: 'Allemand / German' },
-    { id: 10, label: 'Coréen / Korean' },
-    { id: 11, label: 'Italien / Italian' },
-    { id: 12, label: 'Néerlandais / Dutch' },
-    { id: 13, label: 'Turc / Turkish' },
-    { id: 14, label: 'Polonais / Polish' },
-    { id: 15, label: 'Ukrainien / Ukrainian' },
-    { id: 16, label: 'Roumain / Romanian' },
-    { id: 17, label: 'Grec / Greek' },
-    { id: 18, label: 'Hongrois / Hungarian' },
-    { id: 19, label: 'Tchèque / Czech' },
-    { id: 20, label: 'Suédois / Swedish' },
-  ],
-  provenance: [
-    { id: 1, label: 'AQBRS' },
-    { id: 2, label: 'MSP' },
-    { id: 3, label: 'Site Web AQBRS' },
-    { id: 4, label: 'Association des scouts du Canada / ASJ' },
-  ],
-  membre_groupe_rs: [
-    { id: 1, label: 'District 5: Recherche Sauvetage Estrie' },
-    { id: 2, label: 'District 4: Recherche Sauvetage Mauricie' },
-    { id: 3, label: 'District 3: Recherche Sauvetage Québec' },
-    { id: 4, label: 'District 1: Recherche Sauvetage Saguenay' },
-    { id: 5, label: 'District 6: Recherche Sauvetage Outaouais' },
-    { id: 6, label: 'District 2: Recherche Sauvetage Bas St-Laurent' },
-    { id: 7, label: 'District 7: Recherche Sauvetage Laurentides-Lanaudière' },
-    { id: 8, label: 'District 8: Recherche Sauvetage Montérégie' },
-    { id: 9, label: 'District 9: Recherche Sauvetage Abitibi' },
-    { id: 10, label: 'District 10: Recherche Sauvetage Côte-Nord' },
-    { id: 11, label: 'District 11: Recherche Sauvetage Chaudières-Appalaches' },
-    { id: 12, label: 'District 12: Recherche Sauvetage Centre-du-Québec' },
-    { id: 13, label: 'District 13: Recherche Sauvetage Gaspésie' },
-    { id: 14, label: 'District 14: Recherche Sauvetage Montréal-Laval' },
-    { id: 15, label: 'Autre' },
-  ],
 }
 
 const DEFAULT_DOSSIER: DossierData = {
   prenom: '', nom: '', email: '', date_naissance: '',
   grandeur_bottes: '', j_ai_18_ans: false,
-  allergies_oui_non: [], allergie_detail: '',
+  allergies_alimentaires: '', allergies_autres: '', problemes_sante: '', groupe_sanguin: '',
   competence_rs: [],
   certificat_premiers_soins: [], date_expiration_certificat: '',
   vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
-  satp_drone: [], equipe_canine: [], competences_securite: [],
-  competences_sauvetage: [], certification_csi: [],
+  satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
+  certification_csi: [],
   communication: [], cartographie_sig: [], operation_urgence: [],
-  langues_parlees: [], autres_langues: '',
-  provenance: [], membre_groupe_rs: [], organisme_autre: '',
   autres_competences: '', commentaire: '', confidentialite: false,
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function isOlderThan18(dateStr: string): boolean {
+  if (!dateStr) return false
+  const dob = new Date(dateStr)
+  if (isNaN(dob.getTime())) return false
+  const today = new Date()
+  const age = today.getFullYear() - dob.getFullYear()
+  const m = today.getMonth() - dob.getMonth()
+  return age > 18 || (age === 18 && (m > 0 || (m === 0 && today.getDate() >= dob.getDate())))
 }
 
 // ─── Composants UI ───────────────────────────────────────────────────────────
 
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+function Section({ title, icon, description, children, confidential }: {
+  title: string; icon: string; description?: string; children: React.ReactNode; confidential?: boolean
+}) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-[#1e3a5f]">
-        <span className="text-xl">{icon}</span>
-        <h2 className="text-lg font-semibold text-[#1e3a5f]">{title}</h2>
+    <div style={{ marginBottom: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', paddingBottom: '10px', borderBottom: '2px solid #1e3a5f' }}>
+        <span style={{ fontSize: '20px' }}>{icon}</span>
+        <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '600', color: '#1e3a5f' }}>{title}</h2>
       </div>
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      {description && (
+        <p style={{ margin: '6px 0 14px 0', fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>{description}</p>
+      )}
+      {confidential && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '8px', marginBottom: '14px' }}>
+          <span style={{ fontSize: '14px' }}>🔒</span>
+          <p style={{ margin: 0, fontSize: '12px', color: '#0369a1' }}>
+            Ces informations sont strictement confidentielles et ne seront utilisées qu&apos;en cas de déploiement, afin d&apos;assurer votre sécurité et celle de votre équipe.
+          </p>
+        </div>
+      )}
+      <div style={{ backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '20px 24px' }}>
         {children}
       </div>
     </div>
@@ -239,30 +224,23 @@ function TextInput({ label, value, onChange, placeholder, disabled, type = 'text
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; disabled?: boolean; type?: string
 }) {
+  const base = { width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', backgroundColor: disabled ? '#f3f4f6' : 'white', boxSizing: 'border-box' as const, cursor: disabled ? 'not-allowed' as const : 'text' as const }
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-      <input
-        type={type} value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} disabled={disabled}
-        className={`w-full px-3 py-2 border rounded-md text-sm ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'border-gray-300 focus:border-[#1e3a5f] focus:ring-1 focus:ring-[#1e3a5f]'}`}
-      />
+    <div style={{ marginBottom: '16px' }}>
+      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>{label}</label>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} style={base} />
     </div>
   )
 }
 
 function TextArea({ label, value, onChange, placeholder, rows = 3 }: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; rows?: number
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; rows?: number
 }) {
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-      <textarea
-        value={value} onChange={e => onChange(e.target.value)}
-        placeholder={placeholder} rows={rows}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:border-[#1e3a5f] focus:ring-1 focus:ring-[#1e3a5f]"
-      />
+    <div style={{ marginBottom: '16px' }}>
+      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>{label}</label>
+      <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
+        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', resize: 'vertical', boxSizing: 'border-box' as const }} />
     </div>
   )
 }
@@ -272,19 +250,16 @@ function RadioGroupId({ label, options, value, onChange }: {
 }) {
   const selectedId = value[0] || 0
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
-      {options.map(opt => (
-        <label key={opt.id} className="flex items-center gap-2 cursor-pointer py-1">
-          <input
-            type="radio" checked={selectedId === opt.id}
-            name={label}
-            onChange={() => onChange([opt.id])}
-            className="text-[#1e3a5f]"
-          />
-          <span className="text-sm text-gray-700">{opt.label}</span>
-        </label>
-      ))}
+    <div style={{ marginBottom: '16px' }}>
+      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>{label}</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {options.map(opt => (
+          <label key={opt.id} style={checkboxRow(selectedId === opt.id)}>
+            <input type="radio" checked={selectedId === opt.id} name={label} onChange={() => onChange([opt.id])} style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0 }} />
+            <span style={{ fontSize: '14px', color: '#374151' }}>{opt.label}</span>
+          </label>
+        ))}
+      </div>
     </div>
   )
 }
@@ -294,24 +269,16 @@ function CheckboxGroupId({ label, options, values, onChange, columns = 1 }: {
   onChange: (v: number[]) => void; columns?: number
 }) {
   const toggle = (id: number) => {
-    if (values.includes(id)) {
-      onChange(values.filter(v => v !== id))
-    } else {
-      onChange([...values, id])
-    }
+    onChange(values.includes(id) ? values.filter(v => v !== id) : [...values, id])
   }
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+    <div style={{ marginBottom: '16px' }}>
+      {label && <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>{label}</label>}
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: '4px' }}>
         {options.map(opt => (
-          <label key={opt.id} className="flex items-start gap-2 cursor-pointer py-1">
-            <input
-              type="checkbox" checked={values.includes(opt.id)}
-              onChange={() => toggle(opt.id)}
-              className="mt-0.5 text-[#1e3a5f]"
-            />
-            <span className="text-sm text-gray-700">{opt.label}</span>
+          <label key={opt.id} style={checkboxRow(values.includes(opt.id))}>
+            <input type="checkbox" checked={values.includes(opt.id)} onChange={() => toggle(opt.id)} style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0, marginTop: '1px' }} />
+            <span style={{ fontSize: '14px', color: '#374151' }}>{opt.label}</span>
           </label>
         ))}
       </div>
@@ -319,18 +286,96 @@ function CheckboxGroupId({ label, options, values, onChange, columns = 1 }: {
   )
 }
 
-function Checkbox({ label, checked, onChange }: {
-  label: string; checked: boolean; onChange: (v: boolean) => void
-}) {
+function Checkbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex items-start gap-2 cursor-pointer mb-4 py-1">
-      <input
-        type="checkbox" checked={checked}
-        onChange={e => onChange(e.target.checked)}
-        className="mt-0.5 text-[#1e3a5f]"
-      />
-      <span className="text-sm text-gray-700">{label}</span>
+    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginBottom: '12px' }}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0, marginTop: '1px' }} />
+      <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{label}</span>
     </label>
+  )
+}
+
+function checkboxRow(selected: boolean): React.CSSProperties {
+  return {
+    display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
+    borderRadius: '8px', cursor: 'pointer',
+    backgroundColor: selected ? '#eff6ff' : '#f9fafb',
+    border: selected ? '1px solid #bfdbfe' : '1px solid transparent',
+    transition: 'background-color 0.15s',
+  }
+}
+
+// ─── Composant liste dynamique (Organisations / Langues) ─────────────────────
+
+function DynamicList({ myIds, allItems, newIds, newName, showInput, onToggleNew, onSetNewName, onSetShowInput, label, addLabel, placeholder, globalNote }: {
+  myIds: string[]
+  allItems: { id: string; nom: string }[]
+  newIds: string[]
+  newName: string
+  showInput: boolean
+  onToggleNew: (id: string) => void
+  onSetNewName: (v: string) => void
+  onSetShowInput: (v: boolean) => void
+  label?: string
+  addLabel: string
+  placeholder: string
+  globalNote?: string
+}) {
+  const myItems = allItems.filter(o => myIds.includes(o.id))
+  const available = allItems.filter(o => !myIds.includes(o.id))
+
+  return (
+    <div>
+      {/* Items déjà liés (verrouillés) */}
+      {myItems.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          {label && <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0 0 8px 0' }}>{label}</p>}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {myItems.map(item => (
+              <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '13px', fontWeight: '500', color: '#1e3a5f' }}>
+                ✓ {item.nom}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Items disponibles à ajouter */}
+      {available.length > 0 && (
+        <div style={{ marginBottom: '12px' }}>
+          <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0 0 8px 0' }}>Ajouter</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '220px', overflowY: 'auto', padding: '2px 0' }}>
+            {available.map(item => (
+              <label key={item.id} style={checkboxRow(newIds.includes(item.id))}>
+                <input type="checkbox" checked={newIds.includes(item.id)} onChange={() => onToggleNew(item.id)}
+                  style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', color: '#374151' }}>{item.nom}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ajouter un élément inexistant */}
+      {!showInput ? (
+        <button onClick={() => onSetShowInput(true)}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', backgroundColor: 'transparent', border: '1px dashed #9ca3af', borderRadius: '8px', fontSize: '13px', color: '#6b7280', cursor: 'pointer' }}>
+          + {addLabel}
+        </button>
+      ) : (
+        <div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input type="text" value={newName} onChange={e => onSetNewName(e.target.value)} placeholder={placeholder}
+              style={{ flex: 1, padding: '9px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '8px', color: '#111827', backgroundColor: 'white' }} />
+            <button onClick={() => { onSetShowInput(false); onSetNewName('') }}
+              style={{ padding: '9px 12px', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Annuler
+            </button>
+          </div>
+          {globalNote && <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px', marginBottom: 0 }}>{globalNote}</p>}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -345,6 +390,26 @@ export default function DossierPage() {
   const [saving, setSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+
+  // ─── Organisations ──────────────────────────────────────────────────────────
+  const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
+  const [myOrgIds, setMyOrgIds] = useState<string[]>([])
+  const [newOrgIds, setNewOrgIds] = useState<string[]>([])
+  const [newOrgName, setNewOrgName] = useState('')
+  const [showNewOrgInput, setShowNewOrgInput] = useState(false)
+
+  // ─── Langues ────────────────────────────────────────────────────────────────
+  const [allLangues, setAllLangues] = useState<Langue[]>([])
+  const [myLangueIds, setMyLangueIds] = useState<string[]>([])
+  const [newLangueIds, setNewLangueIds] = useState<string[]>([])
+  const [newLangueName, setNewLangueName] = useState('')
+  const [showNewLangueInput, setShowNewLangueInput] = useState(false)
+
+  const isAqbrsLinked = myOrgIds.includes(AQBRS_ORG_ID) || newOrgIds.includes(AQBRS_ORG_ID)
+
+  const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== ''
+  const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== ''
+  const anyChanges = hasChanges || orgHasChanges || langueHasChanges
 
   const router = useRouter()
   const supabase = createClient()
@@ -364,28 +429,34 @@ export default function DossierPage() {
       setUser(user)
 
       const { data: reservisteData } = await supabase
-        .from('reservistes')
-        .select('*')
-        .eq('user_id', user.id)
-        .single()
-
+        .from('reservistes').select('*').eq('user_id', user.id).single()
       if (!reservisteData) { router.push('/'); return }
-
       setReserviste(reservisteData)
 
-      // Protection: les non-approuvés n'ont pas accès au dossier
-      if (reservisteData.groupe !== 'Approuvé') {
-        router.push('/')
-        return
-      }
+      if (reservisteData.groupe !== 'Approuvé') { router.push('/'); return }
 
       setLoading(false)
 
-      // Charger le dossier depuis n8n/Monday
+      // Charger organisations
+      const { data: allOrgsData } = await supabase.from('organisations').select('id, nom').order('nom')
+      setAllOrgs(allOrgsData || [])
+
+      const { data: myOrgsData } = await supabase
+        .from('reserviste_organisations').select('organisation_id').eq('benevole_id', reservisteData.benevole_id)
+      const linkedOrgIds = (myOrgsData || []).map((r: any) => r.organisation_id)
+      setMyOrgIds(linkedOrgIds)
+
+      // Charger langues
+      const { data: allLanguesData } = await supabase.from('langues').select('id, nom').order('nom')
+      setAllLangues(allLanguesData || [])
+
+      const { data: myLanguesData } = await supabase
+        .from('reserviste_langues').select('langue_id').eq('benevole_id', reservisteData.benevole_id)
+      setMyLangueIds((myLanguesData || []).map((r: any) => r.langue_id))
+
+      // Charger dossier depuis n8n/Monday
       try {
-        const response = await fetch(
-          `https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`
-        )
+        const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`)
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.dossier) {
@@ -397,8 +468,10 @@ export default function DossierPage() {
               date_naissance: d.date_naissance || '',
               grandeur_bottes: d.grandeur_bottes || '',
               j_ai_18_ans: d.j_ai_18_ans || false,
-              allergies_oui_non: d.allergies_oui_non || [],
-              allergie_detail: d.allergie_detail || '',
+              allergies_alimentaires: d.allergies_alimentaires || '',
+              allergies_autres: d.allergies_autres || '',
+              problemes_sante: d.problemes_sante || '',
+              groupe_sanguin: d.groupe_sanguin || '',
               competence_rs: d.competence_rs || [],
               certificat_premiers_soins: d.certificat_premiers_soins || [],
               date_expiration_certificat: d.date_expiration_certificat || '',
@@ -414,17 +487,21 @@ export default function DossierPage() {
               communication: d.communication || [],
               cartographie_sig: d.cartographie_sig || [],
               operation_urgence: d.operation_urgence || [],
-              langues_parlees: d.langues_parlees || [],
-              autres_langues: d.autres_langues || '',
-              provenance: d.provenance || [],
-              membre_groupe_rs: d.membre_groupe_rs || [],
-              organisme_autre: d.organisme_autre || '',
               autres_competences: d.autres_competences || '',
               commentaire: d.commentaire || '',
               confidentialite: d.confidentialite || false,
             }
             setDossier(loaded)
             setOriginalDossier(loaded)
+
+            // Backfill AQBRS si compétence RS remplie et AQBRS pas encore lié
+            if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
+              await supabase.from('reserviste_organisations').insert({
+                benevole_id: reservisteData.benevole_id,
+                organisation_id: AQBRS_ORG_ID
+              })
+              setMyOrgIds(prev => [...prev, AQBRS_ORG_ID])
+            }
           }
         }
       } catch (error) {
@@ -440,51 +517,106 @@ export default function DossierPage() {
     setSaveMessage(null)
 
     try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          dossier: {
-            grandeur_bottes: dossier.grandeur_bottes,
-            j_ai_18_ans: dossier.j_ai_18_ans,
-            allergies_oui_non: dossier.allergies_oui_non,
-            allergie_detail: dossier.allergie_detail,
-            competence_rs: dossier.competence_rs,
-            certificat_premiers_soins: dossier.certificat_premiers_soins,
-            date_expiration_certificat: dossier.date_expiration_certificat,
-            vehicule_tout_terrain: dossier.vehicule_tout_terrain,
-            navire_marin: dossier.navire_marin,
-            permis_conduire: dossier.permis_conduire,
-            disponible_covoiturage: dossier.disponible_covoiturage,
-            satp_drone: dossier.satp_drone,
-            equipe_canine: dossier.equipe_canine,
-            competences_securite: dossier.competences_securite,
-            competences_sauvetage: dossier.competences_sauvetage,
-            certification_csi: dossier.certification_csi,
-            communication: dossier.communication,
-            cartographie_sig: dossier.cartographie_sig,
-            operation_urgence: dossier.operation_urgence,
-            langues_parlees: dossier.langues_parlees,
-            autres_langues: dossier.autres_langues,
-            provenance: dossier.provenance,
-            membre_groupe_rs: dossier.membre_groupe_rs,
-            organisme_autre: dossier.organisme_autre,
-            autres_competences: dossier.autres_competences,
-            commentaire: dossier.commentaire,
-            confidentialite: dossier.confidentialite,
-          }
+      // ── Dossier principal (Monday via n8n) ──────────────────────────────────
+      if (hasChanges) {
+        const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            benevole_id: reserviste.benevole_id,
+            dossier: {
+              grandeur_bottes: dossier.grandeur_bottes,
+              j_ai_18_ans: dossier.j_ai_18_ans,
+              allergies_alimentaires: dossier.allergies_alimentaires,
+              allergies_autres: dossier.allergies_autres,
+              problemes_sante: dossier.problemes_sante,
+              groupe_sanguin: dossier.groupe_sanguin,
+              competence_rs: dossier.competence_rs,
+              certificat_premiers_soins: dossier.certificat_premiers_soins,
+              date_expiration_certificat: dossier.date_expiration_certificat,
+              vehicule_tout_terrain: dossier.vehicule_tout_terrain,
+              navire_marin: dossier.navire_marin,
+              permis_conduire: dossier.permis_conduire,
+              disponible_covoiturage: dossier.disponible_covoiturage,
+              satp_drone: dossier.satp_drone,
+              equipe_canine: dossier.equipe_canine,
+              competences_securite: dossier.competences_securite,
+              competences_sauvetage: dossier.competences_sauvetage,
+              certification_csi: dossier.certification_csi,
+              communication: dossier.communication,
+              cartographie_sig: dossier.cartographie_sig,
+              operation_urgence: dossier.operation_urgence,
+              autres_competences: dossier.autres_competences,
+              commentaire: dossier.commentaire,
+              confidentialite: dossier.confidentialite,
+            }
+          })
         })
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        setSaveMessage({ type: 'success', text: 'Dossier sauvegardé avec succès !' })
+        const data = await response.json()
+        if (!data.success) {
+          setSaveMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' })
+          setSaving(false)
+          return
+        }
         setOriginalDossier({ ...dossier })
         setHasChanges(false)
-      } else {
-        setSaveMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' })
       }
+
+      // ── Organisations (Supabase) ─────────────────────────────────────────────
+      if (orgHasChanges) {
+        let orgIdsToAdd = [...newOrgIds]
+        if (newOrgName.trim()) {
+          const { data: createdOrg, error: createError } = await supabase
+            .from('organisations').insert({ nom: newOrgName.trim(), created_by: reserviste.benevole_id }).select('id').single()
+          if (createError) {
+            const { data: existingOrg } = await supabase.from('organisations').select('id').ilike('nom', newOrgName.trim()).single()
+            if (existingOrg) orgIdsToAdd.push(existingOrg.id)
+          } else if (createdOrg) {
+            orgIdsToAdd.push(createdOrg.id)
+          }
+        }
+        const uniqueOrgs = orgIdsToAdd.filter(id => !myOrgIds.includes(id))
+        if (uniqueOrgs.length > 0) {
+          await supabase.from('reserviste_organisations').insert(
+            uniqueOrgs.map(organisation_id => ({ benevole_id: reserviste.benevole_id, organisation_id }))
+          )
+        }
+        const { data: refreshedOrgs } = await supabase.from('organisations').select('id, nom').order('nom')
+        setAllOrgs(refreshedOrgs || [])
+        setMyOrgIds(prev => [...prev, ...uniqueOrgs])
+        setNewOrgIds([])
+        setNewOrgName('')
+        setShowNewOrgInput(false)
+      }
+
+      // ── Langues (Supabase) ───────────────────────────────────────────────────
+      if (langueHasChanges) {
+        let langueIdsToAdd = [...newLangueIds]
+        if (newLangueName.trim()) {
+          const { data: createdLangue, error: createError } = await supabase
+            .from('langues').insert({ nom: newLangueName.trim() }).select('id').single()
+          if (createError) {
+            const { data: existingLangue } = await supabase.from('langues').select('id').ilike('nom', newLangueName.trim()).single()
+            if (existingLangue) langueIdsToAdd.push(existingLangue.id)
+          } else if (createdLangue) {
+            langueIdsToAdd.push(createdLangue.id)
+          }
+        }
+        const uniqueLangues = langueIdsToAdd.filter(id => !myLangueIds.includes(id))
+        if (uniqueLangues.length > 0) {
+          await supabase.from('reserviste_langues').insert(
+            uniqueLangues.map(langue_id => ({ benevole_id: reserviste.benevole_id, langue_id }))
+          )
+        }
+        const { data: refreshedLangues } = await supabase.from('langues').select('id, nom').order('nom')
+        setAllLangues(refreshedLangues || [])
+        setMyLangueIds(prev => [...prev, ...uniqueLangues])
+        setNewLangueIds([])
+        setNewLangueName('')
+        setShowNewLangueInput(false)
+      }
+
+      setSaveMessage({ type: 'success', text: 'Dossier sauvegardé avec succès !' })
     } catch (error) {
       console.error('Erreur sauvegarde:', error)
       setSaveMessage({ type: 'error', text: 'Erreur de connexion' })
@@ -494,17 +626,19 @@ export default function DossierPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen text-[#1e3a5f] text-lg">
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#1e3a5f', fontSize: '16px' }}>
         Chargement...
       </div>
     )
   }
 
+  const showConfirm18 = !isOlderThan18(dossier.date_naissance)
+
   return (
-    <div className="min-h-screen bg-[#f5f7fa]">
-      {/* Header sticky — standardisé */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6" style={{ height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      {/* Header */}
+      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
             <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
             <div>
@@ -512,95 +646,105 @@ export default function DossierPage() {
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Mon dossier réserviste</p>
             </div>
           </a>
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-colors ${
-              hasChanges
-                ? 'bg-[#1e3a5f] text-white hover:bg-[#2d4a6f] cursor-pointer'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
-          >
+          <button onClick={handleSave} disabled={saving || !anyChanges}
+            style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', border: 'none', cursor: anyChanges ? 'pointer' : 'not-allowed', backgroundColor: anyChanges ? '#1e3a5f' : '#e5e7eb', color: anyChanges ? 'white' : '#9ca3af', transition: 'all 0.2s' }}>
             {saving ? 'Sauvegarde...' : 'Sauvegarder'}
           </button>
         </div>
       </header>
 
-      {/* Message de sauvegarde */}
       {saveMessage && (
-        <div className={`max-w-4xl mx-auto px-6 mt-4`}>
-          <div className={`p-4 rounded-lg text-sm font-medium ${
-            saveMessage.type === 'success'
-              ? 'bg-green-100 text-green-800 border border-green-200'
-              : 'bg-red-100 text-red-800 border border-red-200'
-          }`}>
+        <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>
+          <div style={{ padding: '12px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: '500', backgroundColor: saveMessage.type === 'success' ? '#d1fae5' : '#fef2f2', color: saveMessage.type === 'success' ? '#065f46' : '#dc2626', border: `1px solid ${saveMessage.type === 'success' ? '#6ee7b7' : '#fca5a5'}` }}>
             {saveMessage.text}
           </div>
         </div>
       )}
 
-      {/* Formulaire */}
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        {/* Lien retour standardisé */}
+      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ marginBottom: '24px' }}>
-          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>&larr; Retour &agrave; l&apos;accueil</a>
+          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
         </div>
 
         {/* ── Identité ── */}
         <Section title="Identité" icon="👤">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
             <TextInput label="Prénom" value={dossier.prenom} onChange={() => {}} disabled />
             <TextInput label="Nom de famille" value={dossier.nom} onChange={() => {}} disabled />
           </div>
           <TextInput label="Courriel" value={dossier.email} onChange={() => {}} disabled />
-          <TextInput label="Date de naissance" value={dossier.date_naissance} onChange={() => {}} disabled type="text" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-            <TextInput
-              label="Grandeur de bottes"
-              value={dossier.grandeur_bottes}
-              onChange={v => updateDossier('grandeur_bottes', v)}
-              placeholder="Ex: 10"
-            />
+          <TextInput label="Date de naissance" value={dossier.date_naissance} onChange={() => {}} disabled />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
+            <TextInput label="Grandeur de bottes" value={dossier.grandeur_bottes} onChange={v => updateDossier('grandeur_bottes', v)} placeholder="Ex: 10" />
           </div>
-          <Checkbox
-            label="Je confirme avoir 18 ans ou plus"
-            checked={dossier.j_ai_18_ans}
-            onChange={v => updateDossier('j_ai_18_ans', v)}
-          />
-        </Section>
-
-        {/* ── Santé ── */}
-        <Section title="Santé" icon="🏥">
-          <RadioGroupId
-            label="Avez-vous des allergies ou d'autres problèmes médicaux dont l'équipe de gestion des incidents devrait être informée?"
-            options={OPTIONS.allergies_oui_non}
-            value={dossier.allergies_oui_non}
-            onChange={v => updateDossier('allergies_oui_non', v)}
-          />
-          {dossier.allergies_oui_non.includes(1) && (
-            <TextArea
-              label="Détails (allergies, problèmes de santé)"
-              value={dossier.allergie_detail}
-              onChange={v => updateDossier('allergie_detail', v)}
-              placeholder="Décrivez vos allergies ou problèmes médicaux..."
+          {showConfirm18 && (
+            <Checkbox
+              label="Je confirme avoir 18 ans ou plus"
+              checked={dossier.j_ai_18_ans}
+              onChange={v => updateDossier('j_ai_18_ans', v)}
             />
           )}
         </Section>
 
-        {/* ── Compétences RS ── */}
-        <Section title="Compétences en recherche et sauvetage" icon="🔍">
-          <RadioGroupId
-            label="Compétence en recherche et sauvetage au sol"
-            options={OPTIONS.competence_rs}
-            value={dossier.competence_rs}
-            onChange={v => updateDossier('competence_rs', v)}
+        {/* ── Santé ── */}
+        <Section
+          title="Santé"
+          icon="🏥"
+          description="Informations médicales de base pour assurer votre sécurité et celle de votre équipe lors des déploiements."
+          confidential
+        >
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Groupe sanguin</label>
+            <select value={dossier.groupe_sanguin} onChange={e => updateDossier('groupe_sanguin', e.target.value)}
+              style={{ padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', backgroundColor: 'white', minWidth: '160px' }}>
+              <option value="">— Sélectionner —</option>
+              {GROUPES_SANGUIN.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <TextArea
+            label="Allergies alimentaires"
+            value={dossier.allergies_alimentaires}
+            onChange={v => updateDossier('allergies_alimentaires', v)}
+            placeholder="Ex: Noix, arachides, fruits de mer..."
+          />
+          <TextArea
+            label="Autres allergies"
+            value={dossier.allergies_autres}
+            onChange={v => updateDossier('allergies_autres', v)}
+            placeholder="Ex: Latex, pollen, médicaments..."
+          />
+          <TextArea
+            label="Problèmes de santé ou conditions médicales"
+            value={dossier.problemes_sante}
+            onChange={v => updateDossier('problemes_sante', v)}
+            placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
           />
         </Section>
 
+        {/* ── Compétences RS (conditionnel AQBRS) ── */}
+        {isAqbrsLinked && (
+          <Section
+            title="Compétences en recherche et sauvetage"
+            icon="🔍"
+            description="Quel est votre niveau de formation certifiée en recherche et sauvetage au sol?"
+          >
+            <RadioGroupId
+              label=""
+              options={OPTIONS.competence_rs}
+              value={dossier.competence_rs}
+              onChange={v => updateDossier('competence_rs', v)}
+            />
+          </Section>
+        )}
+
         {/* ── Certifications ── */}
-        <Section title="Certifications" icon="🩺">
+        <Section
+          title="Certifications en premiers soins"
+          icon="🩺"
+          description="Avez-vous un certificat de premiers soins en cours de validité? Cochez tous ceux qui s'appliquent."
+        >
           <CheckboxGroupId
-            label="Certificat de premiers soins (en cours de validité)"
+            label=""
             options={OPTIONS.certificat_premiers_soins}
             values={dossier.certificat_premiers_soins}
             onChange={v => updateDossier('certificat_premiers_soins', v)}
@@ -611,25 +755,35 @@ export default function DossierPage() {
             onChange={v => updateDossier('date_expiration_certificat', v)}
             type="date"
           />
-          <div className="mt-6">
-            <RadioGroupId
-              label="Certification CSI / ICS"
-              options={[{ id: 0, label: 'Aucune' }, ...OPTIONS.certification_csi]}
-              value={dossier.certification_csi.length > 0 ? dossier.certification_csi : [0]}
-              onChange={v => updateDossier('certification_csi', v[0] === 0 ? [] : v)}
-            />
-          </div>
+        </Section>
+
+        {/* ── Système de commandement ── */}
+        <Section
+          title="Système de commandement des interventions"
+          icon="🎖️"
+          description="Avez-vous complété des formations en Système de Commandement des Interventions (SCI/ICS)?"
+        >
+          <RadioGroupId
+            label=""
+            options={[{ id: 0, label: 'Aucune formation' }, ...OPTIONS.certification_csi]}
+            value={dossier.certification_csi.length > 0 ? dossier.certification_csi : [0]}
+            onChange={v => updateDossier('certification_csi', v[0] === 0 ? [] : v)}
+          />
         </Section>
 
         {/* ── Transport ── */}
-        <Section title="Transport et véhicules" icon="🚗">
+        <Section
+          title="Transport et véhicules"
+          icon="🚗"
+          description="Quels types de permis possédez-vous, et avez-vous accès à des véhicules spécialisés?"
+        >
           <CheckboxGroupId
             label="Catégorie de permis de conduire"
             options={OPTIONS.permis_conduire}
             values={dossier.permis_conduire}
             onChange={v => updateDossier('permis_conduire', v)}
           />
-          <div className="mt-6">
+          <div style={{ marginTop: '16px' }}>
             <CheckboxGroupId
               label="Véhicule tout-terrain"
               options={OPTIONS.vehicule_tout_terrain}
@@ -637,7 +791,7 @@ export default function DossierPage() {
               onChange={v => updateDossier('vehicule_tout_terrain', v)}
             />
           </div>
-          <div className="mt-6">
+          <div style={{ marginTop: '16px' }}>
             <CheckboxGroupId
               label="Navire marin"
               options={OPTIONS.navire_marin}
@@ -645,9 +799,9 @@ export default function DossierPage() {
               onChange={v => updateDossier('navire_marin', v)}
             />
           </div>
-          <div className="mt-6">
+          <div style={{ marginTop: '16px' }}>
             <CheckboxGroupId
-              label="Disponible pour offrir du covoiturage"
+              label="Covoiturage"
               options={OPTIONS.disponible_covoiturage}
               values={dossier.disponible_covoiturage}
               onChange={v => updateDossier('disponible_covoiturage', v)}
@@ -656,14 +810,18 @@ export default function DossierPage() {
         </Section>
 
         {/* ── Compétences spécialisées ── */}
-        <Section title="Compétences spécialisées" icon="⚙️">
+        <Section
+          title="Compétences spécialisées"
+          icon="⚙️"
+          description="Avez-vous des formations, certifications ou équipements dans les domaines spécialisés suivants?"
+        >
           <CheckboxGroupId
             label="SATP Pilote (Drone) / RPAS Pilot"
             options={OPTIONS.satp_drone}
             values={dossier.satp_drone}
             onChange={v => updateDossier('satp_drone', v)}
           />
-          <div className="mt-6">
+          <div style={{ marginTop: '16px' }}>
             <CheckboxGroupId
               label="Équipe Canine R-S / SAR Dog Team"
               options={OPTIONS.equipe_canine}
@@ -671,7 +829,7 @@ export default function DossierPage() {
               onChange={v => updateDossier('equipe_canine', v)}
             />
           </div>
-          <div className="mt-6">
+          <div style={{ marginTop: '16px' }}>
             <CheckboxGroupId
               label="Compétences en sécurité"
               options={OPTIONS.competences_securite}
@@ -679,7 +837,7 @@ export default function DossierPage() {
               onChange={v => updateDossier('competences_securite', v)}
             />
           </div>
-          <div className="mt-6">
+          <div style={{ marginTop: '16px' }}>
             <CheckboxGroupId
               label="Compétences en sauvetage"
               options={OPTIONS.competences_sauvetage}
@@ -689,28 +847,42 @@ export default function DossierPage() {
           </div>
         </Section>
 
-        {/* ── Communication & SIG ── */}
-        <Section title="Communication et cartographie" icon="📡">
+        {/* ── Communication ── */}
+        <Section
+          title="Communication"
+          icon="📡"
+          description="Avez-vous des accréditations, permis ou certifications pour l'utilisation de systèmes de communication radio?"
+        >
           <CheckboxGroupId
-            label="Communication"
+            label=""
             options={OPTIONS.communication}
             values={dossier.communication}
             onChange={v => updateDossier('communication', v)}
           />
-          <div className="mt-6">
-            <CheckboxGroupId
-              label="Cartographie / SIG"
-              options={OPTIONS.cartographie_sig}
-              values={dossier.cartographie_sig}
-              onChange={v => updateDossier('cartographie_sig', v)}
-            />
-          </div>
         </Section>
 
-        {/* ── Opération urgence ── */}
-        <Section title="Opérations d'urgence" icon="🚨">
+        {/* ── Cartographie ── */}
+        <Section
+          title="Cartographie et SIG"
+          icon="🗺️"
+          description="Avez-vous de l'expérience avec les applications de cartographie ou de systèmes d'information géographique (SIG) suivantes?"
+        >
           <CheckboxGroupId
-            label="Expérience en opération d'urgence"
+            label=""
+            options={OPTIONS.cartographie_sig}
+            values={dossier.cartographie_sig}
+            onChange={v => updateDossier('cartographie_sig', v)}
+          />
+        </Section>
+
+        {/* ── Opérations d'urgence ── */}
+        <Section
+          title="Opérations d'urgence"
+          icon="🚨"
+          description="Avez-vous de l'expérience en déploiement ou en soutien aux sinistrés lors d'opérations d'urgence ou de gestion de crise?"
+        >
+          <CheckboxGroupId
+            label=""
             options={OPTIONS.operation_urgence}
             values={dossier.operation_urgence}
             onChange={v => updateDossier('operation_urgence', v)}
@@ -718,44 +890,50 @@ export default function DossierPage() {
         </Section>
 
         {/* ── Langues ── */}
-        <Section title="Langues" icon="🌐">
-          <CheckboxGroupId
-            label="Langues parlées"
-            options={OPTIONS.langues_parlees}
-            values={dossier.langues_parlees}
-            onChange={v => updateDossier('langues_parlees', v)}
-            columns={2}
-          />
-          <TextInput
-            label="Autres langues"
-            value={dossier.autres_langues}
-            onChange={v => updateDossier('autres_langues', v)}
-            placeholder="Précisez si non listée ci-dessus"
+        <Section
+          title="Langues"
+          icon="🌐"
+          description="Quelles langues parlez-vous? Sélectionnez celles qui s'appliquent ou ajoutez-en une si elle n'est pas dans la liste."
+        >
+          <DynamicList
+            myIds={myLangueIds}
+            allItems={allLangues}
+            newIds={newLangueIds}
+            newName={newLangueName}
+            showInput={showNewLangueInput}
+            onToggleNew={id => setNewLangueIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+            onSetNewName={setNewLangueName}
+            onSetShowInput={setShowNewLangueInput}
+            addLabel="Ma langue n'est pas dans la liste"
+            placeholder="Ex: Créole haïtien"
+            globalNote="Cette langue sera ajoutée à la liste globale pour tous les réservistes."
           />
         </Section>
 
-        {/* ── Affiliation ── */}
-        <Section title="Affiliation" icon="🏛️">
-          <CheckboxGroupId
-            label="Provenance"
-            options={OPTIONS.provenance}
-            values={dossier.provenance}
-            onChange={v => updateDossier('provenance', v)}
+        {/* ── Affiliation / Organisations ── */}
+        <Section
+          title="Organisations d'appartenance"
+          icon="🏢"
+          description="À quelles organisations êtes-vous affilié? Vos associations sont permanentes — vous pouvez en ajouter, mais pas en retirer."
+        >
+          <DynamicList
+            myIds={myOrgIds}
+            allItems={allOrgs}
+            newIds={newOrgIds}
+            newName={newOrgName}
+            showInput={showNewOrgInput}
+            onToggleNew={id => setNewOrgIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+            onSetNewName={setNewOrgName}
+            onSetShowInput={setShowNewOrgInput}
+            addLabel="Mon organisation n'est pas dans la liste"
+            placeholder="Ex: Croix-Rouge canadienne"
+            globalNote="Cette organisation sera ajoutée à la liste globale pour tous les réservistes."
           />
-          <div className="mt-6">
-            <CheckboxGroupId
-              label="Membre d'un groupe de recherche et sauvetage"
-              options={OPTIONS.membre_groupe_rs}
-              values={dossier.membre_groupe_rs}
-              onChange={v => updateDossier('membre_groupe_rs', v)}
-            />
-          </div>
-          <TextInput
-            label="Autre organisme"
-            value={dossier.organisme_autre}
-            onChange={v => updateDossier('organisme_autre', v)}
-            placeholder="Si applicable"
-          />
+          {myOrgIds.length === 0 && newOrgIds.length === 0 && !newOrgName.trim() && (
+            <div style={{ padding: '12px 14px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginTop: '12px' }}>
+              ⚠️ Aucune organisation associée — veuillez en sélectionner au moins une.
+            </div>
+          )}
         </Section>
 
         {/* ── Notes ── */}
@@ -778,21 +956,15 @@ export default function DossierPage() {
             onChange={v => updateDossier('confidentialite', v)}
           />
         </Section>
-
       </main>
 
-      {/* Barre de sauvegarde sticky en bas */}
-      {hasChanges && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
-          <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between">
-            <span className="text-sm text-amber-600 font-medium">
-              ⚠️ Vous avez des modifications non sauvegardées
-            </span>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-6 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-semibold hover:bg-[#2d4a6f] transition-colors"
-            >
+      {/* Barre sticky en bas */}
+      {anyChanges && (
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'white', borderTop: '1px solid #e5e7eb', boxShadow: '0 -4px 12px rgba(0,0,0,0.08)', zIndex: 50 }}>
+          <div style={{ maxWidth: '860px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '14px', color: '#d97706', fontWeight: '500' }}>⚠️ Modifications non sauvegardées</span>
+            <button onClick={handleSave} disabled={saving}
+              style={{ padding: '10px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </button>
           </div>
