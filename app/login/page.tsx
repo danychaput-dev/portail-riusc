@@ -160,8 +160,14 @@ function LoginContent() {
     setShowJoinPrompt(false)
   }
 
-  // Construire les URLs avec le camp param
-  const inscriptionUrl = campId ? `/inscription?camp=${campId}` : '/inscription'
+  // Construire les URLs avec le camp param + email pré-rempli
+  const inscriptionUrl = (() => {
+    const params = new URLSearchParams()
+    if (campId) params.set('camp', campId)
+    if (email.trim()) params.set('email', email.trim())
+    const qs = params.toString()
+    return '/inscription' + (qs ? '?' + qs : '')
+  })()
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>

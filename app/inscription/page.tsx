@@ -100,11 +100,15 @@ export default function InscriptionPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Récupérer le camp_id si présent dans l'URL  
+  // Récupérer le camp_id et email si présents dans l'URL  
   const [campId, setCampId] = useState('')
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     setCampId(params.get('camp') || '')
+    const emailParam = params.get('email')
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }))
+    }
   }, [])
 
   useEffect(() => {
@@ -247,7 +251,7 @@ export default function InscriptionPage() {
 
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean, telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse, ville: formData.ville, region: formData.region, latitude: formData.latitude, longitude: formData.longitude, groupe_rs: formData.groupe_rs, commentaire: formData.commentaire, camp_id: campId || null })
+        body: JSON.stringify({ prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean, telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse, ville: formData.ville, region: formData.region, latitude: formData.latitude, longitude: formData.longitude, groupe_rs: formData.groupe_rs, groupe: 'Nouveaux', commentaire: formData.commentaire, camp_id: campId || null })
       })
       if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
       setStep('success')
