@@ -28,6 +28,10 @@ interface Reserviste {
   telephone?: string;
   photo_url?: string;
   groupe?: string;
+  allergies_alimentaires?: string;
+  allergies_autres?: string;
+  conditions_medicales?: string;
+  consent_photo?: boolean;
 }
 
 interface CampInfo {
@@ -85,6 +89,12 @@ export default function HomePage() {
   const [inscriptionLoading, setInscriptionLoading] = useState(false)
   const [inscriptionError, setInscriptionError] = useState<string | null>(null)
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false)
+  
+  const [allergiesAlimentaires, setAllergiesAlimentaires] = useState('')
+  const [allergiesAutres, setAllergiesAutres] = useState('')
+  const [conditionsMedicales, setConditionsMedicales] = useState('')
+  const [consentPhoto, setConsentPhoto] = useState(false)
+  const [reservisteConsentPhoto, setReservisteConsentPhoto] = useState(false)
   
   const [showTour, setShowTour] = useState(false)
   const router = useRouter()
@@ -194,7 +204,7 @@ export default function HomePage() {
       if (user.email) {
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo')
           .ilike('email', user.email)
           .single()
         reservisteData = data
@@ -204,7 +214,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -212,7 +222,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo')
             .eq('telephone', phoneWithout1)
             .single()
           reservisteData = data2
@@ -223,6 +233,11 @@ export default function HomePage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
+        setAllergiesAlimentaires(reservisteData.allergies_alimentaires || '')
+        setAllergiesAutres(reservisteData.allergies_autres || '')
+        setConditionsMedicales(reservisteData.conditions_medicales || '')
+        setConsentPhoto(reservisteData.consent_photo || false)
+        setReservisteConsentPhoto(reservisteData.consent_photo || false)
         
         try {
           const response = await fetch(
@@ -305,6 +320,11 @@ export default function HomePage() {
       setInscriptionError('Veuillez sélectionner un camp')
       return
     }
+
+    if (!reservisteConsentPhoto && !consentPhoto) {
+      setInscriptionError('Le consentement photo est requis pour participer au camp.')
+      return
+    }
     
     setInscriptionLoading(true)
     setInscriptionError(null)
@@ -319,13 +339,25 @@ export default function HomePage() {
           presence: 'confirme',
           courriel: reserviste.email,
           telephone: reserviste.telephone || null,
-          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`
+          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`,
+          allergies_alimentaires: allergiesAlimentaires || null,
+          allergies_autres: allergiesAutres || null,
+          conditions_medicales: conditionsMedicales || null,
+          consent_photo: consentPhoto || reservisteConsentPhoto
         })
       })
       
       const data = await response.json()
       
       if (response.ok && data.success) {
+        // Sauvegarder les infos santé dans le profil
+        await supabase.from('reservistes').update({
+          allergies_alimentaires: allergiesAlimentaires || null,
+          allergies_autres: allergiesAutres || null,
+          conditions_medicales: conditionsMedicales || null,
+          consent_photo: consentPhoto || reservisteConsentPhoto
+        }).eq('benevole_id', reserviste.benevole_id)
+
         setInscriptionSuccess(true)
         setTimeout(() => {
           closeCampModal()
@@ -442,24 +474,7 @@ export default function HomePage() {
                   📺 Tutoriel vidéo
                 </a>
               </div>
-              {!loadingCamp && campStatus && !campStatus.is_certified && !campStatus.has_inscription && (
-                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #fcd34d' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <span style={{ fontSize: '24px' }}>🏕️</span>
-                    <div>
-                      <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
-                        Inscrivez-vous à un camp de qualification
-                      </p>
-                      <p style={{ margin: '0 0 12px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
-                        Le camp pratique de deux jours est la dernière étape pour devenir réserviste certifié.
-                      </p>
-                      <button onClick={openCampModal} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
-                        🏕️ Voir les camps disponibles
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+
             </div>
           </div>
         </div>
@@ -555,10 +570,46 @@ export default function HomePage() {
                   )}
                 </div>
                 {inscriptionError && <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{inscriptionError}</div>}
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Informations de santé</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>Allergies alimentaires</label>
+                      <input type="text" value={allergiesAlimentaires} onChange={(e) => setAllergiesAlimentaires(e.target.value)} placeholder="Ex: noix, fruits de mer, gluten..." style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>Autres allergies</label>
+                      <input type="text" value={allergiesAutres} onChange={(e) => setAllergiesAutres(e.target.value)} placeholder="Ex: piqûres d'abeilles, latex..." style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', color: '#374151', marginBottom: '4px' }}>Conditions médicales</label>
+                      <input type="text" value={conditionsMedicales} onChange={(e) => setConditionsMedicales(e.target.value)} placeholder="Ex: asthme, diabète, épilepsie..." style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                    </div>
+                  </div>
+                  <div style={{ backgroundColor: '#eff6ff', padding: '12px 16px', borderRadius: '8px', marginTop: '12px', borderLeft: '4px solid #3b82f6' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5' }}>
+                      Ces informations sont utilisées uniquement pour assurer votre sécurité lors du camp. Des accommodations alimentaires de base seront offertes dans la mesure du possible.
+                    </p>
+                  </div>
+                </div>
+
+                {!reservisteConsentPhoto && (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '16px', borderRadius: '8px', border: consentPhoto ? '2px solid #059669' : '1px solid #d1d5db', backgroundColor: consentPhoto ? '#f0fdf4' : 'white', transition: 'all 0.2s' }}>
+                    <input type="checkbox" checked={consentPhoto} onChange={(e) => setConsentPhoto(e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px' }} />
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px', marginBottom: '4px' }}>Consentement photo et vidéo</div>
+                      <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>J&apos;autorise la RIUSC à utiliser les photos et vidéos prises lors du camp à des fins de promotion et de communication.</div>
+                    </div>
+                  </label>
+                </div>
+                )}
+
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
-                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reservisteConsentPhoto && !consentPhoto)} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reservisteConsentPhoto && !consentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reservisteConsentPhoto && !consentPhoto)) ? 'not-allowed' : 'pointer' }}>
                     {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : 'Confirmer mon inscription'}
                   </button>
                 </div>
