@@ -107,7 +107,7 @@ export default function FormationPage() {
       } else { reservisteData = data; }
     }
 
-    if (reservisteData.benevole_id) {
+    if (reservisteData && reservisteData.benevole_id) {
         // Certificats
         try {
           const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`);
