@@ -221,21 +221,30 @@ export default function HomePage() {
         }
       }
       
-      if (reservisteData) {
-        setReserviste(reservisteData)
-        
+     if (reservisteData.benevole_id) {
+        // Certificats
         try {
-          const response = await fetch(
-            `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`
-          )
+          const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`);
           if (response.ok) {
-            const data = await response.json()
-            setCampStatus(data)
+            const data = await response.json();
+            if (data.success && data.files) setCertificats(data.files);
           }
-        } catch (error) {
-          console.error('Erreur fetch camp status:', error)
-        }
-        setLoadingCamp(false)
+        } catch (e) { console.error('Erreur certificats:', e); }
+        setLoadingCertificats(false);
+
+        // Camp status
+        try {
+          const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setCampStatus(data);
+          }
+        } catch (e) { console.error('Erreur camp:', e); }
+        setLoadingCamp(false);
+      } else {
+        setLoadingCertificats(false);
+        setLoadingCamp(false);
+      }
         
         await loadCertificats(reservisteData.benevole_id)
 
