@@ -166,11 +166,11 @@ export default function HomePage() {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
         await loadCertificats(reserviste.benevole_id)
       } else {
-        setCertificatMessage({ type: 'error', text: data.error || 'Erreur lors de l\'envoi' })
+        setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" })
       }
     } catch (error) {
       console.error('Erreur upload certificat:', error)
-      setCertificatMessage({ type: 'error', text: 'Erreur lors de l\'envoi' })
+      setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" })
     }
 
     setUploadingCertificat(false)
@@ -260,7 +260,6 @@ export default function HomePage() {
         }
       }
       
-      // Compter messages non lus communauté
       const { data: lastSeen } = await supabase
         .from('community_last_seen')
         .select('last_seen_at')
@@ -347,7 +346,7 @@ export default function HomePage() {
           window.location.reload()
         }, 2000)
       } else {
-        setInscriptionError(data.error || 'Erreur lors de l\'inscription')
+        setInscriptionError(data.error || "Erreur lors de l'inscription")
       }
     } catch (error) {
       console.error('Erreur inscription:', error)
@@ -358,7 +357,7 @@ export default function HomePage() {
   }
 
   const handleCancelInscription = async () => {
-    if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp ?')) {
+    if (!reserviste || !confirm("Êtes-vous sûr de vouloir annuler votre inscription au camp ?")) {
       return
     }
     
@@ -373,11 +372,11 @@ export default function HomePage() {
       if (response.ok) {
         window.location.reload()
       } else {
-        alert('Erreur lors de l\'annulation. Veuillez réessayer.')
+        alert("Erreur lors de l'annulation. Veuillez réessayer.")
       }
     } catch (error) {
       console.error('Erreur annulation:', error)
-      alert('Erreur lors de l\'annulation. Veuillez réessayer.')
+      alert("Erreur lors de l'annulation. Veuillez réessayer.")
     }
     
     setCancellingInscription(false)
@@ -410,8 +409,6 @@ export default function HomePage() {
       </div>
     )
   }
-
-
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -468,7 +465,7 @@ export default function HomePage() {
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
                   <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
-                    {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : 'Confirmer mon inscription'}
+                    {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : "Confirmer mon inscription"}
                   </button>
                 </div>
               </>
@@ -568,6 +565,32 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* Section Formation obligatoire - visible si aucun certificat */}
+        {!loadingCertificats && certificats.length === 0 && (
+          <div data-tour="formation-obligatoire" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: '2px solid #f59e0b' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <span style={{ fontSize: '24px' }}>⚠️</span>
+              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>Formation en ligne obligatoire</h3>
+            </div>
+            <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+              Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
+              <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
+              puis soumettre votre certificat de réussite.
+            </p>
+            <div style={{ backgroundColor: '#f9fafb', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#6b7280' }}>
+              <strong>Durée :</strong> environ 1 h 45 &nbsp;|&nbsp; <strong>Contenu :</strong> 5 modules à votre rythme &nbsp;|&nbsp; <strong>Délai :</strong> 30 jours
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+                🎓 Accéder à la formation
+              </a>
+              <a href="/formation" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                📤 Soumettre mon certificat
+              </a>
+            </div>
+          </div>
+        )}
+
         {!loadingCertificats && certificats.length > 0 && (
         <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
@@ -591,7 +614,6 @@ export default function HomePage() {
                 }, {})
               ).map(([sinistre, deps]) => (
                 <div key={sinistre} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
-                  {/* En-tête du sinistre */}
                   <div style={{ padding: '16px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '20px' }}>🔥</span>
@@ -601,15 +623,11 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Dates du sinistre */}
                   {deps[0].date_debut && (
                     <div style={{ padding: '10px 20px', fontSize: '13px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
                       📅 {formatDate(deps[0].date_debut)}{deps[0].date_fin && ` — ${formatDate(deps[0].date_fin)}`}
                     </div>
                   )}
-
-                  {/* Liste des déploiements */}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {deps.map((dep, idx) => (
                       <div key={dep.id} style={{ padding: '14px 20px', borderBottom: idx < deps.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -620,8 +638,6 @@ export default function HomePage() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Bouton soumettre au niveau du sinistre */}
                   <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', textAlign: 'center' }}>
                     <a href={genererLienDisponibilite(deps[0].deploiement_id)} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
                       Soumettre mes disponibilités
