@@ -25,9 +25,9 @@ const newMemberSteps: TourStep[] = [
   { target: '[data-tour="camp"]', title: 'Camp de qualification', content: 'Après votre formation en ligne, inscrivez-vous à un camp pratique de deux jours pour devenir réserviste certifié.', position: 'bottom' },
   { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles à tout moment.', position: 'bottom' },
   { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez votre progression, vos certificats et inscrivez-vous au camp de qualification.', position: 'bottom' },
-  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région pour trouver celui qui vous convient.', position: 'top' },
-  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
-  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région pour trouver celui qui vous convient.', position: 'bottom' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'bottom' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'bottom' }
 ]
 
 const newMemberWithCertSteps: TourStep[] = [
@@ -36,9 +36,9 @@ const newMemberWithCertSteps: TourStep[] = [
   { target: '[data-tour="camp"]', title: 'Camp de qualification', content: 'Inscrivez-vous à un camp pratique de deux jours pour devenir réserviste certifié.', position: 'bottom' },
   { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles à tout moment.', position: 'bottom' },
   { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats et inscrivez-vous au camp de qualification.', position: 'bottom' },
-  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'top' },
-  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
-  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'bottom' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'bottom' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'bottom' }
 ]
 
 const approvedMemberSteps: TourStep[] = [
@@ -47,10 +47,10 @@ const approvedMemberSteps: TourStep[] = [
   { target: '[data-tour="deploiements"]', title: 'Sollicitation de déploiement', content: 'Lorsqu\'un déploiement nécessitera votre profil, il apparaîtra ici. Vous pourrez soumettre votre disponibilité directement.', position: 'bottom' },
   { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles.', position: 'bottom' },
   { target: '[data-tour="dossier"]', title: 'Mon dossier réserviste', content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.', position: 'bottom' },
-  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats, votre progression et les formations disponibles.', position: 'top' },
-  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'top' },
-  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
-  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
+  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats, votre progression et les formations disponibles.', position: 'bottom' },
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'bottom' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'bottom' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'bottom' }
 ]
 
 const approvedWithDeploiementsSteps: TourStep[] = [
@@ -60,10 +60,10 @@ const approvedWithDeploiementsSteps: TourStep[] = [
   { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles.', position: 'bottom' },
   { target: '[data-tour="dossier"]', title: 'Mon dossier réserviste', content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.', position: 'bottom' },
   { target: '[data-tour="disponibilites"]', title: 'Mes disponibilités', content: 'Consultez l\'historique de vos disponibilités soumises pour les différents déploiements.', position: 'bottom' },
-  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats, votre progression et les formations disponibles.', position: 'top' },
-  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'top' },
-  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
-  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
+  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats, votre progression et les formations disponibles.', position: 'bottom' },
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'bottom' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'bottom' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'bottom' }
 ]
 
 export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements, hasCiblages, forceStart, onTourEnd }: GuidedTourProps) {
