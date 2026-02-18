@@ -22,16 +22,20 @@ export default function ImageCropper({
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 })
-  const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 })
-  const [baseScale, setBaseScale] = useState(1)
+  const [lastPointer, setLastPointer] = useState({ x: 0, y: 0 })
+  const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 })
   const [processing, setProcessing] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const imgRef = useRef<HTMLImageElement | null>(null)
 
   const CROP_SIZE = 280
+
+  // Base scale: makes image "cover" the crop area at zoom=1
+  const baseScale = naturalSize.w > 0
+    ? Math.max(CROP_SIZE / naturalSize.w, CROP_SIZE / naturalSize.h)
+    : 1
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -41,7 +45,6 @@ export default function ImageCropper({
       alert('Veuillez sélectionner une image (JPG, PNG, etc.)')
       return
     }
-
     if (file.size > 10 * 1024 * 1024) {
       alert('Image trop volumineuse (max 10 Mo)')
       return
@@ -49,8 +52,7 @@ export default function ImageCropper({
 
     const reader = new FileReader()
     reader.onload = (ev) => {
-      const src = ev.target?.result as string
-      setImageSrc(src)
+      setImageSrc(ev.target?.result as string)
       setZoom(1)
       setPan({ x: 0, y: 0 })
       setShowModal(true)
@@ -59,59 +61,48 @@ export default function ImageCropper({
     e.target.value = ''
   }
 
-  // Calculate base scale so image covers the crop area
+  // Load natural image dimensions
   useEffect(() => {
     if (!imageSrc) return
     const img = new window.Image()
     img.onload = () => {
-      const w = img.naturalWidth
-      const h = img.naturalHeight
-      setImgNatural({ w, h })
-      // Cover: scale the smaller dimension to fill CROP_SIZE
-      const scale = Math.max(CROP_SIZE / w, CROP_SIZE / h)
-      setBaseScale(scale)
+      setNaturalSize({ w: img.naturalWidth, h: img.naturalHeight })
+      imgRef.current = img
     }
     img.src = imageSrc
   }, [imageSrc])
 
-  // Drag handlers
+  // --- Drag ---
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault()
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
     setDragging(true)
-    setDragStart({ x: e.clientX, y: e.clientY })
-    setPanStart({ x: pan.x, y: pan.y })
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    setLastPointer({ x: e.clientX, y: e.clientY })
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging) return
     e.preventDefault()
-    setPan({
-      x: panStart.x + (e.clientX - dragStart.x),
-      y: panStart.y + (e.clientY - dragStart.y),
+    const dx = e.clientX - lastPointer.x
+    const dy = e.clientY - lastPointer.y
+    setLastPointer({ x: e.clientX, y: e.clientY })
+    setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }))
+  }
+
+  const handlePointerUp = () => setDragging(false)
+
+  // --- Wheel zoom ---
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    setZoom(prev => {
+      const next = prev + (e.deltaY > 0 ? -0.05 : 0.05)
+      return Math.min(3, Math.max(1, next))
     })
   }
 
-  const handlePointerUp = () => {
-    setDragging(false)
-  }
-
-  // Mouse wheel zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? -0.05 : 0.05
-    setZoom(prev => Math.min(3, Math.max(1, prev + delta)))
-  }
-
-  // Rendered image dimensions and position in preview
-  const renderW = imgNatural.w * baseScale * zoom
-  const renderH = imgNatural.h * baseScale * zoom
-  const imgLeft = (CROP_SIZE - renderW) / 2 + pan.x
-  const imgTop = (CROP_SIZE - renderH) / 2 + pan.y
-
-  // Crop and output
+  // --- Crop to canvas ---
   const handleCrop = async () => {
-    if (!imageSrc || !canvasRef.current || !imgNatural.w) return
+    if (!imgRef.current || !canvasRef.current || !naturalSize.w) return
 
     setProcessing(true)
 
@@ -121,14 +112,30 @@ export default function ImageCropper({
     canvas.width = OUTPUT
     canvas.height = OUTPUT
 
-    const img = new window.Image()
-    img.crossOrigin = 'anonymous'
-    img.src = imageSrc
+    // What's displayed:
+    //   displayW = naturalW * baseScale * zoom
+    //   displayH = naturalH * baseScale * zoom
+    //   image center is at: (CROP_SIZE/2 + pan.x, CROP_SIZE/2 + pan.y)
+    //   image top-left in preview: ((CROP_SIZE - displayW)/2 + pan.x, (CROP_SIZE - displayH)/2 + pan.y)
+    //
+    // The crop window is (0,0) to (CROP_SIZE, CROP_SIZE).
+    // To find the source rectangle (in original image pixels):
+    //   scale = baseScale * zoom  (preview pixels per source pixel)
+    //   srcX = (0 - imgLeftInPreview) / scale
+    //   srcY = (0 - imgTopInPreview) / scale
+    //   srcW = CROP_SIZE / scale
+    //   srcH = CROP_SIZE / scale
 
-    await new Promise<void>((resolve) => {
-      img.onload = () => resolve()
-      if (img.complete) resolve()
-    })
+    const scale = baseScale * zoom
+    const displayW = naturalSize.w * scale
+    const displayH = naturalSize.h * scale
+    const imgLeftInPreview = (CROP_SIZE - displayW) / 2 + pan.x
+    const imgTopInPreview = (CROP_SIZE - displayH) / 2 + pan.y
+
+    const srcX = (0 - imgLeftInPreview) / scale
+    const srcY = (0 - imgTopInPreview) / scale
+    const srcW = CROP_SIZE / scale
+    const srcH = CROP_SIZE / scale
 
     // Circle clip
     ctx.clearRect(0, 0, OUTPUT, OUTPUT)
@@ -137,15 +144,11 @@ export default function ImageCropper({
     ctx.closePath()
     ctx.clip()
 
-    // Scale preview coords → output coords
-    const s = OUTPUT / CROP_SIZE
-
+    // Draw only the visible source rect → full output
     ctx.drawImage(
-      img,
-      imgLeft * s,
-      imgTop * s,
-      renderW * s,
-      renderH * s
+      imgRef.current,
+      srcX, srcY, srcW, srcH,
+      0, 0, OUTPUT, OUTPUT
     )
 
     canvas.toBlob(
@@ -168,55 +171,39 @@ export default function ImageCropper({
 
   const isLoading = processing || uploading
 
+  // Preview: image display size and position
+  const displayW = naturalSize.w * baseScale * zoom
+  const displayH = naturalSize.h * baseScale * zoom
+  const imgLeft = (CROP_SIZE - displayW) / 2 + pan.x
+  const imgTop = (CROP_SIZE - displayH) / 2 + pan.y
+
   return (
     <>
       {/* Clickable avatar */}
       <div
         onClick={() => fileInputRef.current?.click()}
         style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          overflow: 'hidden',
-          cursor: 'pointer',
-          position: 'relative',
-          flexShrink: 0,
+          width: size, height: size, borderRadius: '50%',
+          overflow: 'hidden', cursor: 'pointer',
+          position: 'relative', flexShrink: 0,
         }}
       >
         {currentPhotoUrl ? (
-          <img
-            src={currentPhotoUrl}
-            alt="Photo de profil"
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+          <img src={currentPhotoUrl} alt="Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#1e3a5f',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: size * 0.35,
+            width: '100%', height: '100%', backgroundColor: '#1e3a5f',
+            color: 'white', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontWeight: 700, fontSize: size * 0.35,
           }}>
             {initials}
           </div>
         )}
-
         <div
           style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0,
-            transition: 'opacity 0.2s',
-            borderRadius: '50%',
+            position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
@@ -229,43 +216,26 @@ export default function ImageCropper({
         </div>
       </div>
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        style={{ display: 'none' }}
-      />
-
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       {/* Modal */}
       {showModal && imageSrc && (
         <div
           style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 10000,
-            padding: '16px',
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10000, padding: '16px',
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget && !isLoading) {
-              setShowModal(false)
-              setImageSrc(null)
+              setShowModal(false); setImageSrc(null)
             }
           }}
         >
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '380px',
-            width: '100%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            backgroundColor: 'white', borderRadius: '16px', padding: '24px',
+            maxWidth: '380px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           }}>
             <h3 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 700, color: '#1e3a5f', textAlign: 'center' }}>
               Recadrer la photo
@@ -274,16 +244,10 @@ export default function ImageCropper({
             {/* Crop circle */}
             <div
               style={{
-                width: CROP_SIZE,
-                height: CROP_SIZE,
-                margin: '0 auto',
-                position: 'relative',
-                overflow: 'hidden',
-                borderRadius: '50%',
-                backgroundColor: '#1a1a1a',
-                cursor: dragging ? 'grabbing' : 'grab',
-                touchAction: 'none',
-                border: '3px solid #1e3a5f',
+                width: CROP_SIZE, height: CROP_SIZE, margin: '0 auto',
+                position: 'relative', overflow: 'hidden', borderRadius: '50%',
+                backgroundColor: '#111', cursor: dragging ? 'grabbing' : 'grab',
+                touchAction: 'none', border: '3px solid #1e3a5f',
               }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -291,44 +255,44 @@ export default function ImageCropper({
               onPointerCancel={handlePointerUp}
               onWheel={handleWheel}
             >
-              {imgNatural.w > 0 && (
+              {naturalSize.w > 0 && (
                 <img
                   src={imageSrc}
                   alt="Preview"
                   draggable={false}
                   style={{
                     position: 'absolute',
-                    left: `${imgLeft}px`,
-                    top: `${imgTop}px`,
-                    width: `${renderW}px`,
-                    height: `${renderH}px`,
+                    left: imgLeft,
+                    top: imgTop,
+                    width: displayW,
+                    height: displayH,
                     pointerEvents: 'none',
                     userSelect: 'none',
+                    maxWidth: 'none',
                   }}
                 />
               )}
             </div>
 
-            {/* Zoom */}
-            <div style={{ margin: '20px auto 0', maxWidth: CROP_SIZE, display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '20px', color: '#6b7280', lineHeight: 1, userSelect: 'none' }}>−</span>
+            {/* Zoom slider */}
+            <div style={{
+              margin: '20px auto 0', maxWidth: CROP_SIZE,
+              display: 'flex', alignItems: 'center', gap: '12px',
+            }}>
+              <span style={{ fontSize: '22px', color: '#6b7280', userSelect: 'none', lineHeight: 1, width: '20px', textAlign: 'center' }}>−</span>
               <input
-                type="range"
-                min="1"
-                max="3"
-                step="0.01"
-                value={zoom}
+                type="range" min="1" max="3" step="0.01" value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
                 style={{ flex: 1, accentColor: '#1e3a5f' }}
               />
-              <span style={{ fontSize: '20px', color: '#6b7280', lineHeight: 1, userSelect: 'none' }}>+</span>
+              <span style={{ fontSize: '22px', color: '#6b7280', userSelect: 'none', lineHeight: 1, width: '20px', textAlign: 'center' }}>+</span>
             </div>
 
             <p style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', margin: '8px 0 0' }}>
               Glissez pour repositionner · Zoomez avec le curseur
             </p>
 
-            {/* Actions */}
+            {/* Buttons */}
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
               <button
                 onClick={() => { setShowModal(false); setImageSrc(null) }}
