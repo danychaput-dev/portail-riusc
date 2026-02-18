@@ -170,7 +170,7 @@ export default function InformationsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {/* Volume de référence */}
             <a
-              href="https://online.fliphtml5.com/wscbg/xqkj/"
+              href="https://online.fliphtml5.com/wscbg/xgsc/"
               target="_blank"
               rel="noopener noreferrer"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', textDecoration: 'none', transition: 'all 0.2s' }}
