@@ -19,162 +19,51 @@ interface GuidedTourProps {
 }
 
 const newMemberSteps: TourStep[] = [
-  {
-    target: '[data-tour="welcome"]',
-    title: 'Bienvenue sur le Portail RIUSC !',
-    content: 'Voici votre espace personnel. Nous allons vous guider à travers les fonctionnalités principales.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="menu"]',
-    title: 'Votre menu',
-    content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="profil"]',
-    title: 'Mon profil',
-    content: 'Consultez et mettez à jour vos informations personnelles à tout moment.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="formation"]',
-    title: 'Formation et parcours',
-    content: 'C\'est votre priorité ! Suivez la formation en ligne, soumettez votre certificat et inscrivez-vous au camp de qualification.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="tournee"]',
-    title: 'Tournée des camps',
-    content: 'Consultez le calendrier des camps de qualification par région pour trouver celui qui vous convient.',
-    position: 'top'
-  },
-  {
-    target: '[data-tour="informations"]',
-    title: 'Informations pratiques',
-    content: 'Documents, ressources et références utiles pour votre rôle de réserviste.',
-    position: 'top'
-  },
-  {
-    target: '[data-tour="communaute"]',
-    title: 'Communauté',
-    content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.',
-    position: 'top'
-  }
+  { target: '[data-tour="welcome"]', title: 'Bienvenue sur le Portail RIUSC !', content: 'Voici votre espace personnel. Nous allons vous guider à travers les fonctionnalités principales.', position: 'bottom' },
+  { target: '[data-tour="menu"]', title: 'Votre menu', content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.', position: 'bottom' },
+  { target: '[data-tour="certificats"]', title: 'Formation obligatoire', content: 'C\'est votre priorité ! Suivez la formation « S\'initier à la sécurité civile » en ligne et soumettez votre certificat ici.', position: 'bottom' },
+  { target: '[data-tour="camp"]', title: 'Camp de qualification', content: 'Après votre formation en ligne, inscrivez-vous à un camp pratique de deux jours pour devenir réserviste certifié.', position: 'bottom' },
+  { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles à tout moment.', position: 'bottom' },
+  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez votre progression, vos certificats et inscrivez-vous au camp de qualification.', position: 'bottom' },
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région pour trouver celui qui vous convient.', position: 'top' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
+]
+
+const newMemberWithCertSteps: TourStep[] = [
+  { target: '[data-tour="welcome"]', title: 'Bienvenue sur le Portail RIUSC !', content: 'Voici votre espace personnel. Nous allons vous guider à travers les fonctionnalités principales.', position: 'bottom' },
+  { target: '[data-tour="menu"]', title: 'Votre menu', content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.', position: 'bottom' },
+  { target: '[data-tour="camp"]', title: 'Camp de qualification', content: 'Inscrivez-vous à un camp pratique de deux jours pour devenir réserviste certifié.', position: 'bottom' },
+  { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles à tout moment.', position: 'bottom' },
+  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats et inscrivez-vous au camp de qualification.', position: 'bottom' },
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'top' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
 ]
 
 const approvedMemberSteps: TourStep[] = [
-  {
-    target: '[data-tour="welcome"]',
-    title: 'Bienvenue sur le Portail RIUSC !',
-    content: 'Voici votre espace personnel de réserviste. Découvrons ensemble les fonctionnalités disponibles.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="menu"]',
-    title: 'Votre menu',
-    content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="deploiements"]',
-    title: 'Sollicitation de déploiement',
-    content: 'Lorsqu\'un déploiement nécessitera votre profil, il apparaîtra ici. Vous pourrez soumettre votre disponibilité directement.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="profil"]',
-    title: 'Mon profil',
-    content: 'Consultez et mettez à jour vos informations personnelles.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="dossier"]',
-    title: 'Mon dossier réserviste',
-    content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="disponibilites"]',
-    title: 'Mes disponibilités',
-    content: 'Consultez l\'historique de vos disponibilités soumises pour les différents déploiements.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="formation"]',
-    title: 'Formation et parcours',
-    content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
-    position: 'top'
-  },
-  {
-    target: '[data-tour="informations"]',
-    title: 'Informations pratiques',
-    content: 'Documents, ressources et références utiles pour votre rôle de réserviste.',
-    position: 'top'
-  },
-  {
-    target: '[data-tour="communaute"]',
-    title: 'Communauté',
-    content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.',
-    position: 'top'
-  }
+  { target: '[data-tour="welcome"]', title: 'Bienvenue sur le Portail RIUSC !', content: 'Voici votre espace personnel de réserviste. Découvrons ensemble les fonctionnalités disponibles.', position: 'bottom' },
+  { target: '[data-tour="menu"]', title: 'Votre menu', content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.', position: 'bottom' },
+  { target: '[data-tour="deploiements"]', title: 'Sollicitation de déploiement', content: 'Lorsqu\'un déploiement nécessitera votre profil, il apparaîtra ici. Vous pourrez soumettre votre disponibilité directement.', position: 'bottom' },
+  { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles.', position: 'bottom' },
+  { target: '[data-tour="dossier"]', title: 'Mon dossier réserviste', content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.', position: 'bottom' },
+  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats, votre progression et les formations disponibles.', position: 'top' },
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'top' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
 ]
 
 const approvedWithDeploiementsSteps: TourStep[] = [
-  {
-    target: '[data-tour="welcome"]',
-    title: 'Bienvenue sur le Portail RIUSC !',
-    content: 'Voici votre espace personnel de réserviste. Découvrons ensemble les fonctionnalités disponibles.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="menu"]',
-    title: 'Votre menu',
-    content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="deploiements"]',
-    title: 'Sollicitation de déploiement',
-    content: 'Vous avez des déploiements actifs ! Cliquez sur « Soumettre ma disponibilité » pour indiquer si vous êtes disponible.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="profil"]',
-    title: 'Mon profil',
-    content: 'Consultez et mettez à jour vos informations personnelles.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="dossier"]',
-    title: 'Mon dossier réserviste',
-    content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="disponibilites"]',
-    title: 'Mes disponibilités',
-    content: 'Consultez l\'historique de vos disponibilités soumises pour les différents déploiements.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="formation"]',
-    title: 'Formation et parcours',
-    content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
-    position: 'top'
-  },
-  {
-    target: '[data-tour="informations"]',
-    title: 'Informations pratiques',
-    content: 'Documents, ressources et références utiles pour votre rôle de réserviste.',
-    position: 'top'
-  },
-  {
-    target: '[data-tour="communaute"]',
-    title: 'Communauté',
-    content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.',
-    position: 'top'
-  }
+  { target: '[data-tour="welcome"]', title: 'Bienvenue sur le Portail RIUSC !', content: 'Voici votre espace personnel de réserviste. Découvrons ensemble les fonctionnalités disponibles.', position: 'bottom' },
+  { target: '[data-tour="menu"]', title: 'Votre menu', content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.', position: 'bottom' },
+  { target: '[data-tour="deploiements"]', title: 'Sollicitation de déploiement', content: 'Vous avez des déploiements actifs ! Cliquez sur « Soumettre ma disponibilité » pour indiquer si vous êtes disponible.', position: 'bottom' },
+  { target: '[data-tour="profil"]', title: 'Mon profil', content: 'Consultez et mettez à jour vos informations personnelles.', position: 'bottom' },
+  { target: '[data-tour="dossier"]', title: 'Mon dossier réserviste', content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.', position: 'bottom' },
+  { target: '[data-tour="disponibilites"]', title: 'Mes disponibilités', content: 'Consultez l\'historique de vos disponibilités soumises pour les différents déploiements.', position: 'bottom' },
+  { target: '[data-tour="formation"]', title: 'Formation et parcours', content: 'Retrouvez vos certificats, votre progression et les formations disponibles.', position: 'top' },
+  { target: '[data-tour="tournee"]', title: 'Tournée des camps', content: 'Consultez le calendrier des camps de qualification par région.', position: 'top' },
+  { target: '[data-tour="informations"]', title: 'Informations pratiques', content: 'Documents, ressources et références utiles pour votre rôle de réserviste.', position: 'top' },
+  { target: '[data-tour="communaute"]', title: 'Communauté', content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.', position: 'top' }
 ]
 
 export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements, hasCiblages, forceStart, onTourEnd }: GuidedTourProps) {
@@ -184,33 +73,41 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
   const [arrowStyle, setArrowStyle] = useState<React.CSSProperties>({})
   const [highlightStyle, setHighlightStyle] = useState<React.CSSProperties>({})
   const [showStartModal, setShowStartModal] = useState(false)
+  const [activeSteps, setActiveSteps] = useState<TourStep[]>([])
 
   const getSteps = useCallback((): TourStep[] => {
-    if (!isApproved || !hasCertificat) {
-      return newMemberSteps
-    }
-    if (hasDeploiements || hasCiblages) {
-      return approvedWithDeploiementsSteps
-    }
-    return approvedMemberSteps
+    if (isApproved && (hasDeploiements || hasCiblages)) return approvedWithDeploiementsSteps
+    if (isApproved) return approvedMemberSteps
+    if (hasCertificat) return newMemberWithCertSteps
+    return newMemberSteps
   }, [isApproved, hasCertificat, hasDeploiements, hasCiblages])
 
-  const steps = getSteps()
+  const steps = activeSteps.length > 0 ? activeSteps : getSteps()
+
+  const filterVisibleSteps = useCallback(() => {
+    const allSteps = getSteps()
+    const visible = allSteps.filter(step => {
+      const el = document.querySelector(step.target)
+      if (!el) return false
+      const rect = el.getBoundingClientRect()
+      const style = window.getComputedStyle(el)
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
+    })
+    setActiveSteps(visible)
+  }, [getSteps])
 
   useEffect(() => {
     if (forceStart) {
-      setShowStartModal(true)
+      setTimeout(() => { filterVisibleSteps(); setShowStartModal(true) }, 500)
       return
     }
     const tourKey = isApproved ? 'riusc-tour-approved' : 'riusc-tour-new'
     const hasSeenTour = localStorage.getItem(tourKey)
     if (!hasSeenTour) {
-      const timer = setTimeout(() => {
-        setShowStartModal(true)
-      }, 1500)
+      const timer = setTimeout(() => { filterVisibleSteps(); setShowStartModal(true) }, 1500)
       return () => clearTimeout(timer)
     }
-  }, [isApproved, forceStart])
+  }, [isApproved, forceStart, filterVisibleSteps])
 
   const endTour = useCallback(() => {
     setIsActive(false)
@@ -226,11 +123,8 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
 
     const element = document.querySelector(step.target)
     if (!element) {
-      if (stepIndex < steps.length - 1) {
-        setCurrentStep(stepIndex + 1)
-      } else {
-        endTour()
-      }
+      if (stepIndex < steps.length - 1) setCurrentStep(stepIndex + 1)
+      else endTour()
       return
     }
 
@@ -238,187 +132,75 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     const padding = 12
 
     setHighlightStyle({
-      position: 'fixed',
-      top: rect.top - padding,
-      left: rect.left - padding,
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
-      borderRadius: '12px',
-      boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-      pointerEvents: 'none',
-      zIndex: 10001,
-      transition: 'all 0.4s ease'
+      position: 'fixed', top: rect.top - padding, left: rect.left - padding,
+      width: rect.width + padding * 2, height: rect.height + padding * 2,
+      borderRadius: '12px', boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
+      pointerEvents: 'none', zIndex: 10001, transition: 'all 0.4s ease'
     })
 
     const tooltipWidth = Math.min(380, window.innerWidth - 40)
     const position = step.position || 'bottom'
-
-    let top = 0
-    let left = 0
-    let arrowTop = ''
-    let arrowLeft = ''
-    let arrowBorder = {}
+    let top = 0, left = 0, arrowTop = '', arrowLeft = '', arrowBorder = {}
 
     switch (position) {
       case 'bottom':
         top = rect.bottom + padding + 16
-        left = Math.max(20, Math.min(
-          rect.left + rect.width / 2 - tooltipWidth / 2,
-          window.innerWidth - tooltipWidth - 20
-        ))
+        left = Math.max(20, Math.min(rect.left + rect.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 20))
         arrowTop = '-8px'
         arrowLeft = `${Math.min(Math.max(rect.left + rect.width / 2 - left, 20), tooltipWidth - 20)}px`
-        arrowBorder = {
-          borderLeft: '8px solid transparent',
-          borderRight: '8px solid transparent',
-          borderBottom: '8px solid white'
-        }
+        arrowBorder = { borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid white' }
         break
       case 'top':
         top = rect.top - padding - 16 - 200
-        left = Math.max(20, Math.min(
-          rect.left + rect.width / 2 - tooltipWidth / 2,
-          window.innerWidth - tooltipWidth - 20
-        ))
+        left = Math.max(20, Math.min(rect.left + rect.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 20))
         arrowTop = 'auto'
         arrowLeft = `${Math.min(Math.max(rect.left + rect.width / 2 - left, 20), tooltipWidth - 20)}px`
-        arrowBorder = {
-          borderLeft: '8px solid transparent',
-          borderRight: '8px solid transparent',
-          borderTop: '8px solid white',
-          bottom: '-8px'
-        }
+        arrowBorder = { borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid white', bottom: '-8px' }
         break
     }
 
-    setTooltipStyle({
-      position: 'fixed',
-      top,
-      left,
-      width: tooltipWidth,
-      zIndex: 10002,
-      transition: 'all 0.4s ease'
-    })
-
-    setArrowStyle({
-      position: 'absolute' as const,
-      top: arrowTop,
-      left: arrowLeft,
-      width: 0,
-      height: 0,
-      ...arrowBorder
-    })
+    setTooltipStyle({ position: 'fixed', top, left, width: tooltipWidth, zIndex: 10002, transition: 'all 0.4s ease' })
+    setArrowStyle({ position: 'absolute' as const, top: arrowTop, left: arrowLeft, width: 0, height: 0, ...arrowBorder })
   }, [steps, endTour])
 
   useEffect(() => {
     if (!isActive) return
-
     const step = steps[currentStep]
     if (!step) return
-
     const element = document.querySelector(step.target)
-    if (!element) return
-
+    if (!element) {
+      if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1)
+      else endTour()
+      return
+    }
     element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-
-    const timer = setTimeout(() => {
-      positionTooltip(currentStep)
-    }, 400)
-
+    const timer = setTimeout(() => positionTooltip(currentStep), 500)
     return () => clearTimeout(timer)
-  }, [isActive, currentStep, steps, positionTooltip])
+  }, [isActive, currentStep, steps, positionTooltip, endTour])
 
   useEffect(() => {
     if (!isActive) return
-
     const handleUpdate = () => positionTooltip(currentStep)
     window.addEventListener('resize', handleUpdate)
     window.addEventListener('scroll', handleUpdate, true)
-    return () => {
-      window.removeEventListener('resize', handleUpdate)
-      window.removeEventListener('scroll', handleUpdate, true)
-    }
+    return () => { window.removeEventListener('resize', handleUpdate); window.removeEventListener('scroll', handleUpdate, true) }
   }, [isActive, currentStep, positionTooltip])
 
-  const startTour = () => {
-    setShowStartModal(false)
-    setCurrentStep(0)
-    setIsActive(true)
-  }
-
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
-    } else {
-      endTour()
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  const skipTour = () => {
-    setShowStartModal(false)
-    const tourKey = isApproved ? 'riusc-tour-approved' : 'riusc-tour-new'
-    localStorage.setItem(tourKey, 'true')
-    if (onTourEnd) onTourEnd()
-  }
+  const startTour = () => { setShowStartModal(false); filterVisibleSteps(); setCurrentStep(0); setIsActive(true) }
+  const nextStep = () => { if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1); else endTour() }
+  const prevStep = () => { if (currentStep > 0) setCurrentStep(currentStep - 1) }
+  const skipTour = () => { setShowStartModal(false); const tourKey = isApproved ? 'riusc-tour-approved' : 'riusc-tour-new'; localStorage.setItem(tourKey, 'true'); if (onTourEnd) onTourEnd() }
 
   if (showStartModal) {
     return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10000
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '28px 24px',
-          maxWidth: '360px',
-          width: '85%',
-          textAlign: 'center',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-        }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            backgroundColor: '#f0f4f8',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px',
-            fontSize: '28px'
-          }}>
-            👋
-          </div>
-          <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '22px', fontWeight: '700' }}>
-            {isApproved ? 'Découvrez votre portail !' : 'Bienvenue dans la RIUSC !'}
-          </h3>
-          <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px', lineHeight: '1.6' }}>
-            {isApproved
-              ? 'Laissez-nous vous faire un tour rapide de votre espace réserviste.'
-              : 'On vous guide en quelques étapes pour bien démarrer votre parcours de réserviste.'
-            }
-          </p>
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px 24px', maxWidth: '360px', width: '85%', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ width: '64px', height: '64px', backgroundColor: '#f0f4f8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>👋</div>
+          <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '22px', fontWeight: '700' }}>{isApproved ? 'Découvrez votre portail !' : 'Bienvenue dans la RIUSC !'}</h3>
+          <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px', lineHeight: '1.6' }}>{isApproved ? 'Laissez-nous vous faire un tour rapide de votre espace réserviste.' : 'On vous guide en quelques étapes pour bien démarrer votre parcours de réserviste.'}</p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button onClick={skipTour} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '500' }}>
-              Plus tard
-            </button>
-            <button onClick={startTour} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '600' }}>
-              C&apos;est parti !
-            </button>
+            <button onClick={skipTour} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '500' }}>Plus tard</button>
+            <button onClick={startTour} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '600' }}>C&apos;est parti !</button>
           </div>
         </div>
       </div>
@@ -426,7 +208,6 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
   }
 
   if (!isActive) return null
-
   const step = steps[currentStep]
 
   return (
@@ -441,28 +222,14 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
               <div style={{ height: '100%', backgroundColor: '#1e3a5f', width: `${((currentStep + 1) / steps.length) * 100}%`, transition: 'width 0.3s ease', borderRadius: '2px' }} />
             </div>
             <div style={{ padding: '20px 24px' }}>
-              <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px', fontWeight: '500' }}>
-                Étape {currentStep + 1} de {steps.length}
-              </div>
-              <h4 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '17px', fontWeight: '700' }}>
-                {step.title}
-              </h4>
-              <p style={{ color: '#4b5563', margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.6' }}>
-                {step.content}
-              </p>
+              <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px', fontWeight: '500' }}>Étape {currentStep + 1} de {steps.length}</div>
+              <h4 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '17px', fontWeight: '700' }}>{step.title}</h4>
+              <p style={{ color: '#4b5563', margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.6' }}>{step.content}</p>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button onClick={endTour} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#9ca3af', border: 'none', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>
-                  Passer le guide
-                </button>
+                <button onClick={endTour} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#9ca3af', border: 'none', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>Passer le guide</button>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {currentStep > 0 && (
-                    <button onClick={prevStep} style={{ padding: '8px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>
-                      ← Précédent
-                    </button>
-                  )}
-                  <button onClick={nextStep} style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>
-                    {currentStep === steps.length - 1 ? 'Terminer ✓' : 'Suivant →'}
-                  </button>
+                  {currentStep > 0 && <button onClick={prevStep} style={{ padding: '8px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>← Précédent</button>}
+                  <button onClick={nextStep} style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>{currentStep === steps.length - 1 ? 'Terminer ✓' : 'Suivant →'}</button>
                 </div>
               </div>
             </div>
