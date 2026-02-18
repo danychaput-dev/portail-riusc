@@ -26,15 +26,9 @@ const newMemberSteps: TourStep[] = [
     position: 'bottom'
   },
   {
-    target: '[data-tour="certificats"]',
-    title: 'Étape 1 : Compléter la formation',
-    content: 'C\'est votre première priorité ! Suivez la formation en ligne « S\'initier à la sécurité civile » puis soumettez votre certificat ici.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="camp"]',
-    title: 'Étape 2 : Camp de qualification',
-    content: 'Inscrivez-vous à un camp de qualification pour devenir réserviste certifié.',
+    target: '[data-tour="formation"]',
+    title: 'Étape 1 : Formation et parcours',
+    content: 'C\'est votre première priorité ! Suivez la formation en ligne, soumettez votre certificat et inscrivez-vous au camp de qualification.',
     position: 'bottom'
   },
   {
@@ -89,9 +83,9 @@ const approvedMemberSteps: TourStep[] = [
     position: 'bottom'
   },
   {
-    target: '[data-tour="certificats"]',
-    title: 'Vos certificats',
-    content: 'Vos certificats de formation sont conservés ici. Vous pouvez en ajouter à tout moment.',
+    target: '[data-tour="formation"]',
+    title: 'Formation et parcours',
+    content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
     position: 'top'
   }
 ]
@@ -128,9 +122,9 @@ const approvedWithDeploiementsSteps: TourStep[] = [
     position: 'bottom'
   },
   {
-    target: '[data-tour="certificats"]',
-    title: 'Vos certificats',
-    content: 'Vos certificats de formation sont conservés ici. Vous pouvez en ajouter à tout moment.',
+    target: '[data-tour="formation"]',
+    title: 'Formation et parcours',
+    content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
     position: 'top'
   }
 ]
@@ -178,7 +172,6 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     if (onTourEnd) onTourEnd()
   }, [isApproved, onTourEnd])
 
-  // Utilise position: fixed pour que ça marche avec sticky header
   const positionTooltip = useCallback((stepIndex: number) => {
     const step = steps[stepIndex]
     if (!step) return
@@ -193,7 +186,6 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
       return
     }
 
-    // getBoundingClientRect donne les coords viewport — parfait pour position: fixed
     const rect = element.getBoundingClientRect()
     const padding = 12
 
@@ -270,7 +262,6 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     })
   }, [steps, endTour])
 
-  // Scroll vers l'élément puis positionner après que le scroll soit fini
   useEffect(() => {
     if (!isActive) return
 
@@ -289,7 +280,6 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     return () => clearTimeout(timer)
   }, [isActive, currentStep, steps, positionTooltip])
 
-  // Repositionner au scroll et resize
   useEffect(() => {
     if (!isActive) return
 
