@@ -125,7 +125,7 @@ function FormationContent() {
       reservisteData = data;
     }
     if (!reservisteData && user.phone) {
-      const phoneDigits = user.phone.replace(/\\D/g, '');
+      const phoneDigits = user.phone.replace(/\D/g, '');
       const { data } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneDigits).single();
       if (!data) {
         const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits;
@@ -202,7 +202,6 @@ function FormationContent() {
 
   const openCampModal = async () => {
     setShowCampModal(true); setLoadingSessions(true); setInscriptionError(null); setInscriptionSuccess(false); setSelectedSessionId('');
-    // Pré-remplir depuis le profil
     setModalAllergiesAlim(reserviste?.allergies_alimentaires || '');
     setModalAllergiesAutres(reserviste?.allergies_autres || '');
     setModalConditions(reserviste?.conditions_medicales || '');
@@ -220,7 +219,6 @@ function FormationContent() {
     if (!reserviste.consent_photo && !modalConsentPhoto) { setInscriptionError('Veuillez accepter le consentement photo/vidéo pour continuer.'); return; }
     setInscriptionLoading(true); setInscriptionError(null);
     try {
-      // Sauvegarder allergies + consent dans Supabase
       const { error: updateError } = await supabase
         .from('reservistes')
         .update({
@@ -288,9 +286,9 @@ function FormationContent() {
   );
 
   const steps = [
-    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '??', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '??', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
-    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '??️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
+    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
+    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
+    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
   ];
   const completedCount = steps.filter(s => s.done).length;
   const progressPercent = Math.round((completedCount / 3) * 100);
@@ -532,10 +530,10 @@ function FormationContent() {
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                   <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                    ?? Accéder à la formation
+                    🎓 Accéder à la formation
                   </a>
                   <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                    ?? Tutoriel vidéo
+                    📺 Tutoriel vidéo
                   </a>
                 </div>
               </div>
@@ -546,7 +544,7 @@ function FormationContent() {
                 {certificats.map((cert) => (
                   <div key={cert.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '8px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>??</span>
+                      <span style={{ fontSize: '20px' }}>📄</span>
                       <span style={{ fontSize: '14px', color: '#374151' }}>{cert.name}</span>
                     </div>
                     {cert.url && (
@@ -567,7 +565,7 @@ function FormationContent() {
 
             <input ref={certificatInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertificatUpload} style={{ display: 'none' }} />
             <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
-              {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '?? Soumettre mon certificat' : '➕ Ajouter un certificat'}
+              {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '📤 Soumettre mon certificat' : '➕ Ajouter un certificat'}
             </button>
             <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
           </div>
@@ -615,7 +613,7 @@ function FormationContent() {
                       S&apos;inscrire à un camp de qualification
                     </button>
                     <a href="/tournee-camps" style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                      ??️ Voir la tournée des camps
+                      🗓️ Voir la tournée des camps
                     </a>
                   </div>
                 </div>
@@ -634,7 +632,7 @@ function FormationContent() {
           {isApproved && (
             <a href="/dossier" style={{ textDecoration: 'none' }}>
               <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e5e7eb'; }}>
-                <span style={{ fontSize: '28px' }}>??</span>
+                <span style={{ fontSize: '28px' }}>📋</span>
                 <div>
                   <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Mon dossier réserviste</div>
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>Compétences et certifications</div>
@@ -644,7 +642,7 @@ function FormationContent() {
           )}
           <a href="/informations" style={{ textDecoration: 'none' }}>
             <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e5e7eb'; }}>
-              <span style={{ fontSize: '28px' }}>??</span>
+              <span style={{ fontSize: '28px' }}>📚</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Informations pratiques</div>
                 <div style={{ fontSize: '13px', color: '#6b7280' }}>Documents, ressources et références</div>
@@ -653,7 +651,7 @@ function FormationContent() {
           </a>
           <a href="/communaute" style={{ textDecoration: 'none' }}>
             <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', cursor: 'pointer' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e5e7eb'; }}>
-              <span style={{ fontSize: '28px' }}>??</span>
+              <span style={{ fontSize: '28px' }}>💬</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Communauté</div>
                 <div style={{ fontSize: '13px', color: '#6b7280' }}>Échangez avec les réservistes</div>
