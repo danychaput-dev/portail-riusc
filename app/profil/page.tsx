@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
-import * as faceapi from 'face-api.js'
+import ImageCropper from '@/app/components/ImageCropper'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 
@@ -40,21 +40,17 @@ interface MapboxFeature {
 // Fonction pour formater les numéros de téléphone à l'affichage
 function formatPhoneDisplay(phone: string | null | undefined): string {
   if (!phone) return ''
-  // Enlève tout sauf les chiffres
   const digits = phone.replace(/\D/g, '')
-  // Format (XXX) XXX-XXXX pour 10 chiffres
   if (digits.length === 10) {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
   }
-  // Format (XXX) XXX-XXXX pour 11 chiffres commençant par 1
   if (digits.length === 11 && digits[0] === '1') {
     return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
   }
-  // Retourne tel quel si format inconnu
   return phone
 }
 
-// Fonction pour nettoyer le téléphone avant sauvegarde (garde seulement les chiffres)
+// Fonction pour nettoyer le téléphone avant sauvegarde
 function cleanPhoneForSave(phone: string): string {
   return phone.replace(/\D/g, '')
 }
@@ -66,10 +62,8 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   
-  // Garder l'email original pour détecter les changements
   const [originalEmail, setOriginalEmail] = useState('')
   
-  // États pour le formulaire
   const [formData, setFormData] = useState({
     prenom: '',
     nom: '',
@@ -93,12 +87,8 @@ export default function ProfilPage() {
   const addressInputRef = useRef<HTMLInputElement>(null)
   const addressDropdownRef = useRef<HTMLDivElement>(null)
   
-  // États pour la photo
+  // État pour la photo
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [faceDetectionStatus, setFaceDetectionStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [modelsLoaded, setModelsLoaded] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Menu utilisateur
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -106,19 +96,6 @@ export default function ProfilPage() {
   
   const router = useRouter()
   const supabase = createClient()
-
-  // Charger les modèles face-api
-  useEffect(() => {
-    const loadModels = async () => {
-      try {
-        await faceapi.nets.tinyFaceDetector.loadFromUri('/models')
-        setModelsLoaded(true)
-      } catch (error) {
-        console.error('Erreur chargement modèles face-api:', error)
-      }
-    }
-    loadModels()
-  }, [])
 
   // Fermer le menu utilisateur quand on clique ailleurs
   useEffect(() => {
@@ -144,7 +121,6 @@ export default function ProfilPage() {
       
       let reservisteData = null
       
-      // Chercher par email si disponible
       if (user.email) {
         const { data } = await supabase
           .from('reservistes')
@@ -154,7 +130,6 @@ export default function ProfilPage() {
         reservisteData = data
       }
       
-      // Sinon chercher par téléphone
       if (!reservisteData && user.phone) {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
@@ -164,7 +139,6 @@ export default function ProfilPage() {
           .single()
         
         if (!data) {
-          // Essayer sans le 1 au début
           const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
           const { data: data2 } = await supabase
             .from('reservistes')
@@ -195,9 +169,6 @@ export default function ProfilPage() {
           contact_urgence_nom: reservisteData.contact_urgence_nom || '',
           contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone)
         })
-        if (reservisteData.photo_url) {
-          setPhotoPreview(reservisteData.photo_url)
-        }
       }
       
       setLoading(false)
@@ -257,7 +228,6 @@ export default function ProfilPage() {
   const selectAddress = (feature: MapboxFeature) => {
     const [lng, lat] = feature.center
     
-    // Extraire la ville du contexte
     let ville = ''
     if (feature.context) {
       const placeContext = feature.context.find(c => c.id.startsWith('place'))
@@ -293,7 +263,6 @@ export default function ProfilPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Formater le téléphone quand l'utilisateur quitte le champ
   const handlePhoneBlur = (field: 'telephone' | 'telephone_secondaire' | 'contact_urgence_telephone') => {
     setFormData(prev => ({
       ...prev,
@@ -301,115 +270,45 @@ export default function ProfilPage() {
     }))
   }
 
-  // Gérer l'upload de photo avec détection de visage
-  const handlePhotoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    // Vérifier le type de fichier
-    if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'Veuillez sélectionner une image' })
-      return
-    }
-
-    // Vérifier la taille (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: 'error', text: 'L\'image ne doit pas dépasser 5 Mo' })
-      return
-    }
-
-    setFaceDetectionStatus('loading')
-    setMessage(null)
-
-    // Créer une preview
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      const imageDataUrl = e.target?.result as string
-      
-      // Détecter le visage
-      if (modelsLoaded) {
-        try {
-          const img = document.createElement('img')
-          img.src = imageDataUrl
-          await new Promise((resolve) => { img.onload = resolve })
-          
-          const detections = await faceapi.detectAllFaces(img, new faceapi.TinyFaceDetectorOptions())
-          
-          if (detections.length === 0) {
-            setFaceDetectionStatus('error')
-            setMessage({ type: 'error', text: 'Aucun visage détecté. Veuillez choisir une photo avec votre visage visible.' })
-            return
-          }
-          
-          if (detections.length > 1) {
-            setFaceDetectionStatus('error')
-            setMessage({ type: 'error', text: 'Plusieurs visages détectés. Veuillez choisir une photo avec un seul visage.' })
-            return
-          }
-          
-          setFaceDetectionStatus('success')
-          setPhotoPreview(imageDataUrl)
-          
-          // Upload vers Supabase
-          await uploadPhoto(file)
-          
-        } catch (error) {
-          console.error('Erreur détection visage:', error)
-          setFaceDetectionStatus('error')
-          setMessage({ type: 'error', text: 'Erreur lors de l\'analyse de la photo' })
-        }
-      } else {
-        // Si les modèles ne sont pas chargés, uploader quand même
-        setPhotoPreview(imageDataUrl)
-        await uploadPhoto(file)
-      }
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const uploadPhoto = async (file: File) => {
+  // Upload photo croppée vers Supabase
+  const handleCroppedPhoto = async (croppedBlob: Blob) => {
     if (!reserviste) return
 
     setUploadingPhoto(true)
-    
+    setMessage(null)
+
     try {
-      // Nom unique pour le fichier
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${reserviste.benevole_id}-${Date.now()}.${fileExt}`
-      
-      // Upload vers Supabase Storage
+      const fileName = `${reserviste.benevole_id}-${Date.now()}.jpg`
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true })
-      
-      if (uploadError) {
-        throw uploadError
-      }
-      
-      // Obtenir l'URL publique
+        .upload(fileName, croppedBlob, {
+          contentType: 'image/jpeg',
+          upsert: true,
+        })
+
+      if (uploadError) throw uploadError
+
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName)
-      
-      // Mettre à jour la table reservistes
+
       const { error: updateError } = await supabase
         .from('reservistes')
         .update({ photo_url: publicUrl })
         .eq('id', reserviste.id)
-      
-      if (updateError) {
-        throw updateError
-      }
-      
+
+      if (updateError) throw updateError
+
       setReserviste(prev => prev ? { ...prev, photo_url: publicUrl } : null)
       setMessage({ type: 'success', text: 'Photo mise à jour avec succès' })
-      
     } catch (error) {
       console.error('Erreur upload photo:', error)
-      setMessage({ type: 'error', text: 'Erreur lors de l\'upload de la photo' })
+      setMessage({ type: 'error', text: "Erreur lors de l'upload de la photo" })
+      throw error // Re-throw pour que le cropper sache qu'il y a eu erreur
+    } finally {
+      setUploadingPhoto(false)
     }
-    
-    setUploadingPhoto(false)
   }
 
   // Synchroniser vers Monday.com via n8n
@@ -432,9 +331,7 @@ export default function ProfilPage() {
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       })
       
@@ -443,7 +340,6 @@ export default function ProfilPage() {
       }
     } catch (error) {
       console.error('Erreur sync Monday:', error)
-      // Ne pas bloquer la sauvegarde si Monday échoue
     }
   }
 
@@ -455,7 +351,6 @@ export default function ProfilPage() {
     setMessage(null)
 
     try {
-      // 1. Mettre à jour la table reservistes
       const { error: reservisteError } = await supabase
         .from('reservistes')
         .update({
@@ -477,14 +372,12 @@ export default function ProfilPage() {
 
       if (reservisteError) throw reservisteError
 
-      // 2. Si l'email a changé, mettre à jour auth.users
       if (formData.email !== originalEmail && formData.email) {
         const { error: authError } = await supabase.auth.updateUser({
           email: formData.email
         })
         
         if (authError) {
-          // Rollback le changement d'email dans reservistes si auth échoue
           await supabase
             .from('reservistes')
             .update({ email: originalEmail })
@@ -493,11 +386,9 @@ export default function ProfilPage() {
           throw new Error(`Erreur mise à jour email: ${authError.message}. Un email de confirmation a peut-être été envoyé.`)
         }
         
-        // Mettre à jour l'email original
         setOriginalEmail(formData.email)
       }
 
-      // 3. Synchroniser vers Monday.com (en arrière-plan)
       syncToMonday({
         benevole_id: reserviste.benevole_id,
         prenom: formData.prenom,
@@ -516,8 +407,6 @@ export default function ProfilPage() {
       })
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
-      
-      // Mettre à jour l'état local
       setReserviste(prev => prev ? { ...prev, ...formData } : null)
       
     } catch (error: any) {
@@ -620,9 +509,9 @@ export default function ProfilPage() {
                 </div>
                 <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
               </div>
-              {photoPreview ? (
+              {reserviste?.photo_url ? (
                 <img
-                  src={photoPreview}
+                  src={reserviste.photo_url}
                   alt="Photo de profil"
                   style={{
                     width: '40px',
@@ -756,7 +645,7 @@ export default function ProfilPage() {
 
         {reserviste ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Section Photo */}
+            {/* Section Photo avec ImageCropper */}
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
@@ -768,77 +657,31 @@ export default function ProfilPage() {
               </h3>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-                {/* Aperçu photo */}
-                <div style={{
-                  width: '120px',
-                  height: '120px',
-                  borderRadius: '50%',
-                  backgroundColor: '#f3f4f6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden',
-                  border: '3px solid #e5e7eb'
-                }}>
-                  {photoPreview ? (
-                    <img
-                      src={photoPreview}
-                      alt="Photo de profil"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                  ) : (
-                    <div style={{
-                      fontSize: '48px',
-                      fontWeight: '600',
-                      color: '#9ca3af'
-                    }}>
-                      {getInitials()}
-                    </div>
-                  )}
-                </div>
+                <ImageCropper
+                  currentPhotoUrl={reserviste.photo_url}
+                  initials={getInitials()}
+                  size={120}
+                  uploading={uploadingPhoto}
+                  onCropComplete={handleCroppedPhoto}
+                />
                 
                 <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    style={{ display: 'none' }}
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingPhoto}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#1e3a5f',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                      opacity: uploadingPhoto ? 0.7 : 1
-                    }}
-                  >
-                    {uploadingPhoto ? 'Téléchargement...' : 'Changer la photo'}
-                  </button>
                   <p style={{ 
-                    margin: '12px 0 0 0', 
+                    margin: '0 0 8px 0', 
+                    fontSize: '14px', 
+                    fontWeight: '500',
+                    color: '#374151'
+                  }}>
+                    Cliquez sur la photo pour la modifier
+                  </p>
+                  <p style={{ 
+                    margin: 0, 
                     fontSize: '13px', 
                     color: '#6b7280',
                     maxWidth: '300px'
                   }}>
-                    La photo doit montrer clairement votre visage. Format JPG ou PNG, max 5 Mo.
+                    Vous pourrez recadrer et zoomer l'image. Format JPG ou PNG, max 10 Mo.
                   </p>
-                  {faceDetectionStatus === 'loading' && (
-                    <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#2563eb' }}>
-                      Analyse de la photo en cours...
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -1082,7 +925,7 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            {/* Section Statut (lecture seule) */}
+            {/* Section Statut */}
             <div style={{
               backgroundColor: 'white',
               padding: '24px',
