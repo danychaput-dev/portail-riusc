@@ -537,6 +537,7 @@ export default function HomePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <style>{`@media (max-width: 640px) { .hide-mobile { display: none !important; } }`}</style>
       {showCampModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
           <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '550px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -648,7 +649,21 @@ export default function HomePage() {
             <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = showUserMenu ? '#f3f4f6' : 'transparent'}>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email}</div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
+                  {loadingCamp ? (
+                    <span style={{ color: '#6b7280' }}>Réserviste</span>
+                  ) : isApproved && campStatus?.is_certified ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <span className="hide-mobile" style={{ color: '#059669', fontWeight: '600' }}>Déployable</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      <span className="hide-mobile" style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
+                    </>
+                  )}
+                </div>
               </div>
               {reserviste?.photo_url ? (
                 <img src={reserviste.photo_url} alt="Photo de profil" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
