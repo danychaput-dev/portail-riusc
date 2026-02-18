@@ -28,43 +28,31 @@ interface Langue {
 }
 
 interface DossierData {
-  // Identité (lecture seule)
   prenom: string
   nom: string
   email: string
   date_naissance: string
-  // Infos complémentaires
   grandeur_bottes: string
   j_ai_18_ans: boolean
-  // Santé
   allergies_alimentaires: string
   allergies_autres: string
   problemes_sante: string
   groupe_sanguin: string
-  // Compétences RS (conditionnel AQBRS)
   competence_rs: number[]
-  // Premiers soins
   certificat_premiers_soins: number[]
   date_expiration_certificat: string
-  // Véhicules
   vehicule_tout_terrain: number[]
   navire_marin: number[]
   permis_conduire: number[]
   disponible_covoiturage: number[]
-  // Spécialisé
   satp_drone: number[]
   equipe_canine: number[]
   competences_securite: number[]
   competences_sauvetage: number[]
-  // Système de commandement
   certification_csi: number[]
-  // Communication
   communication: number[]
-  // Cartographie
   cartographie_sig: number[]
-  // Opérations urgence
   operation_urgence: number[]
-  // Notes
   autres_competences: string
   commentaire: string
   confidentialite: boolean
@@ -74,10 +62,13 @@ interface DossierData {
 
 const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
 
+// Langues épinglées en haut
+const LANGUES_EPINGLEES = ['Anglais', 'Espagnol', 'Français']
+
 const OPTIONS: Record<string, { id: number; label: string }[]> = {
   competence_rs: [
     { id: 1, label: 'Niveau 1 - Équipier' },
-    { id: 2, label: 'Niveau 2 - Chef d\'équipe' },
+    { id: 2, label: "Niveau 2 - Chef d'équipe" },
     { id: 3, label: 'Niveau 3 - Responsable des opérations' },
   ],
   certificat_premiers_soins: [
@@ -94,7 +85,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 4, label: 'Côte à côte / Side by side' },
   ],
   navire_marin: [
-    { id: 1, label: 'Permis d\'embarcation de plaisance' },
+    { id: 1, label: "Permis d'embarcation de plaisance" },
     { id: 2, label: 'Petits bateaux / Small craft' },
   ],
   permis_conduire: [
@@ -102,7 +93,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 2, label: 'Classe 4b Autobus (4-14 passagers) / Bus (4-14 passengers)' },
     { id: 3, label: 'Classe 2 Autobus (24+ passager) / Bus (24+ passenger)' },
     { id: 4, label: 'Classe 1 Ensemble de véhicules routiers / Heavy vehicle' },
-    { id: 5, label: 'Classe 4a Véhicule d\'urgence / Emergency vehicle' },
+    { id: 5, label: "Classe 4a Véhicule d'urgence / Emergency vehicle" },
     { id: 6, label: 'Classe 3 Camions / Trucks' },
     { id: 7, label: 'Classe 6 Motocyclette / Motocycle' },
   ],
@@ -142,7 +133,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 4, label: 'Radio générale opérateur / General radio operator' },
     { id: 5, label: 'Radio restreinte / Restricted radio' },
     { id: 6, label: 'PCRS / GSAR Radio operator' },
-    { id: 7, label: 'Télécommunication d\'urgence / Emergency telecommunication' },
+    { id: 7, label: "Télécommunication d'urgence / Emergency telecommunication" },
   ],
   cartographie_sig: [
     { id: 1, label: 'ArcGIS Pro' },
@@ -153,7 +144,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 6, label: 'Autre / Other' },
   ],
   operation_urgence: [
-    { id: 1, label: 'Gestion de l\'hébergement / Shelter management' },
+    { id: 1, label: "Gestion de l'hébergement / Shelter management" },
     { id: 2, label: 'Gestion de point de service / Service point management' },
     { id: 3, label: 'Accueil et inscription / Reception and registration' },
     { id: 4, label: 'Alimentation / Food services' },
@@ -191,6 +182,16 @@ function isOlderThan18(dateStr: string): boolean {
   return age > 18 || (age === 18 && (m > 0 || (m === 0 && today.getDate() >= dob.getDate())))
 }
 
+function checkboxRow(selected: boolean): React.CSSProperties {
+  return {
+    display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
+    borderRadius: '8px', cursor: 'pointer',
+    backgroundColor: selected ? '#eff6ff' : '#f9fafb',
+    border: selected ? '1px solid #bfdbfe' : '1px solid transparent',
+    transition: 'background-color 0.15s',
+  }
+}
+
 // ─── Composants UI ───────────────────────────────────────────────────────────
 
 function Section({ title, icon, description, children, confidential }: {
@@ -224,7 +225,7 @@ function TextInput({ label, value, onChange, placeholder, disabled, type = 'text
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; disabled?: boolean; type?: string
 }) {
-  const base = { width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', backgroundColor: disabled ? '#f3f4f6' : 'white', boxSizing: 'border-box' as const, cursor: disabled ? 'not-allowed' as const : 'text' as const }
+  const base: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', backgroundColor: disabled ? '#f3f4f6' : 'white', boxSizing: 'border-box', cursor: disabled ? 'not-allowed' : 'text' }
   return (
     <div style={{ marginBottom: '16px' }}>
       <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>{label}</label>
@@ -251,7 +252,7 @@ function RadioGroupId({ label, options, value, onChange }: {
   const selectedId = value[0] || 0
   return (
     <div style={{ marginBottom: '16px' }}>
-      <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>{label}</label>
+      {label && <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>{label}</label>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {options.map(opt => (
           <label key={opt.id} style={checkboxRow(selectedId === opt.id)}>
@@ -295,28 +296,18 @@ function Checkbox({ label, checked, onChange }: { label: string; checked: boolea
   )
 }
 
-function checkboxRow(selected: boolean): React.CSSProperties {
-  return {
-    display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
-    borderRadius: '8px', cursor: 'pointer',
-    backgroundColor: selected ? '#eff6ff' : '#f9fafb',
-    border: selected ? '1px solid #bfdbfe' : '1px solid transparent',
-    transition: 'background-color 0.15s',
-  }
-}
-
 // ─── Composant liste dynamique (Organisations / Langues) ─────────────────────
 
-function DynamicList({ myIds, allItems, newIds, newName, showInput, onToggleNew, onSetNewName, onSetShowInput, label, addLabel, placeholder, globalNote }: {
+function DynamicList({ myIds, allItems, pinnedNoms, newIds, newName, showInput, onToggleNew, onSetNewName, onSetShowInput, addLabel, placeholder, globalNote }: {
   myIds: string[]
   allItems: { id: string; nom: string }[]
+  pinnedNoms?: string[]
   newIds: string[]
   newName: string
   showInput: boolean
   onToggleNew: (id: string) => void
   onSetNewName: (v: string) => void
   onSetShowInput: (v: boolean) => void
-  label?: string
   addLabel: string
   placeholder: string
   globalNote?: string
@@ -324,12 +315,20 @@ function DynamicList({ myIds, allItems, newIds, newName, showInput, onToggleNew,
   const myItems = allItems.filter(o => myIds.includes(o.id))
   const available = allItems.filter(o => !myIds.includes(o.id))
 
+  // Séparer les épinglés du reste dans les disponibles
+  const pinnedAvailable = pinnedNoms
+    ? available.filter(o => pinnedNoms.includes(o.nom))
+    : []
+  const restAvailable = pinnedNoms
+    ? available.filter(o => !pinnedNoms.includes(o.nom))
+    : available
+
   return (
     <div>
       {/* Items déjà liés (verrouillés) */}
       {myItems.length > 0 && (
         <div style={{ marginBottom: '16px' }}>
-          {label && <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0 0 8px 0' }}>{label}</p>}
+          <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0 0 8px 0' }}>Mes sélections actuelles</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {myItems.map(item => (
               <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '13px', fontWeight: '500', color: '#1e3a5f' }}>
@@ -344,15 +343,37 @@ function DynamicList({ myIds, allItems, newIds, newName, showInput, onToggleNew,
       {available.length > 0 && (
         <div style={{ marginBottom: '12px' }}>
           <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0 0 8px 0' }}>Ajouter</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '220px', overflowY: 'auto', padding: '2px 0' }}>
-            {available.map(item => (
-              <label key={item.id} style={checkboxRow(newIds.includes(item.id))}>
-                <input type="checkbox" checked={newIds.includes(item.id)} onChange={() => onToggleNew(item.id)}
-                  style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0 }} />
-                <span style={{ fontSize: '14px', color: '#374151' }}>{item.nom}</span>
-              </label>
-            ))}
-          </div>
+
+          {/* Épinglés en premier */}
+          {pinnedAvailable.length > 0 && (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {pinnedAvailable.map(item => (
+                  <label key={item.id} style={checkboxRow(newIds.includes(item.id))}>
+                    <input type="checkbox" checked={newIds.includes(item.id)} onChange={() => onToggleNew(item.id)}
+                      style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0 }} />
+                    <span style={{ fontSize: '14px', color: '#374151' }}>{item.nom}</span>
+                  </label>
+                ))}
+              </div>
+              {restAvailable.length > 0 && (
+                <div style={{ margin: '8px 0', borderTop: '1px solid #e5e7eb' }} />
+              )}
+            </>
+          )}
+
+          {/* Reste de la liste avec scroll */}
+          {restAvailable.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '220px', overflowY: 'auto', padding: '2px 0' }}>
+              {restAvailable.map(item => (
+                <label key={item.id} style={checkboxRow(newIds.includes(item.id))}>
+                  <input type="checkbox" checked={newIds.includes(item.id)} onChange={() => onToggleNew(item.id)}
+                    style={{ accentColor: '#1e3a5f', width: '16px', height: '16px', flexShrink: 0 }} />
+                  <span style={{ fontSize: '14px', color: '#374151' }}>{item.nom}</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -406,7 +427,6 @@ export default function DossierPage() {
   const [showNewLangueInput, setShowNewLangueInput] = useState(false)
 
   const isAqbrsLinked = myOrgIds.includes(AQBRS_ORG_ID) || newOrgIds.includes(AQBRS_ORG_ID)
-
   const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== ''
   const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== ''
   const anyChanges = hasChanges || orgHasChanges || langueHasChanges
@@ -666,7 +686,7 @@ export default function DossierPage() {
           <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
         </div>
 
-        {/* ── Identité ── */}
+        {/* ── 1. Identité ── */}
         <Section title="Identité" icon="👤">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
             <TextInput label="Prénom" value={dossier.prenom} onChange={() => {}} disabled />
@@ -686,7 +706,7 @@ export default function DossierPage() {
           )}
         </Section>
 
-        {/* ── Santé ── */}
+        {/* ── 2. Santé ── */}
         <Section
           title="Santé"
           icon="🏥"
@@ -721,7 +741,33 @@ export default function DossierPage() {
           />
         </Section>
 
-        {/* ── Compétences RS (conditionnel AQBRS) ── */}
+        {/* ── 3. Organisations d'appartenance ── */}
+        <Section
+          title="Organisations d'appartenance"
+          icon="🏢"
+          description="À quelles organisations êtes-vous affilié? Vos associations sont permanentes — vous pouvez en ajouter, mais pas en retirer."
+        >
+          <DynamicList
+            myIds={myOrgIds}
+            allItems={allOrgs}
+            newIds={newOrgIds}
+            newName={newOrgName}
+            showInput={showNewOrgInput}
+            onToggleNew={id => setNewOrgIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+            onSetNewName={setNewOrgName}
+            onSetShowInput={setShowNewOrgInput}
+            addLabel="Mon organisation n'est pas dans la liste"
+            placeholder="Ex: Croix-Rouge canadienne"
+            globalNote="Cette organisation sera ajoutée à la liste globale pour tous les réservistes."
+          />
+          {myOrgIds.length === 0 && newOrgIds.length === 0 && !newOrgName.trim() && (
+            <div style={{ padding: '12px 14px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginTop: '12px' }}>
+              ⚠️ Aucune organisation associée — veuillez en sélectionner au moins une.
+            </div>
+          )}
+        </Section>
+
+        {/* ── 4. Compétences RS (conditionnel AQBRS) ── */}
         {isAqbrsLinked && (
           <Section
             title="Compétences en recherche et sauvetage"
@@ -737,7 +783,7 @@ export default function DossierPage() {
           </Section>
         )}
 
-        {/* ── Certifications ── */}
+        {/* ── 5. Certifications premiers soins ── */}
         <Section
           title="Certifications en premiers soins"
           icon="🩺"
@@ -757,7 +803,7 @@ export default function DossierPage() {
           />
         </Section>
 
-        {/* ── Système de commandement ── */}
+        {/* ── 6. Système de commandement ── */}
         <Section
           title="Système de commandement des interventions"
           icon="🎖️"
@@ -771,7 +817,7 @@ export default function DossierPage() {
           />
         </Section>
 
-        {/* ── Transport ── */}
+        {/* ── 7. Transport ── */}
         <Section
           title="Transport et véhicules"
           icon="🚗"
@@ -809,7 +855,7 @@ export default function DossierPage() {
           </div>
         </Section>
 
-        {/* ── Compétences spécialisées ── */}
+        {/* ── 8. Compétences spécialisées ── */}
         <Section
           title="Compétences spécialisées"
           icon="⚙️"
@@ -847,7 +893,7 @@ export default function DossierPage() {
           </div>
         </Section>
 
-        {/* ── Communication ── */}
+        {/* ── 9. Communication ── */}
         <Section
           title="Communication"
           icon="📡"
@@ -861,7 +907,7 @@ export default function DossierPage() {
           />
         </Section>
 
-        {/* ── Cartographie ── */}
+        {/* ── 10. Cartographie ── */}
         <Section
           title="Cartographie et SIG"
           icon="🗺️"
@@ -875,7 +921,7 @@ export default function DossierPage() {
           />
         </Section>
 
-        {/* ── Opérations d'urgence ── */}
+        {/* ── 11. Opérations d'urgence — 2 colonnes ── */}
         <Section
           title="Opérations d'urgence"
           icon="🚨"
@@ -886,10 +932,11 @@ export default function DossierPage() {
             options={OPTIONS.operation_urgence}
             values={dossier.operation_urgence}
             onChange={v => updateDossier('operation_urgence', v)}
+            columns={2}
           />
         </Section>
 
-        {/* ── Langues ── */}
+        {/* ── 12. Langues ── */}
         <Section
           title="Langues"
           icon="🌐"
@@ -898,6 +945,7 @@ export default function DossierPage() {
           <DynamicList
             myIds={myLangueIds}
             allItems={allLangues}
+            pinnedNoms={LANGUES_EPINGLEES}
             newIds={newLangueIds}
             newName={newLangueName}
             showInput={showNewLangueInput}
@@ -910,33 +958,7 @@ export default function DossierPage() {
           />
         </Section>
 
-        {/* ── Affiliation / Organisations ── */}
-        <Section
-          title="Organisations d'appartenance"
-          icon="🏢"
-          description="À quelles organisations êtes-vous affilié? Vos associations sont permanentes — vous pouvez en ajouter, mais pas en retirer."
-        >
-          <DynamicList
-            myIds={myOrgIds}
-            allItems={allOrgs}
-            newIds={newOrgIds}
-            newName={newOrgName}
-            showInput={showNewOrgInput}
-            onToggleNew={id => setNewOrgIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
-            onSetNewName={setNewOrgName}
-            onSetShowInput={setShowNewOrgInput}
-            addLabel="Mon organisation n'est pas dans la liste"
-            placeholder="Ex: Croix-Rouge canadienne"
-            globalNote="Cette organisation sera ajoutée à la liste globale pour tous les réservistes."
-          />
-          {myOrgIds.length === 0 && newOrgIds.length === 0 && !newOrgName.trim() && (
-            <div style={{ padding: '12px 14px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', color: '#92400e', marginTop: '12px' }}>
-              ⚠️ Aucune organisation associée — veuillez en sélectionner au moins une.
-            </div>
-          )}
-        </Section>
-
-        {/* ── Notes ── */}
+        {/* ── 13. Notes ── */}
         <Section title="Notes et commentaires" icon="📝">
           <TextArea
             label="Autres compétences"
