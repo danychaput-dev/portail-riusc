@@ -24,6 +24,9 @@ interface Reserviste {
   longitude?: number | null;
   contact_urgence_nom?: string;
   contact_urgence_telephone?: string;
+  allergies_alimentaires?: string;
+  allergies_autres?: string;
+  conditions_medicales?: string;
   statut: string;
   photo_url?: string;
 }
@@ -77,7 +80,10 @@ export default function ProfilPage() {
     latitude: null as number | null,
     longitude: null as number | null,
     contact_urgence_nom: '',
-    contact_urgence_telephone: ''
+    contact_urgence_telephone: '',
+    allergies_alimentaires: '',
+    allergies_autres: '',
+    conditions_medicales: ''
   })
   
   // États pour l'autocomplete adresse
@@ -175,7 +181,10 @@ export default function ProfilPage() {
           latitude: reservisteData.latitude || null,
           longitude: reservisteData.longitude || null,
           contact_urgence_nom: reservisteData.contact_urgence_nom || '',
-          contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone)
+          contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
+          allergies_alimentaires: reservisteData.allergies_alimentaires || '',
+          allergies_autres: reservisteData.allergies_autres || '',
+          conditions_medicales: reservisteData.conditions_medicales || ''
         })
       }
       
@@ -407,6 +416,9 @@ export default function ProfilPage() {
     longitude: number | null;
     contact_urgence_nom: string;
     contact_urgence_telephone: string;
+    allergies_alimentaires: string;
+    allergies_autres: string;
+    conditions_medicales: string;
   }) => {
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
@@ -446,7 +458,10 @@ export default function ProfilPage() {
           latitude: formData.latitude,
           longitude: formData.longitude,
           contact_urgence_nom: formData.contact_urgence_nom || null,
-          contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone) || null
+          contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone) || null,
+          allergies_alimentaires: formData.allergies_alimentaires || null,
+          allergies_autres: formData.allergies_autres || null,
+          conditions_medicales: formData.conditions_medicales || null
         })
         .eq('id', reserviste.id)
 
@@ -483,7 +498,10 @@ export default function ProfilPage() {
         latitude: formData.latitude,
         longitude: formData.longitude,
         contact_urgence_nom: formData.contact_urgence_nom,
-        contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone)
+        contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone),
+        allergies_alimentaires: formData.allergies_alimentaires,
+        allergies_autres: formData.allergies_autres,
+        conditions_medicales: formData.conditions_medicales
       })
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
@@ -1040,6 +1058,65 @@ export default function ProfilPage() {
                     onBlur={() => handlePhoneBlur('contact_urgence_telephone')}
                     style={inputStyle}
                     placeholder="(514) 123-4567"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Section Santé */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '24px',
+              borderRadius: '12px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>
+                Santé et allergies
+              </h3>
+              <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px 0' }}>
+                Ces informations sont confidentielles et servent uniquement en cas d&apos;urgence lors d&apos;un déploiement.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <label style={labelStyle}>Allergies alimentaires</label>
+                  <textarea
+                    value={formData.allergies_alimentaires}
+                    onChange={(e) => handleInputChange('allergies_alimentaires', e.target.value)}
+                    style={{
+                      ...inputStyle,
+                      minHeight: '60px',
+                      resize: 'vertical' as const
+                    }}
+                    placeholder="Ex : arachides, fruits de mer, gluten... (laisser vide si aucune)"
+                  />
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Autres allergies</label>
+                  <textarea
+                    value={formData.allergies_autres}
+                    onChange={(e) => handleInputChange('allergies_autres', e.target.value)}
+                    style={{
+                      ...inputStyle,
+                      minHeight: '60px',
+                      resize: 'vertical' as const
+                    }}
+                    placeholder="Ex : pénicilline, piqûres d'abeilles, latex... (laisser vide si aucune)"
+                  />
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Conditions médicales</label>
+                  <textarea
+                    value={formData.conditions_medicales}
+                    onChange={(e) => handleInputChange('conditions_medicales', e.target.value)}
+                    style={{
+                      ...inputStyle,
+                      minHeight: '60px',
+                      resize: 'vertical' as const
+                    }}
+                    placeholder="Ex : asthme, diabète, épilepsie... (laisser vide si aucune)"
                   />
                 </div>
               </div>
