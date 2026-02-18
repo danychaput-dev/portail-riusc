@@ -6,6 +6,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
+const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 
 interface MapboxFeature {
   place_name: string;
@@ -81,7 +82,7 @@ export default function InscriptionPage() {
     region: '',
     latitude: null as number | null,
     longitude: null as number | null,
-    groupe_rs: '',
+    groupe_rs: [] as string[],
     commentaire: '',
     confirm_18: false,
     consent_photos: false,
@@ -95,7 +96,7 @@ export default function InscriptionPage() {
   const [showNewOrgInput, setShowNewOrgInput] = useState(false)
   const [loadingOrgs, setLoadingOrgs] = useState(true)
   // ────────────────────────────────────────────────────────────────────────────
-  
+
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
@@ -109,9 +110,11 @@ export default function InscriptionPage() {
   const villeInputRef = useRef<HTMLInputElement>(null)
   const villeDropdownRef = useRef<HTMLDivElement>(null)
   const villeDebounceRef = useRef<NodeJS.Timeout | null>(null)
-  
+
   const router = useRouter()
   const supabase = createClient()
+
+  const isAqbrsSelected = selectedOrgIds.includes(AQBRS_ORG_ID)
 
   const [campId, setCampId] = useState('')
   useEffect(() => {
@@ -123,7 +126,6 @@ export default function InscriptionPage() {
     }
   }, [])
 
-  // Charger les organisations au démarrage
   useEffect(() => {
     const fetchOrgs = async () => {
       const { data } = await supabase
@@ -163,12 +165,25 @@ export default function InscriptionPage() {
   }
 
   const toggleOrg = (id: string) => {
+    // Si on décoche AQBRS, vider les groupes RS
+    if (id === AQBRS_ORG_ID && selectedOrgIds.includes(id)) {
+      setFormData(prev => ({ ...prev, groupe_rs: [] }))
+    }
     setSelectedOrgIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     )
     if (fieldErrors.organisations) {
       setFieldErrors(prev => ({ ...prev, organisations: '' }))
     }
+  }
+
+  const toggleGroupeRS = (groupe: string) => {
+    setFormData(prev => ({
+      ...prev,
+      groupe_rs: prev.groupe_rs.includes(groupe)
+        ? prev.groupe_rs.filter(g => g !== groupe)
+        : [...prev.groupe_rs, groupe]
+    }))
   }
 
   const searchAddress = useCallback(async (query: string) => {
@@ -283,17 +298,21 @@ export default function InscriptionPage() {
         } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
       }
 
-      // Appel webhook inscription
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean, telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse, ville: formData.ville, region: formData.region, latitude: formData.latitude, longitude: formData.longitude, groupe_rs: formData.groupe_rs, groupe: 'Nouveaux', commentaire: formData.commentaire, camp_id: campId || null })
+        body: JSON.stringify({
+          prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean,
+          telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse,
+          ville: formData.ville, region: formData.region, latitude: formData.latitude,
+          longitude: formData.longitude,
+          groupe_rs: formData.groupe_rs.length > 0 ? formData.groupe_rs.join(', ') : '',
+          groupe: 'Nouveaux', commentaire: formData.commentaire, camp_id: campId || null
+        })
       })
       if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
 
-      // Lier les organisations via Supabase
-      // On attend un court délai pour que le webhook ait le temps de créer le réserviste
+      // Lier les organisations après la création du réserviste
       await new Promise(resolve => setTimeout(resolve, 1500))
-
       const { data: newReserviste } = await supabase
         .from('reservistes')
         .select('benevole_id')
@@ -302,34 +321,23 @@ export default function InscriptionPage() {
 
       if (newReserviste?.benevole_id) {
         let orgIdsToLink = [...selectedOrgIds]
-
-        // Créer la nouvelle organisation si renseignée
         if (newOrgName.trim()) {
           const { data: createdOrg, error: createError } = await supabase
             .from('organisations')
             .insert({ nom: newOrgName.trim(), created_by: newReserviste.benevole_id })
             .select('id')
             .single()
-
           if (createError) {
-            // Doublon — retrouver l'existante
             const { data: existingOrg } = await supabase
-              .from('organisations')
-              .select('id')
-              .ilike('nom', newOrgName.trim())
-              .single()
+              .from('organisations').select('id').ilike('nom', newOrgName.trim()).single()
             if (existingOrg) orgIdsToLink.push(existingOrg.id)
           } else if (createdOrg) {
             orgIdsToLink.push(createdOrg.id)
           }
         }
-
         if (orgIdsToLink.length > 0) {
           await supabase.from('reserviste_organisations').insert(
-            orgIdsToLink.map(organisation_id => ({
-              benevole_id: newReserviste.benevole_id,
-              organisation_id
-            }))
+            orgIdsToLink.map(organisation_id => ({ benevole_id: newReserviste.benevole_id, organisation_id }))
           )
         }
       }
@@ -339,10 +347,26 @@ export default function InscriptionPage() {
     setLoading(false)
   }
 
+  // ─── Styles communs ──────────────────────────────────────────────────────────
   const inputStyle = { width: '100%', padding: '12px 14px', fontSize: '15px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' as const, color: '#111827', backgroundColor: 'white' }
   const inputErrorStyle = { ...inputStyle, border: '2px solid #dc2626' }
   const labelStyle = { display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' as const, color: '#374151' }
+  const sectionStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+  const sectionTitleStyle = { color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' as const }
+  const sectionDescStyle = { color: '#6b7280', fontSize: '13px', margin: '-12px 0 20px 0' }
+  const checkboxRowStyle = (selected: boolean): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    backgroundColor: selected ? '#eff6ff' : '#f9fafb',
+    border: selected ? '1px solid #bfdbfe' : '1px solid transparent',
+    transition: 'background-color 0.15s',
+  })
   const requiredStar = <span style={{ color: '#dc2626', marginLeft: '2px' }}>*</span>
+  // ────────────────────────────────────────────────────────────────────────────
 
   if (step === 'success') {
     return (
@@ -380,9 +404,10 @@ export default function InscriptionPage() {
         {message && (<div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', backgroundColor: message.type === 'success' ? '#d1fae5' : '#fef2f2', color: message.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>{message.text}</div>)}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Section Informations personnelles */}
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Informations personnelles</h3>
+
+          {/* ── Informations personnelles ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Informations personnelles</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
               <div>
                 <label style={labelStyle}>Prénom {requiredStar}</label>
@@ -407,9 +432,9 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          {/* Section Localisation */}
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Localisation</h3>
+          {/* ── Localisation ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Localisation</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
               <div style={{ gridColumn: '1 / -1', position: 'relative' }}>
                 <label style={labelStyle}>Adresse {requiredStar}</label>
@@ -425,7 +450,6 @@ export default function InscriptionPage() {
                   </div>
                 )}
               </div>
-              
               <div style={{ position: 'relative' }}>
                 <label style={labelStyle}>Ville</label>
                 <input ref={villeInputRef} type="text" value={formData.ville} onChange={(e) => handleVilleChange(e.target.value)} onFocus={() => formData.ville.length >= 2 && villeSuggestions.length > 0 && setShowVilleSuggestions(true)} style={inputStyle} placeholder="Tapez votre ville..." autoComplete="off" />
@@ -441,7 +465,6 @@ export default function InscriptionPage() {
                   </div>
                 )}
               </div>
-              
               <div>
                 <label style={labelStyle}>Région administrative {requiredStar}</label>
                 <input type="text" value={formData.region} readOnly style={{ ...inputStyle, backgroundColor: formData.region ? '#f0fdf4' : '#f3f4f6', cursor: 'not-allowed', borderColor: formData.region ? '#86efac' : (fieldErrors.region ? '#dc2626' : '#d1d5db'), borderWidth: fieldErrors.region ? '2px' : '1px' }} placeholder="Détectée automatiquement selon la ville" />
@@ -451,14 +474,10 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          {/* Section Organisations */}
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: fieldErrors.organisations ? '2px solid #dc2626' : 'none' }}>
-            <h3 style={{ color: '#1e3a5f', margin: '0 0 6px 0', fontSize: '18px', fontWeight: '600' }}>
-              Organisation d&apos;appartenance {requiredStar}
-            </h3>
-            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px 0' }}>
-              Sélectionnez toutes les organisations dont vous faites partie.
-            </p>
+          {/* ── Organisations ── */}
+          <div style={{ ...sectionStyle, border: fieldErrors.organisations ? '2px solid #dc2626' : 'none' }}>
+            <h3 style={sectionTitleStyle}>Organisation d&apos;appartenance {requiredStar}</h3>
+            <p style={sectionDescStyle}>Sélectionnez toutes les organisations dont vous faites partie.</p>
 
             {fieldErrors.organisations && (
               <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '13px', color: '#dc2626', marginBottom: '16px' }}>
@@ -470,56 +489,29 @@ export default function InscriptionPage() {
               <p style={{ fontSize: '14px', color: '#9ca3af' }}>Chargement des organisations...</p>
             ) : (
               <>
-                {allOrgs.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px', maxHeight: '260px', overflowY: 'auto', padding: '2px 0' }}>
-                    {allOrgs.map(org => (
-                      <label
-                        key={org.id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          padding: '10px 14px',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          backgroundColor: selectedOrgIds.includes(org.id) ? '#eff6ff' : '#f9fafb',
-                          border: selectedOrgIds.includes(org.id) ? '1px solid #bfdbfe' : '1px solid transparent',
-                          transition: 'background-color 0.15s',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedOrgIds.includes(org.id)}
-                          onChange={() => toggleOrg(org.id)}
-                          style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
-                        />
-                        <span style={{ fontSize: '14px', color: '#374151' }}>{org.nom}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px', maxHeight: '280px', overflowY: 'auto', padding: '2px 0' }}>
+                  {allOrgs.map(org => (
+                    <label key={org.id} style={checkboxRowStyle(selectedOrgIds.includes(org.id))}>
+                      <input
+                        type="checkbox"
+                        checked={selectedOrgIds.includes(org.id)}
+                        onChange={() => toggleOrg(org.id)}
+                        style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: '14px', color: '#374151' }}>{org.nom}</span>
+                    </label>
+                  ))}
+                </div>
 
-                {/* Ajouter une org qui n'existe pas */}
                 {!showNewOrgInput ? (
                   <button
                     onClick={() => setShowNewOrgInput(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '9px 16px',
-                      backgroundColor: 'transparent',
-                      border: '1px dashed #9ca3af',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      color: '#6b7280',
-                      cursor: 'pointer',
-                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 16px', backgroundColor: 'transparent', border: '1px dashed #9ca3af', borderRadius: '8px', fontSize: '13px', color: '#6b7280', cursor: 'pointer' }}
                   >
                     + Mon organisation n&apos;est pas dans la liste
                   </button>
                 ) : (
-                  <div style={{ marginTop: '4px' }}>
+                  <div>
                     <label style={{ ...labelStyle, marginBottom: '8px' }}>Nom de votre organisation</label>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <input
@@ -545,27 +537,37 @@ export default function InscriptionPage() {
             )}
           </div>
 
-          {/* Section Informations supplémentaires */}
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Informations supplémentaires</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <label style={labelStyle}>Membre d&apos;un groupe de R.S. de l&apos;AQBRS</label>
-                <select value={formData.groupe_rs} onChange={(e) => handleInputChange('groupe_rs', e.target.value)} style={inputStyle}>
-                  <option value="">Aucun / Je ne fais pas partie d&apos;un groupe</option>
-                  {GROUPES_RS.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={labelStyle}>Commentaire</label>
-                <textarea value={formData.commentaire} onChange={(e) => handleInputChange('commentaire', e.target.value)} style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} placeholder="Optionnel" />
+          {/* ── Groupe RS (conditionnel si AQBRS coché) ── */}
+          {isAqbrsSelected && (
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Membre d&apos;un groupe de Recherche et Sauvetage de l&apos;AQBRS</h3>
+              <p style={sectionDescStyle}>Sélectionnez votre groupe si applicable.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '280px', overflowY: 'auto', padding: '2px 0' }}>
+                {GROUPES_RS.map(groupe => (
+                  <label key={groupe} style={checkboxRowStyle(formData.groupe_rs.includes(groupe))}>
+                    <input
+                      type="checkbox"
+                      checked={formData.groupe_rs.includes(groupe)}
+                      onChange={() => toggleGroupeRS(groupe)}
+                      style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#374151' }}>{groupe}</span>
+                  </label>
+                ))}
               </div>
             </div>
+          )}
+
+          {/* ── Informations supplémentaires ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Informations supplémentaires</h3>
+            <label style={labelStyle}>Commentaire</label>
+            <textarea value={formData.commentaire} onChange={(e) => handleInputChange('commentaire', e.target.value)} style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} placeholder="Optionnel" />
           </div>
 
-          {/* Section Confirmations */}
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Confirmations requises</h3>
+          {/* ── Confirmations ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Confirmations requises</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.confirm_18 ? '#fef2f2' : '#f9fafb', border: fieldErrors.confirm_18 ? '1px solid #fca5a5' : '1px solid transparent' }}>
                 <input type="checkbox" checked={formData.confirm_18} onChange={(e) => handleInputChange('confirm_18', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
@@ -587,7 +589,7 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          {/* Boutons */}
+          {/* ── Boutons ── */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ padding: '12px 24px', color: '#6b7280', fontSize: '14px', textDecoration: 'none' }}>← Retour à la connexion</a>
             <button onClick={handleSubmit} disabled={loading} style={{ padding: '14px 40px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.2s' }}>
