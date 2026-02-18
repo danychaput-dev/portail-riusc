@@ -72,6 +72,7 @@ export default function HomePage() {
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [unreadCount, setUnreadCount] = useState(0)
   
   const [certificats, setCertificats] = useState<CertificatFile[]>([])
   const [loadingCertificats, setLoadingCertificats] = useState(true)
@@ -275,6 +276,20 @@ export default function HomePage() {
         }
       }
       
+      // Compter messages non lus communauté
+      const { data: lastSeen } = await supabase
+        .from('community_last_seen')
+        .select('last_seen_at')
+        .eq('user_id', user.id)
+        .single()
+
+      const since = lastSeen?.last_seen_at || '2000-01-01'
+      const { count } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .gt('created_at', since)
+
+      if (count) setUnreadCount(count)
       setLoading(false)
     }
     loadData()
