@@ -97,6 +97,13 @@ export default function CommunautePage() {
       } else { reservisteData = data; }
     }
     if (reservisteData) setReserviste(reservisteData);
+    // Marquer la communauté comme vue
+    await supabase.from('community_last_seen').upsert({
+      user_id: user.id,
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
+    setLoading(false);
     setLoading(false);
   }
 
