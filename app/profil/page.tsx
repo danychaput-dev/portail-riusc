@@ -40,7 +40,7 @@ interface MapboxFeature {
 // Fonction pour formater les numéros de téléphone à l'affichage
 function formatPhoneDisplay(phone: string | null | undefined): string {
   if (!phone) return ''
-  const digits = phone.replace(/\D/g, '')
+  const digits = phone.replace(/\\D/g, '')
   if (digits.length === 10) {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
   }
@@ -52,7 +52,7 @@ function formatPhoneDisplay(phone: string | null | undefined): string {
 
 // Fonction pour nettoyer le téléphone avant sauvegarde
 function cleanPhoneForSave(phone: string): string {
-  return phone.replace(/\D/g, '')
+  return phone.replace(/\\D/g, '')
 }
 
 export default function ProfilPage() {
@@ -86,6 +86,14 @@ export default function ProfilPage() {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false)
   const addressInputRef = useRef<HTMLInputElement>(null)
   const addressDropdownRef = useRef<HTMLDivElement>(null)
+  
+  // États pour l'autocomplete ville
+  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string }>>([])
+  const [showVilleSuggestions, setShowVilleSuggestions] = useState(false)
+  const [isLoadingVille, setIsLoadingVille] = useState(false)
+  const villeInputRef = useRef<HTMLInputElement>(null)
+  const villeDropdownRef = useRef<HTMLDivElement>(null)
+  const villeDebounceRef = useRef<NodeJS.Timeout | null>(null)
   
   // État pour la photo
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
@@ -131,7 +139,7 @@ export default function ProfilPage() {
       }
       
       if (!reservisteData && user.phone) {
-        const phoneDigits = user.phone.replace(/\D/g, '')
+        const phoneDigits = user.phone.replace(/\\D/g, '')
         const { data } = await supabase
           .from('reservistes')
           .select('*')
@@ -182,6 +190,18 @@ export default function ProfilPage() {
       if (addressDropdownRef.current && !addressDropdownRef.current.contains(event.target as Node) &&
           addressInputRef.current && !addressInputRef.current.contains(event.target as Node)) {
         setShowAddressSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Fermer le dropdown ville quand on clique ailleurs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (villeDropdownRef.current && !villeDropdownRef.current.contains(event.target as Node) &&
+          villeInputRef.current && !villeInputRef.current.contains(event.target as Node)) {
+        setShowVilleSuggestions(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -245,6 +265,66 @@ export default function ProfilPage() {
     }))
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
+
+    // Auto-lookup région from ville
+    if (ville) {
+      lookupRegionFromVille(ville)
+    }
+  }
+
+  // Rechercher des villes dans municipalites_qc
+  const searchVille = async (query: string) => {
+    if (query.length < 2) {
+      setVilleSuggestions([])
+      return
+    }
+    setIsLoadingVille(true)
+    try {
+      const { data, error } = await supabase
+        .from('municipalites_qc')
+        .select('municipalite, region_administrative, mrc')
+        .ilike('municipalite', `${query}%`)
+        .order('municipalite')
+        .limit(8)
+      if (!error && data) {
+        setVilleSuggestions(data)
+        setShowVilleSuggestions(true)
+      }
+    } catch (e) {
+      console.error('Erreur recherche ville:', e)
+    }
+    setIsLoadingVille(false)
+  }
+
+  const handleVilleChange = (value: string) => {
+    setFormData(prev => ({ ...prev, ville: value, region: '' }))
+    if (villeDebounceRef.current) clearTimeout(villeDebounceRef.current)
+    villeDebounceRef.current = setTimeout(() => {
+      searchVille(value)
+    }, 250)
+  }
+
+  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      ville: suggestion.municipalite,
+      region: suggestion.region_administrative
+    }))
+    setShowVilleSuggestions(false)
+    setVilleSuggestions([])
+  }
+
+  const lookupRegionFromVille = async (ville: string) => {
+    if (!ville) return
+    const { data } = await supabase
+      .from('municipalites_qc')
+      .select('region_administrative')
+      .ilike('municipalite', ville)
+      .limit(1)
+      .single()
+    if (data) {
+      setFormData(prev => ({ ...prev, region: data.region_administrative }))
+    }
   }
 
   const handleSignOut = async () => {
@@ -848,42 +928,82 @@ export default function ProfilPage() {
                   )}
                 </div>
                 
-                <div>
+                <div style={{ position: 'relative' }}>
                   <label style={labelStyle}>Ville</label>
                   <input
+                    ref={villeInputRef}
                     type="text"
                     value={formData.ville}
-                    readOnly
-                    style={{
-                      ...inputStyle,
-                      backgroundColor: '#f3f4f6',
-                      cursor: 'not-allowed'
-                    }}
-                    placeholder="Rempli automatiquement par l'adresse"
+                    onChange={(e) => handleVilleChange(e.target.value)}
+                    onFocus={() => formData.ville.length >= 2 && villeSuggestions.length > 0 && setShowVilleSuggestions(true)}
+                    style={inputStyle}
+                    placeholder="Tapez votre ville..."
+                    autoComplete="off"
                   />
+                  {isLoadingVille && (
+                    <div style={{ position: 'absolute', right: '12px', top: '38px', fontSize: '12px', color: '#6b7280' }}>
+                      Recherche...
+                    </div>
+                  )}
+                  {showVilleSuggestions && villeSuggestions.length > 0 && (
+                    <div
+                      ref={villeDropdownRef}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                        zIndex: 1000,
+                        marginTop: '4px',
+                        maxHeight: '250px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {villeSuggestions.map((s, i) => (
+                        <div
+                          key={i}
+                          onClick={() => selectVille(s)}
+                          style={{
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            borderBottom: i < villeSuggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
+                            fontSize: '14px',
+                            color: '#374151'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          <div style={{ fontWeight: '500' }}>{s.municipalite}</div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af' }}>{s.region_administrative}{s.mrc ? ` — ${s.mrc}` : ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div>
                   <label style={labelStyle}>Région administrative</label>
-                  <select
+                  <input
+                    type="text"
                     value={formData.region}
-                    onChange={(e) => handleInputChange('region', e.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">-- Sélectionnez une région --</option>
-                    <option value="Abitibi-Témiscamingue / Nord-du-Québec">Abitibi-Témiscamingue / Nord-du-Québec</option>
-                    <option value="Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine">Bas-St-Laurent / Gaspésie / Iles-de-la-Madeleine</option>
-                    <option value="Capitale-Nationale / Chaudière-Appalaches">Capitale-Nationale / Chaudière-Appalaches</option>
-                    <option value="Côte-Nord">Côte-Nord</option>
-                    <option value="Estrie">Estrie</option>
-                    <option value="Mauricie / Centre-du-Québec">Mauricie / Centre-du-Québec</option>
-                    <option value="Montréal / Laval / Laurentides / Lanaudière">Montréal / Laval / Laurentides / Lanaudière</option>
-                    <option value="Montérégie">Montérégie</option>
-                    <option value="Nord du Québec">Nord du Québec</option>
-                    <option value="Ontario">Ontario</option>
-                    <option value="Outaouais">Outaouais</option>
-                    <option value="Saguenay / Lac-St-Jean">Saguenay / Lac-St-Jean</option>
-                  </select>
+                    readOnly
+                    style={{
+                      ...inputStyle,
+                      backgroundColor: formData.region ? '#f0fdf4' : '#f3f4f6',
+                      cursor: 'not-allowed',
+                      borderColor: formData.region ? '#86efac' : '#d1d5db'
+                    }}
+                    placeholder="Détectée automatiquement selon la ville"
+                  />
+                  {formData.region && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>
+                      ✓ Détectée automatiquement
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
