@@ -187,6 +187,27 @@ export default function InformationsPage() {
               <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
             </a>
 
+            {/* Loi sur la sécurité civile — Article 88 */}
+            <a
+              href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.3#se:88"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', textDecoration: 'none', transition: 'all 0.2s' }}
+              onMouseOver={(e) => { e.currentTarget.style.borderColor = '#1e3a5f'; e.currentTarget.style.backgroundColor = '#f0f4f8' }}
+              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.backgroundColor = '#f9fafb' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '28px' }}>⚖️</span>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Protection prévue à la Loi sur la sécurité civile</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px', maxWidth: '680px', lineHeight: '1.5' }}>
+                    Les réservistes sont invités à consulter l&apos;article 88 de la Loi sur la sécurité civile (RLRQ, c. S-2.3) concernant la protection des employés appelés à participer à des mesures liées à un sinistre.
+                  </div>
+                </div>
+              </div>
+              <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </a>
+
             {/* Fiches de tâches */}
             <a
               href="/deploiement/taches"
@@ -307,12 +328,7 @@ export default function InformationsPage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {/* Attestation de formation */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <span style={{ fontSize: '28px' }}>🎓</span>
                   <div>
@@ -323,12 +339,7 @@ export default function InformationsPage() {
                 <span style={{ fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>Non disponible</span>
               </div>
 
-              {/* Lettre pour employeur */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                   <span style={{ fontSize: '28px' }}>✉️</span>
                   <div>
