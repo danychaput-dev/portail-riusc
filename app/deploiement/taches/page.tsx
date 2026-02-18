@@ -397,7 +397,9 @@ function FichesTachesContent() {
         <div style={{ marginBottom: '24px' }}>
           <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
         </div>
-
+        <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px' }}>
+          <p style={{ margin: 0, color: '#991b1b', fontSize: '14px', fontWeight: 700 }}>⚠️ Document en cours d&apos;élaboration - Ne pas utiliser comme référence opérationnelle. Les consignes officielles sont transmises au briefing terrain.</p>
+        </div>
         {/* Bandeau info */}
         <div style={{ backgroundColor: '#fef3c7', border: '2px solid #f59e0b', borderRadius: '12px', padding: '20px 24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -408,9 +410,7 @@ function FichesTachesContent() {
                 Les réservistes RIUSC interviennent exclusivement en <strong>zone froide </strong>, sous supervision des autorités responsables (SOPFEU ou Croix-Rouge).
                 Les consignes sont précisées au <strong>briefing</strong> en début de quart et adaptées au contexte réel du terrain. Référence : Programme SST RIUSC (v7.x).
               </p>
-              <div style={{ marginTop: '14px', padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px' }}>
-                <p style={{ margin: 0, color: '#991b1b', fontSize: '14px', fontWeight: 700 }}>⚠️ Document en cours d&apos;élaboration - Ne pas utiliser comme référence opérationnelle. Les consignes officielles sont transmises au briefing terrain.</p>
-              </div>
+              
               <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px dashed #f59e0b' }}>
                 
                 <p style={{ margin: '0 0 6px 0', fontWeight: 700, color: '#92400e', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Légende - acronymes</p>
