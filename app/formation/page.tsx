@@ -13,6 +13,12 @@ interface Reserviste {
   telephone?: string;
   photo_url?: string;
   groupe?: string;
+  date_naissance?: string;
+  adresse?: string;
+  ville?: string;
+  region?: string;
+  contact_urgence_nom?: string;
+  contact_urgence_telephone?: string;
 }
 
 interface CampInfo {
@@ -75,6 +81,8 @@ export default function FormationPage() {
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone';
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -94,20 +102,23 @@ export default function FormationPage() {
 
     let reservisteData = null;
     if (user.email) {
-      const { data } = await supabase.from('reservistes').select('benevole_id, prenom, nom, email, telephone, photo_url, groupe').ilike('email', user.email).single();
+      const { data } = await supabase.from('reservistes').select(selectFields).ilike('email', user.email).single();
       reservisteData = data;
     }
     if (!reservisteData && user.phone) {
       const phoneDigits = user.phone.replace(/\D/g, '');
-      const { data } = await supabase.from('reservistes').select('benevole_id, prenom, nom, email, telephone, photo_url, groupe').eq('telephone', phoneDigits).single();
+      const { data } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneDigits).single();
       if (!data) {
         const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits;
-        const { data: data2 } = await supabase.from('reservistes').select('benevole_id, prenom, nom, email, telephone, photo_url, groupe').eq('telephone', phoneWithout1).single();
+        const { data: data2 } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneWithout1).single();
         reservisteData = data2;
       } else { reservisteData = data; }
     }
 
-    if (reservisteData && reservisteData.benevole_id) {
+    if (reservisteData) {
+      setReserviste(reservisteData);
+
+      if (reservisteData.benevole_id) {
         // Certificats
         try {
           const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`);
@@ -131,6 +142,11 @@ export default function FormationPage() {
         setLoadingCertificats(false);
         setLoadingCamp(false);
       }
+    } else {
+      setLoadingCertificats(false);
+      setLoadingCamp(false);
+    }
+
     setLoading(false);
   }
 
@@ -208,17 +224,27 @@ export default function FormationPage() {
     return user?.email?.charAt(0).toUpperCase() || 'U';
   }
 
-  // Calcul progression onboarding
+  const isProfilComplet = !!(
+    reserviste &&
+    reserviste.prenom &&
+    reserviste.nom &&
+    reserviste.email &&
+    reserviste.telephone &&
+    reserviste.date_naissance &&
+    reserviste.adresse &&
+    reserviste.ville &&
+    reserviste.region &&
+    reserviste.contact_urgence_nom &&
+    reserviste.contact_urgence_telephone
+  );
+
   const steps = [
-    {{ id: 'profil', label: 'Compléter mon profil', done: !!(reserviste && reserviste.prenom && reserviste.email), href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
+    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
     { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
     { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
-    { id: 'dossier', label: 'Mon dossier réserviste', done: false, href: '/dossier', emoji: '📋', description: 'Compétences, certifications et informations complémentaires' },
-    { id: 'infos', label: 'Informations pratiques', done: false, href: '/informations', emoji: '📚', description: 'Documents, ressources et références utiles' },
-    { id: 'communaute', label: 'Communauté', done: false, href: '/communaute', emoji: '💬', description: 'Échangez avec les autres réservistes' },
   ];
   const completedCount = steps.filter(s => s.done).length;
-  const progressPercent = Math.round((completedCount / 3) * 100); // Sur les 3 premières étapes obligatoires
+  const progressPercent = Math.round((completedCount / 3) * 100);
 
   if (loading) {
     return (<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>);
@@ -342,17 +368,19 @@ export default function FormationPage() {
         </div>
 
         {/* ÉTAPE 1 : Profil */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: steps[0].done ? '1px solid #10b981' : '2px solid #f59e0b', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: isProfilComplet ? '1px solid #10b981' : '2px solid #f59e0b', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: steps[0].done ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-              {steps[0].done ? '✅' : '1'}
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: isProfilComplet ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+              {isProfilComplet ? '✅' : '1'}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>{steps[0].label}</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{steps[0].description}</div>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Compléter mon profil</div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                {isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles'}
+              </div>
             </div>
-            <a href="/profil" style={{ padding: '8px 16px', backgroundColor: steps[0].done ? 'white' : '#1e3a5f', color: steps[0].done ? '#1e3a5f' : 'white', border: steps[0].done ? '1px solid #1e3a5f' : 'none', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', flexShrink: 0 }}>
-              {steps[0].done ? 'Voir' : 'Compléter'}
+            <a href="/profil" style={{ padding: '8px 16px', backgroundColor: isProfilComplet ? 'white' : '#1e3a5f', color: isProfilComplet ? '#1e3a5f' : 'white', border: isProfilComplet ? '1px solid #1e3a5f' : 'none', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', flexShrink: 0 }}>
+              {isProfilComplet ? 'Voir' : 'Compléter'}
             </a>
           </div>
         </div>
@@ -371,7 +399,6 @@ export default function FormationPage() {
             </div>
           </div>
 
-          {/* Détails formation */}
           <div style={{ padding: '0 24px 20px 24px' }}>
             {!loadingCertificats && certificats.length === 0 && (
               <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '16px' }}>
@@ -485,7 +512,7 @@ export default function FormationPage() {
           <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>RESSOURCES</span>
         </div>
 
-        {/* Liens rapides : Dossier, Infos, Communauté */}
+        {/* Liens rapides */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
           {isApproved && (
             <a href="/dossier" style={{ textDecoration: 'none' }}>
