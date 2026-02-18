@@ -210,7 +210,7 @@ export default function FormationPage() {
 
   // Calcul progression onboarding
   const steps = [
-    { id: 'profil', label: 'Compléter mon profil', done: !!reserviste, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
+    {{ id: 'profil', label: 'Compléter mon profil', done: !!(reserviste && reserviste.prenom && reserviste.email), href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
     { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
     { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
     { id: 'dossier', label: 'Mon dossier réserviste', done: false, href: '/dossier', emoji: '📋', description: 'Compétences, certifications et informations complémentaires' },
