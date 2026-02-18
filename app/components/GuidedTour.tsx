@@ -26,27 +26,39 @@ const newMemberSteps: TourStep[] = [
     position: 'bottom'
   },
   {
-    target: '[data-tour="formation"]',
-    title: 'Étape 1 : Formation et parcours',
-    content: 'C\'est votre première priorité ! Suivez la formation en ligne, soumettez votre certificat et inscrivez-vous au camp de qualification.',
-    position: 'bottom'
-  },
-  {
     target: '[data-tour="menu"]',
     title: 'Votre menu',
-    content: 'Accédez à votre profil, à la tournée des camps, aux informations pratiques et relancez cette visite guidée à tout moment.',
+    content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.',
     position: 'bottom'
   },
   {
     target: '[data-tour="profil"]',
-    title: 'Votre profil',
+    title: 'Mon profil',
     content: 'Consultez et mettez à jour vos informations personnelles à tout moment.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="formation"]',
+    title: 'Formation et parcours',
+    content: 'C\'est votre priorité ! Suivez la formation en ligne, soumettez votre certificat et inscrivez-vous au camp de qualification.',
     position: 'bottom'
   },
   {
     target: '[data-tour="tournee"]',
     title: 'Tournée des camps',
     content: 'Consultez le calendrier des camps de qualification par région pour trouver celui qui vous convient.',
+    position: 'top'
+  },
+  {
+    target: '[data-tour="informations"]',
+    title: 'Informations pratiques',
+    content: 'Documents, ressources et références utiles pour votre rôle de réserviste.',
+    position: 'top'
+  },
+  {
+    target: '[data-tour="communaute"]',
+    title: 'Communauté',
+    content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.',
     position: 'top'
   }
 ]
@@ -59,60 +71,27 @@ const approvedMemberSteps: TourStep[] = [
     position: 'bottom'
   },
   {
-    target: '[data-tour="deploiements"]',
-    title: 'Vos déploiements',
-    content: 'Lorsqu\'un déploiement nécessitera votre profil, il apparaîtra ici. Vous pourrez soumettre votre disponibilité directement.',
-    position: 'bottom'
-  },
-  {
     target: '[data-tour="menu"]',
     title: 'Votre menu',
-    content: 'Accédez à votre profil, dossier réserviste, disponibilités et relancez cette visite guidée à tout moment.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="profil"]',
-    title: 'Votre profil',
-    content: 'Consultez et mettez à jour vos informations personnelles.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="dossier"]',
-    title: 'Dossier réserviste',
-    content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="formation"]',
-    title: 'Formation et parcours',
-    content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
-    position: 'top'
-  }
-]
-
-const approvedWithDeploiementsSteps: TourStep[] = [
-  {
-    target: '[data-tour="welcome"]',
-    title: 'Bienvenue sur le Portail RIUSC !',
-    content: 'Voici votre espace personnel de réserviste. Découvrons ensemble les fonctionnalités disponibles.',
+    content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.',
     position: 'bottom'
   },
   {
     target: '[data-tour="deploiements"]',
     title: 'Sollicitation de déploiement',
-    content: 'Vous avez des déploiements actifs ! Cliquez sur « Soumettre ma disponibilité » pour indiquer si vous êtes disponible.',
-    position: 'bottom'
-  },
-  {
-    target: '[data-tour="menu"]',
-    title: 'Votre menu',
-    content: 'Accédez à votre profil, dossier réserviste, disponibilités et relancez cette visite guidée à tout moment.',
+    content: 'Lorsqu\'un déploiement nécessitera votre profil, il apparaîtra ici. Vous pourrez soumettre votre disponibilité directement.',
     position: 'bottom'
   },
   {
     target: '[data-tour="profil"]',
-    title: 'Votre profil',
+    title: 'Mon profil',
     content: 'Consultez et mettez à jour vos informations personnelles.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="dossier"]',
+    title: 'Mon dossier réserviste',
+    content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.',
     position: 'bottom'
   },
   {
@@ -125,6 +104,75 @@ const approvedWithDeploiementsSteps: TourStep[] = [
     target: '[data-tour="formation"]',
     title: 'Formation et parcours',
     content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
+    position: 'top'
+  },
+  {
+    target: '[data-tour="informations"]',
+    title: 'Informations pratiques',
+    content: 'Documents, ressources et références utiles pour votre rôle de réserviste.',
+    position: 'top'
+  },
+  {
+    target: '[data-tour="communaute"]',
+    title: 'Communauté',
+    content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.',
+    position: 'top'
+  }
+]
+
+const approvedWithDeploiementsSteps: TourStep[] = [
+  {
+    target: '[data-tour="welcome"]',
+    title: 'Bienvenue sur le Portail RIUSC !',
+    content: 'Voici votre espace personnel de réserviste. Découvrons ensemble les fonctionnalités disponibles.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="menu"]',
+    title: 'Votre menu',
+    content: 'Accédez à toutes les sections du portail et relancez cette visite guidée à tout moment.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="deploiements"]',
+    title: 'Sollicitation de déploiement',
+    content: 'Vous avez des déploiements actifs ! Cliquez sur « Soumettre ma disponibilité » pour indiquer si vous êtes disponible.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="profil"]',
+    title: 'Mon profil',
+    content: 'Consultez et mettez à jour vos informations personnelles.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="dossier"]',
+    title: 'Mon dossier réserviste',
+    content: 'Retrouvez vos compétences, certifications et informations complémentaires dans votre dossier.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="disponibilites"]',
+    title: 'Mes disponibilités',
+    content: 'Consultez l\'historique de vos disponibilités soumises pour les différents déploiements.',
+    position: 'bottom'
+  },
+  {
+    target: '[data-tour="formation"]',
+    title: 'Formation et parcours',
+    content: 'Retrouvez vos certificats, votre progression et les formations disponibles.',
+    position: 'top'
+  },
+  {
+    target: '[data-tour="informations"]',
+    title: 'Informations pratiques',
+    content: 'Documents, ressources et références utiles pour votre rôle de réserviste.',
+    position: 'top'
+  },
+  {
+    target: '[data-tour="communaute"]',
+    title: 'Communauté',
+    content: 'Échangez avec les autres réservistes, posez vos questions et partagez vos expériences.',
     position: 'top'
   }
 ]
