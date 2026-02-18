@@ -18,6 +18,7 @@ interface DeploiementActif {
   lieu?: string;
   statut: string;
   type_incident?: string;
+  tache?: string;
 }
 interface Reserviste {
   benevole_id: string;
@@ -67,7 +68,6 @@ export default function HomePage() {
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0)
   
   const [certificats, setCertificats] = useState<CertificatFile[]>([])
   const [loadingCertificats, setLoadingCertificats] = useState(true)
@@ -223,68 +223,43 @@ export default function HomePage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
-
-        if (reservisteData.benevole_id) {
-          // Certificats
-          try {
-            const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`)
-            if (response.ok) {
-              const data = await response.json()
-              if (data.success && data.files) setCertificats(data.files)
-            }
-          } catch (e) { console.error('Erreur certificats:', e) }
-          setLoadingCertificats(false)
-
-          // Camp status
-          try {
-            const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`)
-            if (response.ok) {
-              const data = await response.json()
-              setCampStatus(data)
-            }
-          } catch (e) { console.error('Erreur camp:', e) }
-          setLoadingCamp(false)
-
-          // Ciblages
-          const { data: ciblagesData } = await supabase
-            .from('ciblages')
-            .select('deploiement_id')
-            .eq('benevole_id', reservisteData.benevole_id)
-
-          if (ciblagesData && ciblagesData.length > 0) {
-            const deployIds = ciblagesData.map(c => c.deploiement_id)
-            setCiblages(deployIds)
-            
-            const { data: deploiements } = await supabase
-              .from('deploiements_actifs')
-              .select('*')
-              .in('deploiement_id', deployIds)
-              .order('date_debut', { ascending: true })
-            
-            if (deploiements) {
-              setDeploiementsActifs(deploiements)
-            }
+        
+        try {
+          const response = await fetch(
+            `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`
+          )
+          if (response.ok) {
+            const data = await response.json()
+            setCampStatus(data)
           }
-        } else {
-          setLoadingCertificats(false)
-          setLoadingCamp(false)
+        } catch (error) {
+          console.error('Erreur fetch camp status:', error)
+        }
+        setLoadingCamp(false)
+        
+        await loadCertificats(reservisteData.benevole_id)
+
+        const { data: ciblagesData } = await supabase
+          .from('ciblages')
+          .select('deploiement_id')
+          .eq('benevole_id', reservisteData.benevole_id)
+
+        if (ciblagesData && ciblagesData.length > 0) {
+          const deployIds = ciblagesData.map(c => c.deploiement_id)
+          setCiblages(deployIds)
+          
+          const { data: deploiements } = await supabase
+            .from('deploiements_actifs')
+            .select('*')
+            .in('deploiement_id', deployIds)
+            .order('date_debut', { ascending: true })
+          
+          if (deploiements) {
+            setDeploiementsActifs(deploiements)
+          }
         }
       }
-
-      // Compter messages non lus communauté
-      const { data: lastSeen } = await supabase
-        .from('community_last_seen')
-        .select('last_seen_at')
-        .eq('user_id', user.id)
-        .single()
-
-      const since = lastSeen?.last_seen_at || '2000-01-01'
-      const { count } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .gt('created_at', since)
-
-      if (count) setUnreadCount(count)
+      
       setLoading(false)
     }
     loadData()
@@ -393,9 +368,9 @@ export default function HomePage() {
     setCancellingInscription(false)
   }
 
-  function genererLienDisponibilite(deploiementId: string): string {
+  function genererLienJotform(deploiementId: string): string {
     if (!reserviste) return '#';
-    return `/disponibilites/soumettre?deploiement=${deploiementId}`;
+    return `https://form.jotform.com/253475614808262?BenevoleID=${reserviste.benevole_id}&DeploiementID=${deploiementId}`;
   }
 
   function formatDate(dateString: string): string {
@@ -420,6 +395,115 @@ export default function HomePage() {
       </div>
     )
   }
+
+  const certificatsSection = (
+    <div data-tour="certificats" style={{
+      backgroundColor: 'white',
+      padding: '24px',
+      borderRadius: '12px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      marginBottom: '24px',
+      border: certificats.length === 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
+          Formation et certificats
+        </h3>
+        {certificats.length > 0 && (
+          <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>
+            {certificats.length} certificat{certificats.length > 1 ? 's' : ''} reçu{certificats.length > 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {!loadingCertificats && certificats.length === 0 && (
+        <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <span style={{ fontSize: '24px' }}>⚠️</span>
+            <div>
+              <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
+                Formation obligatoire requise
+              </p>
+              <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
+                <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
+                puis nous soumettre votre certificat de réussite.
+              </p>
+              <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
+                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
+                <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                  🎓 Accéder à la formation
+                </a>
+                <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                  📺 Tutoriel vidéo
+                </a>
+              </div>
+              {!loadingCamp && campStatus && !campStatus.is_certified && !campStatus.has_inscription && (
+                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #fcd34d' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <span style={{ fontSize: '24px' }}>🏕️</span>
+                    <div>
+                      <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
+                        Inscrivez-vous à un camp de qualification
+                      </p>
+                      <p style={{ margin: '0 0 12px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                        Le camp pratique de deux jours est la dernière étape pour devenir réserviste certifié.
+                      </p>
+                      <button onClick={openCampModal} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>
+                        🏕️ Voir les camps disponibles
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!loadingCertificats && certificats.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {certificats.map((cert) => (
+              <div key={cert.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '20px' }}>📄</span>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>{cert.name}</span>
+                </div>
+                {cert.url && (
+                  <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500' }}>
+                    Télécharger
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loadingCertificats && (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>Chargement des certificats...</div>
+      )}
+
+      {certificatMessage && (
+        <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2', color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>
+          {certificatMessage.text}
+        </div>
+      )}
+
+      <div>
+        <input ref={certificatInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertificatUpload} style={{ display: 'none' }} />
+        <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
+          {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '📤 Soumettre mon certificat' : '➕ Ajouter un certificat'}
+        </button>
+        <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -526,10 +610,6 @@ export default function HomePage() {
                   Mes disponibilités
                 </a>
                 )}
-                <a href="/formation" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /></svg>
-                  Formation et parcours
-                </a>
                 <a href="/tournee-camps" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                   Tournée des camps
@@ -565,6 +645,9 @@ export default function HomePage() {
           </p>
         </div>
 
+        {!loadingCertificats && certificats.length === 0 && certificatsSection}
+
+        {isApproved && (
         <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
@@ -578,42 +661,23 @@ export default function HomePage() {
           </div>
           {deploiementsActifs.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {Object.entries(
-                deploiementsActifs.reduce((groups: Record<string, DeploiementActif[]>, dep) => {
-                  const key = dep.nom_sinistre || dep.nom_deploiement;
-                  if (!groups[key]) groups[key] = [];
-                  groups[key].push(dep);
-                  return groups;
-                }, {})
-              ).map(([sinistre, deps]) => (
-                <div key={sinistre} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
-                  <div style={{ padding: '16px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '20px' }}>🔥</span>
-                      <div>
-                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>{sinistre}</div>
-                        {deps[0].type_incident && <div style={{ fontSize: '13px', color: '#6b7280' }}>{deps[0].type_incident}</div>}
+              {deploiementsActifs.map((dep) => (
+                <div key={dep.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '20px', backgroundColor: '#fafafa' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                    <div style={{ flex: 1, minWidth: '280px' }}>
+                      {dep.nom_sinistre && <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f', marginBottom: '4px' }}>{dep.nom_sinistre}</div>}
+                      <div style={{ fontSize: '16px', fontWeight: dep.nom_sinistre ? '500' : '600', color: dep.nom_sinistre ? '#374151' : '#1e3a5f', marginBottom: '12px' }}>{dep.nom_deploiement}</div>
+                      <div style={{ backgroundColor: '#f0f4f8', borderLeft: '4px solid #2c5aa0', padding: '12px 16px', borderRadius: '0 8px 8px 0', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#374151' }}>
+                        {dep.type_incident && <div><strong>Type :</strong> {dep.type_incident}</div>}
+                        {dep.lieu && <div><strong>Lieu :</strong> {dep.lieu}</div>}
+                        {dep.tache && <div><strong>Tâche :</strong> {dep.tache}</div>}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px', color: '#6b7280' }}>
+                        <div>{dep.date_debut && formatDate(dep.date_debut)}{dep.date_fin && ` — ${formatDate(dep.date_fin)}`}</div>
                       </div>
                     </div>
-                  </div>
-                  {deps[0].date_debut && (
-                    <div style={{ padding: '10px 20px', fontSize: '13px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
-                      📅 {formatDate(deps[0].date_debut)}{deps[0].date_fin && ` — ${formatDate(deps[0].date_fin)}`}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {deps.map((dep, idx) => (
-                      <div key={dep.id} style={{ padding: '14px 20px', borderBottom: idx < deps.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                        <div style={{ flex: 1, minWidth: '200px' }}>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '2px' }}>{dep.nom_deploiement}</div>
-                          {dep.lieu && <div style={{ fontSize: '13px', color: '#6b7280' }}>📍 {dep.lieu}</div>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', textAlign: 'center' }}>
-                    <a href={genererLienDisponibilite(deps[0].deploiement_id)} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
-                      Soumettre mes disponibilités
+                    <a href={genererLienJotform(dep.deploiement_id)} target="_blank" rel="noopener noreferrer" style={{ padding: '12px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', transition: 'background-color 0.2s', whiteSpace: 'nowrap' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                      Soumettre ma disponibilité
                     </a>
                   </div>
                 </div>
@@ -627,6 +691,43 @@ export default function HomePage() {
             </div>
           )}
         </div>
+        )}
+
+        {!loadingCamp && campStatus && !campStatus.is_certified && (
+          <div data-tour="camp" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: campStatus.has_inscription ? '1px solid #10b981' : '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>Camp de qualification</h3>
+              {campStatus.has_inscription && <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>Inscrit</span>}
+            </div>
+            {campStatus.has_inscription && campStatus.camp ? (
+              <div>
+                <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>{campStatus.camp.nom}</div>
+                  <div style={{ display: 'grid', gap: '6px', fontSize: '14px', color: '#4b5563' }}>
+                    {campStatus.camp.dates && <div><strong>Dates :</strong> {campStatus.camp.dates}</div>}
+                    {campStatus.camp.site && <div><strong>Site :</strong> {campStatus.camp.site}</div>}
+                    {campStatus.camp.location && <div style={{ color: '#6b7280' }}>{campStatus.camp.location}</div>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button onClick={openCampModal} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1e3a5f'; e.currentTarget.style.color = 'white' }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#1e3a5f' }}>
+                    Modifier mon inscription
+                  </button>
+                  <button onClick={handleCancelInscription} disabled={cancellingInscription} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: cancellingInscription ? 'not-allowed' : 'pointer', opacity: cancellingInscription ? 0.7 : 1 }} onMouseOver={(e) => { if (!cancellingInscription) { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' } }} onMouseOut={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280' }}>
+                    {cancellingInscription ? 'Annulation...' : 'Je ne suis plus disponible'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique.</p>
+                <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                  S&apos;inscrire à un camp de qualification
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           <a href="/profil" data-tour="profil" style={{ textDecoration: 'none' }}>
@@ -642,7 +743,7 @@ export default function HomePage() {
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Mon dossier réserviste</h3>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Compétences et certifications</p>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Compétences, certifications et informations complémentaires</p>
             </div>
           </a>
           )}
@@ -657,35 +758,24 @@ export default function HomePage() {
           </a>
           )}
 
-          <a href="/formation" data-tour="formation" style={{ textDecoration: 'none' }}>
-            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: certificats.length === 0 ? '2px solid #f59e0b' : '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎓</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Formation et parcours</h3>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Formation, certificats et camp de qualification</p>
+          <a href="/tournee-camps" data-tour="tournee" style={{ textDecoration: 'none' }}>
+            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏕️</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Tournée des camps</h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Calendrier des camps de qualification par région</p>
             </div>
           </a>
 
-          <a href="/informations" data-tour="informations" style={{ textDecoration: 'none' }}>
+          <a href="/informations" style={{ textDecoration: 'none' }}>
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Informations pratiques</h3>
               <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Documents, ressources et références utiles</p>
             </div>
           </a>
-
-          <a href="/communaute" data-tour="communaute" style={{ textDecoration: 'none', position: 'relative' }}>
-            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px', position: 'relative', display: 'inline-block' }}>
-                💬
-                {unreadCount > 0 && (
-                  <span style={{ position: 'absolute', top: '-4px', right: '-12px', backgroundColor: '#dc2626', color: 'white', fontSize: '11px', fontWeight: '700', borderRadius: '10px', padding: '2px 6px', minWidth: '20px', textAlign: 'center' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-                )}
-              </div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Communauté</h3>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Échangez avec les réservistes</p>
-            </div>
-          </a>
         </div>
+
+        {!loadingCertificats && certificats.length > 0 && certificatsSection}
       </main>
 
       <GuidedTour
