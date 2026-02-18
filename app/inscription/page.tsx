@@ -60,6 +60,11 @@ const GROUPES_RS = [
   'District 9: Groupe de recherche Manicouagan'
 ]
 
+interface Organisation {
+  id: string
+  nom: string
+}
+
 export default function InscriptionPage() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'form' | 'success'>('form')
@@ -82,6 +87,14 @@ export default function InscriptionPage() {
     consent_photos: false,
     consent_confidentialite: false
   })
+
+  // ─── Organisations ──────────────────────────────────────────────────────────
+  const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
+  const [selectedOrgIds, setSelectedOrgIds] = useState<string[]>([])
+  const [newOrgName, setNewOrgName] = useState('')
+  const [showNewOrgInput, setShowNewOrgInput] = useState(false)
+  const [loadingOrgs, setLoadingOrgs] = useState(true)
+  // ────────────────────────────────────────────────────────────────────────────
   
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
@@ -100,7 +113,6 @@ export default function InscriptionPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Récupérer le camp_id et email si présents dans l'URL  
   const [campId, setCampId] = useState('')
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -109,6 +121,19 @@ export default function InscriptionPage() {
     if (emailParam) {
       setFormData(prev => ({ ...prev, email: emailParam }))
     }
+  }, [])
+
+  // Charger les organisations au démarrage
+  useEffect(() => {
+    const fetchOrgs = async () => {
+      const { data } = await supabase
+        .from('organisations')
+        .select('id, nom')
+        .order('nom')
+      setAllOrgs(data || [])
+      setLoadingOrgs(false)
+    }
+    fetchOrgs()
   }, [])
 
   useEffect(() => {
@@ -135,6 +160,15 @@ export default function InscriptionPage() {
 
   const handlePhoneBlur = () => {
     setFormData(prev => ({ ...prev, telephone: formatPhoneDisplay(prev.telephone) }))
+  }
+
+  const toggleOrg = (id: string) => {
+    setSelectedOrgIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+    if (fieldErrors.organisations) {
+      setFieldErrors(prev => ({ ...prev, organisations: '' }))
+    }
   }
 
   const searchAddress = useCallback(async (query: string) => {
@@ -223,6 +257,7 @@ export default function InscriptionPage() {
     if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
     if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise"
     if (!formData.region) errors.region = 'La région est requise — sélectionnez votre ville'
+    if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner ou ajouter au moins une organisation'
     if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
     if (!formData.consent_photos) errors.consent_photos = 'Ce consentement est requis'
     if (!formData.consent_confidentialite) errors.consent_confidentialite = 'Ce consentement est requis'
@@ -239,7 +274,6 @@ export default function InscriptionPage() {
       const { data: emailExists } = await supabase.from('reservistes').select('benevole_id').ilike('email', emailClean).maybeSingle()
       if (emailExists) { setFieldErrors(prev => ({ ...prev, email: 'Ce courriel est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce courriel est déjà associé à un compte existant.' }); setLoading(false); return }
 
-      // 2. Vérifier si le téléphone existe déjà (sauf numéro test)
       const isTestPhone = phoneClean === '19999999999' || phoneClean === '9999999999'
       if (!isTestPhone) {
         const { data: phoneExists } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean).maybeSingle()
@@ -249,11 +283,57 @@ export default function InscriptionPage() {
         } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
       }
 
+      // Appel webhook inscription
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean, telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse, ville: formData.ville, region: formData.region, latitude: formData.latitude, longitude: formData.longitude, groupe_rs: formData.groupe_rs, groupe: 'Nouveaux', commentaire: formData.commentaire, camp_id: campId || null })
       })
       if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
+
+      // Lier les organisations via Supabase
+      // On attend un court délai pour que le webhook ait le temps de créer le réserviste
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      const { data: newReserviste } = await supabase
+        .from('reservistes')
+        .select('benevole_id')
+        .ilike('email', emailClean)
+        .maybeSingle()
+
+      if (newReserviste?.benevole_id) {
+        let orgIdsToLink = [...selectedOrgIds]
+
+        // Créer la nouvelle organisation si renseignée
+        if (newOrgName.trim()) {
+          const { data: createdOrg, error: createError } = await supabase
+            .from('organisations')
+            .insert({ nom: newOrgName.trim(), created_by: newReserviste.benevole_id })
+            .select('id')
+            .single()
+
+          if (createError) {
+            // Doublon — retrouver l'existante
+            const { data: existingOrg } = await supabase
+              .from('organisations')
+              .select('id')
+              .ilike('nom', newOrgName.trim())
+              .single()
+            if (existingOrg) orgIdsToLink.push(existingOrg.id)
+          } else if (createdOrg) {
+            orgIdsToLink.push(createdOrg.id)
+          }
+        }
+
+        if (orgIdsToLink.length > 0) {
+          await supabase.from('reserviste_organisations').insert(
+            orgIdsToLink.map(organisation_id => ({
+              benevole_id: newReserviste.benevole_id,
+              organisation_id
+            }))
+          )
+        }
+      }
+
       setStep('success')
     } catch (error: any) { console.error('Erreur inscription:', error); setMessage({ type: 'error', text: error.message || "Erreur lors de l'inscription. Veuillez réessayer." }) }
     setLoading(false)
@@ -369,6 +449,100 @@ export default function InscriptionPage() {
                 {fieldErrors.region && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.region}</p>}
               </div>
             </div>
+          </div>
+
+          {/* Section Organisations */}
+          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: fieldErrors.organisations ? '2px solid #dc2626' : 'none' }}>
+            <h3 style={{ color: '#1e3a5f', margin: '0 0 6px 0', fontSize: '18px', fontWeight: '600' }}>
+              Organisation d&apos;appartenance {requiredStar}
+            </h3>
+            <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 20px 0' }}>
+              Sélectionnez toutes les organisations dont vous faites partie.
+            </p>
+
+            {fieldErrors.organisations && (
+              <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '13px', color: '#dc2626', marginBottom: '16px' }}>
+                {fieldErrors.organisations}
+              </div>
+            )}
+
+            {loadingOrgs ? (
+              <p style={{ fontSize: '14px', color: '#9ca3af' }}>Chargement des organisations...</p>
+            ) : (
+              <>
+                {allOrgs.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px', maxHeight: '260px', overflowY: 'auto', padding: '2px 0' }}>
+                    {allOrgs.map(org => (
+                      <label
+                        key={org.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: selectedOrgIds.includes(org.id) ? '#eff6ff' : '#f9fafb',
+                          border: selectedOrgIds.includes(org.id) ? '1px solid #bfdbfe' : '1px solid transparent',
+                          transition: 'background-color 0.15s',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedOrgIds.includes(org.id)}
+                          onChange={() => toggleOrg(org.id)}
+                          style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                        />
+                        <span style={{ fontSize: '14px', color: '#374151' }}>{org.nom}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {/* Ajouter une org qui n'existe pas */}
+                {!showNewOrgInput ? (
+                  <button
+                    onClick={() => setShowNewOrgInput(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '9px 16px',
+                      backgroundColor: 'transparent',
+                      border: '1px dashed #9ca3af',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      color: '#6b7280',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + Mon organisation n&apos;est pas dans la liste
+                  </button>
+                ) : (
+                  <div style={{ marginTop: '4px' }}>
+                    <label style={{ ...labelStyle, marginBottom: '8px' }}>Nom de votre organisation</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={newOrgName}
+                        onChange={e => setNewOrgName(e.target.value)}
+                        placeholder="Ex: Croix-Rouge canadienne"
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <button
+                        onClick={() => { setShowNewOrgInput(false); setNewOrgName('') }}
+                        style={{ padding: '12px 14px', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px', marginBottom: 0 }}>
+                      Cette organisation sera ajoutée à la liste globale pour tous les réservistes.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           {/* Section Informations supplémentaires */}
