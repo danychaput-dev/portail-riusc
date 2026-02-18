@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 
 interface Reserviste {
@@ -54,9 +54,11 @@ interface CertificatFile {
   url?: string;
 }
 
-export default function FormationPage() {
+function FormationContent() {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const campParam = searchParams.get('camp') || '';
 
   const [user, setUser] = useState<any>(null);
   const [reserviste, setReserviste] = useState<Reserviste | null>(null);
@@ -104,6 +106,13 @@ export default function FormationPage() {
   }, []);
 
   useEffect(() => { loadData(); }, []);
+
+  // Auto-ouvrir le modal si ?camp=SESSION_ID dans l'URL
+  useEffect(() => {
+    if (!loading && !loadingCamp && campParam && reserviste && !campStatus?.is_certified) {
+      openCampModal();
+    }
+  }, [loading, loadingCamp, campParam]);
 
   async function loadData() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -658,5 +667,13 @@ export default function FormationPage() {
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>
       </footer>
     </div>
+  );
+}
+
+export default function FormationPage() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>}>
+      <FormationContent />
+    </Suspense>
   );
 }

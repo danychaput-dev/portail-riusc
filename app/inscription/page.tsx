@@ -100,6 +100,13 @@ export default function InscriptionPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Récupérer le camp_id si présent dans l'URL  
+  const [campId, setCampId] = useState('')
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setCampId(params.get('camp') || '')
+  }, [])
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (addressDropdownRef.current && !addressDropdownRef.current.contains(event.target as Node) &&
@@ -228,15 +235,19 @@ export default function InscriptionPage() {
       const { data: emailExists } = await supabase.from('reservistes').select('benevole_id').ilike('email', emailClean).maybeSingle()
       if (emailExists) { setFieldErrors(prev => ({ ...prev, email: 'Ce courriel est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce courriel est déjà associé à un compte existant.' }); setLoading(false); return }
 
-      const { data: phoneExists } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean).maybeSingle()
-      if (!phoneExists && phoneClean.startsWith('1')) {
-        const { data: phoneExists2 } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean.slice(1)).maybeSingle()
-        if (phoneExists2) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
-      } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
+      // 2. Vérifier si le téléphone existe déjà (sauf numéro test)
+      const isTestPhone = phoneClean === '19999999999' || phoneClean === '9999999999'
+      if (!isTestPhone) {
+        const { data: phoneExists } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean).maybeSingle()
+        if (!phoneExists && phoneClean.startsWith('1')) {
+          const { data: phoneExists2 } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean.slice(1)).maybeSingle()
+          if (phoneExists2) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
+        } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
+      }
 
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean, telephone: phoneClean, adresse: formData.adresse, ville: formData.ville, region: formData.region, latitude: formData.latitude, longitude: formData.longitude, groupe_rs: formData.groupe_rs, commentaire: formData.commentaire })
+        body: JSON.stringify({ prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean, telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse, ville: formData.ville, region: formData.region, latitude: formData.latitude, longitude: formData.longitude, groupe_rs: formData.groupe_rs, commentaire: formData.commentaire, camp_id: campId || null })
       })
       if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
       setStep('success')
@@ -257,7 +268,7 @@ export default function InscriptionPage() {
           <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '24px' }}>Inscription réussie !</h2>
           <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0 0 24px 0' }}>Bienvenue dans la RIUSC, <strong>{formData.prenom}</strong> ! Votre compte est en cours de création. Vous recevrez un accès au portail sous peu.</p>
           <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6', margin: '0 0 32px 0' }}>Votre demande sera traitée par notre équipe. Un courriel de confirmation vous sera envoyé à <strong>{formData.email}</strong>.</p>
-          <a href="/login" style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' }}>Aller à la page de connexion</a>
+          <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' }}>Aller à la page de connexion</a>
         </div>
       </div>
     )
@@ -274,7 +285,7 @@ export default function InscriptionPage() {
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Inscription — Réserve d&apos;Intervention d&apos;Urgence</p>
             </div>
           </div>
-          <a href="/login" style={{ padding: '8px 16px', color: '#1e3a5f', fontSize: '14px', fontWeight: '500', textDecoration: 'none', border: '1px solid #1e3a5f', borderRadius: '6px' }}>Déjà inscrit ? Se connecter</a>
+          <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ padding: '8px 16px', color: '#1e3a5f', fontSize: '14px', fontWeight: '500', textDecoration: 'none', border: '1px solid #1e3a5f', borderRadius: '6px' }}>Déjà inscrit ? Se connecter</a>
         </div>
       </header>
 
@@ -400,7 +411,7 @@ export default function InscriptionPage() {
 
           {/* Boutons */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <a href="/login" style={{ padding: '12px 24px', color: '#6b7280', fontSize: '14px', textDecoration: 'none' }}>← Retour à la connexion</a>
+            <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ padding: '12px 24px', color: '#6b7280', fontSize: '14px', textDecoration: 'none' }}>← Retour à la connexion</a>
             <button onClick={handleSubmit} disabled={loading} style={{ padding: '14px 40px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.2s' }}>
               {loading ? 'Inscription en cours...' : "S'inscrire"}
             </button>
