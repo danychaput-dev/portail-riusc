@@ -153,9 +153,9 @@ export default function CommunautePage() {
     yesterday.setDate(yesterday.getDate() - 1);
     const isYesterday = d.toDateString() === yesterday.toDateString();
     const time = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
-    if (isToday) return `Aujourd\u2019hui \u00e0 ${time}`;
-    if (isYesterday) return `Hier \u00e0 ${time}`;
-    return `${d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })} \u00e0 ${time}`;
+    if (isToday) return `Aujourd'hui à ${time}`;
+    if (isYesterday) return `Hier à ${time}`;
+    return `${d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })} à ${time}`;
   }
 
   function shouldShowHeader(msg: Message, idx: number) {
@@ -179,7 +179,7 @@ export default function CommunautePage() {
             <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Communaut\u00e9 des r\u00e9servistes</p>
+              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Communauté des réservistes</p>
             </div>
           </a>
           {reserviste ? (
@@ -187,7 +187,7 @@ export default function CommunautePage() {
               <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste.prenom} {reserviste.nom}</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>R\u00e9serviste</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
                 </div>
                 {reserviste.photo_url ? (
                   <img src={reserviste.photo_url} alt="Photo" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
@@ -200,13 +200,13 @@ export default function CommunautePage() {
                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '200px', overflow: 'hidden', zIndex: 200 }}>
                   <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Accueil</a>
                   <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Mon profil</a>
-                  <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Mes disponibilit\u00e9s</a>
-                  <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}>D\u00e9connexion</button>
+                  <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Mes disponibilités</a>
+                  <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}>Déconnexion</button>
                 </div>
               )}
             </div>
           ) : (
-            <a href="/" style={{ padding: '8px 16px', color: '#6b7280', textDecoration: 'none', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px' }}>\u2190 Retour</a>
+            <a href="/" style={{ padding: '8px 16px', color: '#6b7280', textDecoration: 'none', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px' }}>{'← Retour'}</a>
           )}
         </div>
       </header>
@@ -216,7 +216,7 @@ export default function CommunautePage() {
 
         {/* Sidebar */}
         <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>\u2190 Retour \u00e0 l&apos;accueil</a>
+          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>{'← Retour à l\'accueil'}</a>
           <div style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Canaux</div>
           {CANAUX.map((c) => (
             <button key={c.id} onClick={() => setCanal(c.id)} style={{
@@ -230,8 +230,8 @@ export default function CommunautePage() {
             </button>
           ))}
           <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-            <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '4px' }}>\ud83d\udca1 Astuce</div>
-            <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.6 }}>Appuyez sur Entr\u00e9e pour envoyer.</div>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '4px' }}>{'💡 Astuce'}</div>
+            <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.6 }}>Appuyez sur Entrée pour envoyer.</div>
           </div>
         </div>
 
@@ -245,9 +245,9 @@ export default function CommunautePage() {
               <div>
                 <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e3a5f' }}>{CANAUX.find(c => c.id === canal)?.label}</div>
                 <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {canal === 'general' && 'Discussions g\u00e9n\u00e9rales entre r\u00e9servistes'}
-                  {canal === 'questions' && 'Posez vos questions sur les formations, d\u00e9ploiements, etc.'}
-                  {canal === 'entraide' && 'Conseils, partage d\u2019exp\u00e9rience et soutien entre pairs'}
+                  {canal === 'general' && 'Discussions générales entre réservistes'}
+                  {canal === 'questions' && 'Posez vos questions sur les formations, déploiements, etc.'}
+                  {canal === 'entraide' && 'Conseils, partage d\'expérience et soutien entre pairs'}
                 </div>
               </div>
             </div>
@@ -259,7 +259,7 @@ export default function CommunautePage() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: '8px' }}>
                 <span style={{ fontSize: '40px' }}>{CANAUX.find(c => c.id === canal)?.emoji}</span>
                 <div style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280' }}>Aucun message pour l&apos;instant</div>
-                <div style={{ fontSize: '14px' }}>Soyez le premier \u00e0 \u00e9crire dans #{CANAUX.find(c => c.id === canal)?.label} !</div>
+                <div style={{ fontSize: '14px' }}>Soyez le premier à écrire dans #{CANAUX.find(c => c.id === canal)?.label} !</div>
               </div>
             )}
             {messages.map((msg, idx) => {
@@ -301,7 +301,7 @@ export default function CommunautePage() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`\u00c9crire dans #${CANAUX.find(c => c.id === canal)?.label}...`}
+                  placeholder={`Écrire dans #${CANAUX.find(c => c.id === canal)?.label}...`}
                   rows={1}
                   style={{
                     flex: 1, padding: '12px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5,
@@ -322,7 +322,7 @@ export default function CommunautePage() {
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '12px', color: '#6b7280', fontSize: '14px', backgroundColor: '#f9fafb', borderRadius: '12px' }}>
-                Votre profil doit \u00eatre compl\u00e9t\u00e9 pour participer aux discussions.
+                Votre profil doit être complété pour participer aux discussions.
               </div>
             )}
           </div>
