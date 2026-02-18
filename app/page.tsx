@@ -179,7 +179,7 @@ export default function HomePage() {
     }
   }
 
-  useEffect(() => {
+ useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -221,72 +221,32 @@ export default function HomePage() {
         }
       }
       
-     if (reservisteData.benevole_id) {
-        // Certificats
-        try {
-          const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.files) setCertificats(data.files);
-          }
-        } catch (e) { console.error('Erreur certificats:', e); }
-        setLoadingCertificats(false);
+      if (reservisteData) {
+        setReserviste(reservisteData)
 
-        // Camp status
-        try {
-          const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setCampStatus(data);
-          }
-        } catch (e) { console.error('Erreur camp:', e); }
-        setLoadingCamp(false);
-      } else {
-        setLoadingCertificats(false);
-        setLoadingCamp(false);
-      }
-        
-        await loadCertificats(reservisteData.benevole_id)
+        if (reservisteData.benevole_id) {
+          // Certificats
+          try {
+            const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`)
+            if (response.ok) {
+              const data = await response.json()
+              if (data.success && data.files) setCertificats(data.files)
+            }
+          } catch (e) { console.error('Erreur certificats:', e) }
+          setLoadingCertificats(false)
 
-        const { data: ciblagesData } = await supabase
-          .from('ciblages')
-          .select('deploiement_id')
-          .eq('benevole_id', reservisteData.benevole_id)
+          // Camp status
+          try {
+            const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`)
+            if (response.ok) {
+              const data = await response.json()
+              setCampStatus(data)
+            }
+          } catch (e) { console.error('Erreur camp:', e) }
+          setLoadingCamp(false)
 
-        if (ciblagesData && ciblagesData.length > 0) {
-          const deployIds = ciblagesData.map(c => c.deploiement_id)
-          setCiblages(deployIds)
-          
-          const { data: deploiements } = await supabase
-            .from('deploiements_actifs')
-            .select('*')
-            .in('deploiement_id', deployIds)
-            .order('date_debut', { ascending: true })
-          
-          if (deploiements) {
-            setDeploiementsActifs(deploiements)
-          }
-        }
-      }
-      // Compter messages non lus communauté
-      const { data: lastSeen } = await supabase
-        .from('community_last_seen')
-        .select('last_seen_at')
-        .eq('user_id', user.id)
-        .single();
-
-      const since = lastSeen?.last_seen_at || '2000-01-01';
-      const { count } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .gt('created_at', since);
-
-      if (count) setUnreadCount(count);
-      setLoading(false)
-      
-    }
-    loadData()
-  }, [])
+          // Ciblages
+          const { data: ciblagesData } = await sup
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
