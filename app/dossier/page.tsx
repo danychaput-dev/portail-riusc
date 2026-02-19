@@ -561,7 +561,7 @@ export default function DossierPage() {
               allergies_alimentaires: dossier.allergies_alimentaires,
               allergies_autres: dossier.allergies_autres,
               problemes_sante: dossier.problemes_sante,
-              groupe_sanguin: dossier.groupe_sanguin,
+              groupe_sanguin: dossier.groupe_sanguin && GROUPE_SANGUIN_MAP[dossier.groupe_sanguin] ? [GROUPE_SANGUIN_MAP[dossier.groupe_sanguin]] : [],
               competence_rs: dossier.competence_rs,
               certificat_premiers_soins: dossier.certificat_premiers_soins,
               date_expiration_certificat: dossier.date_expiration_certificat,
