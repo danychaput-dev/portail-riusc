@@ -432,7 +432,11 @@ export default function DossierPage() {
   const updateDossier = (field: keyof DossierData, value: any) => {
     setDossier(prev => {
       const updated = { ...prev, [field]: value }
-      setHasChanges(JSON.stringify(updated) !== JSON.stringify(originalDossier))
+      const hasChanged = JSON.stringify(updated) !== JSON.stringify(originalDossier)
+      console.log('🔧 UPDATE DOSSIER:', { field, value, hasChanged })
+      console.log('📊 Updated:', updated)
+      console.log('📊 Original:', originalDossier)
+      setHasChanges(hasChanged)
       return updated
     })
   }
@@ -653,6 +657,26 @@ export default function DossierPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
 
       <PortailHeader subtitle="Mon dossier réserviste" />
+
+      {/* DEBUG TEMPORAIRE */}
+      <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '12px 24px', backgroundColor: '#fee', border: '2px solid #f00', borderRadius: '8px' }}>
+        <h4 style={{ margin: '0 0 8px 0', color: '#c00' }}>🐛 DEBUG</h4>
+        <p style={{ margin: '4px 0', fontSize: '13px', fontFamily: 'monospace' }}>
+          <strong>hasChanges:</strong> {String(hasChanges)}
+        </p>
+        <p style={{ margin: '4px 0', fontSize: '13px', fontFamily: 'monospace' }}>
+          <strong>orgHasChanges:</strong> {String(orgHasChanges)}
+        </p>
+        <p style={{ margin: '4px 0', fontSize: '13px', fontFamily: 'monospace' }}>
+          <strong>langueHasChanges:</strong> {String(langueHasChanges)}
+        </p>
+        <p style={{ margin: '4px 0', fontSize: '13px', fontFamily: 'monospace' }}>
+          <strong>anyChanges:</strong> {String(anyChanges)}
+        </p>
+        <p style={{ margin: '4px 0', fontSize: '13px', fontFamily: 'monospace' }}>
+          <strong>Bouton affiché:</strong> {anyChanges ? '✅ OUI' : '❌ NON'}
+        </p>
+      </div>
 
       {saveMessage && (
         <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>
