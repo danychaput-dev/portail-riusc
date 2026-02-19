@@ -249,7 +249,7 @@ function FicheTache({ tache, isOpen, onToggle, id }: { tache: TacheData; isOpen:
 
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
             <span style={{ fontSize: 13, color: '#6b7280', fontStyle: 'italic', lineHeight: 1.7 }}>
-              Responsable terrain : Chef d&apos;équipe (SOPFEU) / Coordinateur (Croix-Rouge), selon l&apos;organisation.
+              Responsable terrain : Chef d&apos;équipe (SOPFEU) / Coordonateur (Croix-Rouge), selon l&apos;organisation.
             </span>
           </div>
         </div>
