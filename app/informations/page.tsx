@@ -33,6 +33,7 @@ export default function InformationsPage() {
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [loading, setLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showLoi, setShowLoi] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const supabase = createClient()
@@ -168,6 +169,7 @@ export default function InformationsPage() {
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
             {/* Volume de référence */}
             <a
               href="https://online.fliphtml5.com/wscbg/xqkj/"
@@ -187,26 +189,51 @@ export default function InformationsPage() {
               <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
             </a>
 
-            {/* Loi sur la sécurité civile — Article 88 */}
-            <a
-              href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.3#se:88"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', textDecoration: 'none', transition: 'all 0.2s' }}
-              onMouseOver={(e) => { e.currentTarget.style.borderColor = '#1e3a5f'; e.currentTarget.style.backgroundColor = '#f0f4f8' }}
-              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.backgroundColor = '#f9fafb' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <span style={{ fontSize: '28px' }}>⚖️</span>
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Protection prévue à la Loi sur la sécurité civile</div>
-                  <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px', maxWidth: '680px', lineHeight: '1.5' }}>
-                    Les réservistes sont invités à consulter l&apos;article 88 de la Loi sur la sécurité civile (RLRQ, c. S-2.3) concernant la protection des employés appelés à participer à des mesures liées à un sinistre.
+            {/* Loi sur la sécurité civile — Accordéon */}
+            <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+              <button
+                onClick={() => setShowLoi(!showLoi)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                onMouseOver={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#f0f4f8' }}
+                onMouseOut={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <span style={{ fontSize: '28px', flexShrink: 0 }}>⚖️</span>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Protection prévue à la Loi sur la sécurité civile</div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                      Droits des réservistes face à leur employeur — cliquez pour en savoir plus
+                    </div>
                   </div>
                 </div>
-              </div>
-              <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-            </a>
+                <svg
+                  width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"
+                  style={{ flexShrink: 0, transform: showLoi ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {showLoi && (
+                <div style={{ borderTop: '1px solid #e5e7eb', padding: '20px 20px 24px 54px', backgroundColor: '#fafbff' }}>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#374151', lineHeight: '1.75' }}>
+                    La Loi sur la sécurité civile du Québec prévoit qu&apos;un employeur <strong>ne peut imposer de mesures disciplinaires</strong> à un employé pour le seul motif qu&apos;il s&apos;absente afin de participer à des mesures liées à un sinistre, pourvu qu&apos;il en ait avisé son employeur.
+                  </p>
+                  <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#374151', lineHeight: '1.75' }}>
+                    Cette protection s&apos;applique lorsque les services du réserviste ont été requis ou acceptés dans le cadre d&apos;un déploiement officiel.
+                  </p>
+                  <a
+                    href="https://www.legisquebec.gouv.qc.ca/fr/document/lc/S-2.4"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '7px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}
+                  >
+                    👉 Consulter la Loi sur la sécurité civile (RLRQ, c. S-2.4)
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                </div>
+              )}
+            </div>
 
             {/* Fiches de tâches */}
             <a
