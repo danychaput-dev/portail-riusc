@@ -30,7 +30,7 @@ interface Reserviste {
   consent_photos?: boolean;
   allergies_alimentaires?: string;
   allergies_autres?: string;
-  problemes_sante?: string;
+  conditions_medicales?: string;
 }
 
 interface CampInfo {
@@ -233,7 +233,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -241,7 +241,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.slice(1)
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
             .eq('telephone', phoneWithout1)
             .single()
           
@@ -334,7 +334,7 @@ export default function HomePage() {
     setConsentementPhoto(reserviste?.consent_photos || false)
     setAllergiesAlimentaires(reserviste?.allergies_alimentaires || '')
     setAutresAllergies(reserviste?.allergies_autres || '')
-    setConditionsMedicales(reserviste?.problemes_sante || '')
+    setConditionsMedicales(reserviste?.conditions_medicales || '')
 
     // Charger les sessions
     try {
@@ -408,7 +408,7 @@ export default function HomePage() {
           consent_photos: consentementPhoto,
           allergies_alimentaires: allergiesAlimentaires || undefined,
           allergies_autres: autresAllergies || undefined,
-          problemes_sante: conditionsMedicales || undefined
+          conditions_medicales: conditionsMedicales || undefined
         }
         supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id)
           .then(() => { setReserviste(prev => prev ? { ...prev, ...updates } : prev) })
