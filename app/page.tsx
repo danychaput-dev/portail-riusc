@@ -567,26 +567,32 @@ export default function HomePage() {
 
         {/* Section Formation obligatoire - visible si aucun certificat */}
         {!loadingCertificats && certificats.length === 0 && (
-          <div data-tour="formation-obligatoire" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: '2px solid #f59e0b' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div data-tour="formation-obligatoire" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <span style={{ fontSize: '24px' }}>⚠️</span>
-              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>Formation en ligne obligatoire</h3>
-            </div>
-            <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
-              Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
-              <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
-              puis soumettre votre certificat de réussite.
-            </p>
-            <div style={{ backgroundColor: '#f9fafb', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px', color: '#6b7280' }}>
-              <strong>Durée :</strong> environ 1 h 45 &nbsp;|&nbsp; <strong>Contenu :</strong> 5 modules à votre rythme &nbsp;|&nbsp; <strong>Délai :</strong> 30 jours
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-              <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
-                🎓 Accéder à la formation
-              </a>
-              <a href="/formation" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                📤 Soumettre mon certificat
-              </a>
+              <div>
+                <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
+                  Formation obligatoire requise
+                </p>
+                <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                  Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
+                  <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
+                  puis nous soumettre votre certificat de réussite.
+                </p>
+                <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                  <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                    🎓 Accéder à la formation
+                  </a>
+                  <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                    📺 Tutoriel vidéo
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         )}
