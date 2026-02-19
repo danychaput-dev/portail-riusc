@@ -203,8 +203,7 @@ export default function HomePage() {
       // 1. D'abord chercher par user_id (le plus fiable)
       const { data: dataByUserId } = await supabase
         .from('reservistes')
-        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-        .eq('user_id', user.id)
+        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
         .single()
       
       if (dataByUserId) {
@@ -215,7 +214,7 @@ export default function HomePage() {
       if (!reservisteData && user.email) {
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+         .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
           .ilike('email', user.email)
           .single()
         
