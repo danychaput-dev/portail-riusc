@@ -295,7 +295,10 @@ export default function HomePage() {
     setInscriptionError(null)
     setInscriptionSuccess(false)
     setSelectedSessionId('')
-    setConsentementPhoto(false)
+    // Pré-cocher le consentement photo si déjà accordé précédemment
+    if ((reserviste as any)?.consent_photos) {
+      setConsentementPhoto(true)
+    }
 
     // Charger sessions et dossier en parallèle
     await Promise.all([
@@ -384,6 +387,10 @@ export default function HomePage() {
       
       if (response.ok && data.success) {
         setInscriptionSuccess(true)
+        // Persister le consentement photo dans la table reservistes
+        if (consentementPhoto) {
+          supabase.from('reservistes').update({ consent_photos: true }).eq('benevole_id', reserviste.benevole_id).then(() => {})
+        }
         setTimeout(() => {
           closeCampModal()
           window.location.reload()
