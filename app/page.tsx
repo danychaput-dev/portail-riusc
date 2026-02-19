@@ -27,10 +27,6 @@ interface Reserviste {
   telephone?: string;
   photo_url?: string;
   groupe?: string;
-  consent_photos?: boolean;
-  allergies_alimentaires?: string;
-  allergies_autres?: string;
-  problemes_sante?: string;
 }
 
 interface CampInfo {
@@ -203,7 +199,7 @@ export default function HomePage() {
       if (user.email) {
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .ilike('email', user.email)
           .single()
         reservisteData = data
@@ -213,7 +209,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -221,7 +217,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
             .eq('telephone', phoneWithout1)
             .single()
           reservisteData = data2
@@ -299,11 +295,10 @@ export default function HomePage() {
     setInscriptionError(null)
     setInscriptionSuccess(false)
     setSelectedSessionId('')
-    // Pré-remplir depuis le reserviste déjà chargé (select inclut ces champs)
-    setConsentementPhoto(reserviste?.consent_photos || false)
-    setAllergiesAlimentaires(reserviste?.allergies_alimentaires || '')
-    setAutresAllergies(reserviste?.allergies_autres || '')
-    setConditionsMedicales(reserviste?.problemes_sante || '')
+    // Pré-cocher le consentement photo si déjà accordé précédemment
+    if ((reserviste as any)?.consent_photos) {
+      setConsentementPhoto(true)
+    }
 
     // Charger sessions et dossier en parallèle
     await Promise.all([
@@ -320,7 +315,20 @@ export default function HomePage() {
         }
       })(),
       (async () => {
-        // Données déjà disponibles dans reserviste (chargé au démarrage avec tous les champs)
+        if (!reserviste?.benevole_id) return
+        setLoadingDossier(true)
+        try {
+          const res = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.success && data.dossier) {
+              setAllergiesAlimentaires(data.dossier.allergies_alimentaires || '')
+              setAutresAllergies(data.dossier.allergies_autres || '')
+              setConditionsMedicales(data.dossier.problemes_sante || '')
+            }
+          }
+        } catch(e) { console.error('Erreur chargement dossier:', e) }
+        setLoadingDossier(false)
       })()
     ])
 
@@ -379,16 +387,10 @@ export default function HomePage() {
       
       if (response.ok && data.success) {
         setInscriptionSuccess(true)
-        // Persister dans Supabase et mettre à jour le state local
-        const updates: any = {
-          consent_photos: consentementPhoto,
-          allergies_alimentaires: allergiesAlimentaires || null,
-          allergies_autres: autresAllergies || null,
-          problemes_sante: conditionsMedicales || null
+        // Persister le consentement photo dans la table reservistes
+        if (consentementPhoto) {
+          supabase.from('reservistes').update({ consent_photos: true }).eq('benevole_id', reserviste.benevole_id).then(() => {})
         }
-        supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id).then(() => {
-          setReserviste(prev => prev ? { ...prev, ...updates } : prev)
-        })
         setTimeout(() => {
           closeCampModal()
           window.location.reload()
