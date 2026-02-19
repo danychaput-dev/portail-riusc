@@ -25,7 +25,7 @@ interface Reserviste {
   telephone?: string;
 }
 
-type ReponseType = 'disponible' | 'non_disponible' | 'a_confirmer' | null;
+type ReponseType = 'disponible' | 'non_disponible' | 'a_confirmer';
 
 function SoumettreContent() {
   const [loading, setLoading] = useState(true)
@@ -36,7 +36,7 @@ function SoumettreContent() {
   const [deploiement, setDeploiement] = useState<DeploiementInfo | null>(null)
   const [showAide, setShowAide] = useState(false)
 
-  const [reponse, setReponse] = useState<ReponseType>(null)
+  const [reponse, setReponse] = useState<ReponseType | null>(null)
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [transport, setTransport] = useState('')
@@ -46,31 +46,39 @@ function SoumettreContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
-  const deploiementId = searchParams.get('deploiement')
+  const deploiementId = searchParams.get('deploiement') ?? ''
 
   const demain = new Date()
   demain.setDate(demain.getDate() + 1)
   const minDate = demain.toISOString().split('T')[0]
 
   function formatDate(dateString: string): string {
-    if (!dateString) return '';
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (!dateString) return ''
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return; }
-      if (!deploiementId) { setError('Aucun déploiement spécifié.'); setLoading(false); return; }
+      if (!user) { router.push('/login'); return }
+      if (!deploiementId) { setError('Aucun déploiement spécifié.'); setLoading(false); return }
 
       if (user.email) {
-        const { data: res } = await supabase.from('reservistes').select('benevole_id, prenom, nom, email, telephone').ilike('email', user.email).single()
+        const { data: res } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, telephone')
+          .ilike('email', user.email)
+          .single()
         if (res) setReserviste(res)
       }
 
-      const { data: dep } = await supabase.from('deploiements_actifs').select('deploiement_id, nom_deploiement, nom_sinistre, type_incident, lieu, date_debut, date_fin, organisme, date_limite_reponse').eq('deploiement_id', deploiementId).single()
+      const { data: dep } = await supabase
+        .from('deploiements_actifs')
+        .select('deploiement_id, nom_deploiement, nom_sinistre, type_incident, lieu, date_debut, date_fin, organisme, date_limite_reponse')
+        .eq('deploiement_id', deploiementId)
+        .single()
 
       if (dep) {
         setDeploiement(dep)
@@ -104,9 +112,11 @@ function SoumettreContent() {
     setSubmitting(true)
     setError('')
 
-    let statut = 'Disponible'
-    if (reponse === 'non_disponible') statut = 'Non disponible'
-    if (reponse === 'a_confirmer') statut = 'En attente de confirmation'
+    const statutMap: Record<ReponseType, string> = {
+      disponible: 'Disponible',
+      non_disponible: 'Non disponible',
+      a_confirmer: 'En attente de confirmation',
+    }
 
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
@@ -123,7 +133,7 @@ function SoumettreContent() {
           date_fin: reponse !== 'non_disponible' ? dateFin : null,
           transport: reponse !== 'non_disponible' ? transport : null,
           commentaires: commentaires || null,
-          statut: statut
+          statut: statutMap[reponse],
         })
       })
 
@@ -141,34 +151,44 @@ function SoumettreContent() {
   }
 
   if (loading) {
-    return (<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>)
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>
+        Chargement...
+      </div>
+    )
   }
 
-  if (submitted) {
-    const messages: Record<string, { titre: string; icon: string; bg: string; texte: string; note?: string }> = {
+  // ── Écran de confirmation post-soumission ─────────────────────────────────
+  if (submitted && reponse) {
+    type MsgConfig = { titre: string; icon: string; bg: string; texte: string; note: string }
+    const prenom = reserviste?.prenom ?? ''
+    const contact = reserviste?.telephone ? 'SMS' : 'courriel'
+
+    const messages: Record<ReponseType, MsgConfig> = {
       disponible: {
         titre: 'Disponibilité enregistrée',
         icon: '✅',
         bg: '#d1fae5',
-        texte: `Merci, ${reserviste?.prenom} ! Vos dates ont bien été reçues.`,
-        note: 'La planification débute rapidement après la fermeture des disponibilités. Si vous êtes sélectionné pour ce déploiement, vous en serez informé par ' + (reserviste?.telephone ? 'SMS' : 'courriel') + '.'
+        texte: `Merci, ${prenom} ! Vos dates ont bien été reçues.`,
+        note: `La planification débute rapidement après la fermeture des disponibilités. Si vous êtes sélectionné pour ce déploiement, vous en serez informé par ${contact}.`,
       },
       non_disponible: {
         titre: 'Réponse enregistrée',
         icon: '📋',
         bg: '#fee2e2',
-        texte: `Merci, ${reserviste?.prenom}. Votre indisponibilité a été enregistrée.`,
-        note: 'Nous espérons pouvoir compter sur vous lors d\'un prochain déploiement.'
+        texte: `Merci, ${prenom}. Votre indisponibilité a été enregistrée.`,
+        note: 'Nous espérons pouvoir compter sur vous lors d\'un prochain déploiement.',
       },
       a_confirmer: {
         titre: 'Dates soumises',
         icon: '⏳',
         bg: '#fef3c7',
-        texte: `Merci, ${reserviste?.prenom} ! Vos dates ont été reçues sous réserve de confirmation.`,
-        note: 'Un suivi sera fait dans les 48 prochaines heures pour confirmer votre disponibilité.'
-      }
+        texte: `Merci, ${prenom} ! Vos dates ont été reçues sous réserve de confirmation.`,
+        note: 'Un suivi sera fait dans les 48 prochaines heures pour confirmer votre disponibilité.',
+      },
     }
-    const msg = messages[reponse || 'disponible']
+
+    const msg = messages[reponse]
 
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
@@ -183,21 +203,27 @@ function SoumettreContent() {
         </header>
         <main style={{ maxWidth: '800px', margin: '0 auto', padding: '48px 24px', width: '100%' }}>
           <div style={{ backgroundColor: 'white', padding: '48px 32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-            <div style={{ width: '80px', height: '80px', backgroundColor: msg.bg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '36px' }}>{msg.icon}</div>
+            <div style={{ width: '80px', height: '80px', backgroundColor: msg.bg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '36px' }}>
+              {msg.icon}
+            </div>
             <h2 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '24px' }}>{msg.titre}</h2>
-            <p style={{ color: '#4b5563', margin: '0 0 16px 0', fontSize: '16px' }}>{msg.texte}</p>
-            {msg.note && (
-              <p style={{ color: '#6b7280', margin: '0 0 32px 0', fontSize: '14px', lineHeight: '1.6', maxWidth: '460px', marginLeft: 'auto', marginRight: 'auto' }}>{msg.note}</p>
-            )}
+            <p style={{ color: '#4b5563', margin: '0 0 12px 0', fontSize: '16px' }}>{msg.texte}</p>
+            <p style={{ color: '#6b7280', margin: '0 0 32px 0', fontSize: '14px', lineHeight: '1.6', maxWidth: '460px', marginLeft: 'auto', marginRight: 'auto' }}>
+              {msg.note}
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-              {reponse !== 'non_disponible' && (
-                <a href={`/disponibilites/soumettre?deploiement=${deploiementId}`}
-                  style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#f0f4f8', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+              {reponse !== 'non_disponible' && deploiementId && (
+                <a
+                  href={`/disponibilites/soumettre?deploiement=${deploiementId}`}
+                  style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#f0f4f8', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
+                >
                   + Ajouter une autre plage de disponibilité
                 </a>
               )}
-              <a href="/disponibilites"
-                style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+              <a
+                href="/disponibilites"
+                style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
+              >
                 Voir mes disponibilités
               </a>
             </div>
@@ -207,6 +233,7 @@ function SoumettreContent() {
     )
   }
 
+  // ── Formulaire principal ──────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -229,29 +256,25 @@ function SoumettreContent() {
         {/* ── Carte déploiement ── */}
         {deploiement && (
           <div style={{ backgroundColor: '#1e3a5f', padding: '24px 28px', borderRadius: '12px', marginBottom: '24px', color: 'white' }}>
-            {deploiement.nom_sinistre && (<div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.8, marginBottom: '6px' }}>{deploiement.nom_sinistre}</div>)}
+            {deploiement.nom_sinistre && (
+              <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.8, marginBottom: '6px' }}>
+                {deploiement.nom_sinistre}
+              </div>
+            )}
             <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600' }}>{deploiement.nom_deploiement}</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '14px', opacity: 0.9 }}>
               {deploiement.type_incident && <div>🔥 {deploiement.type_incident}</div>}
               {deploiement.lieu && <div>📍 {deploiement.lieu}</div>}
               {deploiement.organisme && <div>🏢 {deploiement.organisme}</div>}
-              {deploiement.date_debut && (<div>📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` — ${formatDate(deploiement.date_fin)}` : ''}</div>)}
+              {deploiement.date_debut && (
+                <div>📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` — ${formatDate(deploiement.date_fin)}` : ''}</div>
+              )}
               {deploiement.date_limite_reponse && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' }}>
                   🕐 Répondre avant le {formatDate(deploiement.date_limite_reponse)}
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* ── Carte réserviste ── */}
-        {reserviste && (
-          <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', borderLeft: '4px solid #1e3a5f' }}>
-            <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Réserviste</p>
-            <p style={{ margin: '4px 0', color: '#374151', fontSize: '15px', fontWeight: '500' }}>{reserviste.prenom} {reserviste.nom}</p>
-            <p style={{ margin: '2px 0', color: '#6b7280', fontSize: '14px' }}>{reserviste.email}</p>
-            {reserviste.telephone && <p style={{ margin: '2px 0', color: '#6b7280', fontSize: '14px' }}>{reserviste.telephone}</p>}
           </div>
         )}
 
@@ -326,13 +349,19 @@ function SoumettreContent() {
           )}
         </div>
 
-        {error && (<div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>{error}</div>)}
+        {error && (
+          <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+            {error}
+          </div>
+        )}
 
         {/* ── Choix de réponse ── */}
         <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
           <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Quelle est votre disponibilité ?</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button onClick={() => { setReponse('disponible'); setError(''); setEngagementAccepte(false); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', border: reponse === 'disponible' ? '2px solid #059669' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', backgroundColor: reponse === 'disponible' ? '#ecfdf5' : 'white', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}>
+
+            <button onClick={() => { setReponse('disponible'); setError(''); setEngagementAccepte(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', border: reponse === 'disponible' ? '2px solid #059669' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', backgroundColor: reponse === 'disponible' ? '#ecfdf5' : 'white', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}>
               <span style={{ fontSize: '28px', flexShrink: 0 }}>✅</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#065f46' }}>Je suis disponible</div>
@@ -340,7 +369,8 @@ function SoumettreContent() {
               </div>
             </button>
 
-            <button onClick={() => { setReponse('a_confirmer'); setError(''); setEngagementAccepte(false); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', border: reponse === 'a_confirmer' ? '2px solid #d97706' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', backgroundColor: reponse === 'a_confirmer' ? '#fffbeb' : 'white', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}>
+            <button onClick={() => { setReponse('a_confirmer'); setError(''); setEngagementAccepte(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', border: reponse === 'a_confirmer' ? '2px solid #d97706' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', backgroundColor: reponse === 'a_confirmer' ? '#fffbeb' : 'white', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}>
               <span style={{ fontSize: '28px', flexShrink: 0 }}>⏳</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e' }}>Je dois confirmer avec mon employeur</div>
@@ -348,7 +378,8 @@ function SoumettreContent() {
               </div>
             </button>
 
-            <button onClick={() => { setReponse('non_disponible'); setError(''); }} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', border: reponse === 'non_disponible' ? '2px solid #dc2626' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', backgroundColor: reponse === 'non_disponible' ? '#fef2f2' : 'white', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}>
+            <button onClick={() => { setReponse('non_disponible'); setError('') }}
+              style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px', border: reponse === 'non_disponible' ? '2px solid #dc2626' : '1px solid #e5e7eb', borderRadius: '10px', cursor: 'pointer', backgroundColor: reponse === 'non_disponible' ? '#fef2f2' : 'white', transition: 'all 0.2s', textAlign: 'left', width: '100%' }}>
               <span style={{ fontSize: '28px', flexShrink: 0 }}>❌</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#991b1b' }}>Je ne suis pas disponible</div>
@@ -385,15 +416,19 @@ function SoumettreContent() {
             )}
 
             <div style={{ marginBottom: '28px' }}>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>{reponse === 'disponible' ? 'Vos dates de disponibilité' : 'Dates souhaitées'}</h3>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
+                {reponse === 'disponible' ? 'Vos dates de disponibilité' : 'Dates souhaitées'}
+              </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date de début *</label>
-                  <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} min={minDate} style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }} />
+                  <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} min={minDate}
+                    style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date de fin *</label>
-                  <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} min={dateDebut || minDate} style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }} />
+                  <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} min={dateDebut || minDate}
+                    style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }} />
                 </div>
               </div>
               <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280' }}>Durée minimale : 4 jours</p>
@@ -409,7 +444,8 @@ function SoumettreContent() {
                   { value: 'besoin_transport', label: "J'ai besoin d'un transport (pas de véhicule)" },
                 ].map((option) => (
                   <label key={option.value} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: transport === option.value ? '2px solid #1e3a5f' : '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', backgroundColor: transport === option.value ? '#f0f4f8' : 'white', transition: 'all 0.2s' }}>
-                    <input type="radio" name="transport" value={option.value} checked={transport === option.value} onChange={(e) => setTransport(e.target.value)} style={{ accentColor: '#1e3a5f', width: '18px', height: '18px' }} />
+                    <input type="radio" name="transport" value={option.value} checked={transport === option.value} onChange={(e) => setTransport(e.target.value)}
+                      style={{ accentColor: '#1e3a5f', width: '18px', height: '18px' }} />
                     <span style={{ fontSize: '14px', color: '#374151', fontWeight: transport === option.value ? '500' : '400' }}>{option.label}</span>
                   </label>
                 ))}
@@ -419,20 +455,33 @@ function SoumettreContent() {
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Commentaires</h3>
               <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>Informations supplémentaires pertinentes (limitations, compétences particulières, etc.)</p>
-              <textarea value={commentaires} onChange={(e) => setCommentaires(e.target.value)} placeholder="Optionnel" rows={3} style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical', color: '#111827', fontFamily: 'inherit' }} />
+              <textarea value={commentaires} onChange={(e) => setCommentaires(e.target.value)} placeholder="Optionnel" rows={3}
+                style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical', color: '#111827', fontFamily: 'inherit' }} />
             </div>
 
             {reponse === 'disponible' && (
               <div style={{ backgroundColor: '#f9fafb', padding: '16px 20px', borderRadius: '8px', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={engagementAccepte} onChange={(e) => setEngagementAccepte(e.target.checked)} style={{ accentColor: '#1e3a5f', width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }} />
-                  <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>Je confirme que les dates indiquées reflètent ma <strong>disponibilité réelle</strong> au moment de la soumission.</span>
+                  <input type="checkbox" checked={engagementAccepte} onChange={(e) => setEngagementAccepte(e.target.checked)}
+                    style={{ accentColor: '#1e3a5f', width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }} />
+                  <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                    Je confirme que les dates indiquées reflètent ma <strong>disponibilité réelle</strong> au moment de la soumission.
+                  </span>
                 </label>
               </div>
             )}
 
-            <button onClick={handleSubmit} disabled={submitting || (reponse === 'disponible' && !engagementAccepte) || !dateDebut || !dateFin || !transport}
-              style={{ width: '100%', padding: '16px 24px', backgroundColor: (submitting || (reponse === 'disponible' && !engagementAccepte) || !dateDebut || !dateFin || !transport) ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600', cursor: (submitting || (reponse === 'disponible' && !engagementAccepte)) ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || (reponse === 'disponible' && !engagementAccepte) || !dateDebut || !dateFin || !transport}
+              style={{
+                width: '100%', padding: '16px 24px',
+                backgroundColor: (submitting || (reponse === 'disponible' && !engagementAccepte) || !dateDebut || !dateFin || !transport)
+                  ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706',
+                color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600',
+                cursor: (submitting || (reponse === 'disponible' && !engagementAccepte)) ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.2s'
+              }}>
               {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? 'Envoyer mes disponibilités' : 'Soumettre mes dates (à confirmer)'}
             </button>
           </div>
@@ -444,9 +493,11 @@ function SoumettreContent() {
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Commentaire (optionnel)</h3>
               <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>Vous pouvez indiquer la raison de votre indisponibilité si vous le souhaitez.</p>
-              <textarea value={commentaires} onChange={(e) => setCommentaires(e.target.value)} placeholder="Optionnel" rows={3} style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical', color: '#111827', fontFamily: 'inherit' }} />
+              <textarea value={commentaires} onChange={(e) => setCommentaires(e.target.value)} placeholder="Optionnel" rows={3}
+                style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical', color: '#111827', fontFamily: 'inherit' }} />
             </div>
-            <button onClick={handleSubmit} disabled={submitting} style={{ width: '100%', padding: '16px 24px', backgroundColor: submitting ? '#9ca3af' : '#dc2626', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600', cursor: submitting ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}>
+            <button onClick={handleSubmit} disabled={submitting}
+              style={{ width: '100%', padding: '16px 24px', backgroundColor: submitting ? '#9ca3af' : '#dc2626', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600', cursor: submitting ? 'not-allowed' : 'pointer', transition: 'background-color 0.2s' }}>
               {submitting ? 'Enregistrement...' : 'Confirmer mon indisponibilité'}
             </button>
           </div>
