@@ -203,7 +203,8 @@ export default function HomePage() {
       // 1. D'abord chercher par user_id (le plus fiable)
       const { data: dataByUserId } = await supabase
         .from('reservistes')
-        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
+        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+        .eq('user_id', user.id)
         .single()
       
       if (dataByUserId) {
@@ -214,7 +215,7 @@ export default function HomePage() {
       if (!reservisteData && user.email) {
         const { data } = await supabase
           .from('reservistes')
-         .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
+         .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
           .ilike('email', user.email)
           .single()
         
@@ -233,7 +234,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -241,7 +242,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.slice(1)
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, conditions_medicales')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
             .eq('telephone', phoneWithout1)
             .single()
           
