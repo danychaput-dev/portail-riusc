@@ -204,36 +204,68 @@ useEffect(() => {
       setUser(user)
       
       let reservisteData = null
-      
-      if (user.email) {
-        const { data } = await supabase
-          .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-          .ilike('email', user.email)
-          .single()
-        reservisteData = data
-      }
-      
-      if (!reservisteData && user.phone && !user.email) {
-        const phoneDigits = user.phone.replace(/\D/g, '')
-        const { data } = await supabase
-          .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-          .eq('telephone', phoneDigits)
-          .single()
-        
-        if (!data) {
-          const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
-          const { data: data2 } = await supabase
-            .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-            .eq('telephone', phoneWithout1)
-            .single()
-          reservisteData = data2
-        } else {
-          reservisteData = data
-        }
-      }
+
+// 1. D'abord chercher par user_id (le plus fiable)
+const { data: dataByUserId } = await supabase
+  .from('reservistes')
+  .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+  .eq('user_id', user.id)
+  .single()
+
+if (dataByUserId) {
+  reservisteData = dataByUserId
+}
+
+// 2. Sinon chercher par email
+if (!reservisteData && user.email) {
+  const { data } = await supabase
+    .from('reservistes')
+    .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+    .ilike('email', user.email)
+    .single()
+  
+  // Si trouvé, mettre à jour le user_id pour la prochaine fois
+  if (data) {
+    await supabase
+      .from('reservistes')
+      .update({ user_id: user.id })
+      .eq('benevole_id', data.benevole_id)
+    reservisteData = data
+  }
+}
+
+// 3. Sinon chercher par téléphone
+if (!reservisteData && user.phone) {
+  const phoneDigits = user.phone.replace(/\D/g, '')
+  const { data } = await supabase
+    .from('reservistes')
+    .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+    .eq('telephone', phoneDigits)
+    .single()
+  
+  if (!data && phoneDigits.startsWith('1')) {
+    const phoneWithout1 = phoneDigits.slice(1)
+    const { data: data2 } = await supabase
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+      .eq('telephone', phoneWithout1)
+      .single()
+    
+    if (data2) {
+      await supabase
+        .from('reservistes')
+        .update({ user_id: user.id })
+        .eq('benevole_id', data2.benevole_id)
+      reservisteData = data2
+    }
+  } else if (data) {
+    await supabase
+      .from('reservistes')
+      .update({ user_id: user.id })
+      .eq('benevole_id', data.benevole_id)
+    reservisteData = data
+  }
+}
       
       if (reservisteData) {
         setReserviste(reservisteData)
