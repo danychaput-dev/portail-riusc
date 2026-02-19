@@ -3,8 +3,8 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import Image from 'next/image'
 import ImageCropper from '@/app/components/ImageCropper'
+import PortailHeader from '@/app/components/PortailHeader'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 
@@ -104,23 +104,8 @@ export default function ProfilPage() {
   // État pour la photo
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   
-  // Menu utilisateur
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const userMenuRef = useRef<HTMLDivElement>(null)
-  
   const router = useRouter()
   const supabase = createClient()
-
-  // Fermer le menu utilisateur quand on clique ailleurs
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   // Charger les données
   useEffect(() => {
@@ -336,11 +321,6 @@ export default function ProfilPage() {
     }
   }
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
   const getInitials = () => {
     if (reserviste) {
       return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase()
@@ -552,162 +532,7 @@ export default function ProfilPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       {/* Header */}
-      <header style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 24px',
-          height: '72px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
-            <Image
-              src="/logo.png"
-              alt="Logo RIUSC"
-              width={48}
-              height={48}
-              style={{ borderRadius: '8px' }}
-            />
-            <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>
-                Portail RIUSC
-              </h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
-                Réserve d'Intervention d'Urgence
-              </p>
-            </div>
-          </a>
-          
-          {/* Menu utilisateur */}
-          <div ref={userMenuRef} style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowUserMenu(!showUserMenu)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '8px 12px',
-                backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
-                  {reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email}
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
-              </div>
-              {reserviste?.photo_url ? (
-                <img
-                  src={reserviste.photo_url}
-                  alt="Photo de profil"
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    objectFit: 'cover'
-                  }}
-                />
-              ) : (
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: '#1e3a5f',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '600',
-                  fontSize: '14px'
-                }}>
-                  {getInitials()}
-                </div>
-              )}
-              <svg width="16" height="16" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {showUserMenu && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '8px',
-                backgroundColor: 'white',
-                borderRadius: '8px',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                border: '1px solid #e5e7eb',
-                minWidth: '200px',
-                overflow: 'hidden'
-              }}>
-                <a href="/" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  color: '#374151',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                  Accueil
-                </a>
-                <a href="/disponibilites" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  color: '#374151',
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  Mes disponibilités
-                </a>
-                <button
-                  onClick={handleSignOut}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px 16px',
-                    color: '#dc2626',
-                    backgroundColor: 'white',
-                    border: 'none',
-                    width: '100%',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Déconnexion
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+      <PortailHeader subtitle="Mon profil" />
 
       {/* Main Content */}
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 24px' }}>

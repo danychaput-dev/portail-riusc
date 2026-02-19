@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import PortailHeader from '@/components/PortailHeader';
+import PortailHeader from '@/app/components/PortailHeader';
 
 interface Reserviste {
   benevole_id: string;
