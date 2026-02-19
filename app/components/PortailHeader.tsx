@@ -57,14 +57,36 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       // Charger réserviste seulement si pas passé en prop
       let res = reservisteOverride ?? null
       if (!res) {
-        if (user.email) {
+        // 1. D'abord chercher par user_id (le plus fiable)
+        const { data: dataByUserId } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, photo_url, groupe')
+          .eq('user_id', user.id)
+          .single()
+        
+        if (dataByUserId) {
+          res = dataByUserId
+        }
+        
+        // 2. Sinon chercher par email
+        if (!res && user.email) {
           const { data } = await supabase
             .from('reservistes')
             .select('benevole_id, prenom, nom, email, photo_url, groupe')
             .ilike('email', user.email)
             .single()
-          res = data
+          
+          // Si trouvé, mettre à jour le user_id pour la prochaine fois
+          if (data) {
+            await supabase
+              .from('reservistes')
+              .update({ user_id: user.id })
+              .eq('benevole_id', data.benevole_id)
+            res = data
+          }
         }
+        
+        // 3. Sinon chercher par téléphone
         if (!res && user.phone) {
           const phoneDigits = user.phone.replace(/\D/g, '')
           const { data } = await supabase
@@ -72,18 +94,31 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             .select('benevole_id, prenom, nom, email, photo_url, groupe')
             .eq('telephone', phoneDigits)
             .single()
-          if (!data) {
-            const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
+          
+          if (!data && phoneDigits.startsWith('1')) {
+            const phoneWithout1 = phoneDigits.slice(1)
             const { data: data2 } = await supabase
               .from('reservistes')
               .select('benevole_id, prenom, nom, email, photo_url, groupe')
               .eq('telephone', phoneWithout1)
               .single()
-            res = data2
-          } else {
+            
+            if (data2) {
+              await supabase
+                .from('reservistes')
+                .update({ user_id: user.id })
+                .eq('benevole_id', data2.benevole_id)
+              res = data2
+            }
+          } else if (data) {
+            await supabase
+              .from('reservistes')
+              .update({ user_id: user.id })
+              .eq('benevole_id', data.benevole_id)
             res = data
           }
         }
+        
         if (res) setReserviste(res)
       }
 

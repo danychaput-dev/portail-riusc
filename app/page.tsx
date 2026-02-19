@@ -187,12 +187,7 @@ export default function HomePage() {
       certificatInputRef.current.value = ''
     }
   }
-useEffect(() => {
-  console.log('🔍 USER AUTH:', user)
-  console.log('🔍 RESERVISTE:', reserviste)
-  console.log('🔍 CERTIFICATS:', certificats)
-  console.log('🔍 LOADING CERTIFICATS:', loadingCertificats)
-}, [user, reserviste, certificats, loadingCertificats])
+
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -204,68 +199,68 @@ useEffect(() => {
       setUser(user)
       
       let reservisteData = null
-
-// 1. D'abord chercher par user_id (le plus fiable)
-const { data: dataByUserId } = await supabase
-  .from('reservistes')
-  .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-  .eq('user_id', user.id)
-  .single()
-
-if (dataByUserId) {
-  reservisteData = dataByUserId
-}
-
-// 2. Sinon chercher par email
-if (!reservisteData && user.email) {
-  const { data } = await supabase
-    .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-    .ilike('email', user.email)
-    .single()
-  
-  // Si trouvé, mettre à jour le user_id pour la prochaine fois
-  if (data) {
-    await supabase
-      .from('reservistes')
-      .update({ user_id: user.id })
-      .eq('benevole_id', data.benevole_id)
-    reservisteData = data
-  }
-}
-
-// 3. Sinon chercher par téléphone
-if (!reservisteData && user.phone) {
-  const phoneDigits = user.phone.replace(/\D/g, '')
-  const { data } = await supabase
-    .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-    .eq('telephone', phoneDigits)
-    .single()
-  
-  if (!data && phoneDigits.startsWith('1')) {
-    const phoneWithout1 = phoneDigits.slice(1)
-    const { data: data2 } = await supabase
-      .from('reservistes')
-      .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
-      .eq('telephone', phoneWithout1)
-      .single()
-    
-    if (data2) {
-      await supabase
+      
+      // 1. D'abord chercher par user_id (le plus fiable)
+      const { data: dataByUserId } = await supabase
         .from('reservistes')
-        .update({ user_id: user.id })
-        .eq('benevole_id', data2.benevole_id)
-      reservisteData = data2
-    }
-  } else if (data) {
-    await supabase
-      .from('reservistes')
-      .update({ user_id: user.id })
-      .eq('benevole_id', data.benevole_id)
-    reservisteData = data
-  }
-}
+        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (dataByUserId) {
+        reservisteData = dataByUserId
+      }
+      
+      // 2. Sinon chercher par email
+      if (!reservisteData && user.email) {
+        const { data } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+          .ilike('email', user.email)
+          .single()
+        
+        // Si trouvé, mettre à jour le user_id pour la prochaine fois
+        if (data) {
+          await supabase
+            .from('reservistes')
+            .update({ user_id: user.id })
+            .eq('benevole_id', data.benevole_id)
+          reservisteData = data
+        }
+      }
+      
+      // 3. Sinon chercher par téléphone
+      if (!reservisteData && user.phone) {
+        const phoneDigits = user.phone.replace(/\D/g, '')
+        const { data } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+          .eq('telephone', phoneDigits)
+          .single()
+        
+        if (!data && phoneDigits.startsWith('1')) {
+          const phoneWithout1 = phoneDigits.slice(1)
+          const { data: data2 } = await supabase
+            .from('reservistes')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres, problemes_sante')
+            .eq('telephone', phoneWithout1)
+            .single()
+          
+          if (data2) {
+            await supabase
+              .from('reservistes')
+              .update({ user_id: user.id })
+              .eq('benevole_id', data2.benevole_id)
+            reservisteData = data2
+          }
+        } else if (data) {
+          await supabase
+            .from('reservistes')
+            .update({ user_id: user.id })
+            .eq('benevole_id', data.benevole_id)
+          reservisteData = data
+        }
+      }
       
       if (reservisteData) {
         setReserviste(reservisteData)
@@ -695,32 +690,6 @@ if (!reservisteData && user.phone) {
             gérez vos inscriptions et restez informé des prochains événements.
           </p>
         </div>
-
-{/* === DEBUG TEMPORAIRE - À RETIRER === */}
-<div style={{ backgroundColor: '#fee', border: '2px solid #f00', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
-  <h4 style={{ margin: '0 0 10px 0', color: '#c00' }}>🐛 DEBUG INFO</h4>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>loadingCertificats:</strong> {String(loadingCertificats)}
-  </p>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>certificats.length:</strong> {certificats.length}
-  </p>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>isApproved:</strong> {String(isApproved)}
-  </p>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>groupe:</strong> {reserviste?.groupe || 'undefined'}
-  </p>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>deploiementsActifs.length:</strong> {deploiementsActifs.length}
-  </p>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>Condition ligne 663 (Formation):</strong> {String(!loadingCertificats && certificats.length === 0)}
-  </p>
-  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
-    <strong>Condition ligne 709 (Déploiements):</strong> {String(!loadingCertificats && certificats.length > 0)}
-  </p>
-</div>
 
         {/* Section Formation obligatoire - visible si aucun certificat */}
         {!loadingCertificats && certificats.length === 0 && (
