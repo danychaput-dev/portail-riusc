@@ -375,9 +375,9 @@ export default function HomePage() {
         // Persister dans Supabase ET mettre à jour le state local (pour cancel + reopen)
         const updates = {
           consent_photos: consentementPhoto,
-          allergies_alimentaires: allergiesAlimentaires || undefined,
-          allergies_autres: autresAllergies || undefined,
-          problemes_sante: conditionsMedicales || undefined
+          allergies_alimentaires: allergiesAlimentaires || null,
+          allergies_autres: autresAllergies || null,
+          problemes_sante: conditionsMedicales || null
         }
         supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id)
           .then(() => { setReserviste(prev => prev ? { ...prev, ...updates } : prev) })
