@@ -497,6 +497,20 @@ export default function ProfilPage() {
         problemes_sante: formData.problemes_sante
       })
 
+      // Sauvegarder les données de santé dans le dossier (Monday)
+      await fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          dossier: {
+            allergies_alimentaires: formData.allergies_alimentaires || '',
+            allergies_autres: formData.allergies_autres || '',
+            problemes_sante: formData.problemes_sante || ''
+          }
+        })
+      }).catch(e => console.error('Erreur update dossier santé:', e))
+
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
       setReserviste(prev => prev ? { ...prev, ...formData } : null)
       
