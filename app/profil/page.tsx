@@ -1058,43 +1058,9 @@ export default function ProfilPage() {
 
             {/* Sticky bar Sauvegarder - visible seulement si modifications */}
             {hasChanges && (
-              <div style={{ 
-                position: 'fixed', 
-                bottom: 0, 
-                left: 0, 
-                right: 0, 
-                backgroundColor: 'white', 
-                borderTop: '2px solid #e5e7eb', 
-                padding: '16px 24px', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                gap: '16px', 
-                zIndex: 9999,
-                boxShadow: '0 -4px 12px rgba(0,0,0,0.1)'
-              }}>
-                <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
-                  Vous avez des modifications non sauvegardées
-                </span>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button
-                    onClick={() => {
-                      setFormData({ ...originalFormData })
-                      setHasChanges(false)
-                    }}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: 'white',
-                      color: '#374151',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Annuler
-                  </button>
+              <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'white', borderTop: '1px solid #e5e7eb', boxShadow: '0 -4px 12px rgba(0,0,0,0.08)', zIndex: 9999 }}>
+                <div style={{ maxWidth: '860px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '14px', color: '#d97706', fontWeight: '500' }}>⚠️ Modifications non sauvegardées</span>
                   <button
                     onClick={handleSave}
                     disabled={saving}
