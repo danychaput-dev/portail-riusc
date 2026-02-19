@@ -187,7 +187,12 @@ export default function HomePage() {
       certificatInputRef.current.value = ''
     }
   }
-
+useEffect(() => {
+  console.log('🔍 USER AUTH:', user)
+  console.log('🔍 RESERVISTE:', reserviste)
+  console.log('🔍 CERTIFICATS:', certificats)
+  console.log('🔍 LOADING CERTIFICATS:', loadingCertificats)
+}, [user, reserviste, certificats, loadingCertificats])
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
