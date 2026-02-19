@@ -62,9 +62,8 @@ interface DossierData {
 // ─── OPTIONS ─────────────────────────────────────────────────────────────────
 
 const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
-const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
 
-// Mapping Monday.com pour groupe sanguin
+// Mapping Monday.com pour groupe sanguin (IDs)
 const GROUPE_SANGUIN_MAP: Record<string, number> = {
   'A+': 1,
   'B+': 2,
@@ -79,6 +78,19 @@ const GROUPE_SANGUIN_MAP: Record<string, number> = {
   'O-': 8,
   'O−': 8,  // Unicode minus
 }
+
+// Reverse mapping (ID → Label)
+const GROUPE_SANGUIN_REVERSE: Record<number, string> = {
+  1: 'A+',
+  2: 'B+',
+  3: 'A-',
+  4: 'B-',
+  5: 'AB+',
+  6: 'AB-',
+  7: 'O+',
+  8: 'O-',
+}
+
 // Langues épinglées en haut
 const LANGUES_EPINGLEES = ['Anglais', 'Espagnol', 'Français']
 
@@ -502,7 +514,7 @@ export default function DossierPage() {
               allergies_alimentaires: d.allergies_alimentaires || '',
               allergies_autres: d.allergies_autres || '',
               problemes_sante: d.problemes_sante || '',
-              groupe_sanguin: d.groupe_sanguin || '',
+              groupe_sanguin: Array.isArray(d.groupe_sanguin) && d.groupe_sanguin.length > 0 ? (GROUPE_SANGUIN_REVERSE[d.groupe_sanguin[0]] || '') : '',
               competence_rs: d.competence_rs || [],
               certificat_premiers_soins: d.certificat_premiers_soins || [],
               date_expiration_certificat: d.date_expiration_certificat || '',
