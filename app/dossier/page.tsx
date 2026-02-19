@@ -2,8 +2,8 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
-import Image from 'next/image'
+import { useEffect, useState } from 'react'
+import PortailHeader from '@/components/PortailHeader'
 
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 
@@ -407,26 +407,6 @@ export default function DossierPage() {
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
 
-  // ── NOUVEAU : menu utilisateur ──────────────────────────────────────────────
-  const [showUserMenu, setShowUserMenu] = useState(false)
-  const userMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  const getInitials = () => {
-    if (reserviste) return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase()
-    return user?.email?.charAt(0).toUpperCase() || 'U'
-  }
-  // ───────────────────────────────────────────────────────────────────────────
-
   // ─── Organisations ──────────────────────────────────────────────────────────
   const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
   const [myOrgIds, setMyOrgIds] = useState<string[]>([])
@@ -545,8 +525,6 @@ export default function DossierPage() {
     }
     loadData()
   }, [])
-
-  const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login') }
 
   const handleSave = async () => {
     if (!reserviste) return
@@ -674,73 +652,7 @@ export default function DossierPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
 
-      {/* ── Header ── */}
-      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-          {/* Logo */}
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
-            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
-            <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Mon dossier réserviste</p>
-            </div>
-          </a>
-
-          {/* Droite : bouton Sauvegarder + menu utilisateur */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={handleSave} disabled={saving || !anyChanges}
-              style={{ padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: '600', border: 'none', cursor: anyChanges ? 'pointer' : 'not-allowed', backgroundColor: anyChanges ? '#1e3a5f' : '#e5e7eb', color: anyChanges ? 'white' : '#9ca3af', transition: 'all 0.2s' }}>
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </button>
-
-            <div ref={userMenuRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-              >
-                {reserviste?.photo_url ? (
-                  <img src={reserviste.photo_url} alt="Photo" style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '14px' }}>{getInitials()}</div>
-                )}
-                <svg width="16" height="16" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {showUserMenu && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '200px', overflow: 'hidden', zIndex: 200 }}>
-                  <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                    Accueil
-                  </a>
-                  <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                    Mon profil
-                  </a>
-                  <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    Disponibilités
-                  </a>
-                  <a href="/communaute" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Communauté
-                  </a>
-                  <a href="/informations" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Informations
-                  </a>
-                  <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    Déconnexion
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <PortailHeader subtitle="Mon dossier réserviste" />
 
       {saveMessage && (
         <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>

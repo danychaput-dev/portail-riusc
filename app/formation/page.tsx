@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import PortailHeader from '@/components/PortailHeader';
 
 interface Reserviste {
   benevole_id: string;
@@ -82,32 +82,17 @@ function FormationContent() {
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false);
   const [cancellingInscription, setCancellingInscription] = useState(false);
 
-  // États pour le formulaire d'inscription camp
   const [modalAllergiesAlim, setModalAllergiesAlim] = useState('');
   const [modalAllergiesAutres, setModalAllergiesAutres] = useState('');
   const [modalConditions, setModalConditions] = useState('');
   const [modalConsentPhoto, setModalConsentPhoto] = useState(false);
 
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-
   const isApproved = reserviste?.groupe === 'Approuvé';
 
   const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo';
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   useEffect(() => { loadData(); }, []);
 
-  // Auto-ouvrir le modal si ?camp=SESSION_ID dans l'URL
   useEffect(() => {
     if (!loading && !loadingCamp && campParam && reserviste && !campStatus?.is_certified) {
       openCampModal();
@@ -138,7 +123,6 @@ function FormationContent() {
       setReserviste(reservisteData);
 
       if (reservisteData.benevole_id) {
-        // Certificats
         try {
           const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`);
           if (response.ok) {
@@ -148,7 +132,6 @@ function FormationContent() {
         } catch (e) { console.error('Erreur certificats:', e); }
         setLoadingCertificats(false);
 
-        // Camp status
         try {
           const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`);
           if (response.ok) {
@@ -264,31 +247,17 @@ function FormationContent() {
     setCancellingInscription(false);
   };
 
-  const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login'); };
-
-  function getInitials(): string {
-    if (reserviste) return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase();
-    return user?.email?.charAt(0).toUpperCase() || 'U';
-  }
-
   const isProfilComplet = !!(
     reserviste &&
-    reserviste.prenom &&
-    reserviste.nom &&
-    reserviste.email &&
-    reserviste.telephone &&
-    reserviste.date_naissance &&
-    reserviste.adresse &&
-    reserviste.ville &&
-    reserviste.region &&
-    reserviste.contact_urgence_nom &&
-    reserviste.contact_urgence_telephone
+    reserviste.prenom && reserviste.nom && reserviste.email && reserviste.telephone &&
+    reserviste.date_naissance && reserviste.adresse && reserviste.ville && reserviste.region &&
+    reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
   );
 
   const steps = [
     { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: 'Suivre « S\'initier à la sécurité civile » et soumettre le certificat' },
-    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours' },
+    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: "Suivre « S'initier à la sécurité civile » et soumettre le certificat" },
+    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
   ];
   const completedCount = steps.filter(s => s.done).length;
   const progressPercent = Math.round((completedCount / 3) * 100);
@@ -348,68 +317,35 @@ function FormationContent() {
                   )}
                 </div>
 
-                {/* Section Santé et allergies */}
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Santé et allergies</label>
-                  <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 12px 0', lineHeight: '1.5' }}>
-                    Ces informations nous aident à planifier les repas et assurer votre sécurité pendant le camp.
-                  </p>
-
+                  <p style={{ color: '#6b7280', fontSize: '13px', margin: '0 0 12px 0', lineHeight: '1.5' }}>Ces informations nous aident à planifier les repas et assurer votre sécurité pendant le camp.</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div>
                       <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>Allergies alimentaires</label>
-                      <input
-                        type="text"
-                        value={modalAllergiesAlim}
-                        onChange={(e) => setModalAllergiesAlim(e.target.value)}
-                        style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
-                        placeholder="Ex : arachides, fruits de mer, gluten..."
-                      />
+                      <input type="text" value={modalAllergiesAlim} onChange={(e) => setModalAllergiesAlim(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }} placeholder="Ex : arachides, fruits de mer, gluten..." />
                     </div>
                     <div>
                       <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>Autres allergies (médicaments, environnement)</label>
-                      <input
-                        type="text"
-                        value={modalAllergiesAutres}
-                        onChange={(e) => setModalAllergiesAutres(e.target.value)}
-                        style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
-                        placeholder="Ex : pénicilline, piqûres d'abeilles..."
-                      />
+                      <input type="text" value={modalAllergiesAutres} onChange={(e) => setModalAllergiesAutres(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }} placeholder="Ex : pénicilline, piqûres d'abeilles..." />
                     </div>
                     <div>
                       <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', color: '#374151', fontWeight: '500' }}>Conditions médicales</label>
-                      <input
-                        type="text"
-                        value={modalConditions}
-                        onChange={(e) => setModalConditions(e.target.value)}
-                        style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
-                        placeholder="Ex : asthme, diabète, épilepsie..."
-                      />
+                      <input type="text" value={modalConditions} onChange={(e) => setModalConditions(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }} placeholder="Ex : asthme, diabète, épilepsie..." />
                     </div>
                   </div>
-
                   <div style={{ backgroundColor: '#f0f9ff', padding: '12px 16px', borderRadius: '8px', marginTop: '12px', borderLeft: '4px solid #3b82f6' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5' }}>
-                      Nous faisons notre possible pour accommoder les préférences et restrictions alimentaires (végétarien, végane, sans gluten, etc.), mais ne pouvons garantir un menu adapté à chaque situation. Les allergies sévères (anaphylaxie) seront toutefois prises en charge — assurez-vous de bien les indiquer ci-dessus et d&apos;apporter vos médicaments (EpiPen, etc.).
-                    </p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5' }}>Nous faisons notre possible pour accommoder les préférences et restrictions alimentaires, mais ne pouvons garantir un menu adapté à chaque situation. Les allergies sévères (anaphylaxie) seront toutefois prises en charge — assurez-vous de bien les indiquer ci-dessus et d&apos;apporter vos médicaments (EpiPen, etc.).</p>
                   </div>
                 </div>
 
-                {/* Consentement photo */}
                 {!reserviste?.consent_photo && (
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '16px', backgroundColor: modalConsentPhoto ? '#f0fdf4' : '#f9fafb', border: modalConsentPhoto ? '1px solid #86efac' : '1px solid #e5e7eb', borderRadius: '8px' }}>
-                      <input
-                        type="checkbox"
-                        checked={modalConsentPhoto}
-                        onChange={(e) => setModalConsentPhoto(e.target.checked)}
-                        style={{ marginTop: '2px', width: '18px', height: '18px', flexShrink: 0 }}
-                      />
+                      <input type="checkbox" checked={modalConsentPhoto} onChange={(e) => setModalConsentPhoto(e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', flexShrink: 0 }} />
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>Consentement photo et vidéo</div>
-                        <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
-                          J&apos;autorise l&apos;AQBRS et la RIUSC à utiliser des photos et vidéos prises lors des camps et déploiements à des fins de communication, de promotion et de formation.
-                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>J&apos;autorise l&apos;AQBRS et la RIUSC à utiliser des photos et vidéos prises lors des camps et déploiements à des fins de communication, de promotion et de formation.</div>
                       </div>
                     </label>
                   </div>
@@ -419,7 +355,8 @@ function FormationContent() {
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
-                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reserviste?.consent_photo && !modalConsentPhoto)} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? 'not-allowed' : 'pointer' }}>
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reserviste?.consent_photo && !modalConsentPhoto)}
+                    style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? 'not-allowed' : 'pointer' }}>
                     {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : 'Confirmer mon inscription'}
                   </button>
                 </div>
@@ -429,54 +366,7 @@ function FormationContent() {
         </div>
       )}
 
-      {/* Header */}
-      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
-            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
-            <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Formation et parcours du réserviste</p>
-            </div>
-          </a>
-          {reserviste && (
-            <div ref={userMenuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste.prenom} {reserviste.nom}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
-                    {loadingCamp ? (
-                      <span style={{ color: '#6b7280' }}>Réserviste</span>
-                    ) : isApproved && campStatus?.is_certified ? (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        <span style={{ color: '#059669', fontWeight: '600' }}>Déployable</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                        <span style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {reserviste.photo_url ? (
-                  <img src={reserviste.photo_url} alt="Photo" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '14px' }}>{getInitials()}</div>
-                )}
-              </button>
-              {showUserMenu && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '200px', overflow: 'hidden', zIndex: 200 }}>
-                  <a href="/" style={{ display: 'block', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Accueil</a>
-                  <a href="/profil" style={{ display: 'block', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Mon profil</a>
-                  <button onClick={handleSignOut} style={{ display: 'block', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}>Déconnexion</button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
+      <PortailHeader subtitle="Formation et parcours du réserviste" />
 
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
@@ -499,14 +389,10 @@ function FormationContent() {
         {/* ÉTAPE 1 : Profil */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: isProfilComplet ? '1px solid #10b981' : '2px solid #f59e0b', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: isProfilComplet ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-              {isProfilComplet ? '✅' : '1'}
-            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: isProfilComplet ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{isProfilComplet ? '✅' : '1'}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Compléter mon profil</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                {isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles'}
-              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles'}</div>
             </div>
             <a href="/profil" style={{ padding: '8px 16px', backgroundColor: isProfilComplet ? 'white' : '#1e3a5f', color: isProfilComplet ? '#1e3a5f' : 'white', border: isProfilComplet ? '1px solid #1e3a5f' : 'none', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', flexShrink: 0 }}>
               {isProfilComplet ? 'Voir' : 'Compléter'}
@@ -517,14 +403,10 @@ function FormationContent() {
         {/* ÉTAPE 2 : Formation en ligne + certificat */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: certificats.length > 0 ? '1px solid #10b981' : '2px solid #f59e0b', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: certificats.length > 0 ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-              {certificats.length > 0 ? '✅' : '2'}
-            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: certificats.length > 0 ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{certificats.length > 0 ? '✅' : '2'}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Formation en ligne</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                {certificats.length > 0 ? `${certificats.length} certificat${certificats.length > 1 ? 's' : ''} soumis` : 'Suivre la formation et soumettre votre certificat'}
-              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{certificats.length > 0 ? `${certificats.length} certificat${certificats.length > 1 ? 's' : ''} soumis` : 'Suivre la formation et soumettre votre certificat'}</div>
             </div>
           </div>
 
@@ -532,23 +414,15 @@ function FormationContent() {
             {!loadingCertificats && certificats.length === 0 && (
               <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '16px' }}>
                 <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>Formation obligatoire requise</p>
-                <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
-                  Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
-                  <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
-                  puis nous soumettre votre certificat de réussite.
-                </p>
+                <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>Pour compléter votre inscription à la RIUSC, vous devez suivre la formation <strong>« S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC, puis nous soumettre votre certificat de réussite.</p>
                 <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
                   <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
                   <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
                   <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                  <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                    🎓 Accéder à la formation
-                  </a>
-                  <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                    📺 Tutoriel vidéo
-                  </a>
+                  <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>🎓 Accéder à la formation</a>
+                  <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>📺 Tutoriel vidéo</a>
                 </div>
               </div>
             )}
@@ -561,9 +435,7 @@ function FormationContent() {
                       <span style={{ fontSize: '20px' }}>📄</span>
                       <span style={{ fontSize: '14px', color: '#374151' }}>{cert.name}</span>
                     </div>
-                    {cert.url && (
-                      <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500' }}>Télécharger</a>
-                    )}
+                    {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500' }}>Télécharger</a>}
                   </div>
                 ))}
               </div>
@@ -578,7 +450,8 @@ function FormationContent() {
             )}
 
             <input ref={certificatInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertificatUpload} style={{ display: 'none' }} />
-            <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
+            <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
               {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '📤 Soumettre mon certificat' : '➕ Ajouter un certificat'}
             </button>
             <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
@@ -588,14 +461,10 @@ function FormationContent() {
         {/* ÉTAPE 3 : Camp de qualification */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: campStatus?.is_certified ? '1px solid #10b981' : campStatus?.has_inscription ? '1px solid #10b981' : '1px solid #e5e7eb', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: campStatus?.is_certified ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-              {campStatus?.is_certified ? '✅' : '3'}
-            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: campStatus?.is_certified ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{campStatus?.is_certified ? '✅' : '3'}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Camp de qualification</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                {campStatus?.is_certified ? 'Certifié !' : campStatus?.has_inscription ? 'Inscrit — en attente du camp' : 'S\'inscrire à un camp pratique de 2 jours'}
-              </div>
+              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{campStatus?.is_certified ? 'Certifié !' : campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours"}</div>
             </div>
             {campStatus?.has_inscription && <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>Inscrit</span>}
           </div>
@@ -623,12 +492,8 @@ function FormationContent() {
                 <div>
                   <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique.</p>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                      S&apos;inscrire à un camp de qualification
-                    </button>
-                    <a href="/tournee-camps" style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                      🗓️ Voir la tournée des camps
-                    </a>
+                    <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>S&apos;inscrire à un camp de qualification</button>
+                    <a href="/tournee-camps" style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>🗓️ Voir la tournée des camps</a>
                   </div>
                 </div>
               )}
@@ -636,12 +501,11 @@ function FormationContent() {
           )}
         </div>
 
-        {/* Séparateur */}
+        {/* Séparateur RESSOURCES */}
         <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
           <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>RESSOURCES</span>
         </div>
 
-        {/* Liens rapides */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
           {isApproved && (
             <a href="/dossier" style={{ textDecoration: 'none' }}>

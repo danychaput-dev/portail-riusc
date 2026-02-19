@@ -99,7 +99,7 @@ function SoumettreContent() {
     if (!reserviste || !deploiement || !reponse) return
 
     if (reponse !== 'non_disponible') {
-      if (!dateDebut || !dateFin) { setError('Veuillez indiquer vos dates de disponibilité.'); return }
+      if (!dateDebut || !dateFin) { setError('Veuillez indiquer vos dates de disponibilité. '); return }
       if (dateDebut < minDate) { setError('La date de début doit être au plus tôt demain.'); return }
       const debut = new Date(dateDebut)
       const fin = new Date(dateFin)
