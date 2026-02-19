@@ -659,6 +659,32 @@ export default function HomePage() {
           </p>
         </div>
 
+{/* === DEBUG TEMPORAIRE - À RETIRER === */}
+<div style={{ backgroundColor: '#fee', border: '2px solid #f00', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
+  <h4 style={{ margin: '0 0 10px 0', color: '#c00' }}>🐛 DEBUG INFO</h4>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>loadingCertificats:</strong> {String(loadingCertificats)}
+  </p>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>certificats.length:</strong> {certificats.length}
+  </p>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>isApproved:</strong> {String(isApproved)}
+  </p>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>groupe:</strong> {reserviste?.groupe || 'undefined'}
+  </p>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>deploiementsActifs.length:</strong> {deploiementsActifs.length}
+  </p>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>Condition ligne 663 (Formation):</strong> {String(!loadingCertificats && certificats.length === 0)}
+  </p>
+  <p style={{ margin: '5px 0', fontFamily: 'monospace', fontSize: '13px' }}>
+    <strong>Condition ligne 709 (Déploiements):</strong> {String(!loadingCertificats && certificats.length > 0)}
+  </p>
+</div>
+
         {/* Section Formation obligatoire - visible si aucun certificat */}
         {!loadingCertificats && certificats.length === 0 && (
           <div data-tour="formation-obligatoire" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
