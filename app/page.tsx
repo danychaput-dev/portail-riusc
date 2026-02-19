@@ -81,6 +81,11 @@ export default function HomePage() {
   const [sessionsDisponibles, setSessionsDisponibles] = useState<SessionCamp[]>([])
   const [loadingSessions, setLoadingSessions] = useState(false)
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
+  const [allergiesAlimentaires, setAllergiesAlimentaires] = useState<string>('')
+  const [autresAllergies, setAutresAllergies] = useState<string>('')
+  const [conditionsMedicales, setConditionsMedicales] = useState<string>('')
+  const [consentementPhoto, setConsentementPhoto] = useState<boolean>(false)
+  const [loadingDossier, setLoadingDossier] = useState<boolean>(false)
   const [inscriptionLoading, setInscriptionLoading] = useState(false)
   const [inscriptionError, setInscriptionError] = useState<string | null>(null)
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false)
@@ -290,20 +295,40 @@ export default function HomePage() {
     setInscriptionError(null)
     setInscriptionSuccess(false)
     setSelectedSessionId('')
-    
-    try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps')
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.sessions) {
-          setSessionsDisponibles(data.sessions)
+    setConsentementPhoto(false)
+
+    // Charger sessions et dossier en parallèle
+    await Promise.all([
+      (async () => {
+        try {
+          const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps')
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.sessions) setSessionsDisponibles(data.sessions)
+          }
+        } catch (error) {
+          console.error('Erreur fetch sessions:', error)
+          setInscriptionError('Impossible de charger les camps disponibles')
         }
-      }
-    } catch (error) {
-      console.error('Erreur fetch sessions:', error)
-      setInscriptionError('Impossible de charger les camps disponibles')
-    }
-    
+      })(),
+      (async () => {
+        if (!reserviste?.benevole_id) return
+        setLoadingDossier(true)
+        try {
+          const res = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.success && data.dossier) {
+              setAllergiesAlimentaires(data.dossier.allergies_alimentaires || '')
+              setAutresAllergies(data.dossier.allergies_autres || '')
+              setConditionsMedicales(data.dossier.problemes_sante || '')
+            }
+          }
+        } catch(e) { console.error('Erreur chargement dossier:', e) }
+        setLoadingDossier(false)
+      })()
+    ])
+
     setLoadingSessions(false)
   }
 
@@ -324,6 +349,20 @@ export default function HomePage() {
     setInscriptionError(null)
     
     try {
+      // Sauvegarder les allergies dans le dossier en parallèle
+      fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          dossier: {
+            allergies_alimentaires: allergiesAlimentaires || '',
+            allergies_autres: autresAllergies || '',
+            problemes_sante: conditionsMedicales || ''
+          }
+        })
+      }).catch(e => console.error('Erreur update dossier allergies:', e))
+
       const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -333,7 +372,11 @@ export default function HomePage() {
           presence: 'confirme',
           courriel: reserviste.email,
           telephone: reserviste.telephone || null,
-          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`
+          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`,
+          allergies_alimentaires: allergiesAlimentaires || null,
+          autres_allergies: autresAllergies || null,
+          conditions_medicales: conditionsMedicales || null,
+          consentement_photo: consentementPhoto
         })
       })
       
@@ -461,6 +504,60 @@ export default function HomePage() {
                   )}
                 </div>
                 {inscriptionError && <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{inscriptionError}</div>}
+
+                {/* Allergies alimentaires */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Allergies alimentaires</label>
+                  <textarea
+                    value={allergiesAlimentaires}
+                    onChange={(e) => setAllergiesAlimentaires(e.target.value)}
+                    placeholder="Ex: Noix, arachides, fruits de mer..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', color: '#374151', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Autres allergies */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Autres allergies</label>
+                  <textarea
+                    value={autresAllergies}
+                    onChange={(e) => setAutresAllergies(e.target.value)}
+                    placeholder="Ex: Latex, pollen, médicaments..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', color: '#374151', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Conditions médicales */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Problèmes de santé ou conditions médicales</label>
+                  <textarea
+                    value={conditionsMedicales}
+                    onChange={(e) => setConditionsMedicales(e.target.value)}
+                    placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', color: '#374151', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Consentement photo */}
+                <div style={{ marginBottom: '20px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={consentementPhoto}
+                      onChange={(e) => setConsentementPhoto(e.target.checked)}
+                      style={{ marginTop: '3px', width: '16px', height: '16px', flexShrink: 0, accentColor: '#1e3a5f' }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                      Je comprends que des photos ou vidéos peuvent être prises lors des activités de formation,
+                      d&apos;entraînement ou de déploiement et j&apos;autorise l&apos;AQBRS / RIUSC à utiliser les images captées par leurs
+                      représentants à des fins de communication. <span style={{ color: '#dc2626' }}>*</span>
+                    </span>
+                  </label>
+                </div>
+
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
