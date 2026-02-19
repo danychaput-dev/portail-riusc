@@ -299,30 +299,23 @@ export default function HomePage() {
     setInscriptionError(null)
     setInscriptionSuccess(false)
     setSelectedSessionId('')
-    // Pré-remplir depuis le reserviste déjà chargé (select inclut ces champs)
+    // Pré-remplir depuis reserviste déjà chargé au démarrage
     setConsentementPhoto(reserviste?.consent_photos || false)
     setAllergiesAlimentaires(reserviste?.allergies_alimentaires || '')
     setAutresAllergies(reserviste?.allergies_autres || '')
     setConditionsMedicales(reserviste?.problemes_sante || '')
 
-    // Charger sessions et dossier en parallèle
-    await Promise.all([
-      (async () => {
-        try {
-          const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps')
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success && data.sessions) setSessionsDisponibles(data.sessions)
-          }
-        } catch (error) {
-          console.error('Erreur fetch sessions:', error)
-          setInscriptionError('Impossible de charger les camps disponibles')
-        }
-      })(),
-      (async () => {
-        // Données déjà disponibles dans reserviste (chargé au démarrage avec tous les champs)
-      })()
-    ])
+    // Charger les sessions
+    try {
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.sessions) setSessionsDisponibles(data.sessions)
+      }
+    } catch (error) {
+      console.error('Erreur fetch sessions:', error)
+      setInscriptionError('Impossible de charger les camps disponibles')
+    }
 
     setLoadingSessions(false)
   }
@@ -379,16 +372,15 @@ export default function HomePage() {
       
       if (response.ok && data.success) {
         setInscriptionSuccess(true)
-        // Persister dans Supabase et mettre à jour le state local
-        const updates: any = {
+        // Persister dans Supabase ET mettre à jour le state local (pour cancel + reopen)
+        const updates = {
           consent_photos: consentementPhoto,
-          allergies_alimentaires: allergiesAlimentaires || null,
-          allergies_autres: autresAllergies || null,
-          problemes_sante: conditionsMedicales || null
+          allergies_alimentaires: allergiesAlimentaires || undefined,
+          allergies_autres: autresAllergies || undefined,
+          problemes_sante: conditionsMedicales || undefined
         }
-        supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id).then(() => {
-          setReserviste(prev => prev ? { ...prev, ...updates } : prev)
-        })
+        supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id)
+          .then(() => { setReserviste(prev => prev ? { ...prev, ...updates } : prev) })
         setTimeout(() => {
           closeCampModal()
           window.location.reload()
