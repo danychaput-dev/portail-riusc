@@ -65,8 +65,28 @@ export default function ProfilPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   
   const [originalEmail, setOriginalEmail] = useState('')
+  const [hasChanges, setHasChanges] = useState(false)
   
   const [formData, setFormData] = useState({
+    prenom: '',
+    nom: '',
+    email: '',
+    telephone: '',
+    telephone_secondaire: '',
+    date_naissance: '',
+    adresse: '',
+    ville: '',
+    region: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
+    contact_urgence_nom: '',
+    contact_urgence_telephone: '',
+    allergies_alimentaires: '',
+    allergies_autres: '',
+    problemes_sante: ''
+  })
+  
+  const [originalFormData, setOriginalFormData] = useState({
     prenom: '',
     nom: '',
     email: '',
@@ -185,12 +205,38 @@ export default function ProfilPage() {
           allergies_autres: reservisteData.allergies_autres || '',
           problemes_sante: problemes_sante
         })
+        
+        // Sauvegarder l'original pour détecter les changements
+        setOriginalFormData({
+          prenom: reservisteData.prenom || '',
+          nom: reservisteData.nom || '',
+          email: reservisteData.email || '',
+          telephone: formatPhoneDisplay(reservisteData.telephone),
+          telephone_secondaire: formatPhoneDisplay(reservisteData.telephone_secondaire),
+          date_naissance: reservisteData.date_naissance || '',
+          adresse: reservisteData.adresse || '',
+          ville: reservisteData.ville || '',
+          region: reservisteData.region || '',
+          latitude: reservisteData.latitude || null,
+          longitude: reservisteData.longitude || null,
+          contact_urgence_nom: reservisteData.contact_urgence_nom || '',
+          contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
+          allergies_alimentaires: reservisteData.allergies_alimentaires || '',
+          allergies_autres: reservisteData.allergies_autres || '',
+          problemes_sante: problemes_sante
+        })
       }
       
       setLoading(false)
     }
     loadData()
   }, [])
+
+  // Détecter les changements
+  useEffect(() => {
+    const changed = JSON.stringify(formData) !== JSON.stringify(originalFormData)
+    setHasChanges(changed)
+  }, [formData, originalFormData])
 
   // Fermer le dropdown adresse quand on clique ailleurs
   useEffect(() => {
@@ -513,6 +559,8 @@ export default function ProfilPage() {
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
       setReserviste(prev => prev ? { ...prev, ...formData } : null)
+      setOriginalFormData({ ...formData })
+      setHasChanges(false)
       
     } catch (error: any) {
       console.error('Erreur sauvegarde:', error)
@@ -1008,42 +1056,65 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            {/* Bouton Sauvegarder */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <a
-                href="/"
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  textDecoration: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                Annuler
-              </a>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  padding: '12px 32px',
-                  backgroundColor: '#1e3a5f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.7 : 1
-                }}
-              >
-                {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
-              </button>
-            </div>
+            {/* Sticky bar Sauvegarder - visible seulement si modifications */}
+            {hasChanges && (
+              <div style={{ 
+                position: 'fixed', 
+                bottom: 0, 
+                left: 0, 
+                right: 0, 
+                backgroundColor: 'white', 
+                borderTop: '2px solid #e5e7eb', 
+                padding: '16px 24px', 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                gap: '16px', 
+                zIndex: 9999,
+                boxShadow: '0 -4px 12px rgba(0,0,0,0.1)'
+              }}>
+                <span style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
+                  Vous avez des modifications non sauvegardées
+                </span>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={() => {
+                      setFormData({ ...originalFormData })
+                      setHasChanges(false)
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: 'white',
+                      color: '#374151',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      padding: '10px 24px',
+                      backgroundColor: '#1e3a5f',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      opacity: saving ? 0.7 : 1
+                    }}
+                  >
+                    {saving ? 'Enregistrement...' : 'Sauvegarder'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div style={{
