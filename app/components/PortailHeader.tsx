@@ -91,13 +91,16 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       setIsApproved(approved)
 
       if (approved && res) {
-        // Charger statut camp
-        const { data: camp } = await supabase
-          .from('reserviste_camps')
-          .select('is_certified')
-          .eq('benevole_id', res.benevole_id)
-          .single()
-        setCampStatus(camp)
+        // Charger statut camp via webhook n8n (même source que la main page)
+        try {
+          const campResponse = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${res.benevole_id}`)
+          if (campResponse.ok) {
+            const campData = await campResponse.json()
+            setCampStatus(campData)
+          }
+        } catch (e) {
+          console.error('Erreur fetch camp status:', e)
+        }
 
         // Vérifier s'il y a des ciblages actifs
         const { data: ciblages } = await supabase
