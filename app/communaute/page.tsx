@@ -25,9 +25,10 @@ interface Message {
 }
 
 const CANAUX = [
-  { id: 'general', label: 'Général', emoji: '💬' },
-  { id: 'questions', label: 'Questions', emoji: '❓' },
-  { id: 'entraide', label: 'Entraide', emoji: '🤝' },
+  { id: 'general',      label: 'Général',      emoji: '💬', description: 'Discussions générales entre réservistes' },
+  { id: 'questions',    label: 'Questions',     emoji: '❓', description: 'Posez vos questions sur les formations, déploiements, etc.' },
+  { id: 'entraide',     label: 'Entraide',      emoji: '🤝', description: "Conseils, partage d'expérience et soutien entre pairs" },
+  { id: 'deploiement',  label: 'Déploiement',   emoji: '🚨', description: 'Discussions relatives aux déploiements en cours et à venir' },
 ];
 
 export default function CommunautePage() {
@@ -68,21 +69,17 @@ export default function CommunautePage() {
   useEffect(() => {
     if (!user) return;
     loadMessages();
-
     const channel = supabase
       .channel(`messages-${canal}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `canal=eq.${canal}` }, (payload) => {
         setMessages((prev) => [...prev, payload.new as Message]);
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user, canal]);
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   async function checkUser() {
@@ -106,56 +103,36 @@ export default function CommunautePage() {
     }
     if (reservisteData) setReserviste(reservisteData);
 
-    // Marquer la communauté comme vue
-    await supabase.from('community_last_seen').upsert({
-      user_id: user.id,
-      last_seen_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-
+    await supabase.from('community_last_seen').upsert({ user_id: user.id, last_seen_at: new Date().toISOString() }, { onConflict: 'user_id' });
     setLoading(false);
   }
 
   async function loadMessages() {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('canal', canal)
-      .order('created_at', { ascending: true })
-      .limit(200);
+    const { data } = await supabase.from('messages').select('*').eq('canal', canal).order('created_at', { ascending: true }).limit(200);
     if (data) setMessages(data);
   }
 
   async function sendMessage() {
     if (!newMessage.trim() || !reserviste || sending) return;
     setSending(true);
-
     await supabase.from('messages').insert({
-      user_id: user.id,
-      benevole_id: reserviste.benevole_id,
+      user_id: user.id, benevole_id: reserviste.benevole_id,
       auteur_nom: `${reserviste.prenom} ${reserviste.nom}`,
       auteur_photo: reserviste.photo_url || null,
-      contenu: newMessage.trim(),
-      canal,
+      contenu: newMessage.trim(), canal,
     });
-
     setNewMessage('');
     setSending(false);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login'); };
 
   const getInitials = (name?: string) => {
-    if (name) {
-      const parts = name.split(' ');
-      return parts.map(p => p.charAt(0)).join('').toUpperCase().slice(0, 2);
-    }
+    if (name) return name.split(' ').map(p => p.charAt(0)).join('').toUpperCase().slice(0, 2);
     if (reserviste) return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase();
     return user?.email?.charAt(0).toUpperCase() || 'U';
   };
@@ -163,13 +140,10 @@ export default function CommunautePage() {
   function formatTime(dateStr: string) {
     const d = new Date(dateStr);
     const now = new Date();
-    const isToday = d.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = d.toDateString() === yesterday.toDateString();
+    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
     const time = d.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
-    if (isToday) return `Aujourd'hui à ${time}`;
-    if (isYesterday) return `Hier à ${time}`;
+    if (d.toDateString() === now.toDateString()) return `Aujourd'hui à ${time}`;
+    if (d.toDateString() === yesterday.toDateString()) return `Hier à ${time}`;
     return `${d.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })} à ${time}`;
   }
 
@@ -177,9 +151,10 @@ export default function CommunautePage() {
     if (idx === 0) return true;
     const prev = messages[idx - 1];
     if (prev.benevole_id !== msg.benevole_id) return true;
-    const diff = new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime();
-    return diff > 5 * 60 * 1000;
+    return new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime() > 5 * 60 * 1000;
   }
+
+  const currentCanal = CANAUX.find(c => c.id === canal);
 
   if (loading) {
     return (<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>);
@@ -187,7 +162,8 @@ export default function CommunautePage() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f5f7fa' }}>
-      {/* Header */}
+
+      {/* ── Header ── */}
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', zIndex: 100, flexShrink: 0 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px', height: isMobile ? '56px' : '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '16px', textDecoration: 'none' }}>
@@ -197,33 +173,58 @@ export default function CommunautePage() {
               {!isMobile && <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Communauté des réservistes</p>}
             </div>
           </a>
-          {reserviste ? (
-            <div ref={userMenuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowUserMenu(!showUserMenu)} style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                {!isMobile && (
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste.prenom} {reserviste.nom}</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
-                  </div>
-                )}
-                {reserviste.photo_url ? (
-                  <img src={reserviste.photo_url} alt="Photo" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '13px' }}>{getInitials()}</div>
-                )}
-              </button>
-              {showUserMenu && (
-                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '200px', overflow: 'hidden', zIndex: 200 }}>
-                  <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Accueil</a>
-                  <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Mon profil</a>
-                  <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>Mes disponibilités</a>
-                  <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}>Déconnexion</button>
+
+          {/* Menu utilisateur */}
+          <div ref={userMenuRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              {!isMobile && reserviste && (
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>{reserviste.prenom} {reserviste.nom}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>Réserviste</div>
                 </div>
               )}
-            </div>
-          ) : (
-            <a href="/" style={{ padding: '8px 16px', color: '#6b7280', textDecoration: 'none', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px' }}>{'← Retour'}</a>
-          )}
+              {reserviste?.photo_url ? (
+                <img src={reserviste.photo_url} alt="Photo" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '600', fontSize: '13px' }}>{getInitials()}</div>
+              )}
+              <svg width="16" height="16" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showUserMenu && (
+              <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '200px', overflow: 'hidden', zIndex: 200 }}>
+                <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                  Accueil
+                </a>
+                <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  Mon profil
+                </a>
+                <a href="/dossier" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Mon dossier
+                </a>
+                <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Disponibilités
+                </a>
+                <a href="/informations" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Informations
+                </a>
+                <button onClick={handleSignOut} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  Déconnexion
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -231,7 +232,7 @@ export default function CommunautePage() {
       {isMobile && (
         <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px 12px', display: 'flex', gap: '8px', overflowX: 'auto', flexShrink: 0 }}>
           <a href="/" style={{ padding: '8px 12px', fontSize: '13px', color: '#6b7280', textDecoration: 'none', flexShrink: 0 }}>{'← Accueil'}</a>
-          <div style={{ width: '1px', backgroundColor: '#e5e7eb', flexShrink: 0 }}></div>
+          <div style={{ width: '1px', backgroundColor: '#e5e7eb', flexShrink: 0 }} />
           {CANAUX.map((c) => (
             <button key={c.id} onClick={() => setCanal(c.id)} style={{
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: canal === c.id ? '700' : '500', flexShrink: 0,
@@ -239,8 +240,7 @@ export default function CommunautePage() {
               color: canal === c.id ? 'white' : '#374151',
               transition: 'all 0.15s',
             }}>
-              <span>{c.emoji}</span>
-              {c.label}
+              <span>{c.emoji}</span>{c.label}
             </button>
           ))}
         </div>
@@ -252,7 +252,7 @@ export default function CommunautePage() {
         {/* Sidebar desktop */}
         {!isMobile && (
           <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>{'← Retour à l\'accueil'}</a>
+            <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>{"← Retour à l'accueil"}</a>
             <div style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Canaux</div>
             {CANAUX.map((c) => (
               <button key={c.id} onClick={() => setCanal(c.id)} style={{
@@ -261,8 +261,7 @@ export default function CommunautePage() {
                 color: canal === c.id ? 'white' : '#374151',
                 transition: 'all 0.15s',
               }}>
-                <span>{c.emoji}</span>
-                {c.label}
+                <span>{c.emoji}</span>{c.label}
               </button>
             ))}
             <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
@@ -272,21 +271,17 @@ export default function CommunautePage() {
           </div>
         )}
 
-        {/* Chat */}
+        {/* Zone de chat */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white', borderRadius: isMobile ? '0' : '12px', border: isMobile ? 'none' : '1px solid #e5e7eb', boxShadow: isMobile ? 'none' : '0 1px 3px rgba(0,0,0,0.1)', minHeight: 0, overflow: 'hidden' }}>
 
-          {/* Titre canal (desktop seulement) */}
-          {!isMobile && (
+          {/* Titre canal (desktop) */}
+          {!isMobile && currentCanal && (
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>{CANAUX.find(c => c.id === canal)?.emoji}</span>
+                <span style={{ fontSize: '20px' }}>{currentCanal.emoji}</span>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e3a5f' }}>{CANAUX.find(c => c.id === canal)?.label}</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    {canal === 'general' && 'Discussions générales entre réservistes'}
-                    {canal === 'questions' && 'Posez vos questions sur les formations, déploiements, etc.'}
-                    {canal === 'entraide' && 'Conseils, partage d\'expérience et soutien entre pairs'}
-                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e3a5f' }}>{currentCanal.label}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>{currentCanal.description}</div>
                 </div>
               </div>
             </div>
@@ -296,16 +291,17 @@ export default function CommunautePage() {
           <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px' : '16px 20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
             {messages.length === 0 && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: '8px' }}>
-                <span style={{ fontSize: '40px' }}>{CANAUX.find(c => c.id === canal)?.emoji}</span>
+                <span style={{ fontSize: '40px' }}>{currentCanal?.emoji}</span>
                 <div style={{ fontSize: '16px', fontWeight: '600', color: '#6b7280' }}>Aucun message pour l&apos;instant</div>
-                <div style={{ fontSize: '14px' }}>Soyez le premier à écrire dans #{CANAUX.find(c => c.id === canal)?.label} !</div>
+                <div style={{ fontSize: '14px' }}>Soyez le premier à écrire dans #{currentCanal?.label} !</div>
               </div>
             )}
             {messages.map((msg, idx) => {
               const showHeader = shouldShowHeader(msg, idx);
               const isMe = reserviste?.benevole_id === msg.benevole_id;
               return (
-                <div key={msg.id} style={{ padding: showHeader ? (isMobile ? '10px 4px 2px 4px' : '12px 8px 2px 8px') : (isMobile ? '1px 4px' : '1px 8px'), borderRadius: '8px', display: 'flex', gap: isMobile ? '8px' : '12px', alignItems: 'flex-start', transition: 'background 0.15s' }}
+                <div key={msg.id}
+                  style={{ padding: showHeader ? (isMobile ? '10px 4px 2px 4px' : '12px 8px 2px 8px') : (isMobile ? '1px 4px' : '1px 8px'), borderRadius: '8px', display: 'flex', gap: isMobile ? '8px' : '12px', alignItems: 'flex-start', transition: 'background 0.15s' }}
                   onMouseOver={(e) => { if (!isMobile) e.currentTarget.style.backgroundColor = '#f9fafb'; }}
                   onMouseOut={(e) => { if (!isMobile) e.currentTarget.style.backgroundColor = 'transparent'; }}>
                   <div style={{ width: isMobile ? '30px' : '36px', flexShrink: 0 }}>
@@ -332,20 +328,14 @@ export default function CommunautePage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
+          {/* Zone de saisie */}
           <div style={{ padding: isMobile ? '10px 12px' : '16px 20px', borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
             {reserviste ? (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                 <textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={`Écrire dans #${CANAUX.find(c => c.id === canal)?.label}...`}
-                  rows={1}
-                  style={{
-                    flex: 1, padding: isMobile ? '10px 12px' : '12px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5,
-                    outline: 'none', transition: 'border-color 0.2s', minHeight: '44px', maxHeight: '120px',
-                  }}
+                  value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleKeyDown}
+                  placeholder={`Écrire dans #${currentCanal?.label}...`} rows={1}
+                  style={{ flex: 1, padding: isMobile ? '10px 12px' : '12px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, outline: 'none', transition: 'border-color 0.2s', minHeight: '44px', maxHeight: '120px' }}
                   onFocus={(e) => e.target.style.borderColor = '#1e3a5f'}
                   onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 />

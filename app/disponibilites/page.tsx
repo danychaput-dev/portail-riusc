@@ -409,52 +409,58 @@ export default function DisponibilitesPage() {
                     {/* Liste des plages */}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       {plages.map((dispo, idx) => (
-                        <div key={dispo.id} style={{ padding: '14px 20px', borderBottom: idx < plages.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
+                        <div key={dispo.id} style={{ padding: '14px 20px', borderBottom: idx < plages.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
 
-                          {/* Infos de la plage */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', flex: 1, minWidth: '260px' }}>
-                            {dispo.date_debut && dispo.date_fin && (
-                              <span style={{ fontSize: '14px', color: '#374151', fontWeight: '500' }}>
-                                📅 Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
-                              </span>
-                            )}
-                            {dispo.transport && (
-                              <span style={{ fontSize: '13px', color: '#6b7280' }}>
-                                🚗 {labelTransport(dispo.transport)}
-                              </span>
-                            )}
-                            <span style={{
-                              display: 'inline-block', padding: '3px 10px',
-                              backgroundColor: dispo.statut === 'Disponible' ? '#d1fae5' : dispo.statut === 'En attente' ? '#fef3c7' : '#fee2e2',
-                              color: dispo.statut === 'Disponible' ? '#065f46' : dispo.statut === 'En attente' ? '#92400e' : '#991b1b',
-                              borderRadius: '6px', fontSize: '12px', fontWeight: '500'
-                            }}>
-                              {dispo.statut === 'Disponible' ? '✅ Disponible' : dispo.statut === 'En attente' ? '⏳ En attente' : '❌ ' + dispo.statut}
-                            </span>
-                            {dispo.commentaire && (
-                              <span style={{ fontSize: '12px', color: '#6b7280', fontStyle: 'italic' }}>
-                                💬 {dispo.commentaire}
-                              </span>
-                            )}
-                          </div>
+                          {/* Ligne principale : date | statut | transport | boutons */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
 
-                          {/* Boutons d'action */}
-                          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                            {dispo.statut === 'En attente' && (
-                              <button onClick={() => handleConfirmer(dispo)} disabled={actionLoading === `confirmer-${dispo.id}`}
-                                style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: actionLoading === `confirmer-${dispo.id}` ? '#9ca3af' : '#059669', color: 'white', border: 'none', borderRadius: '6px', cursor: actionLoading === `confirmer-${dispo.id}` ? 'not-allowed' : 'pointer' }}>
-                                {actionLoading === `confirmer-${dispo.id}` ? '⏳' : '✅ Confirmer'}
+                            {/* Infos de gauche */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
+                              {dispo.date_debut && dispo.date_fin && (
+                                <span style={{ fontSize: '14px', color: '#374151', fontWeight: '600' }}>
+                                  📅 Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
+                                </span>
+                              )}
+                              <span style={{
+                                display: 'inline-block', padding: '3px 10px',
+                                backgroundColor: dispo.statut === 'Disponible' ? '#d1fae5' : dispo.statut === 'En attente' ? '#fef3c7' : '#fee2e2',
+                                color: dispo.statut === 'Disponible' ? '#065f46' : dispo.statut === 'En attente' ? '#92400e' : '#991b1b',
+                                borderRadius: '6px', fontSize: '12px', fontWeight: '600'
+                              }}>
+                                {dispo.statut === 'Disponible' ? '✅ Disponible' : dispo.statut === 'En attente' ? '⏳ En attente' : '❌ ' + dispo.statut}
+                              </span>
+                              {dispo.transport && (
+                                <span style={{ fontSize: '13px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  🚗 {labelTransport(dispo.transport)}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Boutons d'action */}
+                            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                              {dispo.statut === 'En attente' && (
+                                <button onClick={() => handleConfirmer(dispo)} disabled={actionLoading === `confirmer-${dispo.id}`}
+                                  style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: actionLoading === `confirmer-${dispo.id}` ? '#9ca3af' : '#059669', color: 'white', border: 'none', borderRadius: '6px', cursor: actionLoading === `confirmer-${dispo.id}` ? 'not-allowed' : 'pointer' }}>
+                                  {actionLoading === `confirmer-${dispo.id}` ? '⏳' : '✅ Confirmer'}
+                                </button>
+                              )}
+                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}`}
+                                style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }}>
+                                ✏️ Modifier
+                              </a>
+                              <button onClick={() => handleAnnuler(dispo)} disabled={actionLoading === `annuler-${dispo.id}`}
+                                style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '500', backgroundColor: 'white', color: actionLoading === `annuler-${dispo.id}` ? '#9ca3af' : '#dc2626', border: `1px solid ${actionLoading === `annuler-${dispo.id}` ? '#d1d5db' : '#dc2626'}`, borderRadius: '6px', cursor: actionLoading === `annuler-${dispo.id}` ? 'not-allowed' : 'pointer' }}>
+                                {actionLoading === `annuler-${dispo.id}` ? '⏳' : '❌ Annuler'}
                               </button>
-                            )}
-                            <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}`}
-                              style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }}>
-                              ✏️ Modifier
-                            </a>
-                            <button onClick={() => handleAnnuler(dispo)} disabled={actionLoading === `annuler-${dispo.id}`}
-                              style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '500', backgroundColor: 'white', color: actionLoading === `annuler-${dispo.id}` ? '#9ca3af' : '#dc2626', border: `1px solid ${actionLoading === `annuler-${dispo.id}` ? '#d1d5db' : '#dc2626'}`, borderRadius: '6px', cursor: actionLoading === `annuler-${dispo.id}` ? 'not-allowed' : 'pointer' }}>
-                              {actionLoading === `annuler-${dispo.id}` ? '⏳' : '❌ Annuler'}
-                            </button>
+                            </div>
                           </div>
+
+                          {/* Commentaire — pleine largeur en dessous */}
+                          {dispo.commentaire && (
+                            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #e5e7eb', fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+                              💬 {dispo.commentaire}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
