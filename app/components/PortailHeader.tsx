@@ -60,7 +60,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         // 1. D'abord chercher par user_id (le plus fiable)
         const { data: dataByUserId } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, photo_url, groupe')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
           .eq('user_id', user.id)
           .single()
         
@@ -72,7 +72,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         if (!res && user.email) {
           const { data } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, photo_url, groupe')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
             .ilike('email', user.email)
             .single()
           
@@ -91,7 +91,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           const phoneDigits = user.phone.replace(/\D/g, '')
           const { data } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, photo_url, groupe')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
             .eq('telephone', phoneDigits)
             .single()
           
@@ -99,7 +99,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             const phoneWithout1 = phoneDigits.slice(1)
             const { data: data2 } = await supabase
               .from('reservistes')
-              .select('benevole_id, prenom, nom, email, photo_url, groupe')
+              ..select('benevole_id, prenom, nom, email, telephone, photo_url, groupe')
               .eq('telephone', phoneWithout1)
               .single()
             
