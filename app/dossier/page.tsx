@@ -62,7 +62,23 @@ interface DossierData {
 // ─── OPTIONS ─────────────────────────────────────────────────────────────────
 
 const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
+const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
 
+// Mapping Monday.com pour groupe sanguin
+const GROUPE_SANGUIN_MAP: Record<string, number> = {
+  'A+': 1,
+  'B+': 2,
+  'A-': 3,
+  'A−': 3,  // Unicode minus
+  'B-': 4,
+  'B−': 4,  // Unicode minus
+  'AB+': 5,
+  'AB-': 6,
+  'AB−': 6, // Unicode minus
+  'O+': 7,
+  'O-': 8,
+  'O−': 8,  // Unicode minus
+}
 // Langues épinglées en haut
 const LANGUES_EPINGLEES = ['Anglais', 'Espagnol', 'Français']
 
