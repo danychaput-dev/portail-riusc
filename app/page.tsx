@@ -30,7 +30,6 @@ interface Reserviste {
   consent_photos?: boolean;
   allergies_alimentaires?: string;
   allergies_autres?: string;
-  conditions_medicales?: string;
 }
 
 interface CampInfo {
@@ -331,11 +330,27 @@ export default function HomePage() {
     setInscriptionError(null)
     setInscriptionSuccess(false)
     setSelectedSessionId('')
-    // Pré-remplir depuis reserviste déjà chargé au démarrage
+    
+    // Charger les données du dossier depuis Monday/n8n
+    if (reserviste?.benevole_id) {
+      setLoadingDossier(true)
+      try {
+        const dossierResponse = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`)
+        if (dossierResponse.ok) {
+          const dossierData = await dossierResponse.json()
+          if (dossierData.success && dossierData.dossier) {
+            setAllergiesAlimentaires(dossierData.dossier.allergies_alimentaires || '')
+            setAutresAllergies(dossierData.dossier.allergies_autres || '')
+            setConditionsMedicales(dossierData.dossier.problemes_sante || '')
+          }
+        }
+      } catch (error) {
+        console.error('Erreur chargement dossier:', error)
+      }
+      setLoadingDossier(false)
+    }
+    
     setConsentementPhoto(reserviste?.consent_photos || false)
-    setAllergiesAlimentaires(reserviste?.allergies_alimentaires || '')
-    setAutresAllergies(reserviste?.allergies_autres || '')
-    setConditionsMedicales(reserviste?.conditions_medicales || '')
 
     // Charger les sessions
     try {
@@ -408,8 +423,7 @@ export default function HomePage() {
         const updates = {
           consent_photos: consentementPhoto,
           allergies_alimentaires: allergiesAlimentaires || undefined,
-          allergies_autres: autresAllergies || undefined,
-          conditions_medicales: conditionsMedicales || undefined
+          allergies_autres: autresAllergies || undefined
         }
         supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id)
           .then(() => { setReserviste(prev => prev ? { ...prev, ...updates } : prev) })

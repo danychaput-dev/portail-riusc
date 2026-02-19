@@ -81,7 +81,8 @@ export default function ProfilPage() {
     contact_urgence_nom: '',
     contact_urgence_telephone: '',
     allergies_alimentaires: '',
-    allergies_autres: ''
+    allergies_autres: '',
+    problemes_sante: ''
   })
   
   // États pour l'autocomplete adresse
@@ -151,6 +152,21 @@ export default function ProfilPage() {
       if (reservisteData) {
         setReserviste(reservisteData)
         setOriginalEmail(reservisteData.email || '')
+        
+        // Charger le dossier depuis Monday pour avoir problemes_sante
+        let problemes_sante = ''
+        try {
+          const dossierResponse = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`)
+          if (dossierResponse.ok) {
+            const dossierData = await dossierResponse.json()
+            if (dossierData.success && dossierData.dossier) {
+              problemes_sante = dossierData.dossier.problemes_sante || ''
+            }
+          }
+        } catch (error) {
+          console.error('Erreur chargement dossier:', error)
+        }
+        
         setFormData({
           prenom: reservisteData.prenom || '',
           nom: reservisteData.nom || '',
@@ -166,7 +182,8 @@ export default function ProfilPage() {
           contact_urgence_nom: reservisteData.contact_urgence_nom || '',
           contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
           allergies_alimentaires: reservisteData.allergies_alimentaires || '',
-          allergies_autres: reservisteData.allergies_autres || ''
+          allergies_autres: reservisteData.allergies_autres || '',
+          problemes_sante: problemes_sante
         })
       }
       
@@ -395,6 +412,7 @@ export default function ProfilPage() {
     contact_urgence_telephone: string;
     allergies_alimentaires: string;
     allergies_autres: string;
+    problemes_sante: string;
   }) => {
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
@@ -475,7 +493,8 @@ export default function ProfilPage() {
         contact_urgence_nom: formData.contact_urgence_nom,
         contact_urgence_telephone: cleanPhoneForSave(formData.contact_urgence_telephone),
         allergies_alimentaires: formData.allergies_alimentaires,
-        allergies_autres: formData.allergies_autres
+        allergies_autres: formData.allergies_autres,
+        problemes_sante: formData.problemes_sante
       })
 
       setMessage({ type: 'success', text: 'Profil mis à jour avec succès' })
@@ -922,6 +941,20 @@ export default function ProfilPage() {
                       resize: 'vertical' as const
                     }}
                     placeholder="Ex : pénicilline, piqûres d'abeilles, latex... (laisser vide si aucune)"
+                  />
+                </div>
+                
+                <div>
+                  <label style={labelStyle}>Problèmes de santé ou conditions médicales</label>
+                  <textarea
+                    value={formData.problemes_sante}
+                    onChange={(e) => handleInputChange('problemes_sante', e.target.value)}
+                    style={{
+                      ...inputStyle,
+                      minHeight: '60px',
+                      resize: 'vertical' as const
+                    }}
+                    placeholder="Ex : asthme, diabète, épilepsie... (laisser vide si aucune)"
                   />
                 </div>
               </div>
