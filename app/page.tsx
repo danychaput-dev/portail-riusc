@@ -302,17 +302,18 @@ export default function HomePage() {
           const demoStatus: SelectionStatus = {
             statut: 'Sélectionné', // Changer en 'Non sélectionné' ou 'En attente' pour tester
             deploiement: {
-              nom: 'Tempête de verglas - Secteur Estrie',
-              lieu: 'Sherbrooke et environs',
-              date_depart: 'Mardi 25 février 2025',
+              nom: 'Tempête de verglas - Mauricie',
+              lieu: 'Trois-Rivières et MRC avoisinantes',
+              date_depart: 'Mardi 25 février 2026',
               heure_rassemblement: '7h00',
-              point_rassemblement: 'Centre communautaire de Lennoxville (50 rue Queen, Sherbrooke)',
+              point_rassemblement: 'Centre communautaire de Trois-Rivières (1425 place de l\'Hôtel-de-Ville)',
               duree: '3-5 jours',
               consignes: [
                 'Présentation au point de rassemblement 15 minutes avant l\'heure',
                 'Apporter votre sac préparé selon la liste (voir Informations pratiques)',
-                'Covoiturage organisé sur place vers les zones d\'intervention',
-                'Repas fournis sur place - prévoir collations personnelles',
+                'Deux zones d\'intervention : gestion débris (SOPFEU) et soutien évacuations (Croix-Rouge)',
+                'Affectation des tâches confirmée sur place selon besoins terrain',
+                'Repas fournis - prévoir collations et eau personnelles',
                 'Téléphone chargé + batterie externe recommandée'
               ]
             }
