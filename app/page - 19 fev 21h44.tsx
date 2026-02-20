@@ -55,19 +55,6 @@ interface SessionCamp {
   location: string;
 }
 
-interface SelectionStatus {
-  statut: 'Sélectionné' | 'Non sélectionné' | 'En attente' | null;
-  deploiement: {
-    nom: string;
-    lieu: string;
-    date_depart: string;
-    heure_rassemblement: string;
-    point_rassemblement: string;
-    duree: string;
-    consignes: string[];
-  } | null;
-}
-
 interface CertificatFile {
   id: string;
   name: string;
@@ -79,8 +66,6 @@ export default function HomePage() {
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([])
   const [ciblages, setCiblages] = useState<string[]>([])
-  const [selectionStatus, setSelectionStatus] = useState<SelectionStatus | null>(null)
-  const [loadingSelection, setLoadingSelection] = useState(true)
   const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
   const [loadingCamp, setLoadingCamp] = useState(true)
   const [cancellingInscription, setCancellingInscription] = useState(false)
@@ -291,37 +276,6 @@ export default function HomePage() {
           console.error('Erreur fetch camp status:', error)
         }
         setLoadingCamp(false)
-        
-        // Charger le statut de sélection pour le déploiement
-        // TODO: Créer webhook n8n pour lire Monday board 18393824103, colonne color_mm0rrxw4
-        try {
-          // DONNÉES FICTIVES POUR DÉMO - À remplacer par:
-          // const response = await fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${reservisteData.benevole_id}`)
-          // const data = await response.json()
-          
-          const demoStatus: SelectionStatus = {
-            statut: 'Sélectionné', // Changer en 'Non sélectionné' ou 'En attente' pour tester
-            deploiement: {
-              nom: 'Tempête de verglas - Secteur Estrie',
-              lieu: 'Sherbrooke et environs',
-              date_depart: 'Mardi 25 février 2025',
-              heure_rassemblement: '7h00',
-              point_rassemblement: 'Centre communautaire de Lennoxville (50 rue Queen, Sherbrooke)',
-              duree: '3-5 jours',
-              consignes: [
-                'Présentation au point de rassemblement 15 minutes avant l\'heure',
-                'Apporter votre sac préparé selon la liste (voir Informations pratiques)',
-                'Covoiturage organisé sur place vers les zones d\'intervention',
-                'Repas fournis sur place - prévoir collations personnelles',
-                'Téléphone chargé + batterie externe recommandée'
-              ]
-            }
-          }
-          setSelectionStatus(demoStatus)
-        } catch (error) {
-          console.error('Erreur chargement statut sélection:', error)
-        }
-        setLoadingSelection(false)
         
         await loadCertificats(reservisteData.benevole_id)
 
@@ -865,124 +819,6 @@ export default function HomePage() {
             </div>
           )}
         </div>
-        )}
-
-        {/* Encadré sélection pour vague de déploiement */}
-        {!loadingSelection && selectionStatus && selectionStatus.statut && (
-          <div style={{ 
-            backgroundColor: 'white', 
-            padding: '24px', 
-            borderRadius: '12px', 
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)', 
-            marginBottom: '24px', 
-            border: selectionStatus.statut === 'Sélectionné' ? '2px solid #10b981' : selectionStatus.statut === 'En attente' ? '2px solid #f59e0b' : '1px solid #e5e7eb'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
-                Statut de sélection
-              </h3>
-              <span style={{ 
-                backgroundColor: selectionStatus.statut === 'Sélectionné' ? '#d1fae5' : selectionStatus.statut === 'En attente' ? '#fef3c7' : '#fee2e2', 
-                color: selectionStatus.statut === 'Sélectionné' ? '#065f46' : selectionStatus.statut === 'En attente' ? '#92400e' : '#991b1b', 
-                padding: '6px 14px', 
-                borderRadius: '20px', 
-                fontSize: '13px', 
-                fontWeight: '600' 
-              }}>
-                {selectionStatus.statut === 'Sélectionné' ? '✅ Sélectionné' : selectionStatus.statut === 'En attente' ? '⏳ En attente' : '❌ Non sélectionné'}
-              </span>
-            </div>
-
-            {selectionStatus.statut === 'Sélectionné' && selectionStatus.deploiement ? (
-              <div>
-                <div style={{ backgroundColor: '#ecfdf5', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #a7f3d0' }}>
-                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#065f46', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '20px' }}>🚨</span>
-                    {selectionStatus.deploiement.nom}
-                  </div>
-                  <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: '#047857' }}>
-                    <div><strong>📍 Lieu :</strong> {selectionStatus.deploiement.lieu}</div>
-                    <div><strong>📅 Date de départ :</strong> {selectionStatus.deploiement.date_depart}</div>
-                    <div><strong>⏰ Rassemblement :</strong> {selectionStatus.deploiement.heure_rassemblement}</div>
-                    <div><strong>📍 Point de rassemblement :</strong> {selectionStatus.deploiement.point_rassemblement}</div>
-                    <div><strong>⏱️ Durée estimée :</strong> {selectionStatus.deploiement.duree}</div>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: '#fffbeb', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fcd34d' }}>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>⚠️</span>
-                    Consignes importantes
-                  </div>
-                  <ul style={{ margin: 0, paddingLeft: '20px', color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>
-                    {selectionStatus.deploiement.consignes.map((consigne, idx) => (
-                      <li key={idx} style={{ marginBottom: '6px' }}>{consigne}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <a 
-                    href="/informations" 
-                    style={{ 
-                      padding: '12px 24px', 
-                      backgroundColor: '#1e3a5f', 
-                      color: 'white', 
-                      borderRadius: '8px', 
-                      textDecoration: 'none', 
-                      fontSize: '14px', 
-                      fontWeight: '600',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    🎒 Voir la liste du matériel à apporter
-                  </a>
-                  <a 
-                    href="tel:+18885551234" 
-                    style={{ 
-                      padding: '12px 24px', 
-                      backgroundColor: 'white', 
-                      color: '#1e3a5f', 
-                      border: '1px solid #1e3a5f',
-                      borderRadius: '8px', 
-                      textDecoration: 'none', 
-                      fontSize: '14px', 
-                      fontWeight: '500',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    📞 Urgence : 1-888-555-1234
-                  </a>
-                </div>
-              </div>
-            ) : selectionStatus.statut === 'En attente' ? (
-              <div style={{ padding: '30px 20px', backgroundColor: '#fffbeb', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
-                <p style={{ color: '#92400e', margin: '0 0 8px 0', fontWeight: '600', fontSize: '15px' }}>
-                  Sélection en cours
-                </p>
-                <p style={{ color: '#78350f', margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
-                  Ton profil est en cours d&apos;évaluation pour la prochaine vague de déploiement. 
-                  Tu seras notifié dès qu&apos;une décision sera prise. Reste disponible !
-                </p>
-              </div>
-            ) : (
-              <div style={{ padding: '30px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
-                <p style={{ color: '#374151', margin: '0 0 8px 0', fontWeight: '600', fontSize: '15px' }}>
-                  Prochaine vague complète
-                </p>
-                <p style={{ color: '#6b7280', margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
-                  La prochaine vague de déploiement est complète. Reste en mode disponible — 
-                  d&apos;autres opportunités de déploiement arriveront bientôt et ton profil sera à nouveau évalué.
-                </p>
-              </div>
-            )}
-          </div>
         )}
 
         {!loadingCamp && campStatus && !campStatus.is_certified && (
