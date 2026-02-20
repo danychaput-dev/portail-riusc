@@ -828,7 +828,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {!loadingCertificats && certificats.length === 0 && (
+        {!isApproved && !loadingCertificats && certificats.length === 0 && (
           <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
             <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
               Formation et certificats
