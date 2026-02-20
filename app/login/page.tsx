@@ -50,7 +50,47 @@ function LoginContent() {
     return `+${numbers}`
   }
 
-  const handleSendOtp = async () => {
+  const handleSendOtp = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    // 🔧 MODE DEBUG : Ctrl+Shift+Click
+    if (e && e.ctrlKey && e.shiftKey) {
+      e.preventDefault()
+      console.log('🔧 MODE DEBUG ACTIVÉ !')
+      setLoading(true)
+      setError('')
+
+      try {
+        // Récupérer les données du réserviste depuis Supabase
+        const { data: reserviste, error: fetchError} = await supabase
+          .from('reservistes')
+          .select('*')
+          .ilike('email', email.trim())
+          .maybeSingle()
+
+        if (fetchError || !reserviste) {
+          setError('Réserviste non trouvé pour cet email')
+          setLoading(false)
+          return
+        }
+
+        console.log('✅ Réserviste trouvé:', reserviste)
+
+        // Créer une session debug en localStorage
+        localStorage.setItem('debug_mode', 'true')
+        localStorage.setItem('debug_user', JSON.stringify(reserviste))
+        localStorage.setItem('debug_email', email.trim())
+
+        // Rediriger
+        window.location.href = campId ? `/formation?camp=${campId}` : '/'
+        return
+      } catch (err) {
+        console.error('Erreur mode debug:', err)
+        setError('Erreur mode debug')
+        setLoading(false)
+        return
+      }
+    }
+
+    // Mode normal
     if (!email || !email.includes('@')) {
       setError('Veuillez entrer une adresse courriel valide')
       return
@@ -76,7 +116,6 @@ function LoginContent() {
       }
 
       if (!reserviste) {
-        // Courriel pas trouvé — proposer de joindre la RIUSC
         setShowJoinPrompt(true)
         setLoading(false)
         return
@@ -196,7 +235,6 @@ function LoginContent() {
         )}
 
         {showJoinPrompt ? (
-          /* Prompt "Joindre la RIUSC" quand le courriel n'existe pas */
           <div style={{ textAlign: 'center' }}>
             <div style={{ width: '64px', height: '64px', backgroundColor: '#dbeafe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>
               👋
