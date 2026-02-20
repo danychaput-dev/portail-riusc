@@ -48,7 +48,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Le travail se fait en équipe et peut être physique et répétitif. Applique les techniques de levage et de transfert vues en formation. Respecte les rotations prévues, hydrate-toi régulièrement et signale la fatigue tôt.',
     aSavoir: ['Travail en équipe et supervision active sur le terrain.', 'Respecte les rotations prévues, hydrate-toi régulièrement et signale la fatigue tôt.', 'Intervention uniquement en zone froide (confirmée avant le début).', 'Briefing en début de quart : consignes, critères d\u2019arrêt, communications.'],
     limites: ['Phase d\u2019urgence uniquement (aucun rétablissement/nettoyage complet).', 'Arrêt immédiat si instabilité, montée des eaux ou visibilité insuffisante.', 'Aucune opération de machinerie lourde par les réservistes.'],
-    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail, dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, casque'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes, gants de travail, dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, casque'],
     formations: ['Camp de qualification RIUSC', 'Briefing SST manutention (sur place)'],
   },
   {
@@ -59,7 +59,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Le dégagement vise uniquement à rétablir un accès pour l\u2019opération d\u2019urgence (pas de nettoyage). Respecte le périmètre de sécurité et les consignes transmises au briefing. Si une situation est instable, tu t\u2019arrêtes et tu réfères.',
     aSavoir: ['AU SOL uniquement : aucun abattage d\u2019arbre debout.', 'Deux pieds au sol : aucun travail en hauteur (pas d\u2019échelle, pas d\u2019escalade).', 'Périmètre de sécurité et coactivité : tu respectes la zone sécurisée et tu attends la consigne avant d\u2019agir.', 'Si une situation est instable (bois sous tension complexe), tu t\u2019arrêtes et tu réfères.'],
     limites: ['AU SOL uniquement - aucun abattage.', 'Aucun travail en hauteur.', 'Activité réservée aux personnes habilitées à l\u2019outil requis.'],
-    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail, dossard haute visibilité', 'Selon contexte / briefing : casque, lunettes de protection, protection auditive (si proximité d\u2019outils motorisés)'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes, gants de travail, dossard haute visibilité', 'Selon contexte / briefing : casque, lunettes de protection, protection auditive (si proximité d\u2019outils motorisés)'],
     formations: ['Camp de qualification RIUSC', 'Habilitation outil (si requis)'],
   },
   {
@@ -70,7 +70,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Le dégagement de débris sert à rendre un accès sécuritaire et fonctionnel pour l\u2019intervention. Les objets peuvent être lourds, tranchants ou contaminés. Le respect des consignes de manipulation et l\u2019utilisation des équipements requis réduisent le risque de blessure.',
     aSavoir: ['Tu dégages pour permettre l\u2019intervention (accès/zone), pas pour nettoyer au complet.', 'Avant de manipuler, tu identifies les dangers (verre, clous, métal, contamination).', 'Si un objet semble dangereux (bonbonne, batterie, produit), tu isoles et tu signales.', 'Respecte les rotations prévues, hydrate-toi régulièrement et signale la fatigue tôt.'],
     limites: ['Dégagement d\u2019accès uniquement (pas de rétablissement).', 'Aucune machinerie lourde par les réservistes.', 'Isoler et signaler les objets potentiellement dangereux.'],
-    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail (idéalement anti-coupure), dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, protection respiratoire, casque'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes, gants de travail (idéalement anti-coupure), dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, protection respiratoire, casque'],
     formations: ['Camp de qualification RIUSC', 'Sensibilisation dangers/MD (base)'],
   },
   {
@@ -81,7 +81,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'La reconnaissance sert à documenter et orienter l\u2019intervention. Elle se fait en binôme, avec communications, et uniquement à l\u2019extérieur. La vigilance (terrain, météo, débris, structures fragilisées) est la principale mesure de sécurité.',
     aSavoir: ['EXTÉRIEUR uniquement : tu n\u2019entres pas dans les structures.', 'Binôme + itinéraire/zone définis + check-in réguliers.', 'Garde une distance sécuritaire des structures endommagées.', 'Si c\u2019est instable, tu recules et tu signales.'],
     limites: ['EXTÉRIEUR uniquement - interdiction d\u2019entrer.', 'Binôme obligatoire + communications.', 'Distance sécuritaire des structures endommagées.'],
-    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), dossard haute visibilité, vêtements adaptés aux conditions météorologiques', 'Selon contexte / briefing : casque'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes, dossard haute visibilité, vêtements adaptés aux conditions météorologiques', 'Selon contexte / briefing : casque'],
     formations: ['Camp de qualification RIUSC', 'Radio/GPS (selon rôle)'],
   },
   {
@@ -158,7 +158,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Le soutien logistique est varié et se fait sous supervision. L\u2019organisation du site (zones piétons/véhicules), les techniques de manutention et la communication sont les clés pour travailler efficacement et de façon sécuritaire.',
     aSavoir: ['Respect des couloirs piétons/zones véhicules (coactivité).', 'Manutention : applique les techniques apprises, demande de l\u2019aide tôt et respecte les rotations.', 'Briefing sécurité et communications en début de quart.', 'Si la coactivité devient non contrôlable, tu t\u2019arrêtes et tu signales.'],
     limites: ['Aucune machinerie lourde opérée par les réservistes.', 'Respect des zones et consignes SOPFEU.', 'Arrêt si coactivité non contrôlée.'],
-    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail, dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, casque'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes, gants de travail, dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, casque'],
     formations: ['Camp de qualification RIUSC', 'Briefing radio/sécurité SOPFEU'],
   },
 ];
