@@ -51,9 +51,13 @@ function LoginContent() {
   }
 
   const handleSendOtp = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    // Empêcher le submit du form si événement vient d'un click
+    if (e) {
+      e.preventDefault()
+    }
+
     // 🔧 MODE DEBUG : Ctrl+Shift+Click
     if (e && e.ctrlKey && e.shiftKey) {
-      e.preventDefault()
       console.log('🔧 MODE DEBUG ACTIVÉ !')
       setLoading(true)
       setError('')
@@ -266,6 +270,7 @@ function LoginContent() {
               Oui, je veux m&apos;inscrire →
             </a>
             <button
+              type="button"
               onClick={handleReset}
               style={{
                 width: '100%',
@@ -293,6 +298,7 @@ function LoginContent() {
               style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '10px', marginBottom: '16px', boxSizing: 'border-box', color: '#111827' }}
             />
             <button
+              type="button"
               onClick={handleSendOtp}
               disabled={loading || !email.includes('@')}
               style={{ width: '100%', padding: '14px 20px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || !email.includes('@') ? 0.7 : 1, transition: 'all 0.2s' }}
@@ -317,7 +323,7 @@ function LoginContent() {
                 <>Code envoyé par <strong>courriel</strong> à <strong>{email}</strong></>
               )}
               <br />
-              <button onClick={handleReset} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', marginTop: '4px' }}>Changer de courriel</button>
+              <button type="button" onClick={handleReset} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', marginTop: '4px' }}>Changer de courriel</button>
             </p>
             
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Code de vérification (6 chiffres)</label>
@@ -331,10 +337,10 @@ function LoginContent() {
               autoFocus
               style={{ width: '100%', padding: '14px 16px', fontSize: '24px', fontWeight: 'bold', letterSpacing: '8px', textAlign: 'center', border: '2px solid #e5e7eb', borderRadius: '10px', marginBottom: '16px', boxSizing: 'border-box', color: '#111827' }}
             />
-            <button onClick={handleVerifyOtp} disabled={loading || otpCode.length !== 6} style={{ width: '100%', padding: '14px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || otpCode.length !== 6 ? 0.7 : 1, transition: 'all 0.2s' }}>
+            <button type="button" onClick={handleVerifyOtp} disabled={loading || otpCode.length !== 6} style={{ width: '100%', padding: '14px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || otpCode.length !== 6 ? 0.7 : 1, transition: 'all 0.2s' }}>
               {loading ? 'Vérification...' : '✓ Valider le code'}
             </button>
-            <button onClick={handleSendOtp} disabled={loading} style={{ width: '100%', padding: '10px', backgroundColor: 'transparent', color: '#6b7280', border: 'none', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}>Renvoyer le code</button>
+            <button type="button" onClick={handleSendOtp} disabled={loading} style={{ width: '100%', padding: '10px', backgroundColor: 'transparent', color: '#6b7280', border: 'none', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}>Renvoyer le code</button>
           </>
         )}
 
