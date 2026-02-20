@@ -293,41 +293,22 @@ export default function HomePage() {
         setLoadingCamp(false)
         
         // Charger le statut de sélection pour le déploiement
-        // TODO APRÈS DÉMO: Créer webhook n8n pour lire Monday board 18394053402 (Ciblage), colonne color_mm0ry1gw (Sélectionné ?)
-        // Le webhook devra :
-        // 1. Trouver l'item du réserviste dans le board Ciblage (18394053402) en cherchant par benevole_id
-        // 2. Lire la colonne color_mm0ry1gw qui contient : "Sélectionné", "Non sélectionné" ou "En attente"
-        // 3. Si "Sélectionné" : récupérer aussi les infos du déploiement (nom, lieu, date, point rassemblement, etc.)
-        // 4. Retourner le JSON au bon format pour selectionStatus
-        // 
-        // URL webhook à créer : https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=XXX
+        // Appel au webhook n8n qui lit Monday board 18394053402 (Ciblage), colonne color_mm0ry1gw (Sélectionné ?)
         try {
-          // DONNÉES FICTIVES POUR DÉMO - À remplacer par:
-          // const response = await fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${reservisteData.benevole_id}`)
-          // const data = await response.json()
+          const response = await fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${reservisteData.benevole_id}`)
+          const data = await response.json()
           
-          const demoStatus: SelectionStatus = {
-            statut: 'Sélectionné', // Changer en 'Non sélectionné' ou 'En attente' pour tester
-            deploiement: {
-              nom: 'Tempête de verglas - Mauricie',
-              lieu: 'Trois-Rivières et MRC avoisinantes',
-              date_depart: 'Mardi 25 février 2026',
-              heure_rassemblement: '7h00',
-              point_rassemblement: 'Centre communautaire de Trois-Rivières (1425 place de l\'Hôtel-de-Ville)',
-              duree: '3-5 jours',
-              consignes: [
-                'Présentation au point de rassemblement 15 minutes avant l\'heure',
-                'Apporter votre sac préparé selon la liste (voir Informations pratiques)',
-                'Deux zones d\'intervention : gestion débris (SOPFEU) et soutien évacuations (Croix-Rouge)',
-                'Affectation des tâches confirmée sur place selon besoins terrain',
-                'Prévoir collations et eau personnelles',
-                'Téléphone chargé + batterie externe recommandée'
-              ]
-            }
+          console.log('Statut de sélection reçu:', data)
+          
+          // Si statut est null, ne pas afficher l'encadré (réserviste pas encore ciblé)
+          if (data.statut) {
+            setSelectionStatus(data)
+          } else {
+            setSelectionStatus(null)
           }
-          setSelectionStatus(demoStatus)
         } catch (error) {
           console.error('Erreur chargement statut sélection:', error)
+          setSelectionStatus(null)
         }
         setLoadingSelection(false)
         
