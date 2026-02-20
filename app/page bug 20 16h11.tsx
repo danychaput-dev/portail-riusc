@@ -828,7 +828,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {!isApproved && !loadingCertificats && certificats.length === 0 && (
+        {!loadingCertificats && certificats.length === 0 && (
           <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
             <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
               Formation et certificats
@@ -981,7 +981,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {isApproved && !loadingCertificats && (
+        {!loadingCertificats && certificats.length > 0 && (
         <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
