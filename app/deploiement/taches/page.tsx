@@ -44,22 +44,22 @@ const TACHES: TacheData[] = [
     id: 1,
     name: 'SP - Protection d\u2019infrastructures (digues temporaires)',
     org: 'SOPFEU',
-    description: 'Remplissage, transport et empilement de sacs et matériaux temporaires pour renforcer une berge/digue en phase d\u2019urgence.',
-    messagePortail: 'La construction d\u2019une digue temporaire se fait en travail d\u2019équipe et comprend plusieurs tâches. Certaines impliquent la manipulation de charges ou des mouvements répétitifs. L\u2019application des techniques de levage et de transfert apprises en formation est essentielle afin de réduire le risque de blessure.',
-    aSavoir: ['Travail en équipe et supervision active sur le terrain.', 'Rotations et pauses planifiées : suivez le rythme prévu et signalez la fatigue tôt.', 'Intervention uniquement en zone froide (confirmée avant le début).', 'Briefing en début de quart : consignes, critères d\u2019arrêt, communications.'],
+    description: 'Tu participes au remplissage, transport et empilement de sacs et matériaux temporaires afin de protéger une infrastructure ou une zone vulnérable (phase d\u2019urgence).',
+    messagePortail: 'Le travail se fait en équipe et peut être physique et répétitif. Applique les techniques de levage et de transfert vues en formation. Respecte les rotations prévues, hydrate-toi régulièrement et signale la fatigue tôt.',
+    aSavoir: ['Travail en équipe et supervision active sur le terrain.', 'Respecte les rotations prévues, hydrate-toi régulièrement et signale la fatigue tôt.', 'Intervention uniquement en zone froide (confirmée avant le début).', 'Briefing en début de quart : consignes, critères d\u2019arrêt, communications.'],
     limites: ['Phase d\u2019urgence uniquement (aucun rétablissement/nettoyage complet).', 'Arrêt immédiat si instabilité, montée des eaux ou visibilité insuffisante.', 'Aucune opération de machinerie lourde par les réservistes.'],
-    epiRequis: ['Bottes antidérapantes imperméables', 'Gants', 'Haute visibilité', 'Protection oculaire (au besoin)', 'Casque (selon contexte)'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail, dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, casque'],
     formations: ['Camp de qualification RIUSC', 'Briefing SST manutention (sur place)'],
   },
   {
     id: 2,
     name: 'SP - Dégagement d\u2019accès par ébranchage (au sol uniquement)',
     org: 'SOPFEU',
-    description: 'Dégagement ponctuel d\u2019arbres/branches AU SOL bloquant des accès afin de permettre le passage de personnes/véhicules d\u2019urgence (dégagement opérationnel).',
-    messagePortail: 'Le dégagement vise uniquement à rétablir un accès pour l\u2019opération d\u2019urgence (pas de nettoyage). Lorsque des outils de coupe sont utilisés, le respect strict des consignes apprises en formation et du périmètre de sécurité est essentiel.',
-    aSavoir: ['AU SOL uniquement : aucun abattage d\u2019arbre debout.', 'Deux pieds au sol : aucun travail en hauteur (pas d\u2019échelle, pas d\u2019escalade).', 'Périmètre de sécurité et coactivité : on s\u2019organise avant de couper.', 'Si une situation est instable (bois sous tension complexe), on s\u2019arrête et on réfère.'],
+    description: 'Dégagement manuel de branches et débris AU SOL afin de rétablir un accès opérationnel (passage des équipes et véhicules d\u2019urgence).',
+    messagePortail: 'Le dégagement vise uniquement à rétablir un accès pour l\u2019opération d\u2019urgence (pas de nettoyage). Respecte le périmètre de sécurité et les consignes transmises au briefing. Si une situation est instable, tu t\u2019arrêtes et tu réfères.',
+    aSavoir: ['AU SOL uniquement : aucun abattage d\u2019arbre debout.', 'Deux pieds au sol : aucun travail en hauteur (pas d\u2019échelle, pas d\u2019escalade).', 'Périmètre de sécurité et coactivité : tu respectes la zone sécurisée et tu attends la consigne avant d\u2019agir.', 'Si une situation est instable (bois sous tension complexe), tu t\u2019arrêtes et tu réfères.'],
     limites: ['AU SOL uniquement - aucun abattage.', 'Aucun travail en hauteur.', 'Activité réservée aux personnes habilitées à l\u2019outil requis.'],
-    epiRequis: ['Casque + protection oculaire', 'Protection auditive (si requis)', 'Gants', 'Bottes robustes', 'Haute visibilité'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail, dossard haute visibilité', 'Selon contexte / briefing : casque, lunettes de protection, protection auditive (si proximité d\u2019outils motorisés)'],
     formations: ['Camp de qualification RIUSC', 'Habilitation outil (si requis)'],
   },
   {
@@ -68,9 +68,9 @@ const TACHES: TacheData[] = [
     org: 'SOPFEU',
     description: 'Retrait ponctuel de débris qui nuisent à l\u2019opération d\u2019urgence afin de dégager un accès/zone de travail. Pas une activité de nettoyage/rétablissement.',
     messagePortail: 'Le dégagement de débris sert à rendre un accès sécuritaire et fonctionnel pour l\u2019intervention. Les objets peuvent être lourds, tranchants ou contaminés. Le respect des consignes de manipulation et l\u2019utilisation des équipements requis réduisent le risque de blessure.',
-    aSavoir: ['On dégage pour intervenir (accès/zone), pas pour nettoyer au complet.', 'On identifie d\u2019abord les dangers avant de manipuler (verre, clous, métal, contamination).', 'Si un objet semble dangereux (bonbonne, batterie, produit), on isole et on signale.', 'Travail en équipe et rotations : la fatigue augmente les erreurs.'],
+    aSavoir: ['Tu dégages pour permettre l\u2019intervention (accès/zone), pas pour nettoyer au complet.', 'Avant de manipuler, tu identifies les dangers (verre, clous, métal, contamination).', 'Si un objet semble dangereux (bonbonne, batterie, produit), tu isoles et tu signales.', 'Respecte les rotations prévues, hydrate-toi régulièrement et signale la fatigue tôt.'],
     limites: ['Dégagement d\u2019accès uniquement (pas de rétablissement).', 'Aucune machinerie lourde par les réservistes.', 'Isoler et signaler les objets potentiellement dangereux.'],
-    epiRequis: ['Gants anti-coupure', 'Bottes robustes', 'Protection oculaire', 'Masque (au besoin)', 'Haute visibilité', 'Casque (au besoin)'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail (idéalement anti-coupure), dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, protection respiratoire, casque'],
     formations: ['Camp de qualification RIUSC', 'Sensibilisation dangers/MD (base)'],
   },
   {
@@ -79,9 +79,9 @@ const TACHES: TacheData[] = [
     org: 'SOPFEU',
     description: 'Observation/documentation extérieure (photos/notes) de secteurs, accès et dommages en zone froide. Interdiction d\u2019entrée dans structures.',
     messagePortail: 'La reconnaissance sert à documenter et orienter l\u2019intervention. Elle se fait en binôme, avec communications, et uniquement à l\u2019extérieur. La vigilance (terrain, météo, débris, structures fragilisées) est la principale mesure de sécurité.',
-    aSavoir: ['EXTÉRIEUR uniquement : on n\u2019entre pas dans les structures.', 'Binômes + itinéraire/zone définis + check-in réguliers.', 'Distance sécuritaire des structures endommagées.', 'On priorise la sécurité : si c\u2019est instable, on recule et on signale.'],
+    aSavoir: ['EXTÉRIEUR uniquement : tu n\u2019entres pas dans les structures.', 'Binôme + itinéraire/zone définis + check-in réguliers.', 'Garde une distance sécuritaire des structures endommagées.', 'Si c\u2019est instable, tu recules et tu signales.'],
     limites: ['EXTÉRIEUR uniquement - interdiction d\u2019entrer.', 'Binôme obligatoire + communications.', 'Distance sécuritaire des structures endommagées.'],
-    epiRequis: ['Bottes adaptées', 'Haute visibilité', 'Vêtements météo', 'Casque (au besoin)', 'Répulsif (au besoin)'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), dossard haute visibilité, vêtements adaptés aux conditions météorologiques', 'Selon contexte / briefing : casque'],
     formations: ['Camp de qualification RIUSC', 'Radio/GPS (selon rôle)'],
   },
   {
@@ -92,7 +92,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Certaines évacuations peuvent être émotionnellement exigeantes. Le travail en binôme, l\u2019encadrement et les techniques de communication apprises (approche calme, respectueuse et sécuritaire) aident à réduire les tensions et à protéger les réservistes.',
     aSavoir: ['Binôme minimal : aucune intervention isolée.', 'On ne force pas une entrée; en cas de menace, on se retire et on réfère aux autorités.', 'On suit les consignes du Responsable terrain et les procédures Croix-Rouge.', 'Rotation et débriefing : on ne garde pas tout pour soi.'],
     limites: ['Binôme minimal; pas d\u2019intervention isolée.', 'Conflit/violence = retrait et référence aux autorités.', 'Respect des consignes du Responsable terrain.'],
-    epiRequis: ['Haute visibilité RIUSC', 'Bottes adaptées', 'Masque (si requis)', 'Gants (au besoin)'],
+    epiRequis: ['ÉPI de base : Chaussures fermées appropriées', 'Selon contexte / briefing : dossard haute visibilité, masque, gants'],
     formations: ['Camp de qualification RIUSC', 'PSS / désescalade (recommandé)', 'Premiers secours (selon rôle)'],
   },
   {
@@ -101,9 +101,9 @@ const TACHES: TacheData[] = [
     org: 'SOPFEU',
     description: 'Support coordination logistique (communications, suivi équipes, liaison inter-organisations) en zone sécurisée, sous l\u2019autorité du Responsable terrain.',
     messagePortail: 'La coordination est surtout exigeante sur le plan mental : radio, suivi, priorités, décisions. Les pauses, la relève et l\u2019utilisation d\u2019outils (check-lists, procédures) protègent la qualité des décisions et la santé des intervenants.',
-    aSavoir: ['Pauses et hydratation : la fatigue cognitive arrive vite.', 'Relève planifiée : on évite les quarts trop longs quand c\u2019est possible.', 'Outils simples (check-lists) pour réduire la charge mentale.', 'Débriefing en fin de quart : suivi des enjeux et transfert clair.'],
+    aSavoir: ['Fais des pauses et hydrate-toi : la fatigue cognitive arrive vite.', 'Relève planifiée : on évite les quarts trop longs quand c\u2019est possible.', 'Utilise des outils simples (check-lists) pour réduire la charge mentale.', 'Débriefing en fin de quart : suivi des enjeux et transfert clair.'],
     limites: ['Relève planifiée; quarts selon directives opérationnelles.', 'Déplacements terrain seulement si requis/autorisé.'],
-    epiRequis: ['Haute visibilité (si déplacements)', 'Bottes robustes (si déplacements)'],
+    epiRequis: ['ÉPI de base : Dossard haute visibilité (si déplacements terrain)', 'Selon contexte / briefing : bottes conformes si déplacement en zone terrain'],
     formations: ['Camp de qualification RIUSC', 'ICS de base (recommandé)'],
   },
   {
@@ -112,9 +112,9 @@ const TACHES: TacheData[] = [
     org: 'CROIX-ROUGE',
     description: 'Installation et organisation d\u2019espaces (lits de camp, tables, chaises) dans un centre d\u2019hébergement temporaire, selon procédures Croix-Rouge.',
     messagePortail: 'La préparation d\u2019un centre d\u2019hébergement repose sur la collaboration et l\u2019organisation. Certaines tâches impliquent de déplacer du matériel; appliquer les techniques de levage et travailler en équipe pour les charges volumineuses réduit le risque de blessure.',
-    aSavoir: ['Circulation dégagée : on évite l\u2019encombrement pendant l\u2019installation.', 'Travail en équipe pour charges volumineuses.', 'Rotation des tâches si l\u2019installation est prolongée.', 'Respect des procédures du site et de la Croix-Rouge.'],
+    aSavoir: ['Garde les passages dégagés pendant l\u2019installation.', 'Travaille en équipe pour les charges volumineuses.', 'Rotation des tâches si l\u2019installation est prolongée.', 'Respecte les procédures du site et celles de la Croix-Rouge.'],
     limites: ['Travail en équipe pour charges volumineuses.', 'Respect procédures du site et Croix-Rouge.'],
-    epiRequis: ['Chaussures fermées', 'Gants (au besoin)', 'Haute visibilité (si requis)'],
+    epiRequis: ['ÉPI de base : Chaussures fermées appropriées', 'Selon contexte / briefing : gants, dossard haute visibilité'],
     formations: ['Camp de qualification RIUSC'],
   },
   {
@@ -125,7 +125,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'La distribution demande un bon rythme, de l\u2019écoute et une communication respectueuse. L\u2019organisation de l\u2019espace, la rotation des tâches et l\u2019hygiène réduisent les inconforts et soutiennent un service sécuritaire.',
     aSavoir: ['Hygiène des mains et consignes sanitaires selon le contexte.', 'Rotation : alterner station debout / tâches de préparation.', 'En cas de tension avec un sinistré : on réfère au Responsable terrain.', 'On garde un environnement fluide (file, zones, dépôts).'],
     limites: ['Respect des directives sanitaires et procédures Croix-Rouge.', 'Référer conflits/violence au Responsable terrain.'],
-    epiRequis: ['Masque (si requis)', 'Haute visibilité (si requis)'],
+    epiRequis: ['ÉPI de base : Chaussures fermées appropriées', 'Selon contexte / briefing : masque, gants, dossard haute visibilité'],
     formations: ['Camp de qualification RIUSC', 'Hygiène/salubrité (recommandé)'],
   },
   {
@@ -136,7 +136,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Cette tâche est surtout humaine. Écouter la détresse peut être exigeant. La rotation, les pauses et les débriefings aident à préserver l\u2019équilibre émotionnel. Le réserviste n\u2019est pas thérapeute : on réfère les situations complexes aux ressources prévues.',
     aSavoir: ['On offre une présence et une écoute, sans se substituer aux professionnels.', 'Rotation : éviter une exposition continue trop longue.', 'Débriefing : parler des situations difficiles est normal et encouragé.', 'Si tu sens que ça t\u2019affecte, tu le dis tôt (au Responsable terrain).'],
     limites: ['Le réserviste n\u2019est pas thérapeute; référer les cas complexes.', 'Rotation pour limiter l\u2019exposition émotionnelle.'],
-    epiRequis: ['Haute visibilité (si requis)'],
+    epiRequis: ['ÉPI de base : Chaussures fermées appropriées', 'Selon contexte / briefing : masque'],
     formations: ['Camp de qualification RIUSC', 'Premiers secours psychologiques (recommandé)'],
   },
   {
@@ -147,7 +147,7 @@ const TACHES: TacheData[] = [
     messagePortail: 'Le suivi des clientèles vulnérables demande attention, rigueur et communication. L\u2019important est de repérer tôt un besoin et de référer rapidement vers les ressources compétentes selon les procédures du site.',
     aSavoir: ['Utiliser une approche structurée (check-list / routine de vérification).', 'Référer toute situation médicale aux ressources prévues.', 'Consigner les enjeux et les transmettre au Responsable terrain.', 'Pauses et soutien : la charge émotionnelle peut être réelle.'],
     limites: ['Référer toute situation médicale aux ressources compétentes.', 'Consigner les alertes et les transmettre au Responsable terrain.'],
-    epiRequis: ['Masque (si requis)'],
+    epiRequis: ['ÉPI de base : Chaussures fermées appropriées', 'Selon contexte / briefing : masque, gants'],
     formations: ['Camp de qualification RIUSC', 'PSS (recommandé)'],
   },
   {
@@ -156,9 +156,9 @@ const TACHES: TacheData[] = [
     org: 'SOPFEU',
     description: 'Soutien logistique en zone froide : transport matériel léger/modéré, installation d\u2019équipements temporaires, ravitaillement, sous supervision SOPFEU.',
     messagePortail: 'Le soutien logistique est varié et se fait sous supervision. L\u2019organisation du site (zones piétons/véhicules), les techniques de manutention et la communication sont les clés pour travailler efficacement et de façon sécuritaire.',
-    aSavoir: ['Respect des couloirs piétons/zones véhicules (coactivité).', 'Manutention : appliquer les techniques apprises, demander de l\u2019aide tôt.', 'Briefing sécurité et communications en début de quart.', 'On s\u2019arrête si la coactivité devient non contrôlable.'],
+    aSavoir: ['Respect des couloirs piétons/zones véhicules (coactivité).', 'Manutention : applique les techniques apprises, demande de l\u2019aide tôt et respecte les rotations.', 'Briefing sécurité et communications en début de quart.', 'Si la coactivité devient non contrôlable, tu t\u2019arrêtes et tu signales.'],
     limites: ['Aucune machinerie lourde opérée par les réservistes.', 'Respect des zones et consignes SOPFEU.', 'Arrêt si coactivité non contrôlée.'],
-    epiRequis: ['Haute visibilité', 'Gants', 'Bottes robustes', 'Protection oculaire (au besoin)', 'Casque (au besoin)'],
+    epiRequis: ['ÉPI de base : Bottes de travail conformes (fournies par la RIUSC), gants de travail, dossard haute visibilité', 'Selon contexte / briefing : lunettes de protection, casque'],
     formations: ['Camp de qualification RIUSC', 'Briefing radio/sécurité SOPFEU'],
   },
 ];
@@ -249,7 +249,7 @@ function FicheTache({ tache, isOpen, onToggle, id }: { tache: TacheData; isOpen:
 
           <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
             <span style={{ fontSize: 13, color: '#6b7280', fontStyle: 'italic', lineHeight: 1.7 }}>
-              Responsable terrain : Chef d&apos;équipe (SOPFEU) / Coordonateur (Croix-Rouge), selon l&apos;organisation.
+              Responsable terrain : Chef d&apos;équipe (SOPFEU) / Coordonnateur (Croix-Rouge), selon l&apos;organisation.
             </span>
           </div>
         </div>
