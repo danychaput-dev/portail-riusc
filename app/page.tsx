@@ -244,28 +244,40 @@ export default function HomePage() {
             }
             setLoadingSelection(false)
             
-            await loadCertificats(userData.benevole_id)
-            
-            const { data: ciblagesData } = await supabase
-              .from('ciblages')
-              .select('deploiement_id')
-              .eq('benevole_id', userData.benevole_id)
+           await loadCertificats(userData.benevole_id)
 
-            if (ciblagesData && ciblagesData.length > 0) {
-              const deployIds = ciblagesData.map(c => c.deploiement_id)
-              setCiblages(deployIds)
-              
-              const { data: deploiements } = await supabase
-                .from('deploiements_actifs')
-                .select('*')
-                .in('deploiement_id', deployIds)
-                .order('date_debut', { ascending: true })
-              
-              if (deploiements) {
-                setDeploiementsActifs(deploiements)
-              }
-            }
-            
+// 🔍 DEBUG CIBLAGES
+console.log('🔍 Début chargement ciblages pour benevole_id:', userData.benevole_id)
+
+const { data: ciblagesData } = await supabase
+  .from('ciblages')
+  .select('deploiement_id')
+  .eq('benevole_id', userData.benevole_id)
+
+console.log('🔍 Ciblages reçus:', ciblagesData)
+
+if (ciblagesData && ciblagesData.length > 0) {
+  const deployIds = ciblagesData.map(c => c.deploiement_id)
+  console.log('🔍 Deploy IDs extraits:', deployIds)
+  setCiblages(deployIds)
+  
+  const { data: deploiements } = await supabase
+    .from('deploiements_actifs')
+    .select('*')
+    .in('deploiement_id', deployIds)
+    .order('date_debut', { ascending: true })
+  
+  console.log('🔍 Deploiements actifs reçus:', deploiements)
+  
+  if (deploiements) {
+    console.log('✅ setDeploiementsActifs appelé avec:', deploiements)
+    setDeploiementsActifs(deploiements)
+  } else {
+    console.log('❌ deploiements est null/undefined')
+  }
+} else {
+  console.log('❌ Aucun ciblage trouvé ou ciblagesData est null')
+}
             setLoading(false)
             return
           }
