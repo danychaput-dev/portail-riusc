@@ -204,6 +204,74 @@ export default function HomePage() {
 
   useEffect(() => {
     const loadData = async () => {
+      // 🔧 SUPPORT MODE DEBUG
+      if (typeof window !== 'undefined') {
+        const debugMode = localStorage.getItem('debug_mode')
+        if (debugMode === 'true') {
+          const debugUser = localStorage.getItem('debug_user')
+          if (debugUser) {
+            const userData = JSON.parse(debugUser)
+            console.log('🔧 Mode debug actif - Utilisateur:', userData.email)
+            
+            setUser({ id: `debug_${userData.benevole_id}`, email: userData.email })
+            setReserviste(userData)
+            
+            try {
+              const response = await fetch(
+                `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${userData.benevole_id}`
+              )
+              if (response.ok) {
+                const data = await response.json()
+                setCampStatus(data)
+              }
+            } catch (error) {
+              console.error('Erreur fetch camp status:', error)
+            }
+            setLoadingCamp(false)
+            
+            try {
+              const response = await fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${userData.benevole_id}`)
+              const data = await response.json()
+              console.log('Statut de sélection reçu:', data)
+              if (data.statut) {
+                setSelectionStatus(data)
+              } else {
+                setSelectionStatus(null)
+              }
+            } catch (error) {
+              console.error('Erreur chargement statut sélection:', error)
+              setSelectionStatus(null)
+            }
+            setLoadingSelection(false)
+            
+            await loadCertificats(userData.benevole_id)
+            
+            const { data: ciblagesData } = await supabase
+              .from('ciblages')
+              .select('deploiement_id')
+              .eq('benevole_id', userData.benevole_id)
+
+            if (ciblagesData && ciblagesData.length > 0) {
+              const deployIds = ciblagesData.map(c => c.deploiement_id)
+              setCiblages(deployIds)
+              
+              const { data: deploiements } = await supabase
+                .from('deploiements_actifs')
+                .select('*')
+                .in('deploiement_id', deployIds)
+                .order('date_debut', { ascending: true })
+              
+              if (deploiements) {
+                setDeploiementsActifs(deploiements)
+              }
+            }
+            
+            setLoading(false)
+            return
+          }
+        }
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
@@ -355,6 +423,13 @@ export default function HomePage() {
   }, [])
 
   const handleSignOut = async () => {
+    // 🔧 Nettoyer mode debug
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('debug_mode')
+      localStorage.removeItem('debug_user')
+      localStorage.removeItem('debug_email')
+    }
+    
     await supabase.auth.signOut()
     router.push('/login')
   }
