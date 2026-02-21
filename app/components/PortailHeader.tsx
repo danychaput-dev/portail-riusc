@@ -10,8 +10,15 @@ interface Reserviste {
   prenom: string
   nom: string
   email: string
+  telephone?: string
   photo_url?: string
   groupe?: string
+  date_naissance?: string
+  adresse?: string
+  ville?: string
+  region?: string
+  contact_urgence_nom?: string
+  contact_urgence_telephone?: string
 }
 
 interface CampStatus {
@@ -32,11 +39,15 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(reservisteOverride ?? null)
   const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
-  const [loadingCamp, setLoadingCamp] = useState(true)
+  const [hasCertificats, setHasCertificats] = useState(false)
+  const [loadingStatus, setLoadingStatus] = useState(true)
   const [isApproved, setIsApproved] = useState(false)
   const [hasCiblages, setHasCiblages] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Champs nécessaires pour vérifier la complétude du profil + header
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -60,7 +71,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         // 1. D'abord chercher par user_id (le plus fiable)
         const { data: dataByUserId } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, photo_url, groupe')
+          .select(selectFields)
           .eq('user_id', user.id)
           .single()
         
@@ -72,7 +83,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         if (!res && user.email) {
           const { data } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, photo_url, groupe')
+            .select(selectFields)
             .ilike('email', user.email)
             .single()
           
@@ -91,7 +102,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           const phoneDigits = user.phone.replace(/\D/g, '')
           const { data } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, photo_url, groupe')
+            .select(selectFields)
             .eq('telephone', phoneDigits)
             .single()
           
@@ -99,7 +110,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             const phoneWithout1 = phoneDigits.slice(1)
             const { data: data2 } = await supabase
               .from('reservistes')
-              .select('benevole_id, prenom, nom, email, photo_url, groupe')
+              .select(selectFields)
               .eq('telephone', phoneWithout1)
               .single()
             
@@ -126,15 +137,20 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       setIsApproved(approved)
 
       if (approved && res) {
-        // Charger statut camp via webhook n8n (même source que la main page)
-        try {
-          const campResponse = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${res.benevole_id}`)
-          if (campResponse.ok) {
-            const campData = await campResponse.json()
-            setCampStatus(campData)
-          }
-        } catch (e) {
-          console.error('Erreur fetch camp status:', e)
+        // Charger les 2 sources en parallèle : camp-status + certificats
+        const [campResult, certResult] = await Promise.allSettled([
+          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${res.benevole_id}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${res.benevole_id}`).then(r => r.ok ? r.json() : null)
+        ])
+
+        // Camp status
+        if (campResult.status === 'fulfilled' && campResult.value) {
+          setCampStatus(campResult.value)
+        }
+
+        // Certificats — on vérifie juste s'il y en a au moins un
+        if (certResult.status === 'fulfilled' && certResult.value?.success && certResult.value.files?.length > 0) {
+          setHasCertificats(true)
         }
 
         // Vérifier s'il y a des ciblages actifs
@@ -146,7 +162,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         setHasCiblages((ciblages ?? []).length > 0)
       }
 
-      setLoadingCamp(false)
+      setLoadingStatus(false)
     }
     load()
   }, [])
@@ -160,6 +176,21 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
     if (reserviste) return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase()
     return user?.email?.charAt(0).toUpperCase() || 'U'
   }
+
+  // ========================================================
+  // LOGIQUE DÉPLOYABLE — même 3 conditions que page Formation
+  // ========================================================
+  const isProfilComplet = !!(
+    reserviste &&
+    reserviste.prenom && reserviste.nom && reserviste.email && reserviste.telephone &&
+    reserviste.date_naissance && reserviste.adresse && reserviste.ville && reserviste.region &&
+    reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
+  )
+
+  const isDeployable = isApproved && isProfilComplet && hasCertificats && (campStatus?.is_certified === true)
+
+  // Compteur pour le sous-texte (ex: "2/3 étapes complétées")
+  const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true].filter(Boolean).length
 
   return (
     <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -188,9 +219,11 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 {reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
-                {loadingCamp ? (
+                {loadingStatus ? (
                   <span style={{ color: '#6b7280' }}>Réserviste</span>
-                ) : isApproved && campStatus?.is_certified ? (
+                ) : !isApproved ? (
+                  <span style={{ color: '#6b7280' }}>Réserviste</span>
+                ) : isDeployable ? (
                   <>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -202,7 +235,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    <span style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
+                    <span style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable ({completedSteps}/3)</span>
                   </>
                 )}
               </div>
