@@ -776,7 +776,7 @@ export default function HomePage() {
                   ) : (
                     <>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                      <span className="hide-mobile" style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable ({[isProfilComplet, certificats.length > 0, campStatus?.is_certified === true].filter(Boolean).length}/3)</span>
+                      <span className="hide-mobile" style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
                     </>
                   )}
                 </div>

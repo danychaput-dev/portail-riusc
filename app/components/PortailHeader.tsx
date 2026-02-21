@@ -235,7 +235,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    <span style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable ({completedSteps}/3)</span>
+                    <span style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
                   </>
                 )}
               </div>
