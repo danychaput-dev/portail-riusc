@@ -365,7 +365,7 @@ export default function InscriptionPage() {
         }
       }
 
-      // Si camp_id présent → Rediriger vers home page avec paramètres pour ouvrir modal
+      // Si camp_id présent → Rediriger vers login avec paramètres pour ouvrir modal
       if (campId) {
         router.push(`/login?openCampModal=true&camp=${campId}`)
       } else {

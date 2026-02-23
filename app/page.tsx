@@ -27,12 +27,6 @@ interface Reserviste {
   telephone?: string;
   photo_url?: string;
   groupe?: string;
-  date_naissance?: string;
-  adresse?: string;
-  ville?: string;
-  region?: string;
-  contact_urgence_nom?: string;
-  contact_urgence_telephone?: string;
   consent_photos?: boolean;
   allergies_alimentaires?: string;
   allergies_autres?: string;
@@ -120,12 +114,6 @@ export default function HomePage() {
   const supabase = createClient()
 
   const isApproved = reserviste?.groupe === 'Approuvé'
-  const isProfilComplet = !!(
-    reserviste &&
-    reserviste.prenom && reserviste.nom && reserviste.email && reserviste.telephone &&
-    reserviste.date_naissance && reserviste.adresse && reserviste.ville && reserviste.region &&
-    reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
-  )
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -329,7 +317,7 @@ export default function HomePage() {
       // 1. D'abord chercher par user_id (le plus fiable)
       const { data: dataByUserId } = await supabase
         .from('reservistes')
-        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, consent_photos, allergies_alimentaires, allergies_autres')
+        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
         .eq('user_id', user.id)
         .single()
       
@@ -341,7 +329,7 @@ export default function HomePage() {
       if (!reservisteData && user.email) {
         const { data } = await supabase
           .from('reservistes')
-         .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, consent_photos, allergies_alimentaires, allergies_autres')
+         .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
           .ilike('email', user.email)
           .single()
         
@@ -360,7 +348,7 @@ export default function HomePage() {
         const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, consent_photos, allergies_alimentaires, allergies_autres')
+          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
           .eq('telephone', phoneDigits)
           .single()
         
@@ -368,7 +356,7 @@ export default function HomePage() {
           const phoneWithout1 = phoneDigits.slice(1)
           const { data: data2 } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, consent_photos, allergies_alimentaires, allergies_autres')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
             .eq('telephone', phoneWithout1)
             .single()
           
@@ -785,9 +773,7 @@ export default function HomePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
                   {loadingCamp ? (
                     <span style={{ color: '#6b7280' }}>Réserviste</span>
-                  ) : !isApproved ? (
-                    <span style={{ color: '#6b7280' }}>Réserviste</span>
-                  ) : isApproved && isProfilComplet && certificats.length > 0 && campStatus?.is_certified ? (
+                  ) : isApproved && campStatus?.is_certified ? (
                     <>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                       <span className="hide-mobile" style={{ color: '#059669', fontWeight: '600' }}>Déployable</span>
