@@ -72,6 +72,8 @@ export default function InscriptionPage() {
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [campInscrit, setCampInscrit] = useState(false)
+  const [nomCampInscrit, setNomCampInscrit] = useState('')
   
   const [formData, setFormData] = useState({
     prenom: '',
@@ -96,6 +98,22 @@ export default function InscriptionPage() {
   const [newOrgName, setNewOrgName] = useState('')
   const [showNewOrgInput, setShowNewOrgInput] = useState(false)
   const [loadingOrgs, setLoadingOrgs] = useState(true)
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // ─── Camps et Santé ─────────────────────────────────────────────────────────
+  const [sessionsDisponibles, setSessionsDisponibles] = useState<Array<{
+    session_id: string;
+    nom: string;
+    dates: string;
+    site: string;
+    location: string;
+  }>>([])
+  const [loadingSessions, setLoadingSessions] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('PLUS_TARD')
+  const [allergiesAlimentaires, setAllergiesAlimentaires] = useState('')
+  const [autresAllergies, setAutresAllergies] = useState('')
+  const [conditionsMedicales, setConditionsMedicales] = useState('')
+  const [consentementPhoto, setConsentementPhoto] = useState(false)
   // ────────────────────────────────────────────────────────────────────────────
 
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
@@ -137,6 +155,63 @@ export default function InscriptionPage() {
       setLoadingOrgs(false)
     }
     fetchOrgs()
+  }, [])
+
+  // Charger les sessions de camps disponibles
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setLoadingSessions(true)
+      try {
+        const response = await fetch('https://api.monday.com/v2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjQ2NDY3NDUzNSwiYWFpIjoxMSwidWlkIjo3MDg2NTA0MywiaWFkIjoiMjAyNS0wMS0yOVQwMTo0NTozMi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6Mjc0NTk4NTAsInJnbiI6InVzZTEifQ.U0ufF892D9vLZWIBlmSsVpVX_IwkTFSnlDAuyvMWn9U'
+          },
+          body: JSON.stringify({
+            query: `query {
+              boards(ids: [8256356867]) {
+                items_page(limit: 100) {
+                  items {
+                    id
+                    name
+                    column_values {
+                      id
+                      text
+                      value
+                    }
+                  }
+                }
+              }
+            }`
+          })
+        })
+        
+        const data = await response.json()
+        const items = data.data?.boards?.[0]?.items_page?.items || []
+        
+        const sessions = items.map((item: any) => {
+          const cols = item.column_values || []
+          const getDates = cols.find((c: any) => c.id === 'text_mkzszwrp')?.text || ''
+          const getSite = cols.find((c: any) => c.id === 'text_mkzstzem')?.text || ''
+          const getLocation = cols.find((c: any) => c.id === 'location_mkwqn9a5')?.text || ''
+          
+          return {
+            session_id: item.id,
+            nom: item.name,
+            dates: getDates,
+            site: getSite,
+            location: getLocation
+          }
+        })
+        
+        setSessionsDisponibles(sessions)
+      } catch (error) {
+        console.error('Erreur chargement sessions:', error)
+      }
+      setLoadingSessions(false)
+    }
+    fetchSessions()
   }, [])
 
   useEffect(() => {
@@ -296,6 +371,10 @@ export default function InscriptionPage() {
     if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
     if (!formData.consent_photos) errors.consent_photos = 'Ce consentement est requis'
     if (!formData.consent_confidentialite) errors.consent_confidentialite = 'Ce consentement est requis'
+    // Si un camp est sélectionné, le consentement photo spécifique au camp est requis
+    if (selectedSessionId && selectedSessionId !== 'PLUS_TARD' && !consentementPhoto) {
+      errors.consentement_photo_camp = 'Ce consentement est requis pour vous inscrire au camp'
+    }
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -365,12 +444,52 @@ export default function InscriptionPage() {
         }
       }
 
-      // Si camp_id présent → Rediriger vers login avec paramètres pour ouvrir modal
-      if (campId) {
-        router.push(`/login?openCampModal=true&camp=${campId}`)
-      } else {
-        setStep('success')
+      // Inscription au camp si sélectionné
+      let campInscritSuccess = false
+      let campNom = ''
+      if (newReserviste?.benevole_id && selectedSessionId && selectedSessionId !== 'PLUS_TARD') {
+        const sessionSelectionnee = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
+        campNom = sessionSelectionnee?.nom || 'Camp sélectionné'
+        
+        try {
+          // Mettre à jour les infos santé dans reservistes
+          await supabase
+            .from('reservistes')
+            .update({
+              allergies_alimentaires: allergiesAlimentaires || null,
+              allergies_autres: autresAllergies || null
+            })
+            .eq('benevole_id', newReserviste.benevole_id)
+
+          // Appeler l'API d'inscription au camp
+          const campResponse = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              benevole_id: newReserviste.benevole_id,
+              session_id: selectedSessionId,
+              presence: 'confirme',
+              courriel: emailClean,
+              telephone: isTestPhone ? null : phoneClean,
+              prenom_nom: `${formData.prenom.trim()} ${formData.nom.trim()}`
+            })
+          })
+
+          if (campResponse.ok) {
+            campInscritSuccess = true
+          }
+        } catch (error) {
+          console.error('Erreur inscription camp:', error)
+          // Ne pas bloquer si l'inscription camp échoue
+        }
       }
+
+      // Stocker l'info pour la page de succès
+      setCampInscrit(campInscritSuccess)
+      setNomCampInscrit(campNom)
+
+      // Afficher la page de succès avec le bon message
+      setStep('success')
     } catch (error: any) { console.error('Erreur inscription:', error); setMessage({ type: 'error', text: error.message || "Erreur lors de l'inscription. Veuillez réessayer." }) }
     setLoading(false)
   }
@@ -399,12 +518,41 @@ export default function InscriptionPage() {
   if (step === 'success') {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-        <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', maxWidth: '500px', width: '100%', textAlign: 'center' }}>
+        <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', textAlign: 'center' }}>
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>✅</div>
           <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '24px' }}>Inscription réussie !</h2>
-          <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0 0 24px 0' }}>Bienvenue dans la RIUSC, <strong>{formData.prenom}</strong> ! Votre compte est en cours de création. Vous recevrez un accès au portail sous peu.</p>
-          <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6', margin: '0 0 32px 0' }}>Votre demande sera traitée par notre équipe. Un courriel de confirmation vous sera envoyé à <strong>{formData.email}</strong>.</p>
-          <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' }}>Aller à la page de connexion</a>
+          
+          <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+            Bienvenue dans la RIUSC, <strong>{formData.prenom}</strong> ! Votre compte est en cours de création.
+          </p>
+
+          {campInscrit && nomCampInscrit && (
+            <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '16px', margin: '0 0 16px 0' }}>
+              <p style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '15px', fontWeight: '600' }}>
+                🎓 Inscription au camp confirmée
+              </p>
+              <p style={{ margin: 0, color: '#059669', fontSize: '14px' }}>
+                {nomCampInscrit}
+              </p>
+            </div>
+          )}
+
+          <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px 0' }}>
+            Un courriel de confirmation vous sera envoyé à <strong>{formData.email}</strong> avec les prochaines étapes.
+          </p>
+
+          <div style={{ backgroundColor: '#eff6ff', borderLeft: '4px solid #2563eb', padding: '16px', borderRadius: '4px', margin: '0 0 24px 0', textAlign: 'left' }}>
+            <p style={{ margin: '0 0 8px 0', color: '#1e40af', fontSize: '14px', fontWeight: '600' }}>
+              📧 Vérifiez votre boîte email
+            </p>
+            <p style={{ margin: 0, color: '#1e40af', fontSize: '13px', lineHeight: '1.6' }}>
+              Vous recevrez un lien de connexion (magic link) pour accéder à votre portail réserviste.
+            </p>
+          </div>
+
+          <a href='/login' style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' }}>
+            Aller à la page de connexion
+          </a>
         </div>
       </div>
     )
@@ -597,6 +745,140 @@ export default function InscriptionPage() {
                     <span style={{ fontSize: '14px', color: '#374151' }}>{groupe}</span>
                   </label>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Camp de qualification ── */}
+          <div style={{...sectionStyle, border: campId ? '2px solid #059669' : 'none', backgroundColor: campId ? '#f0fdf4' : 'white'}}>
+            <h3 style={sectionTitleStyle}>Camp de qualification {campId && <span style={{color: '#059669', fontSize: '14px', fontWeight: 'normal'}}>• Recommandé</span>}</h3>
+            <p style={sectionDescStyle}>
+              {campId 
+                ? "Vous êtes arrivé ici pour un camp spécifique. Sélectionnez-le ci-dessous ou choisissez un autre camp disponible." 
+                : "Souhaitez-vous vous inscrire à un camp de qualification maintenant ? Vous pourrez aussi le faire plus tard depuis votre portail."}
+            </p>
+
+            {loadingSessions ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>Chargement des camps disponibles...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Option "Plus tard" */}
+                <label style={{ display: 'block', padding: '16px', border: selectedSessionId === 'PLUS_TARD' ? '2px solid #1e3a5f' : '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedSessionId === 'PLUS_TARD' ? '#f0f4f8' : 'white', transition: 'all 0.2s' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <input
+                      type="radio"
+                      name="session"
+                      value="PLUS_TARD"
+                      checked={selectedSessionId === 'PLUS_TARD'}
+                      onChange={(e) => setSelectedSessionId(e.target.value)}
+                      style={{ marginTop: '4px', accentColor: '#1e3a5f' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>Je choisirai un camp plus tard</div>
+                      <div style={{ fontSize: '13px', color: '#6b7280' }}>Vous pourrez vous inscrire à un camp depuis votre portail après avoir créé votre compte</div>
+                    </div>
+                  </div>
+                </label>
+
+                {/* Camps disponibles */}
+                {sessionsDisponibles.length > 0 && (
+                  <>
+                    <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '8px 0' }}></div>
+                    {sessionsDisponibles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => (
+                      <label
+                        key={session.session_id}
+                        style={{
+                          display: 'block',
+                          padding: '16px',
+                          border: selectedSessionId === session.session_id ? '2px solid #059669' : '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: selectedSessionId === session.session_id ? '#f0fdf4' : 'white',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                          <input
+                            type="radio"
+                            name="session"
+                            value={session.session_id}
+                            checked={selectedSessionId === session.session_id}
+                            onChange={(e) => setSelectedSessionId(e.target.value)}
+                            style={{ marginTop: '4px', accentColor: '#059669' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '600', color: '#111827', marginBottom: '6px' }}>{session.nom}</div>
+                            <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+                              {session.dates && <div>{session.dates}</div>}
+                              {session.site && <div>{session.site}</div>}
+                              {session.location && <div style={{ color: '#9ca3af' }}>{session.location}</div>}
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Informations santé (conditionnel si camp sélectionné) ── */}
+          {selectedSessionId && selectedSessionId !== 'PLUS_TARD' && (
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Informations santé pour le camp</h3>
+              <p style={sectionDescStyle}>Ces informations aideront l&apos;équipe à mieux vous accompagner durant le camp.</p>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Allergies alimentaires</label>
+                <textarea
+                  value={allergiesAlimentaires}
+                  onChange={(e) => setAllergiesAlimentaires(e.target.value)}
+                  placeholder="Ex: Noix, arachides, fruits de mer, lactose..."
+                  rows={3}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Optionnel - Laissez vide si aucune allergie</p>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Autres allergies</label>
+                <textarea
+                  value={autresAllergies}
+                  onChange={(e) => setAutresAllergies(e.target.value)}
+                  placeholder="Ex: Latex, pollen, médicaments..."
+                  rows={3}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Optionnel - Laissez vide si aucune allergie</p>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Problèmes de santé ou conditions médicales</label>
+                <textarea
+                  value={conditionsMedicales}
+                  onChange={(e) => setConditionsMedicales(e.target.value)}
+                  placeholder="Conditions dont l'équipe devrait être informée..."
+                  rows={3}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Optionnel - Laissez vide si aucune condition</p>
+              </div>
+
+              {/* Consentement photo pour le camp */}
+              <div style={{ marginBottom: '0', padding: '16px', border: fieldErrors.consentement_photo_camp ? '1px solid #fca5a5' : '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: fieldErrors.consentement_photo_camp ? '#fef2f2' : '#f9fafb' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={consentementPhoto}
+                    onChange={(e) => setConsentementPhoto(e.target.checked)}
+                    style={{ marginTop: '3px', width: '18px', height: '18px', flexShrink: 0, accentColor: '#1e3a5f' }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                    Je comprends que des photos ou vidéos peuvent être prises lors du camp et j&apos;autorise l&apos;AQBRS / RIUSC à utiliser les images captées à des fins de communication. {requiredStar}
+                  </span>
+                </label>
+                {fieldErrors.consentement_photo_camp && <p style={{ color: '#dc2626', fontSize: '12px', margin: '8px 0 0 30px' }}>{fieldErrors.consentement_photo_camp}</p>}
               </div>
             </div>
           )}
