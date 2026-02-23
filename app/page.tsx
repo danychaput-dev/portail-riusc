@@ -125,6 +125,25 @@ export default function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Détecter les paramètres URL pour ouvrir automatiquement la modal d'inscription au camp
+  useEffect(() => {
+    if (typeof window !== 'undefined' && reserviste) {
+      const params = new URLSearchParams(window.location.search)
+      const shouldOpenModal = params.get('openCampModal')
+      const campParam = params.get('camp')
+      
+      if (shouldOpenModal === 'true' && campParam) {
+        // Attendre un peu que les données soient chargées
+        setTimeout(() => {
+          openCampModalHandler()
+        }, 500)
+        
+        // Nettoyer l'URL pour éviter de réouvrir la modal à chaque refresh
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+    }
+  }, [reserviste])
+
   const loadCertificats = async (benevoleId: string) => {
     setLoadingCertificats(true)
     try {

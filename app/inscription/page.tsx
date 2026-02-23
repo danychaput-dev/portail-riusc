@@ -7,6 +7,7 @@ import Image from 'next/image'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
+const AUCUNE_ORG_ID = 'AUCUNE'
 
 interface MapboxFeature {
   place_name: string;
@@ -91,7 +92,7 @@ export default function InscriptionPage() {
 
   // ─── Organisations ──────────────────────────────────────────────────────────
   const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
-  const [selectedOrgIds, setSelectedOrgIds] = useState<string[]>([])
+  const [selectedOrgIds, setSelectedOrgIds] = useState<string[]>([AUCUNE_ORG_ID])
   const [newOrgName, setNewOrgName] = useState('')
   const [showNewOrgInput, setShowNewOrgInput] = useState(false)
   const [loadingOrgs, setLoadingOrgs] = useState(true)
@@ -165,13 +166,31 @@ export default function InscriptionPage() {
   }
 
   const toggleOrg = (id: string) => {
-    // Si on décoche AQBRS, vider les groupes RS
-    if (id === AQBRS_ORG_ID && selectedOrgIds.includes(id)) {
+    // Si on coche une organisation réelle, décocher automatiquement "Aucune"
+    if (id !== AUCUNE_ORG_ID && !selectedOrgIds.includes(id)) {
+      setSelectedOrgIds(prev => [...prev.filter(x => x !== AUCUNE_ORG_ID), id])
+    } 
+    // Si on coche "Aucune", décocher toutes les autres organisations
+    else if (id === AUCUNE_ORG_ID && !selectedOrgIds.includes(id)) {
+      setSelectedOrgIds([AUCUNE_ORG_ID])
+      // Vider aussi les groupes RS si AQBRS était sélectionné
       setFormData(prev => ({ ...prev, groupe_rs: [] }))
     }
-    setSelectedOrgIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    )
+    // Si on décoche une organisation
+    else if (selectedOrgIds.includes(id)) {
+      const newSelected = selectedOrgIds.filter(x => x !== id)
+      // Si on décoche tout, remettre "Aucune" par défaut
+      if (newSelected.length === 0) {
+        setSelectedOrgIds([AUCUNE_ORG_ID])
+      } else {
+        setSelectedOrgIds(newSelected)
+      }
+      // Si on décoche AQBRS, vider les groupes RS
+      if (id === AQBRS_ORG_ID) {
+        setFormData(prev => ({ ...prev, groupe_rs: [] }))
+      }
+    }
+    
     if (fieldErrors.organisations) {
       setFieldErrors(prev => ({ ...prev, organisations: '' }))
     }
@@ -272,7 +291,8 @@ export default function InscriptionPage() {
     if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
     if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise"
     if (!formData.region) errors.region = 'La région est requise — sélectionnez votre ville'
-    if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner ou ajouter au moins une organisation'
+    // Accepte "Aucune" comme option valide, ou au moins une organisation doit être sélectionnée
+    if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner au moins une option'
     if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
     if (!formData.consent_photos) errors.consent_photos = 'Ce consentement est requis'
     if (!formData.consent_confidentialite) errors.consent_confidentialite = 'Ce consentement est requis'
@@ -320,7 +340,9 @@ export default function InscriptionPage() {
         .maybeSingle()
 
       if (newReserviste?.benevole_id) {
-        let orgIdsToLink = [...selectedOrgIds]
+        // Filtrer "AUCUNE" - ne pas la sauvegarder dans la base
+        let orgIdsToLink = selectedOrgIds.filter(id => id !== AUCUNE_ORG_ID)
+        
         if (newOrgName.trim()) {
           const { data: createdOrg, error: createError } = await supabase
             .from('organisations')
@@ -335,6 +357,7 @@ export default function InscriptionPage() {
             orgIdsToLink.push(createdOrg.id)
           }
         }
+        // Ne sauvegarder que si il y a des organisations réelles (pas "Aucune")
         if (orgIdsToLink.length > 0) {
           await supabase.from('reserviste_organisations').insert(
             orgIdsToLink.map(organisation_id => ({ benevole_id: newReserviste.benevole_id, organisation_id }))
@@ -342,7 +365,12 @@ export default function InscriptionPage() {
         }
       }
 
-      setStep('success')
+      // Si camp_id présent → Rediriger vers home page avec paramètres pour ouvrir modal
+      if (campId) {
+        router.push(`/login?openCampModal=true&camp=${campId}`)
+      } else {
+        setStep('success')
+      }
     } catch (error: any) { console.error('Erreur inscription:', error); setMessage({ type: 'error', text: error.message || "Erreur lors de l'inscription. Veuillez réessayer." }) }
     setLoading(false)
   }
@@ -477,7 +505,7 @@ export default function InscriptionPage() {
           {/* ── Organisations ── */}
           <div style={{ ...sectionStyle, border: fieldErrors.organisations ? '2px solid #dc2626' : 'none' }}>
             <h3 style={sectionTitleStyle}>Organisation d&apos;appartenance {requiredStar}</h3>
-            <p style={sectionDescStyle}>Sélectionnez toutes les organisations dont vous faites partie.</p>
+            <p style={sectionDescStyle}>Sélectionnez toutes les organisations dont vous faites partie, ou choisissez &quot;Aucune&quot; si non applicable.</p>
 
             {fieldErrors.organisations && (
               <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '13px', color: '#dc2626', marginBottom: '16px' }}>
@@ -490,6 +518,21 @@ export default function InscriptionPage() {
             ) : (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px', maxHeight: '280px', overflowY: 'auto', padding: '2px 0' }}>
+                  {/* Option "Aucune" en premier */}
+                  <label key={AUCUNE_ORG_ID} style={checkboxRowStyle(selectedOrgIds.includes(AUCUNE_ORG_ID))}>
+                    <input
+                      type="checkbox"
+                      checked={selectedOrgIds.includes(AUCUNE_ORG_ID)}
+                      onChange={() => toggleOrg(AUCUNE_ORG_ID)}
+                      style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic' }}>Aucune</span>
+                  </label>
+                  
+                  {/* Séparateur visuel */}
+                  <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '4px 0' }}></div>
+                  
+                  {/* Organisations réelles */}
                   {allOrgs.map(org => (
                     <label key={org.id} style={checkboxRowStyle(selectedOrgIds.includes(org.id))}>
                       <input
