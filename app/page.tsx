@@ -135,7 +135,7 @@ export default function HomePage() {
       if (shouldOpenModal === 'true' && campParam) {
         // Attendre un peu que les données soient chargées
         setTimeout(() => {
-          openCampModalHandler()
+          openCampModal()
         }, 500)
         
         // Nettoyer l'URL pour éviter de réouvrir la modal à chaque refresh
