@@ -157,62 +157,66 @@ export default function InscriptionPage() {
     fetchOrgs()
   }, [])
 
-  // Charger les sessions de camps disponibles
+  // Liste statique des camps 2026 (au lieu de charger depuis Monday.com)
   useEffect(() => {
-    const fetchSessions = async () => {
-      setLoadingSessions(true)
-      try {
-        const response = await fetch('https://api.monday.com/v2', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjQ2NDY3NDUzNSwiYWFpIjoxMSwidWlkIjo3MDg2NTA0MywiaWFkIjoiMjAyNS0wMS0yOVQwMTo0NTozMi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6Mjc0NTk4NTAsInJnbiI6InVzZTEifQ.U0ufF892D9vLZWIBlmSsVpVX_IwkTFSnlDAuyvMWn9U'
-          },
-          body: JSON.stringify({
-            query: `query {
-              boards(ids: [8256356867]) {
-                items_page(limit: 100) {
-                  items {
-                    id
-                    name
-                    column_values {
-                      id
-                      text
-                      value
-                    }
-                  }
-                }
-              }
-            }`
-          })
-        })
-        
-        const data = await response.json()
-        const items = data.data?.boards?.[0]?.items_page?.items || []
-        
-        const sessions = items.map((item: any) => {
-          const cols = item.column_values || []
-          const getDates = cols.find((c: any) => c.id === 'text_mkzszwrp')?.text || ''
-          const getSite = cols.find((c: any) => c.id === 'text_mkzstzem')?.text || ''
-          const getLocation = cols.find((c: any) => c.id === 'location_mkwqn9a5')?.text || ''
-          
-          return {
-            session_id: item.id,
-            nom: item.name,
-            dates: getDates,
-            site: getSite,
-            location: getLocation
-          }
-        })
-        
-        setSessionsDisponibles(sessions)
-      } catch (error) {
-        console.error('Erreur chargement sessions:', error)
+    const campsStat = [
+      {
+        session_id: 'CAMP_STE_CATHERINE_MAR26',
+        nom: 'Cohorte 8 - Camp de qualification - Sainte-Catherine',
+        dates: '14 et 15 mars 2026',
+        site: "Centre Municipal Aimé-Guérin",
+        location: '5365 Boul Saint-Laurent, Sainte-Catherine, QC, Canada'
+      },
+      {
+        session_id: 'CAMP_CHICOUTIMI_AVR26',
+        nom: 'Cohorte 9 - Camp de qualification - Saguenay',
+        dates: '25-26 avril 2026',
+        site: 'Hôtel Chicoutimi',
+        location: '460 Rue Racine Est, Chicoutimi, Québec G7H 1T7, Canada'
+      },
+      {
+        session_id: 'CAMP_QUEBEC_MAI26',
+        nom: 'Cohorte 10 - Camp de qualification - Québec',
+        dates: '23-24 mai 2026',
+        site: 'À définir',
+        location: 'Québec, QC'
+      },
+      {
+        session_id: 'CAMP_RIMOUSKI_SEP26',
+        nom: 'Cohorte 11 - Camp de qualification - Rimouski',
+        dates: '26-27 septembre 2026',
+        site: 'À définir',
+        location: 'Rimouski, QC'
+      },
+      {
+        session_id: 'CAMP_SHERBROOKE_OCT26',
+        nom: 'Cohorte 12 - Camp de qualification - Sherbrooke',
+        dates: '17-18 octobre 2026',
+        site: 'À définir',
+        location: 'Sherbrooke, QC'
+      },
+      {
+        session_id: 'CAMP_GATINEAU_NOV26',
+        nom: 'Cohorte 13 - Camp de qualification - Gatineau',
+        dates: '14-15 novembre 2026',
+        site: 'À définir',
+        location: 'Gatineau, QC'
       }
-      setLoadingSessions(false)
-    }
-    fetchSessions()
+    ]
+    
+    setSessionsDisponibles(campsStat)
+    setLoadingSessions(false)
   }, [])
+
+  // Pré-sélectionner le camp si présent dans l'URL
+  useEffect(() => {
+    if (campId && sessionsDisponibles.length > 0) {
+      const campTrouve = sessionsDisponibles.find(s => s.session_id === campId)
+      if (campTrouve) {
+        setSelectedSessionId(campId)
+      }
+    }
+  }, [campId, sessionsDisponibles])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -467,7 +471,11 @@ export default function InscriptionPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               benevole_id: newReserviste.benevole_id,
-              session_id: selectedSessionId,
+              session_id: selectedSessionId, // ID fictif pour identifier le camp
+              camp_nom: sessionSelectionnee?.nom,
+              camp_dates: sessionSelectionnee?.dates,
+              camp_site: sessionSelectionnee?.site,
+              camp_location: sessionSelectionnee?.location,
               presence: 'confirme',
               courriel: emailClean,
               telephone: isTestPhone ? null : phoneClean,
