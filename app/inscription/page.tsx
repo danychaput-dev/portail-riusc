@@ -1,1517 +1,920 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>En savoir plus - RIUSC</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            line-height: 1.6;
-            color: #1a1a2e;
-            background: #ffffff;
-        }
-        
-        /* Header */
-        .header {
-            background: white;
-            padding: 16px 0;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-        }
-        
-        .header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .logo-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            text-decoration: none;
-        }
-        
-        .logo {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-        }
-        
-        .logo-text {
-            font-size: 24px;
-            font-weight: 800;
-            color: #1e3a5f;
-        }
-        
-        .header-nav {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
-        
-        .header-nav a {
-            text-decoration: none;
-            color: #374151;
-            font-weight: 500;
-            font-size: 15px;
-            transition: color 0.2s;
-        }
-        
-        .header-nav a:hover {
-            color: #1e3a5f;
-        }
-        
-        .btn-reserviste {
-            background: #1e3a5f;
-            color: white !important;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-        
-        .btn-reserviste:hover {
-            background: #2d4a6f !important;
-        }
-        
-        /* Page Header */
-        .page-header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 50%, #3d5a80 100%);
-            padding: 160px 24px 80px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .page-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/></svg>');
-            background-size: 100px 100px;
-        }
-        
-        .page-header-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-            padding-left: 48px;
-        }
-        
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-        
-        .breadcrumb a {
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            font-size: 14px;
-        }
-        
-        .breadcrumb a:hover {
-            color: white;
-        }
-        
-        .breadcrumb span {
-            color: rgba(255,255,255,0.5);
-        }
-        
-        .breadcrumb-current {
-            color: white !important;
-        }
-        
-        .page-header h1 {
-            color: white;
-            font-size: clamp(32px, 4vw, 48px);
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-        
-        .page-header p {
-            color: rgba(255,255,255,0.85);
-            font-size: 18px;
-            max-width: 700px;
-        }
-        
-        /* Content Sections */
-        .content-section {
-            padding: 80px 24px;
-        }
-        
-        .content-section.alt {
-            background: #f8fafc;
-        }
-        
-        .content-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        
-        .section-header {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-        
-        .section-tag {
-            display: inline-block;
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 6px 16px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .section-title {
-            font-size: clamp(28px, 4vw, 38px);
-            font-weight: 800;
-            color: #1e3a5f;
-            margin-bottom: 16px;
-        }
-        
-        .section-subtitle {
-            color: #6b7280;
-            font-size: 17px;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        /* Text Content */
-        .text-content {
-            font-size: 16px;
-            color: #4b5563;
-            line-height: 1.8;
-        }
-        
-        .text-content h2 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #1e3a5f;
-            margin: 40px 0 16px;
-        }
-        
-        .text-content h2:first-child {
-            margin-top: 0;
-        }
-        
-        .text-content p {
-            margin-bottom: 16px;
-        }
-        
-        .text-content ul {
-            margin: 16px 0;
-            padding-left: 0;
-            list-style: none;
-        }
-        
-        .text-content li {
-            padding: 10px 0 10px 32px;
-            position: relative;
-        }
-        
-        .text-content li::before {
-            content: '✓';
-            position: absolute;
-            left: 0;
-            color: #10b981;
-            font-weight: bold;
-            font-size: 18px;
-        }
+'use client'
 
-        /* Criteria Section */
-        .criteria-section {
-            padding: 80px 24px;
-            background: #f8fafc;
-        }
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import Image from 'next/image'
 
-        .criteria-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
+const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
+const AUCUNE_ORG_ID = 'AUCUNE'
 
-        .criteria-box {
-            background: white;
-            border-radius: 16px;
-            padding: 48px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-            border: 1px solid #e5e7eb;
-        }
+interface MapboxFeature {
+  place_name: string;
+  center: [number, number];
+  context?: Array<{
+    id: string;
+    text: string;
+  }>;
+}
 
-        .criteria-box h2 {
-            font-size: 28px;
-            font-weight: 800;
-            color: #1e3a5f;
-            margin-bottom: 8px;
-        }
+function formatPhoneDisplay(phone: string | null | undefined): string {
+  if (!phone) return ''
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  if (digits.length === 11 && digits[0] === '1') {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
+  }
+  return phone
+}
 
-        .criteria-box > p {
-            color: #6b7280;
-            font-size: 16px;
-            margin-bottom: 32px;
-            line-height: 1.7;
-        }
+function cleanPhoneForSave(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 10) {
+    return '1' + digits
+  }
+  return digits
+}
 
-        .criteria-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
-        }
+const GROUPES_RS = [
+  'District 1: Équipe de RS La Grande-Ourse',
+  'District 1: EBRES du KRTB',
+  'District 2: Sauvetage Région 02',
+  'District 3: Recherche et Sauvetage Québec-Métro (RSQM)',
+  'District 3: Recherche Sauvetage Tourville',
+  'District 4: Eurêka Recherche et sauvetage',
+  'District 4: SIUCQ Drummondville',
+  'District 4: SIUCQ MRC Arthabaska',
+  'District 4: SIUSQ Division Mauricie',
+  'District 4: Sauvetage Mauricie K9',
+  'District 5: Recherche Sauvetage Estrie',
+  "District 6: Sauvetage Baie-D'Urfé",
+  'District 6: Ambulance St-Jean - Div. 971 Laval',
+  'District 6: Québec Secours',
+  'District 6: Pointe-Claire Rescue',
+  'District 6: Recherche Sauvetage Laurentides Lanaudière',
+  'District 6: S&R Balise Beacon R&S',
+  'District 7: Sauvetage Bénévole Outaouais',
+  'District 7: SAR 360',
+  'District 8: Recherche et sauvetage du Témiscamingue R.E.S.Tem',
+  'District 9: Groupe de recherche Manicouagan'
+]
 
-        .criteria-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            padding: 20px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            transition: all 0.3s;
-        }
+interface Organisation {
+  id: string
+  nom: string
+}
 
-        .criteria-item:hover {
-            border-color: #1e3a5f;
-            box-shadow: 0 4px 16px rgba(30,58,95,0.08);
-        }
+export default function InscriptionPage() {
+  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState<'form' | 'success'>('form')
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [campInscrit, setCampInscrit] = useState(false)
+  const [nomCampInscrit, setNomCampInscrit] = useState('')
+  
+  const [formData, setFormData] = useState({
+    prenom: '',
+    nom: '',
+    email: '',
+    telephone: '',
+    adresse: '',
+    ville: '',
+    region: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
+    groupe_rs: [] as string[],
+    commentaire: '',
+    confirm_18: false,
+    consent_photos: false,
+    consent_confidentialite: false
+  })
 
-        .criteria-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #1e3a5f, #3d5a80);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-size: 18px;
-        }
+  // ─── Organisations ──────────────────────────────────────────────────────────
+  const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
+  const [selectedOrgIds, setSelectedOrgIds] = useState<string[]>([AUCUNE_ORG_ID])
+  const [newOrgName, setNewOrgName] = useState('')
+  const [showNewOrgInput, setShowNewOrgInput] = useState(false)
+  const [loadingOrgs, setLoadingOrgs] = useState(true)
+  // ────────────────────────────────────────────────────────────────────────────
 
-        .criteria-item-text {
-            font-size: 15px;
-            color: #374151;
-            font-weight: 500;
-            line-height: 1.5;
-        }
+  // ─── Camps et Santé ─────────────────────────────────────────────────────────
+  const [sessionsDisponibles, setSessionsDisponibles] = useState<Array<{
+    session_id: string;
+    nom: string;
+    dates: string;
+    site: string;
+    location: string;
+  }>>([])
+  const [loadingSessions, setLoadingSessions] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('PLUS_TARD')
+  const [allergiesAlimentaires, setAllergiesAlimentaires] = useState('')
+  const [autresAllergies, setAutresAllergies] = useState('')
+  const [conditionsMedicales, setConditionsMedicales] = useState('')
+  const [consentementPhoto, setConsentementPhoto] = useState(false)
+  // ────────────────────────────────────────────────────────────────────────────
 
-        .criteria-note {
-            background: #eef7ff;
-            border-left: 4px solid #1e3a5f;
-            border-radius: 0 12px 12px 0;
-            padding: 20px 24px;
-            color: #374151;
-            font-size: 15px;
-            line-height: 1.7;
-        }
+  const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false)
+  const addressInputRef = useRef<HTMLInputElement>(null)
+  const addressDropdownRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-        .criteria-note strong {
-            color: #1e3a5f;
-        }
-        
-        /* Gallery Section */
-        .gallery-section {
-            padding: 80px 24px;
-            background: #f8fafc;
-        }
-        
-        .gallery-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-        }
-        
-        .gallery-item {
-            position: relative;
-            border-radius: 12px;
-            overflow: hidden;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-            height: 220px;
-        }
-        
-        .gallery-item:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-        }
-        
-        .gallery-item:hover .gallery-overlay {
-            opacity: 1;
-        }
-        
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s;
-        }
-        
-        .gallery-item:hover img {
-            transform: scale(1.05);
-        }
-        
-        .gallery-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(30, 58, 95, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .gallery-overlay svg {
-            width: 40px;
-            height: 40px;
-            color: white;
-        }
-        
-        .gallery-item.featured {
-            grid-column: span 2;
-        }
-        
-        /* Lightbox */
-        .lightbox {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-        }
-        
-        .lightbox.active {
-            display: flex;
-        }
-        
-        .lightbox-content {
-            position: relative;
-            max-width: 90vw;
-            max-height: 90vh;
-        }
-        
-        .lightbox-content img {
-            max-width: 100%;
-            max-height: 85vh;
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-        
-        .lightbox-close {
-            position: absolute;
-            top: -50px;
-            right: 0;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 40px;
-            cursor: pointer;
-            padding: 10px;
-            transition: transform 0.2s;
-        }
-        
-        .lightbox-close:hover {
-            transform: scale(1.1);
-        }
-        
-        .lightbox-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        
-        .lightbox-nav:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .lightbox-prev {
-            left: -70px;
-        }
-        
-        .lightbox-next {
-            right: -70px;
-        }
-        
-        .lightbox-counter {
-            position: absolute;
-            bottom: -40px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,0.7);
-            font-size: 14px;
-        }
-        
-        /* Tour Section */
-        .tour-section {
-            padding: 80px 24px;
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
-        }
-        
-        .tour-container {
-            max-width: 1100px;
-            margin: 0 auto;
-        }
-        
-        .tour-header {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-        
-        .tour-header .section-tag {
-            background: rgba(255,255,255,0.2);
-            color: white;
-        }
-        
-        .tour-header h2 {
-            color: white;
-            font-size: clamp(28px, 4vw, 38px);
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-        
-        .tour-header p {
-            color: rgba(255,255,255,0.85);
-            font-size: 17px;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .year-divider {
-            text-align: center;
-            margin: 32px 0 24px;
-            position: relative;
-        }
-        
-        .year-divider::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 50%;
-            height: 1px;
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .year-divider span {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
-            padding: 8px 24px;
-            font-size: 18px;
-            font-weight: 700;
-            color: white;
-            position: relative;
-            border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .tour-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-        }
-        
-        .tour-card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            text-align: center;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-            display: block;
-            text-decoration: none;
-        }
-        
-        .tour-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-        }
-        
-        .tour-card.past {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-        
-        .tour-card.past::after {
-            content: 'Terminé';
-            position: absolute;
-            top: 12px;
-            right: -28px;
-            background: #6b7280;
-            color: white;
-            padding: 4px 36px;
-            font-size: 11px;
-            font-weight: 600;
-            transform: rotate(45deg);
-        }
-        
-        .tour-card .city {
-            font-size: 18px;
-            font-weight: 700;
-            color: #1e3a5f;
-            margin-bottom: 6px;
-        }
-        
-        .tour-card .dates {
-            font-size: 14px;
-            color: #6b7280;
-        }
+  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string }>>([])
+  const [showVilleSuggestions, setShowVilleSuggestions] = useState(false)
+  const [isLoadingVille, setIsLoadingVille] = useState(false)
+  const villeInputRef = useRef<HTMLInputElement>(null)
+  const villeDropdownRef = useRef<HTMLDivElement>(null)
+  const villeDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
-        .tour-card .location {
-            font-size: 12px;
-            color: #9ca3af;
-            margin-top: 8px;
-            font-style: italic;
-        }
+  const router = useRouter()
+  const supabase = createClient()
 
-        .tour-card .tour-cta {
-            margin-top: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #e63946;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
+  const isAqbrsSelected = selectedOrgIds.includes(AQBRS_ORG_ID)
 
-        .tour-card:not(.past):hover .tour-cta {
-            opacity: 1;
-        }
+  const [campId, setCampId] = useState('')
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    setCampId(params.get('camp') || '')
+    const emailParam = params.get('email')
+    if (emailParam) {
+      setFormData(prev => ({ ...prev, email: emailParam }))
+    }
+  }, [])
 
-        .tour-card:not(.past) {
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
+  useEffect(() => {
+    const fetchOrgs = async () => {
+      const { data } = await supabase
+        .from('organisations')
+        .select('id, nom')
+        .order('nom')
+      setAllOrgs(data || [])
+      setLoadingOrgs(false)
+    }
+    fetchOrgs()
+  }, [])
 
-        .tour-card:not(.past):hover {
-            border-color: #e63946;
-        }
-        
-        .tour-note {
-            text-align: center;
-            margin-top: 40px;
-            padding: 24px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .tour-note p {
-            color: rgba(255,255,255,0.9);
-            font-size: 15px;
-            margin-bottom: 16px;
-        }
-        
-        .tour-note a {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #e63946;
-            color: white;
-            padding: 14px 28px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .tour-note a:hover {
-            background: #d62839;
-            transform: translateY(-2px);
-        }
-        
-        /* Partners */
-        .partners-section {
-            padding: 80px 24px;
-            background: white;
-        }
-        
-        .partners-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        
-        .partners-intro {
-            max-width: 800px;
-            margin: 0 auto 50px;
-        }
-        
-        .partners-intro p {
-            color: #4b5563;
-            font-size: 16px;
-            line-height: 1.8;
-            text-align: center;
-        }
-        
-        .partners-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 24px;
-        }
-        
-        .partner-card {
-            background: #f8fafc;
-            border-radius: 16px;
-            padding: 32px 24px;
-            text-align: center;
-            text-decoration: none;
-            transition: all 0.3s;
-            border: 1px solid #e5e7eb;
-        }
-        
-        .partner-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
-            border-color: #1e3a5f;
-        }
-        
-        .partner-card img {
-            height: 60px;
-            margin-bottom: 16px;
-            opacity: 0.9;
-            transition: opacity 0.3s;
-        }
-        
-        .partner-card:hover img {
-            opacity: 1;
-        }
-        
-        .partner-card h4 {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1e3a5f;
-            margin-bottom: 8px;
-        }
-        
-        .partner-card p {
-            font-size: 13px;
-            color: #6b7280;
-            line-height: 1.5;
-        }
-        
-        /* CTA */
-        .cta {
-            padding: 80px 24px;
-            background: #f8fafc;
-            text-align: center;
-        }
-        
-        .cta-container {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        
-        .cta h2 {
-            font-size: clamp(28px, 4vw, 38px);
-            font-weight: 800;
-            color: #1e3a5f;
-            margin-bottom: 16px;
-        }
-        
-        .cta p {
-            color: #6b7280;
-            font-size: 17px;
-            margin-bottom: 32px;
-        }
-        
-        .btn-primary {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: #e63946;
-            color: white;
-            padding: 18px 36px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 17px;
-            transition: all 0.3s;
-            box-shadow: 0 4px 20px rgba(230,57,70,0.4);
-        }
-        
-        .btn-primary:hover {
-            background: #d62839;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 30px rgba(230,57,70,0.5);
-        }
-        
-        /* Footer */
-        .footer {
-            background: #1a1a2e;
-            color: white;
-            padding: 60px 24px 30px;
-        }
-        
-        .footer-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .footer-top {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 40px;
-            padding-bottom: 40px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .footer-col h4 {
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-        
-        .footer-col p, .footer-col a {
-            color: rgba(255,255,255,0.7);
-            font-size: 14px;
-            line-height: 1.8;
-            text-decoration: none;
-        }
-        
-        .footer-col a:hover {
-            color: white;
-        }
-        
-        .footer-col ul {
-            list-style: none;
-        }
-        
-        .footer-col li {
-            margin-bottom: 12px;
-        }
-        
-        .footer-bottom {
-            padding-top: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        
-        .footer-bottom p {
-            color: rgba(255,255,255,0.5);
-            font-size: 14px;
-        }
-        
-        .footer-links {
-            display: flex;
-            gap: 24px;
-        }
-        
-        .footer-links a {
-            color: rgba(255,255,255,0.5);
-            font-size: 14px;
-            text-decoration: none;
-        }
-        
-        .footer-links a:hover {
-            color: white;
-        }
-        
-        /* Mobile Menu Button */
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            z-index: 1001;
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .mobile-menu-btn span {
-            display: block;
-            width: 24px;
-            height: 2px;
-            background: #1e3a5f;
-            margin: 6px 0;
-            transition: all 0.3s ease;
-            transform-origin: center;
-        }
+  // Liste statique des camps 2026 (au lieu de charger depuis Monday.com)
+  useEffect(() => {
+    const campsStat = [
+      {
+        session_id: 'CAMP_STE_CATHERINE_MAR26',
+        nom: 'Cohorte 8 - Camp de qualification - Sainte-Catherine',
+        dates: '14 et 15 mars 2026',
+        site: "Centre Municipal Aimé-Guérin",
+        location: '5365 Boul Saint-Laurent, Sainte-Catherine, QC, Canada'
+      },
+      {
+        session_id: 'CAMP_CHICOUTIMI_AVR26',
+        nom: 'Cohorte 9 - Camp de qualification - Chicoutimi',
+        dates: '25-26 avril 2026',
+        site: 'Hôtel Chicoutimi',
+        location: '460 Rue Racine Est, Chicoutimi, Québec G7H 1T7, Canada'
+      },
+      {
+        session_id: 'CAMP_QUEBEC_MAI26',
+        nom: 'Cohorte 10 - Camp de qualification - Québec',
+        dates: '23-24 mai 2026',
+        site: 'À définir',
+        location: 'Québec, QC'
+      },
+      {
+        session_id: 'CAMP_RIMOUSKI_SEP26',
+        nom: 'Cohorte 11 - Camp de qualification - Rimouski',
+        dates: '26-27 septembre 2026',
+        site: 'À définir',
+        location: 'Rimouski, QC'
+      },
+      {
+        session_id: 'CAMP_SHERBROOKE_OCT26',
+        nom: 'Cohorte 12 - Camp de qualification - Sherbrooke',
+        dates: '17-18 octobre 2026',
+        site: 'À définir',
+        location: 'Sherbrooke, QC'
+      },
+      {
+        session_id: 'CAMP_GATINEAU_NOV26',
+        nom: 'Cohorte 13 - Camp de qualification - Gatineau',
+        dates: '14-15 novembre 2026',
+        site: 'À définir',
+        location: 'Gatineau, QC'
+      }
+    ]
+    
+    setSessionsDisponibles(campsStat)
+    setLoadingSessions(false)
+  }, [])
 
-        .mobile-menu-btn.active span:nth-child(1) {
-            transform: rotate(45deg) translate(5px, 6px);
-        }
+  // Pré-sélectionner le camp si présent dans l'URL
+  useEffect(() => {
+    if (campId && sessionsDisponibles.length > 0) {
+      const campTrouve = sessionsDisponibles.find(s => s.session_id === campId)
+      if (campTrouve) {
+        setSelectedSessionId(campId)
+      }
+    }
+  }, [campId, sessionsDisponibles])
 
-        .mobile-menu-btn.active span:nth-child(2) {
-            opacity: 0;
-        }
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (addressDropdownRef.current && !addressDropdownRef.current.contains(event.target as Node) &&
+          addressInputRef.current && !addressInputRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false)
+      }
+      if (villeDropdownRef.current && !villeDropdownRef.current.contains(event.target as Node) &&
+          villeInputRef.current && !villeInputRef.current.contains(event.target as Node)) {
+        setShowVilleSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
-        .mobile-menu-btn.active span:nth-child(3) {
-            transform: rotate(-45deg) translate(5px, -6px);
-        }
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => ({ ...prev, [field]: '' }))
+    }
+  }
 
-        .mobile-nav-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: 998;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
+  const handlePhoneBlur = () => {
+    setFormData(prev => ({ ...prev, telephone: formatPhoneDisplay(prev.telephone) }))
+  }
 
-        .mobile-nav-overlay.active {
-            opacity: 1;
-        }
+  const toggleOrg = (id: string) => {
+    // Si on coche une organisation réelle, décocher automatiquement "Aucune"
+    if (id !== AUCUNE_ORG_ID && !selectedOrgIds.includes(id)) {
+      setSelectedOrgIds(prev => [...prev.filter(x => x !== AUCUNE_ORG_ID), id])
+    } 
+    // Si on coche "Aucune", décocher toutes les autres organisations
+    else if (id === AUCUNE_ORG_ID && !selectedOrgIds.includes(id)) {
+      setSelectedOrgIds([AUCUNE_ORG_ID])
+      // Vider aussi les groupes RS si AQBRS était sélectionné
+      setFormData(prev => ({ ...prev, groupe_rs: [] }))
+    }
+    // Si on décoche une organisation
+    else if (selectedOrgIds.includes(id)) {
+      const newSelected = selectedOrgIds.filter(x => x !== id)
+      // Si on décoche tout, remettre "Aucune" par défaut
+      if (newSelected.length === 0) {
+        setSelectedOrgIds([AUCUNE_ORG_ID])
+      } else {
+        setSelectedOrgIds(newSelected)
+      }
+      // Si on décoche AQBRS, vider les groupes RS
+      if (id === AQBRS_ORG_ID) {
+        setFormData(prev => ({ ...prev, groupe_rs: [] }))
+      }
+    }
+    
+    if (fieldErrors.organisations) {
+      setFieldErrors(prev => ({ ...prev, organisations: '' }))
+    }
+  }
+
+  const toggleGroupeRS = (groupe: string) => {
+    setFormData(prev => ({
+      ...prev,
+      groupe_rs: prev.groupe_rs.includes(groupe)
+        ? prev.groupe_rs.filter(g => g !== groupe)
+        : [...prev.groupe_rs, groupe]
+    }))
+  }
+
+  const searchAddress = useCallback(async (query: string) => {
+    if (query.length < 3) { setAddressSuggestions([]); return }
+    setIsLoadingAddress(true)
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=ca&language=fr&types=address&limit=5`
+      )
+      const data = await response.json()
+      setAddressSuggestions(data.features || [])
+      setShowAddressSuggestions(true)
+    } catch (error) { console.error('Erreur recherche adresse:', error) }
+    setIsLoadingAddress(false)
+  }, [])
+
+  const handleAddressChange = (value: string) => {
+    setFormData(prev => ({ ...prev, adresse: value, latitude: null, longitude: null }))
+    if (fieldErrors.adresse) setFieldErrors(prev => ({ ...prev, adresse: '' }))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => searchAddress(value), 300)
+  }
+
+  const lookupRegionFromVille = async (ville: string) => {
+    if (!ville) return
+    const { data } = await supabase
+      .from('municipalites_qc')
+      .select('region_administrative')
+      .ilike('municipalite', ville)
+      .limit(1)
+      .single()
+    if (data) {
+      setFormData(prev => ({ ...prev, region: data.region_administrative }))
+      if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+    }
+  }
+
+  const selectAddress = (feature: MapboxFeature) => {
+    const [lng, lat] = feature.center
+    let ville = ''
+    if (feature.context) {
+      const placeContext = feature.context.find(c => c.id.startsWith('place'))
+      if (placeContext) ville = placeContext.text
+    }
+    setFormData(prev => ({ ...prev, adresse: feature.place_name, latitude: lat, longitude: lng, ville: ville || prev.ville }))
+    setShowAddressSuggestions(false)
+    setAddressSuggestions([])
+    if (ville) lookupRegionFromVille(ville)
+  }
+
+  const searchVille = async (query: string) => {
+    if (query.length < 2) { setVilleSuggestions([]); return }
+    setIsLoadingVille(true)
+    try {
+      const { data, error } = await supabase
+        .from('municipalites_qc')
+        .select('municipalite, region_administrative, mrc')
+        .ilike('municipalite', `${query}%`)
+        .order('municipalite')
+        .limit(8)
+      if (!error && data) { setVilleSuggestions(data); setShowVilleSuggestions(true) }
+    } catch (e) { console.error('Erreur recherche ville:', e) }
+    setIsLoadingVille(false)
+  }
+
+  const handleVilleChange = (value: string) => {
+    setFormData(prev => ({ ...prev, ville: value, region: '' }))
+    if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+    if (villeDebounceRef.current) clearTimeout(villeDebounceRef.current)
+    villeDebounceRef.current = setTimeout(() => searchVille(value), 250)
+  }
+
+  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string }) => {
+    setFormData(prev => ({ ...prev, ville: suggestion.municipalite, region: suggestion.region_administrative }))
+    setShowVilleSuggestions(false)
+    setVilleSuggestions([])
+    if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+  }
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {}
+    if (!formData.prenom.trim()) errors.prenom = 'Le prénom est requis'
+    if (!formData.nom.trim()) errors.nom = 'Le nom est requis'
+    if (!formData.email.trim() || !formData.email.includes('@')) errors.email = 'Courriel invalide'
+    const phoneDigits = cleanPhoneForSave(formData.telephone)
+    if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
+    if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise"
+    if (!formData.region) errors.region = 'La région est requise — sélectionnez votre ville'
+    // Accepte "Aucune" comme option valide, ou au moins une organisation doit être sélectionnée
+    if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner au moins une option'
+    if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
+    if (!formData.consent_photos) errors.consent_photos = 'Ce consentement est requis'
+    if (!formData.consent_confidentialite) errors.consent_confidentialite = 'Ce consentement est requis'
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSubmit = async () => {
+    if (!validate()) { setMessage({ type: 'error', text: 'Veuillez corriger les erreurs ci-dessous.' }); return }
+    setLoading(true); setMessage(null)
+    const emailClean = formData.email.toLowerCase().trim()
+    const phoneClean = cleanPhoneForSave(formData.telephone)
+    try {
+      const { data: emailExists } = await supabase.from('reservistes').select('benevole_id').ilike('email', emailClean).maybeSingle()
+      if (emailExists) { setFieldErrors(prev => ({ ...prev, email: 'Ce courriel est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce courriel est déjà associé à un compte existant.' }); setLoading(false); return }
+
+      const isTestPhone = phoneClean === '19999999999' || phoneClean === '9999999999'
+      if (!isTestPhone) {
+        const { data: phoneExists } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean).maybeSingle()
+        if (!phoneExists && phoneClean.startsWith('1')) {
+          const { data: phoneExists2 } = await supabase.from('reservistes').select('benevole_id').eq('telephone', phoneClean.slice(1)).maybeSingle()
+          if (phoneExists2) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
+        } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
+      }
+
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean,
+          telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse,
+          ville: formData.ville, region: formData.region, latitude: formData.latitude,
+          longitude: formData.longitude,
+          groupe_rs: formData.groupe_rs.length > 0 ? formData.groupe_rs.join(', ') : '',
+          groupe: 'Nouveaux', commentaire: formData.commentaire, camp_id: campId || null
+        })
+      })
+      if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
+
+      // Lier les organisations après la création du réserviste
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      const { data: newReserviste } = await supabase
+        .from('reservistes')
+        .select('benevole_id')
+        .ilike('email', emailClean)
+        .maybeSingle()
+
+      if (newReserviste?.benevole_id) {
+        // Filtrer "AUCUNE" - ne pas la sauvegarder dans la base
+        let orgIdsToLink = selectedOrgIds.filter(id => id !== AUCUNE_ORG_ID)
         
-        @media (max-width: 968px) {
-            .gallery-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .gallery-item.featured {
-                grid-column: span 1;
-            }
-            
-            .lightbox-prev {
-                left: 10px;
-            }
-            
-            .lightbox-next {
-                right: 10px;
-            }
+        if (newOrgName.trim()) {
+          const { data: createdOrg, error: createError } = await supabase
+            .from('organisations')
+            .insert({ nom: newOrgName.trim(), created_by: newReserviste.benevole_id })
+            .select('id')
+            .single()
+          if (createError) {
+            const { data: existingOrg } = await supabase
+              .from('organisations').select('id').ilike('nom', newOrgName.trim()).single()
+            if (existingOrg) orgIdsToLink.push(existingOrg.id)
+          } else if (createdOrg) {
+            orgIdsToLink.push(createdOrg.id)
+          }
         }
+        // Ne sauvegarder que si il y a des organisations réelles (pas "Aucune")
+        if (orgIdsToLink.length > 0) {
+          await supabase.from('reserviste_organisations').insert(
+            orgIdsToLink.map(organisation_id => ({ benevole_id: newReserviste.benevole_id, organisation_id }))
+          )
+        }
+      }
+
+      // Inscription au camp si sélectionné
+      let campInscritSuccess = false
+      let campNom = ''
+      if (newReserviste?.benevole_id && selectedSessionId && selectedSessionId !== 'PLUS_TARD') {
+        const sessionSelectionnee = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
+        campNom = sessionSelectionnee?.nom || 'Camp sélectionné'
         
-        @media (max-width: 768px) {
-            .header-nav {
-                display: flex;
-                flex-direction: column;
-                position: fixed;
-                top: 0;
-                right: -100%;
-                width: 85%;
-                max-width: 360px;
-                height: 100vh;
-                background: white;
-                padding: 100px 28px 40px;
-                gap: 0;
-                box-shadow: -5px 0 30px rgba(0,0,0,0.15);
-                z-index: 999;
-                transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-                overflow-y: auto;
-            }
+        try {
+          // Mettre à jour les infos santé dans reservistes
+          await supabase
+            .from('reservistes')
+            .update({
+              allergies_alimentaires: allergiesAlimentaires || null,
+              allergies_autres: autresAllergies || null
+            })
+            .eq('benevole_id', newReserviste.benevole_id)
 
-            .header-nav.active {
-                right: 0;
-            }
+          // Appeler l'API d'inscription au camp
+          const campResponse = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              benevole_id: newReserviste.benevole_id,
+              session_id: selectedSessionId, // ID fictif pour identifier le camp
+              camp_nom: sessionSelectionnee?.nom,
+              camp_dates: sessionSelectionnee?.dates,
+              camp_site: sessionSelectionnee?.site,
+              camp_location: sessionSelectionnee?.location,
+              presence: 'confirme',
+              courriel: emailClean,
+              telephone: isTestPhone ? null : phoneClean,
+              prenom_nom: `${formData.prenom.trim()} ${formData.nom.trim()}`
+            })
+          })
 
-            .header-nav a {
-                display: block;
-                padding: 16px 0;
-                font-size: 17px;
-                font-weight: 600;
-                color: #1e3a5f !important;
-                border-bottom: 1px solid #f0f0f0;
-            }
-
-            .header-nav a:last-child {
-                border-bottom: none;
-            }
-
-            .header-nav .btn-reserviste {
-                margin-top: 20px;
-                text-align: center;
-                padding: 16px 24px;
-                border-radius: 10px;
-                font-size: 16px;
-                color: white !important;
-            }
-            
-            .mobile-menu-btn {
-                display: block;
-            }
-
-            .mobile-nav-overlay {
-                display: block;
-                pointer-events: none;
-            }
-
-            .mobile-nav-overlay.active {
-                pointer-events: auto;
-            }
-            
-            .page-header {
-                padding: 140px 24px 60px;
-            }
-            
-            .page-header-container {
-                padding-left: 0;
-            }
-            
-            .gallery-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .gallery-item {
-                height: 180px;
-            }
-            
-            .tour-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .partners-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .criteria-box {
-                padding: 28px 20px;
-            }
-
-            .criteria-grid {
-                grid-template-columns: 1fr;
-            }
+          if (campResponse.ok) {
+            campInscritSuccess = true
+          }
+        } catch (error) {
+          console.error('Erreur inscription camp:', error)
+          // Ne pas bloquer si l'inscription camp échoue
         }
-        
-        @media (max-width: 500px) {
-            .gallery-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .gallery-item {
-                height: 220px;
-            }
-            
-            .tour-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-container">
-            <a href="https://www.riusc.ca/" class="logo-section">
-                <img src="http://www.riusc.ca/wp-content/uploads/2025/12/cropped-LogoRiucs_200.webp" alt="Logo RIUSC" class="logo">
-                <div class="logo-text">RIUSC</div>
-            </a>
-            <nav class="header-nav" id="headerNav">
-                <a href="https://www.riusc.ca/">Accueil</a>
-                <a href="https://www.riusc.ca/en-savoir-plus/" style="color: #1e3a5f; font-weight: 600;">En savoir plus</a>
-                <a href="#tournee">Tournée des camps</a>
-                <a href="https://portail.riusc.ca/login" class="btn-reserviste" target="_blank">Espace Réserviste</a>
-            </nav>
-            <button class="mobile-menu-btn" id="menuBtn" aria-label="Ouvrir le menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>
-    </header>
+      }
 
-    <!-- Mobile overlay -->
-    <div class="mobile-nav-overlay" id="navOverlay"></div>
+      // Stocker l'info pour la page de succès
+      setCampInscrit(campInscritSuccess)
+      setNomCampInscrit(campNom)
 
-    <!-- Page Header -->
-    <section class="page-header">
-        <div class="page-header-container">
-            <div class="breadcrumb">
-                <a href="https://www.riusc.ca/">Accueil</a>
-                <span>›</span>
-                <span class="breadcrumb-current">En savoir plus</span>
+      // Afficher la page de succès avec le bon message
+      setStep('success')
+    } catch (error: any) { console.error('Erreur inscription:', error); setMessage({ type: 'error', text: error.message || "Erreur lors de l'inscription. Veuillez réessayer." }) }
+    setLoading(false)
+  }
+
+  // ─── Styles communs ──────────────────────────────────────────────────────────
+  const inputStyle = { width: '100%', padding: '12px 14px', fontSize: '15px', border: '1px solid #d1d5db', borderRadius: '8px', boxSizing: 'border-box' as const, color: '#111827', backgroundColor: 'white' }
+  const inputErrorStyle = { ...inputStyle, border: '2px solid #dc2626' }
+  const labelStyle = { display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500' as const, color: '#374151' }
+  const sectionStyle = { backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+  const sectionTitleStyle = { color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' as const }
+  const sectionDescStyle = { color: '#6b7280', fontSize: '13px', margin: '-12px 0 20px 0' }
+  const checkboxRowStyle = (selected: boolean): React.CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 14px',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    backgroundColor: selected ? '#eff6ff' : '#f9fafb',
+    border: selected ? '1px solid #bfdbfe' : '1px solid transparent',
+    transition: 'background-color 0.15s',
+  })
+  const requiredStar = <span style={{ color: '#dc2626', marginLeft: '2px' }}>*</span>
+  // ────────────────────────────────────────────────────────────────────────────
+
+  if (step === 'success') {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+        <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', textAlign: 'center' }}>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>✅</div>
+          <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '24px' }}>Inscription réussie !</h2>
+          
+          <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0 0 16px 0' }}>
+            Bienvenue dans la RIUSC, <strong>{formData.prenom}</strong> ! Votre compte est en cours de création.
+          </p>
+
+          {campInscrit && nomCampInscrit && (
+            <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '16px', margin: '0 0 16px 0' }}>
+              <p style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '15px', fontWeight: '600' }}>
+                🎓 Inscription au camp confirmée
+              </p>
+              <p style={{ margin: 0, color: '#059669', fontSize: '14px' }}>
+                {nomCampInscrit}
+              </p>
             </div>
-            <h1>Qu'est-ce que la RIUSC?</h1>
-            <p>
-                Découvrez comment la Réserve d'intervention d'urgence en sécurité civile 
-                renforce la capacité du Québec à répondre aux sinistres majeurs.
+          )}
+
+          <p style={{ color: '#6b7280', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px 0' }}>
+            Un courriel de confirmation vous sera envoyé à <strong>{formData.email}</strong> avec les prochaines étapes.
+          </p>
+
+          <div style={{ backgroundColor: '#eff6ff', borderLeft: '4px solid #2563eb', padding: '16px', borderRadius: '4px', margin: '0 0 24px 0', textAlign: 'left' }}>
+            <p style={{ margin: '0 0 8px 0', color: '#1e40af', fontSize: '14px', fontWeight: '600' }}>
+              📧 Vérifiez votre boîte email
             </p>
+            <p style={{ margin: 0, color: '#1e40af', fontSize: '13px', lineHeight: '1.6' }}>
+              Vous recevrez un lien de connexion (magic link) pour accéder à votre portail réserviste.
+            </p>
+          </div>
+
+          <a href='/login' style={{ display: 'inline-block', padding: '14px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '16px', fontWeight: '600' }}>
+            Aller à la page de connexion
+          </a>
         </div>
-    </section>
+      </div>
+    )
+  }
 
-    <!-- About Section -->
-    <section class="content-section">
-        <div class="content-container">
-            <div class="text-content">
-                <h2>Une mesure exceptionnelle de la réponse gouvernementale</h2>
-                <p>
-                    La RIUSC est une mesure exceptionnelle de la réponse gouvernementale aux sinistres.
-                </p>
-                <p>
-                    Les municipalités sont les premières responsables de la réponse aux sinistres sur leur territoire. 
-                    Si leurs effectifs deviennent insuffisants pour gérer les conséquences ou pour prendre en charge 
-                    les personnes sinistrées, elles peuvent, en dernier recours, demander le déploiement de la RIUSC.
-                </p>
-                <p>
-                    À long terme, la RIUSC pourra promouvoir l'établissement d'une résilience communautaire 
-                    aux échelles municipale et régionale, en conformité avec l'esprit de la 
-                    <em>Loi sur la sécurité civile visant à favoriser la résilience aux sinistres</em> (LSCRS).
-                </p>
-                
-                <h2>Mandat de la RIUSC</h2>
-                <p>
-                    La RIUSC a le mandat de rehausser les capacités opérationnelles des municipalités lors de sinistres.
-                    Elle permet d'offrir une réponse sur le terrain grâce à des intervenants qualifiés qui agissent 
-                    principalement dans deux types de tâches :
-                </p>
-                <ul>
-                    <li>Le soutien aux opérations sur le terrain (travaux de protection, soutien logistique, corvées de nettoyage, reconnaissance du territoire)</li>
-                    <li>Le soutien aux personnes sinistrées et aux populations vulnérables (évacuations, hébergement, alimentation, besoins essentiels)</li>
-                </ul>
-                <p>
-                    Les intervenants de la RIUSC sont prêts à être déployés rapidement sur l'ensemble du territoire québécois. 
-                    Issus d'organisations dotées de capacités opérationnelles et engagées en sécurité civile, 
-                    ils sont qualifiés, c'est-à-dire formés, exercés et équipés.
-                </p>
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
+            <div>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
+              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Inscription — Réserve d&apos;Intervention d&apos;Urgence</p>
             </div>
+          </div>
+          <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ padding: '8px 16px', color: '#1e3a5f', fontSize: '14px', fontWeight: '500', textDecoration: 'none', border: '1px solid #1e3a5f', borderRadius: '6px' }}>Déjà inscrit ? Se connecter</a>
         </div>
-    </section>
+      </header>
 
-    <!-- Criteria Section -->
-    <section class="criteria-section">
-        <div class="criteria-container">
-            <div class="criteria-box">
-                <span class="section-tag" style="margin-bottom: 20px;">Rejoignez-nous</span>
-                <h2>Vous souhaitez intervenir au sein de la RIUSC?</h2>
-                <p>Voici les critères de base pour devenir réserviste :</p>
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 24px 80px' }}>
+        <h2 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '28px', fontWeight: '700' }}>Inscription à la RIUSC</h2>
+        <p style={{ color: '#6b7280', fontSize: '15px', margin: '0 0 32px 0' }}>Remplissez le formulaire ci-dessous pour vous inscrire comme réserviste bénévole.</p>
 
-                <div class="criteria-grid">
-                    <div class="criteria-item">
-                        <div class="criteria-icon">🎂</div>
-                        <div class="criteria-item-text">Avoir au moins <strong>18 ans</strong></div>
-                    </div>
-                    <div class="criteria-item">
-                        <div class="criteria-icon">💪</div>
-                        <div class="criteria-item-text">Être en <strong>bonne forme physique</strong> (pour certaines tâches)</div>
-                    </div>
-                    <div class="criteria-item">
-                        <div class="criteria-icon">✅</div>
-                        <div class="criteria-item-text">Ne pas avoir d'<strong>antécédents judiciaires</strong></div>
-                    </div>
-                    <div class="criteria-item">
-                        <div class="criteria-icon">📚</div>
-                        <div class="criteria-item-text">Être prêt à suivre le <strong>programme de formation</strong></div>
-                    </div>
-                </div>
+        {message && (<div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', backgroundColor: message.type === 'success' ? '#d1fae5' : '#fef2f2', color: message.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>{message.text}</div>)}
 
-                <div class="criteria-note">
-                    <strong>Transparence et consentement éclairé :</strong> Les modalités d'engagement sont communiquées avant chaque mobilisation. Le rôle proposé, l'encadrement et les mesures de sécurité vous sont présentés de façon transparente afin que vous puissiez accepter ou refuser en connaissance de cause.
-                </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          {/* ── Informations personnelles ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Informations personnelles</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+              <div>
+                <label style={labelStyle}>Prénom {requiredStar}</label>
+                <input type="text" value={formData.prenom} onChange={(e) => handleInputChange('prenom', e.target.value)} style={fieldErrors.prenom ? inputErrorStyle : inputStyle} placeholder="Votre prénom" />
+                {fieldErrors.prenom && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.prenom}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Nom de famille {requiredStar}</label>
+                <input type="text" value={formData.nom} onChange={(e) => handleInputChange('nom', e.target.value)} style={fieldErrors.nom ? inputErrorStyle : inputStyle} placeholder="Votre nom de famille" />
+                {fieldErrors.nom && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.nom}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Courriel {requiredStar}</label>
+                <input type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} style={fieldErrors.email ? inputErrorStyle : inputStyle} placeholder="votre.nom@example.com" />
+                {fieldErrors.email && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.email}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Téléphone mobile {requiredStar}</label>
+                <input type="tel" value={formData.telephone} onChange={(e) => handleInputChange('telephone', e.target.value)} onBlur={handlePhoneBlur} style={fieldErrors.telephone ? inputErrorStyle : inputStyle} placeholder="(514) 123-4567" />
+                {fieldErrors.telephone && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.telephone}</p>}
+              </div>
             </div>
-        </div>
-    </section>
+          </div>
 
-    <!-- Gallery Section -->
-    <section class="gallery-section">
-        <div class="gallery-container">
-            <div class="section-header">
-                <span class="section-tag">En images</span>
-                <h2 class="section-title">Nos camps de qualification</h2>
-                <p class="section-subtitle">
-                    Découvrez en photos les camps de qualification où nos réservistes 
-                    développent leurs compétences pratiques en sécurité civile.
-                </p>
+          {/* ── Localisation ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Localisation</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+              <div style={{ gridColumn: '1 / -1', position: 'relative' }}>
+                <label style={labelStyle}>Adresse {requiredStar}</label>
+                <input ref={addressInputRef} type="text" value={formData.adresse} onChange={(e) => handleAddressChange(e.target.value)} onFocus={() => formData.adresse.length >= 3 && setShowAddressSuggestions(true)} style={fieldErrors.adresse ? inputErrorStyle : inputStyle} placeholder="Commencez à taper votre adresse..." autoComplete="off" />
+                {isLoadingAddress && <div style={{ position: 'absolute', right: '12px', top: '38px', fontSize: '12px', color: '#6b7280' }}>Recherche...</div>}
+                {formData.latitude && formData.longitude && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>✓ Adresse validée</p>}
+                {fieldErrors.adresse && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.adresse}</p>}
+                {showAddressSuggestions && addressSuggestions.length > 0 && (
+                  <div ref={addressDropdownRef} style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 1000, marginTop: '4px', maxHeight: '250px', overflowY: 'auto' }}>
+                    {addressSuggestions.map((suggestion, index) => (
+                      <div key={index} onClick={() => selectAddress(suggestion)} style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: index < addressSuggestions.length - 1 ? '1px solid #f3f4f6' : 'none', fontSize: '14px', color: '#374151' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>{suggestion.place_name}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <label style={labelStyle}>Ville</label>
+                <input ref={villeInputRef} type="text" value={formData.ville} onChange={(e) => handleVilleChange(e.target.value)} onFocus={() => formData.ville.length >= 2 && villeSuggestions.length > 0 && setShowVilleSuggestions(true)} style={inputStyle} placeholder="Tapez votre ville..." autoComplete="off" />
+                {isLoadingVille && <div style={{ position: 'absolute', right: '12px', top: '38px', fontSize: '12px', color: '#6b7280' }}>Recherche...</div>}
+                {showVilleSuggestions && villeSuggestions.length > 0 && (
+                  <div ref={villeDropdownRef} style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', zIndex: 1000, marginTop: '4px', maxHeight: '250px', overflowY: 'auto' }}>
+                    {villeSuggestions.map((s, i) => (
+                      <div key={i} onClick={() => selectVille(s)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: i < villeSuggestions.length - 1 ? '1px solid #f3f4f6' : 'none', fontSize: '14px', color: '#374151' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                        <div style={{ fontWeight: '500' }}>{s.municipalite}</div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af' }}>{s.region_administrative}{s.mrc ? ` — ${s.mrc}` : ''}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={labelStyle}>Région administrative {requiredStar}</label>
+                <input type="text" value={formData.region} readOnly style={{ ...inputStyle, backgroundColor: formData.region ? '#f0fdf4' : '#f3f4f6', cursor: 'not-allowed', borderColor: formData.region ? '#86efac' : (fieldErrors.region ? '#dc2626' : '#d1d5db'), borderWidth: fieldErrors.region ? '2px' : '1px' }} placeholder="Détectée automatiquement selon la ville" />
+                {formData.region && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>✓ Détectée automatiquement</p>}
+                {fieldErrors.region && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.region}</p>}
+              </div>
             </div>
-            
-            <div class="gallery-grid">
-                <div class="gallery-item featured" onclick="openLightbox(0)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/RIUSC-Laval.jpg" alt="Camp RIUSC Laval" loading="lazy">
-                    <div class="gallery-overlay">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+
+          {/* ── Organisations ── */}
+          <div style={{ ...sectionStyle, border: fieldErrors.organisations ? '2px solid #dc2626' : 'none' }}>
+            <h3 style={sectionTitleStyle}>Organisation d&apos;appartenance {requiredStar}</h3>
+            <p style={sectionDescStyle}>Sélectionnez toutes les organisations dont vous faites partie, ou choisissez &quot;Aucune&quot; si non applicable.</p>
+
+            {fieldErrors.organisations && (
+              <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '13px', color: '#dc2626', marginBottom: '16px' }}>
+                {fieldErrors.organisations}
+              </div>
+            )}
+
+            {loadingOrgs ? (
+              <p style={{ fontSize: '14px', color: '#9ca3af' }}>Chargement des organisations...</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '16px', maxHeight: '280px', overflowY: 'auto', padding: '2px 0' }}>
+                  {/* Option "Aucune" en premier */}
+                  <label key={AUCUNE_ORG_ID} style={checkboxRowStyle(selectedOrgIds.includes(AUCUNE_ORG_ID))}>
+                    <input
+                      type="checkbox"
+                      checked={selectedOrgIds.includes(AUCUNE_ORG_ID)}
+                      onChange={() => toggleOrg(AUCUNE_ORG_ID)}
+                      style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic' }}>Aucune</span>
+                  </label>
+                  
+                  {/* Séparateur visuel */}
+                  <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '4px 0' }}></div>
+                  
+                  {/* Organisations réelles */}
+                  {allOrgs.map(org => (
+                    <label key={org.id} style={checkboxRowStyle(selectedOrgIds.includes(org.id))}>
+                      <input
+                        type="checkbox"
+                        checked={selectedOrgIds.includes(org.id)}
+                        onChange={() => toggleOrg(org.id)}
+                        style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: '14px', color: '#374151' }}>{org.nom}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {!showNewOrgInput ? (
+                  <button
+                    onClick={() => setShowNewOrgInput(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 16px', backgroundColor: 'transparent', border: '1px dashed #9ca3af', borderRadius: '8px', fontSize: '13px', color: '#6b7280', cursor: 'pointer' }}
+                  >
+                    + Mon organisation n&apos;est pas dans la liste
+                  </button>
+                ) : (
+                  <div>
+                    <label style={{ ...labelStyle, marginBottom: '8px' }}>Nom de votre organisation</label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={newOrgName}
+                        onChange={e => setNewOrgName(e.target.value)}
+                        placeholder="Ex: Croix-Rouge canadienne"
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <button
+                        onClick={() => { setShowNewOrgInput(false); setNewOrgName('') }}
+                        style={{ padding: '12px 14px', backgroundColor: 'transparent', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Annuler
+                      </button>
                     </div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(1)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20250222_135935024-scaled.jpg" alt="Formation terrain" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(2)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9519-scaled.jpg" alt="Exercice pratique" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(3)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20250322_144352379-scaled.jpg" alt="Travail d'équipe" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item featured" onclick="openLightbox(4)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20250329_152936417-scaled.jpg" alt="Groupe de réservistes" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(5)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20260131_140444341-1-scaled.jpg" alt="Formation pratique" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(6)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9542-scaled.jpg" alt="Atelier en équipe" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(7)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9557-scaled.jpg" alt="Formation en salle" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(8)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9354-scaled.jpg" alt="Exercice terrain" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-                <div class="gallery-item" onclick="openLightbox(9)">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20260201_185258805-1-scaled.jpg" alt="Exercice de simulation" loading="lazy">
-                    <div class="gallery-overlay"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg></div>
-                </div>
-            </div>
-        </div>
-    </section>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px', marginBottom: 0 }}>
+                      Cette organisation sera ajoutée à la liste globale pour tous les réservistes.
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
-    <!-- Lightbox -->
-    <div class="lightbox" id="lightbox">
-        <div class="lightbox-content">
-            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
-            <button class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          {/* ── Groupe RS (conditionnel si AQBRS coché) ── */}
+          {isAqbrsSelected && (
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Membre d&apos;un groupe de Recherche et Sauvetage de l&apos;AQBRS</h3>
+              <p style={sectionDescStyle}>Sélectionnez votre groupe si applicable.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '280px', overflowY: 'auto', padding: '2px 0' }}>
+                {GROUPES_RS.map(groupe => (
+                  <label key={groupe} style={checkboxRowStyle(formData.groupe_rs.includes(groupe))}>
+                    <input
+                      type="checkbox"
+                      checked={formData.groupe_rs.includes(groupe)}
+                      onChange={() => toggleGroupeRS(groupe)}
+                      style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#374151' }}>{groupe}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Camp de qualification ── */}
+          <div style={{...sectionStyle, border: campId ? '2px solid #059669' : 'none', backgroundColor: campId ? '#f0fdf4' : 'white'}}>
+            <h3 style={sectionTitleStyle}>Camp de qualification {campId && <span style={{color: '#059669', fontSize: '14px', fontWeight: 'normal'}}>• Recommandé</span>}</h3>
+            <p style={sectionDescStyle}>
+              {campId 
+                ? "Vous êtes arrivé ici pour un camp spécifique. Sélectionnez-le ci-dessous ou choisissez un autre camp disponible." 
+                : "Souhaitez-vous vous inscrire à un camp de qualification maintenant ? Vous pourrez aussi le faire plus tard depuis votre portail."}
+            </p>
+
+            {loadingSessions ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>Chargement des camps disponibles...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Option "Plus tard" */}
+                <label style={{ display: 'block', padding: '16px', border: selectedSessionId === 'PLUS_TARD' ? '2px solid #1e3a5f' : '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedSessionId === 'PLUS_TARD' ? '#f0f4f8' : 'white', transition: 'all 0.2s' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    <input
+                      type="radio"
+                      name="session"
+                      value="PLUS_TARD"
+                      checked={selectedSessionId === 'PLUS_TARD'}
+                      onChange={(e) => setSelectedSessionId(e.target.value)}
+                      style={{ marginTop: '4px', accentColor: '#1e3a5f' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#111827', marginBottom: '4px' }}>Je choisirai un camp plus tard</div>
+                      <div style={{ fontSize: '13px', color: '#6b7280' }}>Vous pourrez vous inscrire à un camp depuis votre portail après avoir créé votre compte</div>
+                    </div>
+                  </div>
+                </label>
+
+                {/* Camps disponibles */}
+                {sessionsDisponibles.length > 0 && (
+                  <>
+                    <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '8px 0' }}></div>
+                    {sessionsDisponibles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => (
+                      <label
+                        key={session.session_id}
+                        style={{
+                          display: 'block',
+                          padding: '16px',
+                          border: selectedSessionId === session.session_id ? '2px solid #059669' : '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: selectedSessionId === session.session_id ? '#f0fdf4' : 'white',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                          <input
+                            type="radio"
+                            name="session"
+                            value={session.session_id}
+                            checked={selectedSessionId === session.session_id}
+                            onChange={(e) => setSelectedSessionId(e.target.value)}
+                            style={{ marginTop: '4px', accentColor: '#059669' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '600', color: '#111827', marginBottom: '6px' }}>{session.nom}</div>
+                            <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+                              {session.dates && <div>{session.dates}</div>}
+                              {session.site && <div>{session.site}</div>}
+                              {session.location && <div style={{ color: '#9ca3af' }}>{session.location}</div>}
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Informations santé (conditionnel si camp sélectionné) ── */}
+          {selectedSessionId && selectedSessionId !== 'PLUS_TARD' && (
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Informations santé pour le camp</h3>
+              <p style={sectionDescStyle}>Ces informations aideront l&apos;équipe à mieux vous accompagner durant le camp.</p>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Allergies alimentaires</label>
+                <textarea
+                  value={allergiesAlimentaires}
+                  onChange={(e) => setAllergiesAlimentaires(e.target.value)}
+                  placeholder="Ex: Noix, arachides, fruits de mer, lactose..."
+                  rows={3}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Optionnel - Laissez vide si aucune allergie</p>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Autres allergies</label>
+                <textarea
+                  value={autresAllergies}
+                  onChange={(e) => setAutresAllergies(e.target.value)}
+                  placeholder="Ex: Latex, pollen, médicaments..."
+                  rows={3}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Optionnel - Laissez vide si aucune allergie</p>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={labelStyle}>Problèmes de santé ou conditions médicales</label>
+                <textarea
+                  value={conditionsMedicales}
+                  onChange={(e) => setConditionsMedicales(e.target.value)}
+                  placeholder="Conditions dont l'équipe devrait être informée..."
+                  rows={3}
+                  style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }}
+                />
+                <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Optionnel - Laissez vide si aucune condition</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Informations supplémentaires ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Informations supplémentaires</h3>
+            <label style={labelStyle}>Commentaire</label>
+            <textarea value={formData.commentaire} onChange={(e) => handleInputChange('commentaire', e.target.value)} style={{ ...inputStyle, minHeight: '80px', resize: 'vertical' }} placeholder="Optionnel" />
+          </div>
+
+          {/* ── Confirmations ── */}
+          <div style={sectionStyle}>
+            <h3 style={sectionTitleStyle}>Confirmations requises</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.confirm_18 ? '#fef2f2' : '#f9fafb', border: fieldErrors.confirm_18 ? '1px solid #fca5a5' : '1px solid transparent' }}>
+                <input type="checkbox" checked={formData.confirm_18} onChange={(e) => handleInputChange('confirm_18', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je confirme être âgé(e) de 18 ans ou plus au moment de mon inscription. {requiredStar}</span>
+              </label>
+              {fieldErrors.confirm_18 && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.confirm_18}</p>}
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.consent_photos ? '#fef2f2' : '#f9fafb', border: fieldErrors.consent_photos ? '1px solid #fca5a5' : '1px solid transparent' }}>
+                <input type="checkbox" checked={formData.consent_photos} onChange={(e) => handleInputChange('consent_photos', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je comprends que des photos ou vidéos peuvent être prises lors des activités de formation, d&apos;entraînement ou de déploiement et j&apos;autorise l&apos;AQBRS / RIUSC à utiliser les images captées par leurs représentants à des fins de communication. {requiredStar}</span>
+              </label>
+              {fieldErrors.consent_photos && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.consent_photos}</p>}
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.consent_confidentialite ? '#fef2f2' : '#f9fafb', border: fieldErrors.consent_confidentialite ? '1px solid #fca5a5' : '1px solid transparent' }}>
+                <input type="checkbox" checked={formData.consent_confidentialite} onChange={(e) => handleInputChange('consent_confidentialite', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je comprends et j&apos;accepte que mes informations soient utilisées conformément à la{' '}<a href="https://aqbrs.ca/wp-content/uploads/2026/02/Loi-25-Politique-AQBRS-fr.pdf" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>politique de confidentialité</a>. {requiredStar}</span>
+              </label>
+              {fieldErrors.consent_confidentialite && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.consent_confidentialite}</p>}
+            </div>
+          </div>
+
+          {/* ── Boutons ── */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <a href={campId ? `/login?camp=${campId}` : '/login'} style={{ padding: '12px 24px', color: '#6b7280', fontSize: '14px', textDecoration: 'none' }}>← Retour à la connexion</a>
+            <button onClick={handleSubmit} disabled={loading} style={{ padding: '14px 40px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.2s' }}>
+              {loading ? 'Inscription en cours...' : "S'inscrire"}
             </button>
-            <img id="lightbox-img" src="" alt="Photo agrandie">
-            <button class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </button>
-            <div class="lightbox-counter" id="lightbox-counter"></div>
+          </div>
         </div>
+      </main>
+
+      <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center' }}>
+        <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>
+      </footer>
     </div>
-
-    <!-- Tour Section -->
-    <section class="tour-section" id="tournee">
-        <div class="tour-container">
-            <div class="tour-header">
-                <span class="section-tag">Tournée des camps</span>
-                <h2>Camps de qualification près de chez vous</h2>
-                <p>
-                    Nous parcourons le Québec pour offrir des camps de qualification pratique 
-                    dans plusieurs régions. Inscrivez-vous à la RIUSC pour participer !
-                </p>
-            </div>
-            
-            <!-- Camps 2025 -->
-            <div class="year-divider">
-                <span>2025</span>
-            </div>
-            
-            <div class="tour-grid">
-                <div class="tour-card past">
-                    <div class="city">Québec</div>
-                    <div class="dates">21 - 22 février 2025</div>
-                </div>
-                <div class="tour-card past">
-                    <div class="city">Saint-Jean-sur-Richelieu</div>
-                    <div class="dates">14 - 15 mars 2025</div>
-                </div>
-                <div class="tour-card past">
-                    <div class="city">Québec</div>
-                    <div class="dates">21 - 22 mars 2025</div>
-                </div>
-                <div class="tour-card past">
-                    <div class="city">Trois-Rivières</div>
-                    <div class="dates">28 - 29 mars 2025</div>
-                </div>
-                <div class="tour-card past">
-                    <div class="city">Québec</div>
-                    <div class="dates">29 - 30 novembre 2025</div>
-                </div>
-            </div>
-            
-            <!-- Camps 2026 -->
-            <div class="year-divider">
-                <span>2026</span>
-            </div>
-            
-            <div class="tour-grid">
-                <div class="tour-card past">
-                    <div class="city">Laval</div>
-                    <div class="dates">31 janvier - 1er février 2026</div>
-                </div>
-
-                <div class="tour-card past">
-                    <div class="city">Trois-Rivières</div>
-                    <div class="dates">21 - 22 février 2026</div>
-                </div>
-                
-                <a href="https://portail.riusc.ca/inscription?camp=CAMP_STE_CATHERINE_MAR26" class="tour-card" target="_blank">
-                    <div class="city">Sainte-Catherine</div>
-                    <div class="dates">14 - 15 mars 2026</div>
-                    <div class="location">Centre Municipal Aimé-Guérin</div>
-                    <div class="tour-cta">S'inscrire →</div>
-                </a>
-                
-                <a href="https://portail.riusc.ca/inscription?camp=CAMP_CHICOUTIMI_AVR26" class="tour-card" target="_blank">
-                    <div class="city">Chicoutimi</div>
-                    <div class="dates">25 - 26 avril 2026</div>
-                    <div class="location">Hôtel Chicoutimi</div>
-                    <div class="tour-cta">S'inscrire →</div>
-                </a>
-                
-                <a href="https://portail.riusc.ca/inscription?camp=CAMP_QUEBEC_MAI26" class="tour-card" target="_blank">
-                    <div class="city">Québec</div>
-                    <div class="dates">23 - 24 mai 2026</div>
-                    <div class="location">Résidences Campus Notre-Dame-De-Foy</div>
-                    <div class="tour-cta">S'inscrire →</div>
-                </a>
-                
-                <a href="https://portail.riusc.ca/inscription?camp=CAMP_RIMOUSKI_SEP26" class="tour-card" target="_blank">
-                    <div class="city">Rimouski</div>
-                    <div class="dates">26 - 27 septembre 2026</div>
-                    <div class="location">Site à définir</div>
-                    <div class="tour-cta">S'inscrire →</div>
-                </a>
-                
-                <a href="https://portail.riusc.ca/inscription?camp=CAMP_SHERBROOKE_OCT26" class="tour-card" target="_blank">
-                    <div class="city">Sherbrooke</div>
-                    <div class="dates">17 - 18 octobre 2026</div>
-                    <div class="location">Site à définir</div>
-                    <div class="tour-cta">S'inscrire →</div>
-                </a>
-                
-                <a href="https://portail.riusc.ca/inscription?camp=CAMP_GATINEAU_NOV26" class="tour-card" target="_blank">
-                    <div class="city">Gatineau</div>
-                    <div class="dates">14 - 15 novembre 2026</div>
-                    <div class="location">Site à définir</div>
-                    <div class="tour-cta">S'inscrire →</div>
-                </a>
-            </div>
-            
-            <div class="tour-note">
-                <p>
-                    <strong>Vous souhaitez participer à un camp de qualification?</strong><br>
-                    Les camps sont réservés aux membres inscrits à la RIUSC. 
-                    Inscrivez-vous dès maintenant pour être convoqué au camp de votre région !
-                </p>
-                <a href="https://portail.riusc.ca/inscription" target="_blank">
-                    S'inscrire à la RIUSC
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Partners -->
-    <section class="partners-section">
-        <div class="partners-container">
-            <div class="section-header">
-                <span class="section-tag">Partenaires</span>
-                <h2 class="section-title">Un réseau d'organisations engagées</h2>
-            </div>
-            
-            <div class="partners-intro">
-                <p>
-                    Pour soutenir le déploiement de la RIUSC, le Ministère de la Sécurité publique 
-                    a désigné trois partenaires qui conjuguent leur expertise pour former et déployer 
-                    les réservistes partout au Québec.
-                </p>
-            </div>
-            
-            <div class="partners-grid">
-                <a href="https://www.quebec.ca/securite-situations-urgence/securite-civile" target="_blank" class="partner-card">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/Quebec-2.webp" alt="Gouvernement du Québec">
-                    <h4>Ministère de la Sécurité publique</h4>
-                    <p>Coordination gouvernementale et évaluation des demandes de déploiement</p>
-                </a>
-                <a href="https://aqbrs.ca" target="_blank" class="partner-card">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2026/02/Logo-transparent-1.webp" alt="AQBRS">
-                    <h4>AQBRS</h4>
-                    <p>Recrutement, formation et mobilisation des réservistes qualifiés</p>
-                </a>
-                <a href="https://www.croixrouge.ca" target="_blank" class="partner-card">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2025/12/Croix-rouge.webp" alt="Croix-Rouge canadienne">
-                    <h4>Croix-Rouge canadienne</h4>
-                    <p>Coordination du soutien aux personnes sinistrées et populations vulnérables</p>
-                </a>
-                <a href="https://sopfeu.qc.ca" target="_blank" class="partner-card">
-                    <img src="http://www.riusc.ca/wp-content/uploads/2025/12/Sopfeu.webp" alt="SOPFEU">
-                    <h4>SOPFEU</h4>
-                    <p>Capacités logistiques et opérationnelles pour les opérations terrain</p>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="cta">
-        <div class="cta-container">
-            <h2>Prêt à contribuer à la sécurité du Québec?</h2>
-            <p>
-                Joignez-vous à la RIUSC et devenez un acteur essentiel lors des situations d'urgence.
-                Les camps de qualification sont offerts dans plusieurs régions du Québec.
-            </p>
-            <a href="https://portail.riusc.ca/inscription" class="btn-primary" target="_blank">
-                S'inscrire maintenant
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
-            </a>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <div class="footer-top">
-                <div class="footer-col">
-                    <h4>RIUSC</h4>
-                    <p>
-                        La Réserve d'intervention d'urgence en sécurité civile est une initiative 
-                        du Gouvernement du Québec pour renforcer la capacité d'intervention 
-                        lors de sinistres majeurs.
-                    </p>
-                </div>
-                <div class="footer-col">
-                    <h4>Liens utiles</h4>
-                    <ul>
-                        <li><a href="https://www.riusc.ca/">Accueil</a></li>
-                        <li><a href="https://www.riusc.ca/en-savoir-plus/">En savoir plus</a></li>
-                        <li><a href="https://www.quebec.ca/securite-situations-urgence/securite-civile/soutien-municipalites/reserve-intervention-urgence-securite-civile-riusc" target="_blank">Page officielle du gouvernement</a></li>
-                        <li><a href="https://portail.riusc.ca/login">Espace Réserviste</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4>Contact</h4>
-                    <p>
-                        <strong>Candidatures :</strong><br>
-                        <a href="mailto:riusc@aqbrs.ca">riusc@aqbrs.ca</a>
-                    </p>
-                    <p style="margin-top: 16px;">
-                        <strong>Questions sur la RIUSC :</strong><br>
-                        <a href="mailto:info@riusc.ca">info@riusc.ca</a>
-                    </p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>© 2026 RIUSC - Réserve d'intervention d'urgence en sécurité civile</p>
-                <div class="footer-links">
-                    <a href="https://aqbrs.ca">AQBRS</a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        // ===== Mobile menu =====
-        const menuBtn = document.getElementById('menuBtn');
-        const headerNav = document.getElementById('headerNav');
-        const navOverlay = document.getElementById('navOverlay');
-
-        function toggleMenu() {
-            const isOpen = menuBtn.classList.toggle('active');
-            headerNav.classList.toggle('active');
-            navOverlay.classList.toggle('active');
-            document.body.style.overflow = isOpen ? 'hidden' : '';
-            menuBtn.setAttribute('aria-label', isOpen ? 'Fermer le menu' : 'Ouvrir le menu');
-        }
-
-        function closeMenu() {
-            menuBtn.classList.remove('active');
-            headerNav.classList.remove('active');
-            navOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-            menuBtn.setAttribute('aria-label', 'Ouvrir le menu');
-        }
-
-        menuBtn.addEventListener('click', toggleMenu);
-        navOverlay.addEventListener('click', closeMenu);
-
-        headerNav.querySelectorAll('a').forEach(function(link) {
-            link.addEventListener('click', closeMenu);
-        });
-
-        // ===== Lightbox =====
-        const galleryImages = [
-            'http://www.riusc.ca/wp-content/uploads/2026/02/RIUSC-Laval.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20250222_135935024-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9519-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20250322_144352379-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20250329_152936417-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20260131_140444341-1-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9542-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9557-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/IMG_9354-scaled.jpg',
-            'http://www.riusc.ca/wp-content/uploads/2026/02/PXL_20260201_185258805-1-scaled.jpg'
-        ];
-        
-        let currentIndex = 0;
-        
-        function openLightbox(index) {
-            currentIndex = index;
-            const lightbox = document.getElementById('lightbox');
-            const img = document.getElementById('lightbox-img');
-            const counter = document.getElementById('lightbox-counter');
-            img.src = galleryImages[index];
-            counter.textContent = (index + 1) + ' / ' + galleryImages.length;
-            lightbox.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeLightbox() {
-            document.getElementById('lightbox').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        function navigateLightbox(direction) {
-            currentIndex += direction;
-            if (currentIndex < 0) currentIndex = galleryImages.length - 1;
-            if (currentIndex >= galleryImages.length) currentIndex = 0;
-            document.getElementById('lightbox-img').src = galleryImages[currentIndex];
-            document.getElementById('lightbox-counter').textContent = (currentIndex + 1) + ' / ' + galleryImages.length;
-        }
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                var lightbox = document.getElementById('lightbox');
-                if (lightbox.classList.contains('active')) { closeLightbox(); } else { closeMenu(); }
-            }
-            if (!document.getElementById('lightbox').classList.contains('active')) return;
-            if (e.key === 'ArrowLeft') navigateLightbox(-1);
-            if (e.key === 'ArrowRight') navigateLightbox(1);
-        });
-        
-        document.getElementById('lightbox').addEventListener('click', function(e) {
-            if (e.target === this) closeLightbox();
-        });
-    </script>
-</body>
-</html>
+  )
+}
