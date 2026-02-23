@@ -178,7 +178,7 @@ export default function InscriptionPage() {
         session_id: 'CAMP_QUEBEC_MAI26',
         nom: 'Cohorte 10 - Camp de qualification - Québec',
         dates: '23-24 mai 2026',
-        site: 'À définir',
+        site: 'Résidences Campus Notre-Dame-De-Foy',
         location: 'Québec, QC'
       },
       {
@@ -206,17 +206,17 @@ export default function InscriptionPage() {
     
     setSessionsDisponibles(campsStat)
     setLoadingSessions(false)
-  }, [])
-
-  // Pré-sélectionner le camp si présent dans l'URL
-  useEffect(() => {
-    if (campId && sessionsDisponibles.length > 0) {
-      const campTrouve = sessionsDisponibles.find(s => s.session_id === campId)
+    
+    // Pré-sélectionner le camp si présent dans l'URL
+    if (campId) {
+      const campTrouve = campsStat.find(s => s.session_id === campId)
       if (campTrouve) {
         setSelectedSessionId(campId)
       }
     }
-  }, [campId, sessionsDisponibles])
+  }, [campId])
+
+  // NOTE: useEffect de pré-sélection retiré car fusionné ci-dessus
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
