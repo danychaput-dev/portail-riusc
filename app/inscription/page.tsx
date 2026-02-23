@@ -373,7 +373,6 @@ export default function InscriptionPage() {
     // Accepte "Aucune" comme option valide, ou au moins une organisation doit être sélectionnée
     if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner au moins une option'
     if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
-    if (!formData.consent_photos) errors.consent_photos = 'Ce consentement est requis'
     if (!formData.consent_confidentialite) errors.consent_confidentialite = 'Ce consentement est requis'
     // Si un camp est sélectionné, le consentement photo spécifique au camp est requis
     if (selectedSessionId && selectedSessionId !== 'PLUS_TARD' && !consentementPhoto) {
@@ -907,12 +906,6 @@ export default function InscriptionPage() {
                 <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je confirme être âgé(e) de 18 ans ou plus au moment de mon inscription. {requiredStar}</span>
               </label>
               {fieldErrors.confirm_18 && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.confirm_18}</p>}
-
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.consent_photos ? '#fef2f2' : '#f9fafb', border: fieldErrors.consent_photos ? '1px solid #fca5a5' : '1px solid transparent' }}>
-                <input type="checkbox" checked={formData.consent_photos} onChange={(e) => handleInputChange('consent_photos', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
-                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je comprends que des photos ou vidéos peuvent être prises lors des activités de formation, d&apos;entraînement ou de déploiement et j&apos;autorise l&apos;AQBRS / RIUSC à utiliser les images captées par leurs représentants à des fins de communication. {requiredStar}</span>
-              </label>
-              {fieldErrors.consent_photos && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.consent_photos}</p>}
 
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.consent_confidentialite ? '#fef2f2' : '#f9fafb', border: fieldErrors.consent_confidentialite ? '1px solid #fca5a5' : '1px solid transparent' }}>
                 <input type="checkbox" checked={formData.consent_confidentialite} onChange={(e) => handleInputChange('consent_confidentialite', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
