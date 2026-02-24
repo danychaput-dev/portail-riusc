@@ -1025,28 +1025,19 @@ export default function ProfilPage() {
         <Section title="Identité" icon="👤">
           {/* Photo de profil */}
           <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div style={{
-              width: '100px',
-              height: '100px',
-              borderRadius: '50%',
-              overflow: 'hidden',
-              backgroundColor: '#e5e7eb',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '32px',
-              fontWeight: '700',
-              color: '#6b7280',
-              backgroundImage: reserviste?.photo_url ? `url(${reserviste.photo_url})` : 'none',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}>
-              {!reserviste?.photo_url && getInitials()}
-            </div>
+            <ImageCropper
+              currentPhotoUrl={reserviste?.photo_url}
+              initials={getInitials()}
+              size={100}
+              uploading={uploadingPhoto}
+              onCropComplete={handleCroppedPhoto}
+            />
             <div>
-              <ImageCropper onCroppedImage={handleCroppedPhoto} disabled={uploadingPhoto} />
-              <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
-                {uploadingPhoto ? 'Téléversement en cours...' : 'Photo de profil circulaire'}
+              <p style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
+                Cliquez sur la photo pour la modifier
+              </p>
+              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+                {uploadingPhoto ? 'Téléversement en cours...' : 'Vous pourrez recadrer et zoomer l\'image. Format JPG ou PNG, max 10 Mo.'}
               </p>
             </div>
           </div>
