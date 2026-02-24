@@ -34,7 +34,7 @@ interface PortailHeaderProps {
   reservisteOverride?: Reserviste | null
 }
 
-const DANY_BENEVOLE_ID = '8738174928' // Pour activer le menu d'emprunt
+const ADMIN_BENEVOLE_IDS = ['8738174928', '18239132668'] // Dany + Esther peuvent emprunter
 
 export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOverride }: PortailHeaderProps) {
   const supabase = createClient()
@@ -217,8 +217,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   // Compteur pour le sous-texte (ex: "2/3 étapes complétées")
   const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true].filter(Boolean).length
 
-  // Vérifier si c'est Dany (peut emprunter des identités)
-  const isDany = 8738174928
+  // Vérifier si c'est un admin (peut emprunter des identités)
+  const isAdmin = reserviste?.benevole_id && ADMIN_BENEVOLE_IDS.includes(reserviste.benevole_id)
 
   return (
     <>
@@ -309,7 +309,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                   Informations pratiques
                 </a>
 
-                {isDany && (
+                {isAdmin && (
                   <button
                     onClick={() => {
                       setShowUserMenu(false)
