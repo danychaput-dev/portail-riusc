@@ -44,6 +44,7 @@ export default function InformationsPage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [documentsOfficiels, setDocumentsOfficiels] = useState<DocumentOfficiel[]>([])
+  const [documentUrls, setDocumentUrls] = useState<Record<number, string>>({})
   const [loading, setLoading] = useState(true)
   const [showLoi, setShowLoi] = useState(false)
   const router = useRouter()
@@ -112,7 +113,22 @@ export default function InformationsPage() {
           .eq('benevole_id', reservisteData.benevole_id)
           .order('date_creation', { ascending: false })
         
-        if (docs) setDocumentsOfficiels(docs)
+        if (docs) {
+          setDocumentsOfficiels(docs)
+          
+          // Générer les URLs signées pour chaque document
+          const urls: Record<number, string> = {}
+          for (const doc of docs) {
+            const { data: signedData } = await supabase.storage
+              .from('documents-officiels')
+              .createSignedUrl(doc.chemin_storage, 3600) // Expire après 1 heure
+            
+            if (signedData?.signedUrl) {
+              urls[doc.id] = signedData.signedUrl
+            }
+          }
+          setDocumentUrls(urls)
+        }
       }
       setLoading(false)
     }
@@ -246,10 +262,7 @@ export default function InformationsPage() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {documentsOfficiels.map((doc) => {
-                // Générer l'URL signée pour télécharger
-                const downloadUrl = supabase.storage
-                  .from('documents-officiels')
-                  .getPublicUrl(doc.chemin_storage).data.publicUrl
+                const downloadUrl = documentUrls[doc.id] || '#'
                 
                 return (
                   <a
@@ -266,7 +279,10 @@ export default function InformationsPage() {
                       borderRadius: '8px',
                       border: '1px solid #e5e7eb',
                       textDecoration: 'none',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s',
+                      cursor: downloadUrl === '#' ? 'default' : 'pointer',
+                      opacity: downloadUrl === '#' ? 0.6 : 1
+                    }}
                     }}
                     onMouseOver={(e) => {
                       e.currentTarget.style.borderColor = '#1e3a5f'
@@ -389,48 +405,6 @@ export default function InformationsPage() {
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ========== SECTION 3 : Documents officiels (Approuvés seulement) ========== */}
-        {isApproved && (
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
-                Documents officiels
-              </h3>
-              <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
-                Réservistes approuvés
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ fontSize: '28px' }}>🎓</span>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Attestation de formation</div>
-                    <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Certificat de réussite du camp de qualification</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>Non disponible</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <span style={{ fontSize: '28px' }}>✉️</span>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Lettre pour l&apos;employeur</div>
-                    <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Lettre officielle confirmant votre rôle de réserviste</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>Non disponible</span>
-              </div>
-            </div>
-
-            <p style={{ margin: '16px 0 0 0', fontSize: '13px', color: '#9ca3af', fontStyle: 'italic' }}>
-              Ces documents seront générés automatiquement après la complétion de votre camp de qualification.
-            </p>
           </div>
         )}
 
