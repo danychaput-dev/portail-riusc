@@ -786,7 +786,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <PortailHeader subtitle="Réserve d'Intervention d'Urgence" reservisteOverride={reserviste} />
+      <PortailHeader subtitle="Réserve d'Intervention d'Urgence" />
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         <div data-tour="welcome" style={{ backgroundColor: '#1e3a5f', padding: '28px 32px', borderRadius: '12px', marginBottom: '28px', color: 'white', position: 'relative', overflow: 'hidden' }}>
