@@ -218,7 +218,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true].filter(Boolean).length
 
   // Vérifier si c'est Dany (peut emprunter des identités)
-  const isDany = reserviste?.benevole_id === DANY_BENEVOLE_ID
+  const isDany = reserviste?.benevole_id === 8738174928
 
   return (
     <>
