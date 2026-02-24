@@ -365,7 +365,7 @@ export default function HomePage() {
         }
         
         // 3. Sinon chercher par téléphone
-        if (!reservisteData && authUser.phone) {
+        if (!reservisteData && 'phone' in authUser && authUser.phone) {
           const phoneDigits = authUser.phone.replace(/\D/g, '')
           const { data } = await supabase
             .from('reservistes')
@@ -473,8 +473,8 @@ export default function HomePage() {
 
       setLoading(false)
     }
-     loadData()
-}, [authUser, authLoading])
+    loadData()
+  }, [])
 
   const handleSignOut = async () => {
     // 🔧 Nettoyer mode debug

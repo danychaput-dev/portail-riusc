@@ -71,7 +71,7 @@ export default function InformationsPage() {
             .single()
           reservisteData = data
         }
-        if (!reservisteData && authUser.phone) {
+        if (!reservisteData && 'phone' in authUser && authUser.phone) {
           const phoneDigits = authUser.phone.replace(/\D/g, '')
           const { data } = await supabase
             .from('reservistes')
