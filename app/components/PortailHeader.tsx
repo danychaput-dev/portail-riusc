@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import Image from 'next/image'
 import ImpersonateBanner from './ImpersonateBanner'
 import ImpersonateModal from './ImpersonateModal'
+import { useAuth } from '@/utils/useAuth'
 
 interface Reserviste {
   benevole_id: string
@@ -51,6 +52,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [showImpersonateModal, setShowImpersonateModal] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
+  // Hook d'authentification avec support emprunt
+  const { user: authUser, loading: authLoading } = useAuth()
+
   // Champs nécessaires pour vérifier la complétude du profil + header
   const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
 
@@ -66,72 +70,88 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      setUser(user)
+      // Attendre que l'auth soit chargée
+      if (authLoading) return
+      
+      if (!authUser) return
+      
+      setUser(authUser)
 
       // Charger réserviste seulement si pas passé en prop
       let res = reservisteOverride ?? null
       if (!res) {
-        // 1. D'abord chercher par user_id (le plus fiable)
-        const { data: dataByUserId } = await supabase
-          .from('reservistes')
-          .select(selectFields)
-          .eq('user_id', user.id)
-          .single()
-        
-        if (dataByUserId) {
-          res = dataByUserId
-        }
-        
-        // 2. Sinon chercher par email
-        if (!res && user.email) {
+        // CAS 1 : Emprunt d'identité
+        if ('isImpersonated' in authUser && authUser.isImpersonated) {
           const { data } = await supabase
             .from('reservistes')
             .select(selectFields)
-            .ilike('email', user.email)
+            .eq('benevole_id', authUser.benevole_id)
             .single()
-          
-          // Si trouvé, mettre à jour le user_id pour la prochaine fois
-          if (data) {
-            await supabase
-              .from('reservistes')
-              .update({ user_id: user.id })
-              .eq('benevole_id', data.benevole_id)
-            res = data
-          }
-        }
-        
-        // 3. Sinon chercher par téléphone
-        if (!res && user.phone) {
-          const phoneDigits = user.phone.replace(/\D/g, '')
-          const { data } = await supabase
-            .from('reservistes')
-            .select(selectFields)
-            .eq('telephone', phoneDigits)
-            .single()
-          
-          if (!data && phoneDigits.startsWith('1')) {
-            const phoneWithout1 = phoneDigits.slice(1)
-            const { data: data2 } = await supabase
+          res = data
+        } else {
+          // CAS 2 : Auth normale
+          // 1. D'abord chercher par user_id (le plus fiable)
+          if ('id' in authUser) {
+            const { data: dataByUserId } = await supabase
               .from('reservistes')
               .select(selectFields)
-              .eq('telephone', phoneWithout1)
+              .eq('user_id', authUser.id)
               .single()
             
-            if (data2) {
+            if (dataByUserId) {
+              res = dataByUserId
+            }
+          }
+          
+          // 2. Sinon chercher par email
+          if (!res && 'email' in authUser && authUser.email) {
+            const { data } = await supabase
+              .from('reservistes')
+              .select(selectFields)
+              .ilike('email', authUser.email)
+              .single()
+            
+            // Si trouvé, mettre à jour le user_id pour la prochaine fois
+            if (data && 'id' in authUser) {
               await supabase
                 .from('reservistes')
-                .update({ user_id: user.id })
-                .eq('benevole_id', data2.benevole_id)
-              res = data2
+                .update({ user_id: authUser.id })
+                .eq('benevole_id', data.benevole_id)
+              res = data
             }
-          } else if (data) {
-            await supabase
+          }
+          
+          // 3. Sinon chercher par téléphone
+          if (!res && 'phone' in authUser && authUser.phone) {
+            const phoneDigits = authUser.phone.replace(/\D/g, '')
+            const { data } = await supabase
               .from('reservistes')
-              .update({ user_id: user.id })
-              .eq('benevole_id', data.benevole_id)
-            res = data
+              .select(selectFields)
+              .eq('telephone', phoneDigits)
+              .single()
+            
+            if (!data && phoneDigits.startsWith('1')) {
+              const phoneWithout1 = phoneDigits.slice(1)
+              const { data: data2 } = await supabase
+                .from('reservistes')
+                .select(selectFields)
+                .eq('telephone', phoneWithout1)
+                .single()
+              
+              if (data2 && 'id' in authUser) {
+                await supabase
+                  .from('reservistes')
+                  .update({ user_id: authUser.id })
+                  .eq('benevole_id', data2.benevole_id)
+                res = data2
+              }
+            } else if (data && 'id' in authUser) {
+              await supabase
+                .from('reservistes')
+                .update({ user_id: authUser.id })
+                .eq('benevole_id', data.benevole_id)
+              res = data
+            }
           }
         }
         
@@ -170,7 +190,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       setLoadingStatus(false)
     }
     load()
-  }, [])
+  }, [authUser, authLoading, reservisteOverride])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
