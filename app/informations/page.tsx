@@ -63,7 +63,7 @@ export default function InformationsPage() {
         // CAS 2 : Auth normale
         setUser(authUser)
         
-        if (authUser.email) {
+        if ('email' in authUser && authUser.email) {
           const { data } = await supabase
             .from('reservistes')
             .select('benevole_id, prenom, nom, email, photo_url, groupe')

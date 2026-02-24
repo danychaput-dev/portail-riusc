@@ -336,18 +336,20 @@ export default function HomePage() {
         setUser(authUser)
       
         // 1. D'abord chercher par user_id (le plus fiable)
-        const { data: dataByUserId } = await supabase
-          .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-          .eq('user_id', authUser.id)
-          .single()
-        
-        if (dataByUserId) {
-          reservisteData = dataByUserId
+        if ('id' in authUser) {
+          const { data: dataByUserId } = await supabase
+            .from('reservistes')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+            .eq('user_id', authUser.id)
+            .single()
+          
+          if (dataByUserId) {
+            reservisteData = dataByUserId
+          }
         }
         
         // 2. Sinon chercher par email
-        if (!reservisteData && authUser.email) {
+        if (!reservisteData && 'email' in authUser && authUser.email) {
           const { data } = await supabase
             .from('reservistes')
            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
@@ -355,7 +357,7 @@ export default function HomePage() {
             .single()
           
           // Si trouvé, mettre à jour le user_id pour la prochaine fois
-          if (data) {
+          if (data && 'id' in authUser) {
             await supabase
               .from('reservistes')
               .update({ user_id: authUser.id })
@@ -381,14 +383,14 @@ export default function HomePage() {
               .eq('telephone', phoneWithout1)
               .single()
             
-            if (data2) {
+            if (data2 && 'id' in authUser) {
               await supabase
                 .from('reservistes')
                 .update({ user_id: authUser.id })
                 .eq('benevole_id', data2.benevole_id)
               reservisteData = data2
             }
-          } else if (data) {
+          } else if (data && 'id' in authUser) {
             await supabase
               .from('reservistes')
               .update({ user_id: authUser.id })
