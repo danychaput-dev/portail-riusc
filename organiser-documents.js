@@ -5,26 +5,19 @@ const path = require('path');
 // ============================================
 // CONFIGURATION - À MODIFIER
 // ============================================
-
 const SUPABASE_URL = 'https://jtzwkmcfarxptpcoaxxl.supabase.co';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0endrbWNmYXJ4cHRwY29heHhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTQ3MjIyMywiZXhwIjoyMDg1MDQ4MjIzfQ.jG28BvbLke_gg6egI3jvUi0fmOc-Of-w4orI1viHgg4';
-const BUCKET_NAME = 'documents-officiels';
-const SOURCE_FOLDER = './pdfs-bruts'; // Tes PDFs désorganisés
-const DEST_FOLDER = './documents-a-uploader'; // Dossier organisé pour l'upload
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0endrbWNmYXJ4cHRwY29heHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzIyMjMsImV4cCI6MjA4NTA0ODIyM30.oh5lppjYMRp7Am5_zgn2yHA316NLO1Bv8VDfEEbzqhU'; 
+
+const SOURCE_FOLDER = './pdfs-bruts';
+const DEST_FOLDER = './documents-a-uploader';
 
 // ============================================
-// PATTERNS DE NOMMAGE DE TES FICHIERS
+// PATTERNS DE NOMMAGE
 // ============================================
-// Exemples:
-// - certificat-dany-chaput.pdf
-// - lettre-attestation-dany-chaput.pdf
-// - certificat-jean-tremblay.pdf
-// - attestation-marie-louise-gagnon.pdf
-
 const PATTERNS = {
   certificat: /certificat.*?([a-zéèêàâôùûç]+(?:-[a-zéèêàâôùûç]+)+)\.pdf$/i,
-  lettre: /lettre.*?([a-zéèêàâôùûç]+(?:-[a-zéèêàâôùûç]+)+)\.pdf$/i,
-  attestation: /attestation.*?([a-zéèêàâôùûç]+(?:-[a-zéèêàâôùûç]+)+)\.pdf$/i,
+  lettre: /lettre-attestation-([a-zéèêàâôùûç]+(?:-[a-zéèêàâôùûç]+)+)\.pdf$/i,
+  attestation: /attestation-([a-zéèêàâôùûç]+(?:-[a-zéèêàâôùûç]+)+)\.pdf$/i,
 };
 
 // ============================================
@@ -32,18 +25,16 @@ const PATTERNS = {
 // ============================================
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Fonction pour normaliser les noms
 function normaliserNom(nom) {
   return nom
     .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Retirer accents
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z-]/g, '');
 }
 
 async function organiserDocuments() {
   console.log('🚀 Organisation automatique des documents\n');
 
-  // 1. Charger tous les réservistes depuis Supabase
   console.log('📥 Chargement des réservistes depuis Supabase...');
   const { data: reservistes, error } = await supabase
     .from('reservistes')
@@ -57,19 +48,16 @@ async function organiserDocuments() {
 
   console.log(`✅ ${reservistes.length} réservistes approuvés chargés\n`);
 
-  // 2. Créer un mapping nom-complet → benevole_id
   const nomVersBenevolId = {};
   reservistes.forEach(r => {
     const nomComplet = normaliserNom(`${r.prenom}-${r.nom}`);
     nomVersBenevolId[nomComplet] = r.benevole_id;
   });
 
-  // 3. Créer le dossier de destination
   if (!fs.existsSync(DEST_FOLDER)) {
     fs.mkdirSync(DEST_FOLDER, { recursive: true });
   }
 
-  // 4. Lire tous les PDFs du dossier source
   if (!fs.existsSync(SOURCE_FOLDER)) {
     console.error(`❌ Le dossier "${SOURCE_FOLDER}" n'existe pas`);
     console.log('\n💡 Crée ce dossier et mets-y tous tes PDFs désorganisés');
@@ -82,13 +70,11 @@ async function organiserDocuments() {
   let traites = 0;
   let ignores = 0;
 
-  // 5. Traiter chaque fichier
   for (const fichier of fichiers) {
     const sourcePath = path.join(SOURCE_FOLDER, fichier);
     let nomExtrait = null;
     let typeFichier = null;
 
-    // Essayer d'extraire le nom avec chaque pattern
     for (const [type, pattern] of Object.entries(PATTERNS)) {
       const match = fichier.match(pattern);
       if (match) {
@@ -104,7 +90,6 @@ async function organiserDocuments() {
       continue;
     }
 
-    // Trouver le benevole_id correspondant
     const benevoleId = nomVersBenevolId[nomExtrait];
     if (!benevoleId) {
       console.log(`⚠️  Ignoré: ${fichier} (réserviste "${nomExtrait}" non trouvé)`);
@@ -112,17 +97,14 @@ async function organiserDocuments() {
       continue;
     }
 
-    // Créer le dossier du réserviste
     const reservistFolder = path.join(DEST_FOLDER, benevoleId);
     if (!fs.existsSync(reservistFolder)) {
       fs.mkdirSync(reservistFolder, { recursive: true });
     }
 
-    // Déterminer le nom final
     const nomFinal = typeFichier === 'certificat' ? 'certificat.pdf' : 'lettre-attestation.pdf';
     const destPath = path.join(reservistFolder, nomFinal);
 
-    // Copier le fichier
     fs.copyFileSync(sourcePath, destPath);
     console.log(`✅ ${fichier} → ${benevoleId}/${nomFinal}`);
     traites++;
@@ -143,7 +125,6 @@ async function organiserDocuments() {
   }
 }
 
-// Lancer le script
 organiserDocuments().catch(error => {
   console.error('\n❌ ERREUR FATALE:', error);
   process.exit(1);

@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 import GuidedTour from './components/GuidedTour'
-import { useAuth } from '@/utils/useAuth'
-import ImpersonateBanner from './components/ImpersonateBanner'
 
 interface DeploiementActif {
   id: string;
@@ -114,8 +112,6 @@ export default function HomePage() {
   const [unreadCount, setUnreadCount] = useState(0)
   const router = useRouter()
   const supabase = createClient()
-  
-  const { user: authUser, loading: authLoading } = useAuth()
 
   const isApproved = reserviste?.groupe === 'Approuvé'
 
@@ -308,95 +304,77 @@ export default function HomePage() {
         }
       }
 
-      // Attendre le chargement de l'auth
-      if (authLoading) return
-      if (!authUser) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
         router.push('/login')
         return
       }
-
-      // Gérer les deux cas : auth normale ou emprunt
-      let user = authUser
+      
+      setUser(user)
+      
       let reservisteData = null
-
-      // CAS 1 : Emprunt d'identité actif
-      if ('isImpersonated' in authUser && authUser.isImpersonated) {
-        // Charger directement le réserviste par benevole_id
+      
+      // 1. D'abord chercher par user_id (le plus fiable)
+      const { data: dataByUserId } = await supabase
+        .from('reservistes')
+        .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+        .eq('user_id', user.id)
+        .single()
+      
+      if (dataByUserId) {
+        reservisteData = dataByUserId
+      }
+      
+      // 2. Sinon chercher par email
+      if (!reservisteData && user.email) {
+        const { data } = await supabase
+          .from('reservistes')
+         .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+          .ilike('email', user.email)
+          .single()
+        
+        // Si trouvé, mettre à jour le user_id pour la prochaine fois
+        if (data) {
+          await supabase
+            .from('reservistes')
+            .update({ user_id: user.id })
+            .eq('benevole_id', data.benevole_id)
+          reservisteData = data
+        }
+      }
+      
+      // 3. Sinon chercher par téléphone
+      if (!reservisteData && user.phone) {
+        const phoneDigits = user.phone.replace(/\D/g, '')
         const { data } = await supabase
           .from('reservistes')
           .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-          .eq('benevole_id', authUser.benevole_id)
+          .eq('telephone', phoneDigits)
           .single()
         
-        if (data) {
-          reservisteData = data
-        }
-      } else {
-        // CAS 2 : Auth normale - utiliser la logique existante
-        setUser(authUser)
-      
-        // 1. D'abord chercher par user_id (le plus fiable)
-        const { data: dataByUserId } = await supabase
-          .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-          .eq('user_id', authUser.id)
-          .single()
-        
-        if (dataByUserId) {
-          reservisteData = dataByUserId
-        }
-        
-        // 2. Sinon chercher par email
-        if (!reservisteData && authUser.email) {
-          const { data } = await supabase
-            .from('reservistes')
-           .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-            .ilike('email', authUser.email)
-            .single()
-          
-          // Si trouvé, mettre à jour le user_id pour la prochaine fois
-          if (data) {
-            await supabase
-              .from('reservistes')
-              .update({ user_id: authUser.id })
-              .eq('benevole_id', data.benevole_id)
-            reservisteData = data
-          }
-        }
-        
-        // 3. Sinon chercher par téléphone
-        if (!reservisteData && authUser.phone) {
-          const phoneDigits = authUser.phone.replace(/\D/g, '')
-          const { data } = await supabase
+        if (!data && phoneDigits.startsWith('1')) {
+          const phoneWithout1 = phoneDigits.slice(1)
+          const { data: data2 } = await supabase
             .from('reservistes')
             .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-            .eq('telephone', phoneDigits)
+            .eq('telephone', phoneWithout1)
             .single()
           
-          if (!data && phoneDigits.startsWith('1')) {
-            const phoneWithout1 = phoneDigits.slice(1)
-            const { data: data2 } = await supabase
-              .from('reservistes')
-              .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-              .eq('telephone', phoneWithout1)
-              .single()
-            
-            if (data2) {
-              await supabase
-                .from('reservistes')
-                .update({ user_id: authUser.id })
-                .eq('benevole_id', data2.benevole_id)
-              reservisteData = data2
-            }
-          } else if (data) {
+          if (data2) {
             await supabase
               .from('reservistes')
-              .update({ user_id: authUser.id })
-              .eq('benevole_id', data.benevole_id)
-            reservisteData = data
+              .update({ user_id: user.id })
+              .eq('benevole_id', data2.benevole_id)
+            reservisteData = data2
           }
+        } else if (data) {
+          await supabase
+            .from('reservistes')
+            .update({ user_id: user.id })
+            .eq('benevole_id', data.benevole_id)
+          reservisteData = data
         }
-      } // Fin du else (auth normale)
+      }
       
       if (reservisteData) {
         setReserviste(reservisteData)
@@ -473,8 +451,8 @@ export default function HomePage() {
 
       setLoading(false)
     }
-     loadData()
-}, [authUser, authLoading])
+    loadData()
+  }, [])
 
   const handleSignOut = async () => {
     // 🔧 Nettoyer mode debug
@@ -1163,8 +1141,6 @@ export default function HomePage() {
         forceStart={showTour}
         onTourEnd={() => setShowTour(false)}
       />
-
-      <ImpersonateBanner />
 
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>

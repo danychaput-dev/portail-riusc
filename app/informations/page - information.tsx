@@ -4,8 +4,6 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
-import { useAuth } from '@/utils/useAuth'
-import ImpersonateBanner from '@/app/components/ImpersonateBanner'
 
 interface Reserviste {
   benevole_id: string;
@@ -37,65 +35,48 @@ export default function InformationsPage() {
   const [showLoi, setShowLoi] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  
-  const { user: authUser, loading: authLoading } = useAuth()
 
   const isApproved = reserviste?.groupe === 'Approuvé'
 
   useEffect(() => {
     const loadData = async () => {
-      // Attendre le chargement de l'auth
-      if (authLoading) return
-      if (!authUser) { router.push('/login'); return }
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      setUser(user)
 
       let reservisteData = null
-
-      // CAS 1 : Emprunt d'identité actif
-      if ('isImpersonated' in authUser && authUser.isImpersonated) {
-        // Charger directement le réserviste par benevole_id
+      if (user.email) {
         const { data } = await supabase
           .from('reservistes')
           .select('benevole_id, prenom, nom, email, photo_url, groupe')
-          .eq('benevole_id', authUser.benevole_id)
+          .ilike('email', user.email)
           .single()
         reservisteData = data
-      } else {
-        // CAS 2 : Auth normale
-        setUser(authUser)
-        
-        if (authUser.email) {
-          const { data } = await supabase
+      }
+      if (!reservisteData && user.phone) {
+        const phoneDigits = user.phone.replace(/\D/g, '')
+        const { data } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, photo_url, groupe')
+          .eq('telephone', phoneDigits)
+          .single()
+        if (!data) {
+          const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
+          const { data: data2 } = await supabase
             .from('reservistes')
             .select('benevole_id, prenom, nom, email, photo_url, groupe')
-            .ilike('email', authUser.email)
+            .eq('telephone', phoneWithout1)
             .single()
+          reservisteData = data2
+        } else {
           reservisteData = data
-        }
-        if (!reservisteData && authUser.phone) {
-          const phoneDigits = authUser.phone.replace(/\D/g, '')
-          const { data } = await supabase
-            .from('reservistes')
-            .select('benevole_id, prenom, nom, email, photo_url, groupe')
-            .eq('telephone', phoneDigits)
-            .single()
-          if (!data) {
-            const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
-            const { data: data2 } = await supabase
-              .from('reservistes')
-              .select('benevole_id, prenom, nom, email, photo_url, groupe')
-              .eq('telephone', phoneWithout1)
-              .single()
-            reservisteData = data2
-          } else {
-            reservisteData = data
-          }
         }
       }
       if (reservisteData) setReserviste(reservisteData)
       setLoading(false)
     }
     loadData()
-  }, [authUser, authLoading])
+  }, [])
 
 
 
@@ -111,8 +92,6 @@ export default function InformationsPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       {/* Header */}
       <PortailHeader subtitle="Informations pratiques" />
-
-      <ImpersonateBanner />
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', display: 'inline-block', marginBottom: '20px' }}>
