@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import ImageCropper from '@/app/components/ImageCropper'
 import PortailHeader from '@/app/components/PortailHeader'
+import { useAuth } from '@/utils/useAuth'
+import ImpersonateBanner from '@/app/components/ImpersonateBanner'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -363,6 +365,9 @@ export default function ProfilPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Hook d'authentification avec support emprunt
+  const { user: authUser, loading: authLoading } = useAuth()
+
   // États généraux
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
@@ -458,43 +463,57 @@ export default function ProfilPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      // Attendre que l'auth soit chargée
+      if (authLoading) return
+      
+      if (!authUser) {
         router.push('/login')
         return
       }
 
-      setUser(user)
-
       let reservisteData = null
 
-      if (user.email) {
+      // CAS 1 : Emprunt d'identité
+      if ('isImpersonated' in authUser && authUser.isImpersonated) {
+        setUser(authUser)
         const { data } = await supabase
           .from('reservistes')
           .select('*')
-          .ilike('email', user.email)
+          .eq('benevole_id', authUser.benevole_id)
           .single()
         reservisteData = data
-      }
+      } else {
+        // CAS 2 : Auth normale
+        setUser(authUser)
 
-      if (!reservisteData && user.phone) {
-        const phoneDigits = user.phone.replace(/\D/g, '')
-        const { data } = await supabase
-          .from('reservistes')
-          .select('*')
-          .eq('telephone', phoneDigits)
-          .single()
-
-        if (!data) {
-          const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
-          const { data: data2 } = await supabase
+        if ('email' in authUser && authUser.email) {
+          const { data } = await supabase
             .from('reservistes')
             .select('*')
-            .eq('telephone', phoneWithout1)
+            .ilike('email', authUser.email)
             .single()
-          reservisteData = data2
-        } else {
           reservisteData = data
+        }
+
+        if (!reservisteData && 'phone' in authUser && authUser.phone) {
+          const phoneDigits = authUser.phone.replace(/\D/g, '')
+          const { data } = await supabase
+            .from('reservistes')
+            .select('*')
+            .eq('telephone', phoneDigits)
+            .single()
+
+          if (!data) {
+            const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
+            const { data: data2 } = await supabase
+              .from('reservistes')
+              .select('*')
+              .eq('telephone', phoneWithout1)
+              .single()
+            reservisteData = data2
+          } else {
+            reservisteData = data
+          }
         }
       }
 
@@ -610,7 +629,7 @@ export default function ProfilPage() {
       setLoading(false)
     }
     loadData()
-  }, [])
+  }, [authUser, authLoading])
 
   // ─── Autocomplete Adresse ────────────────────────────────────────────────
 
@@ -999,6 +1018,8 @@ export default function ProfilPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <PortailHeader subtitle="Mon profil" />
+
+      <ImpersonateBanner />
 
       {saveMessage && (
         <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>
