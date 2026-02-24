@@ -6,7 +6,9 @@ const path = require('path');
 // CONFIGURATION - À MODIFIER
 // ============================================
 const SUPABASE_URL = 'https://jtzwkmcfarxptpcoaxxl.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0endrbWNmYXJ4cHRwY29heHhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzIyMjMsImV4cCI6MjA4NTA0ODIyM30.oh5lppjYMRp7Am5_zgn2yHA316NLO1Bv8VDfEEbzqhU'; 
+// ✅ Utiliser les variables d'environnement
+require('dotenv').config({ path: '.env.local' });
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const SOURCE_FOLDER = './pdfs-bruts';
 const DEST_FOLDER = './documents-a-uploader';
