@@ -16,6 +16,16 @@ interface Reserviste {
   groupe?: string;
 }
 
+interface DocumentOfficiel {
+  id: number;
+  benevole_id: string;
+  type_document: string; // 'certificat' ou 'lettre'
+  titre: string;
+  nom_fichier: string;
+  chemin_storage: string;
+  date_creation: string;
+}
+
 // === PDFs du camp ===
 const PDFS_SAMEDI = [
   { titre: "Introduction RIUSC & Sécurité civile", url: "/documents/camp/introduction-riusc-securite-civile.pdf" },
@@ -33,6 +43,7 @@ const PDFS_DIMANCHE = [
 export default function InformationsPage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
+  const [documentsOfficiels, setDocumentsOfficiels] = useState<DocumentOfficiel[]>([])
   const [loading, setLoading] = useState(true)
   const [showLoi, setShowLoi] = useState(false)
   const router = useRouter()
@@ -91,7 +102,18 @@ export default function InformationsPage() {
           }
         }
       }
-      if (reservisteData) setReserviste(reservisteData)
+      if (reservisteData) {
+        setReserviste(reservisteData)
+        
+        // Charger les documents officiels
+        const { data: docs } = await supabase
+          .from('documents_officiels')
+          .select('*')
+          .eq('benevole_id', reservisteData.benevole_id)
+          .order('date_creation', { ascending: false })
+        
+        if (docs) setDocumentsOfficiels(docs)
+      }
       setLoading(false)
     }
     loadData()
@@ -214,6 +236,73 @@ export default function InformationsPage() {
             </a>
           </div>
         </div>
+
+        {/* ========== SECTION : Documents officiels ========== */}
+        {documentsOfficiels.length > 0 && (
+          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
+            <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
+              Mes documents officiels
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {documentsOfficiels.map((doc) => {
+                // Générer l'URL signée pour télécharger
+                const downloadUrl = supabase.storage
+                  .from('documents-officiels')
+                  .getPublicUrl(doc.chemin_storage).data.publicUrl
+                
+                return (
+                  <a
+                    key={doc.id}
+                    href={downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '16px 20px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.borderColor = '#1e3a5f'
+                      e.currentTarget.style.backgroundColor = '#f0f4f8'
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb'
+                      e.currentTarget.style.backgroundColor = '#f9fafb'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <span style={{ fontSize: '28px' }}>
+                        {doc.type_document === 'certificat' ? '🎓' : '📄'}
+                      </span>
+                      <div>
+                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>
+                          {doc.titre}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
+                          {new Date(doc.date_creation).toLocaleDateString('fr-CA', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </a>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ========== SECTION 2 : Documents du camp (Approuvés seulement) ========== */}
         {isApproved && (
