@@ -283,7 +283,7 @@ export default function InformationsPage() {
                       cursor: downloadUrl === '#' ? 'default' : 'pointer',
                       opacity: downloadUrl === '#' ? 0.6 : 1
                     }}
-                    }}
+                    
                     onMouseOver={(e) => {
                       e.currentTarget.style.borderColor = '#1e3a5f'
                       e.currentTarget.style.backgroundColor = '#f0f4f8'
