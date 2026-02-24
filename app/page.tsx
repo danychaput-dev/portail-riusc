@@ -459,19 +459,22 @@ export default function HomePage() {
         }
       }
       
-      const { data: lastSeen } = await supabase
-        .from('community_last_seen')
-        .select('last_seen_at')
-        .eq('user_id', user.id)
-        .single()
+      // Vérifier les messages non lus (seulement pour auth normale, pas pour emprunt)
+      if ('id' in user && user.id) {
+        const { data: lastSeen } = await supabase
+          .from('community_last_seen')
+          .select('last_seen_at')
+          .eq('user_id', user.id)
+          .single()
 
-      const since = lastSeen?.last_seen_at || '2000-01-01'
-      const { count } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .gt('created_at', since)
+        const since = lastSeen?.last_seen_at || '2000-01-01'
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .gt('created_at', since)
 
-      if (count) setUnreadCount(count)
+        if (count) setUnreadCount(count)
+      }
 
       setLoading(false)
     }
