@@ -308,8 +308,10 @@ export default function HomePage() {
         }
       }
 
-      // Attendre le chargement de l'auth
-      if (authLoading) return
+  // Attendre le chargement de l'auth
+      if (authLoading) {
+        return  // Le loading de la page reste true pendant que l'auth charge
+      }
       if (!authUser) {
         router.push('/login')
         return
@@ -479,7 +481,7 @@ export default function HomePage() {
       setLoading(false)
     }
     loadData()
-  }, [])
+   }, [authUser, authLoading])
 
   const handleSignOut = async () => {
     // 🔧 Nettoyer mode debug
