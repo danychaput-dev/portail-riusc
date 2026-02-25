@@ -164,7 +164,8 @@ function LoginContent() {
       let verifyResult
 
       if (otpMethod === 'sms') {
-        const { data: reserviste } = await supabase.from('reservistes').select('telephone').ilike('email', email.trim()).maybeSingle()
+        const { data: reservistes } = await supabase.rpc('check_reserviste_login', { lookup_email: email.trim() })
+        const reserviste = reservistes?.[0] || null
         if (reserviste?.telephone) {
           const formattedPhone = toE164(reserviste.telephone)
           verifyResult = await supabase.auth.verifyOtp({ phone: formattedPhone, token: otpCode, type: 'sms' })
