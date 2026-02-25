@@ -10,7 +10,7 @@ const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 const AUCUNE_ORG_ID = 'AUCUNE'
 
 interface MapboxFeature {
-  place_name: string;
+  place_name: string;a
   center: [number, number];
   context?: Array<{
     id: string;
@@ -410,22 +410,21 @@ export default function InscriptionPage() {
       })
       if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
 
-      // Lier les organisations après la création du réserviste
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      const { data: newReserviste } = await supabase
-        .from('reservistes')
-        .select('benevole_id')
-        .ilike('email', emailClean)
-        .maybeSingle()
+      // Récupérer le benevole_id directement de la réponse webhook
+      const responseData = await response.json()
+      const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_item_id) : null
 
-      if (newReserviste?.benevole_id) {
+      // Attendre que le sync Monday → Supabase soit complété
+      await new Promise(resolve => setTimeout(resolve, 1500))
+
+      if (newBenevoleId) {
         // Filtrer "AUCUNE" - ne pas la sauvegarder dans la base
         let orgIdsToLink = selectedOrgIds.filter(id => id !== AUCUNE_ORG_ID)
         
         if (newOrgName.trim()) {
           const { data: createdOrg, error: createError } = await supabase
             .from('organisations')
-            .insert({ nom: newOrgName.trim(), created_by: newReserviste.benevole_id })
+            .insert({ nom: newOrgName.trim(), created_by: newBenevoleId })
             .select('id')
             .single()
           if (createError) {
@@ -439,7 +438,7 @@ export default function InscriptionPage() {
         // Ne sauvegarder que si il y a des organisations réelles (pas "Aucune")
         if (orgIdsToLink.length > 0) {
           await supabase.from('reserviste_organisations').insert(
-            orgIdsToLink.map(organisation_id => ({ benevole_id: newReserviste.benevole_id, organisation_id }))
+            orgIdsToLink.map(organisation_id => ({ benevole_id: newBenevoleId, organisation_id }))
           )
         }
       }
@@ -447,7 +446,7 @@ export default function InscriptionPage() {
       // Inscription au camp si sélectionné
       let campInscritSuccess = false
       let campNom = ''
-      if (newReserviste?.benevole_id && selectedSessionId && selectedSessionId !== 'PLUS_TARD') {
+      if (newBenevoleId && selectedSessionId && selectedSessionId !== 'PLUS_TARD') {
         const sessionSelectionnee = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
         campNom = sessionSelectionnee?.nom || 'Camp sélectionné'
         
@@ -459,14 +458,14 @@ export default function InscriptionPage() {
               allergies_alimentaires: allergiesAlimentaires || null,
               allergies_autres: autresAllergies || null
             })
-            .eq('benevole_id', newReserviste.benevole_id)
+            .eq('benevole_id', newBenevoleId)
 
           // Appeler l'API d'inscription au camp
           const campResponse = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              benevole_id: newReserviste.benevole_id,
+              benevole_id: newBenevoleId,
               session_id: selectedSessionId, // ID fictif pour identifier le camp
               camp_nom: sessionSelectionnee?.nom,
               camp_dates: sessionSelectionnee?.dates,
