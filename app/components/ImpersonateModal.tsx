@@ -32,10 +32,7 @@ export default function ImpersonateModal({ onClose, onImpersonate }: Impersonate
       setLoading(true)
 
       const { data } = await supabase
-        .from('reservistes')
-        .select('benevole_id, prenom, nom, email, groupe')
-        .or(`prenom.ilike.%${search}%,nom.ilike.%${search}%,email.ilike.%${search}%`)
-        .limit(20)
+        .rpc('search_reservistes_admin', { search_term: search })
 
       setReservistes(data || [])
       setLoading(false)
