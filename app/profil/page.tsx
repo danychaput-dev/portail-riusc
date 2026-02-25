@@ -625,7 +625,8 @@ export default function ProfilPage() {
       setLoading(false)
     }
     loadData()
-  }, [authUser, authLoading])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading])
 
   // ─── Autocomplete Adresse ────────────────────────────────────────────────
 
