@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
+import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 
 interface Disponibilite {
   id: string;
@@ -233,6 +234,7 @@ export default function DisponibilitesPage() {
       {/* ── Header ── */}
       <PortailHeader subtitle="Mes disponibilités" />
 
+      <ImpersonateBanner />
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
@@ -437,6 +439,8 @@ export default function DisponibilitesPage() {
           🔄 Actualisation automatique toutes les 30 secondes
         </div>
       </main>
+
+      <ImpersonateBanner position="bottom" />
 
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>

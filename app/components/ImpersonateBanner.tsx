@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function ImpersonateBanner() {
+export default function ImpersonateBanner({ position = 'top' }: { position?: 'top' | 'bottom' }) {
   const [impersonateData, setImpersonateData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -53,10 +53,12 @@ export default function ImpersonateBanner() {
   return (
     <div style={{ 
       backgroundColor: '#fef3c7', 
-      borderBottom: '2px solid #f59e0b',
+      ...(position === 'top' 
+        ? { borderBottom: '2px solid #f59e0b' } 
+        : { borderTop: '2px solid #f59e0b' }),
       padding: '12px 24px',
       position: 'sticky',
-      top: 0,
+      ...(position === 'top' ? { top: 0 } : { bottom: 0 }),
       zIndex: 999
     }}>
       <div style={{ 

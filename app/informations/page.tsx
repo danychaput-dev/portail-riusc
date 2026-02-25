@@ -423,6 +423,8 @@ export default function InformationsPage() {
         </div>
       </main>
 
+      <ImpersonateBanner position="bottom" />
+
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>
       </footer>

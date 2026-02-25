@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, Suspense } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
+import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 
 interface Reserviste {
   benevole_id: string;
@@ -368,6 +369,7 @@ function FormationContent() {
 
       <PortailHeader subtitle="Formation et parcours du réserviste" />
 
+      <ImpersonateBanner />
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
 
@@ -538,6 +540,8 @@ function FormationContent() {
           </a>
         </div>
       </main>
+
+      <ImpersonateBanner position="bottom" />
 
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>

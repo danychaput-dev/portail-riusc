@@ -1771,6 +1771,8 @@ export default function ProfilPage() {
           </button>
         </div>
       </main>
+
+      <ImpersonateBanner position="bottom" />
     </div>
   )
 }
