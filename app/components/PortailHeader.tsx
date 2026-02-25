@@ -80,14 +80,11 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       // Charger réserviste seulement si pas passé en prop
       let res = reservisteOverride ?? null
       if (!res) {
-        // CAS 1 : Emprunt d'identité
+        // CAS 1 : Emprunt d'identité (via fonction sécurisée car profil d'un autre user)
         if ('isImpersonated' in authUser && authUser.isImpersonated) {
-          const { data } = await supabase
-            .from('reservistes')
-            .select(selectFields)
-            .eq('benevole_id', authUser.benevole_id)
-            .single()
-          res = data
+          const { data: rpcData } = await supabase
+            .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
+          res = rpcData?.[0] || null
         } else {
           // CAS 2 : Auth normale
           // 1. D'abord chercher par user_id (le plus fiable)
