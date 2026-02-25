@@ -25,7 +25,6 @@ interface Reserviste {
   adresse?: string
   ville?: string
   region?: string
-  code_postal?: string
   latitude?: number | null
   longitude?: number | null
   contact_urgence_nom?: string
@@ -415,7 +414,6 @@ export default function ProfilPage() {
     adresse: '',
     ville: '',
     region: '',
-    code_postal: '',
     latitude: null as number | null,
     longitude: null as number | null,
     contact_urgence_nom: '',
@@ -531,7 +529,6 @@ export default function ProfilPage() {
         adresse: reservisteData.adresse || '',
         ville: reservisteData.ville || '',
         region: reservisteData.region || '',
-        code_postal: reservisteData.code_postal || '',
         latitude: reservisteData.latitude || null,
         longitude: reservisteData.longitude || null,
         contact_urgence_nom: reservisteData.contact_urgence_nom || '',
@@ -544,7 +541,6 @@ export default function ProfilPage() {
         adresse: reservisteData.adresse || '',
         ville: reservisteData.ville || '',
         region: reservisteData.region || '',
-        code_postal: reservisteData.code_postal || '',
         latitude: reservisteData.latitude || null,
         longitude: reservisteData.longitude || null,
         contact_urgence_nom: reservisteData.contact_urgence_nom || '',
@@ -851,7 +847,6 @@ export default function ProfilPage() {
             adresse: profilData.adresse,
             ville: profilData.ville,
             region: profilData.region,
-            code_postal: profilData.code_postal,
             latitude: profilData.latitude,
             longitude: profilData.longitude,
             contact_urgence_nom: profilData.contact_urgence_nom,
@@ -881,7 +876,6 @@ export default function ProfilPage() {
             adresse: profilData.adresse,
             ville: profilData.ville,
             region: profilData.region,
-            code_postal: profilData.code_postal,
             latitude: profilData.latitude,
             longitude: profilData.longitude,
             contact_urgence_nom: profilData.contact_urgence_nom,
@@ -1253,12 +1247,6 @@ export default function ProfilPage() {
             />
           </div>
 
-          <TextInput
-            label="Code postal"
-            value={profilData.code_postal}
-            onChange={v => setProfilData(prev => ({ ...prev, code_postal: v }))}
-            placeholder="H2X 1Y2"
-          />
         </Section>
 
         {/* ── 3. Contact d'urgence ── */}
