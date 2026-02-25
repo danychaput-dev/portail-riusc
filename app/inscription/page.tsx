@@ -10,7 +10,7 @@ const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 const AUCUNE_ORG_ID = 'AUCUNE'
 
 interface MapboxFeature {
-  place_name: string;a
+  place_name: string;
   center: [number, number];
   context?: Array<{
     id: string;
