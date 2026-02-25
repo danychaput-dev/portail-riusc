@@ -21,23 +21,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // Vérifier que c'est bien un admin
+    // Vérifier que c'est bien un admin (via email pour compatibilité RLS)
     const { data: currentReserviste } = await supabase
       .from('reservistes')
       .select('benevole_id')
-      .eq('user_id', user.id)
+      .ilike('email', user.email || '')
       .single()
 
     if (!currentReserviste || !ADMIN_BENEVOLE_IDS.includes(currentReserviste.benevole_id)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
-    // 2. Récupérer les infos du réserviste à emprunter
-    const { data: targetReserviste, error } = await supabase
-      .from('reservistes')
-      .select('benevole_id, prenom, nom, email')
-      .eq('benevole_id', benevole_id)
-      .single()
+    // 2. Récupérer les infos du réserviste à emprunter (via fonction sécurisée)
+    const { data: targetResults, error } = await supabase
+      .rpc('get_reserviste_for_impersonate', {
+        target_benevole_id: benevole_id,
+        admin_benevole_id: currentReserviste.benevole_id
+      })
+
+    const targetReserviste = targetResults?.[0] || null
 
     if (error || !targetReserviste) {
       return NextResponse.json({ error: 'Réserviste non trouvé' }, { status: 404 })
