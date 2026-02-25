@@ -322,17 +322,13 @@ export default function HomePage() {
       let user = authUser
       let reservisteData = null
 
-      // CAS 1 : Emprunt d'identité actif
+      // CAS 1 : Emprunt d'identité actif (via fonction sécurisée)
       if ('isImpersonated' in authUser && authUser.isImpersonated) {
-        // Charger directement le réserviste par benevole_id
-        const { data } = await supabase
-          .from('reservistes')
-          .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
-          .eq('benevole_id', authUser.benevole_id)
-          .single()
+        const { data: rpcData } = await supabase
+          .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
         
-        if (data) {
-          reservisteData = data
+        if (rpcData?.[0]) {
+          reservisteData = rpcData[0]
         }
       } else {
         // CAS 2 : Auth normale - utiliser la logique existante
