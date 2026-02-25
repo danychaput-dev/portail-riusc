@@ -64,11 +64,9 @@ function LoginContent() {
 
       try {
         // Récupérer les données du réserviste depuis Supabase
-        const { data: reserviste, error: fetchError} = await supabase
-          .from('reservistes')
-          .select('*')
-          .ilike('email', email.trim())
-          .maybeSingle()
+        const { data: debugData, error: fetchError } = await supabase
+          .rpc('check_reserviste_login', { lookup_email: email.trim() })
+        const reserviste = debugData?.[0] || null
 
         if (fetchError || !reserviste) {
           setError('Réserviste non trouvé pour cet email')
@@ -106,11 +104,10 @@ function LoginContent() {
     setShowJoinPrompt(false)
 
     try {
-      const { data: reserviste, error: fetchError } = await supabase
-        .from('reservistes')
-        .select('email, telephone')
-        .ilike('email', email.trim())
-        .maybeSingle()
+      const { data: reservistes, error: fetchError } = await supabase
+        .rpc('check_reserviste_login', { lookup_email: email.trim() })
+
+      const reserviste = reservistes?.[0] || null
 
       if (fetchError) {
         console.error('Erreur recherche réserviste:', fetchError)
