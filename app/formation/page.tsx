@@ -75,6 +75,7 @@ interface Formation {
   date_reussite: string | null;
   date_expiration: string | null;
   commentaire: string;
+  has_fichier?: boolean;
 }
 
 function FormationContent() {
@@ -681,7 +682,7 @@ function FormationContent() {
                     const isCamp = cat.includes('camp') || cat.includes('qualification');
                     const certDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
                     const lettreDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
-                    const hasCert = uploadedFormationIds.has(f.id) || (isInitier ? certificats.length > 0 : isCamp ? !!certDoc : false);
+                    const hasCert = uploadedFormationIds.has(f.id) || f.has_fichier || (isInitier ? certificats.length > 0 : isCamp ? !!certDoc : false);
 
                     return (
                   <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
@@ -758,10 +759,10 @@ function FormationContent() {
                         )}
 
                         {/* Confirmation upload récent */}
-                        {uploadedFormationIds.has(f.id) && !isInitier && !isCamp && (
+                        {(uploadedFormationIds.has(f.id) || f.has_fichier) && !isInitier && !isCamp && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
-                              ✅ Certificat envoyé
+                              ✅ Certificat au dossier
                             </span>
                           </div>
                         )}
