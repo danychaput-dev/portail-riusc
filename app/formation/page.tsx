@@ -375,6 +375,7 @@ function FormationContent() {
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
   const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
+  const [uploadedFormationIds, setUploadedFormationIds] = useState<Set<string>>(new Set());
   const formationCertInputRef = useRef<HTMLInputElement>(null);
 
   const handleFormationCertUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -406,9 +407,14 @@ function FormationContent() {
       const data = await response.json();
       if (data.success) {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
-        // Recharger les certificats
-        const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
-        if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+        if (uploadingForFormationId) {
+          // Track que cette formation a maintenant un certificat
+          setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
+        } else {
+          // S'initier — recharger les certificats du Répertoire
+          const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
+          if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+        }
       } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
     } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
     setUploadingCertificat(false);
@@ -675,7 +681,7 @@ function FormationContent() {
                     const isCamp = cat.includes('camp') || cat.includes('qualification');
                     const certDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
                     const lettreDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
-                    const hasCert = isInitier ? certificats.length > 0 : isCamp ? !!certDoc : false;
+                    const hasCert = uploadedFormationIds.has(f.id) || (isInitier ? certificats.length > 0 : isCamp ? !!certDoc : false);
 
                     return (
                   <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
@@ -748,6 +754,15 @@ function FormationContent() {
                                 ✅ Lettre au dossier
                               </span>
                             )}
+                          </div>
+                        )}
+
+                        {/* Confirmation upload récent */}
+                        {uploadedFormationIds.has(f.id) && !isInitier && !isCamp && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                              ✅ Certificat envoyé
+                            </span>
                           </div>
                         )}
 
