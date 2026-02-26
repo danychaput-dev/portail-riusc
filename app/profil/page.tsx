@@ -460,7 +460,7 @@ export default function ProfilPage() {
   // ─── Chargement initial ──────────────────────────────────────────────────
 
   useEffect(() => {
-    const loadData = async () => {
+  const loadData = async () => {
       // Attendre que l'auth soit chargée
       if (authLoading) return
       
@@ -471,8 +471,29 @@ export default function ProfilPage() {
 
       let reservisteData = null
 
+      // CAS 0 : Mode debug — charger depuis localStorage
+      if ('isDebug' in authUser && authUser.isDebug) {
+        const debugUser = localStorage.getItem('debug_user')
+        if (debugUser) {
+          const userData = JSON.parse(debugUser)
+          // Fetch complet depuis Supabase via service (contourne RLS)
+          try {
+            const response = await fetch(
+              `https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${userData.benevole_id}`
+            )
+            if (response.ok) {
+              // On a les données du dossier, mais on a besoin du profil reservistes
+              // Utiliser les données localStorage comme fallback
+            }
+          } catch (e) {
+            console.error('Debug: erreur fetch dossier', e)
+          }
+          // Utiliser les données de debug directement
+          reservisteData = userData
+        }
+      }
       // CAS 1 : Emprunt d'identité
-      if ('isImpersonated' in authUser && authUser.isImpersonated) {
+      else if ('isImpersonated' in authUser && authUser.isImpersonated) {
         setUser(authUser)
         const { data } = await supabase
           .from('reservistes')
@@ -514,7 +535,7 @@ export default function ProfilPage() {
           }
         }
       }
-
+      
       if (!reservisteData) {
         setLoading(false)
         return

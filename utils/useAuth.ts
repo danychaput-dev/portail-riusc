@@ -13,15 +13,43 @@ interface ImpersonatedUser {
   isImpersonated: true
 }
 
+interface DebugUser {
+  id: string
+  email?: string
+  benevole_id: string
+  isDebug: true
+}
+
 export function useAuth() {
-  const [user, setUser] = useState<AuthUser | ImpersonatedUser | null>(null)
+  const [user, setUser] = useState<AuthUser | ImpersonatedUser | DebugUser | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
     const loadAuth = async () => {
+      // 0. Vérifier le mode debug en premier
+      if (typeof window !== 'undefined') {
+        const debugMode = localStorage.getItem('debug_mode')
+        if (debugMode === 'true') {
+          const debugUser = localStorage.getItem('debug_user')
+          const debugEmail = localStorage.getItem('debug_email')
+          if (debugUser) {
+            const userData = JSON.parse(debugUser)
+            console.log('🔧 useAuth - Mode debug actif:', userData.email)
+            setUser({
+              id: `debug_${userData.benevole_id || userData.id}`,
+              email: debugEmail || userData.email,
+              benevole_id: userData.benevole_id,
+              isDebug: true
+            })
+            setLoading(false)
+            return
+          }
+        }
+      }
+
+      // 1. Vérifier s'il y a un emprunt actif
       try {
-        // 1. Vérifier d'abord s'il y a un emprunt actif
         const impersonateResponse = await fetch('/api/check-impersonate', {
           credentials: 'include'
         })
@@ -30,7 +58,6 @@ export function useAuth() {
           const impersonateData = await impersonateResponse.json()
           
           if (impersonateData.isImpersonating && impersonateData.benevole_id) {
-            // Utilisateur emprunté
             setUser({
               benevole_id: impersonateData.benevole_id,
               email: impersonateData.email,
@@ -57,7 +84,7 @@ export function useAuth() {
     }
 
     loadAuth()
-  }, []) // Pas de dépendances - exécuté une seule fois au montage
+  }, [])
 
   return { user, loading }
 }
