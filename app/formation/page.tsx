@@ -76,6 +76,7 @@ interface Formation {
   date_expiration: string | null;
   commentaire: string;
   has_fichier?: boolean;
+  fichiers?: { name: string; url: string | null }[];
 }
 
 function FormationContent() {
@@ -759,9 +760,23 @@ function FormationContent() {
                         {/* Badge certificat au dossier (fichier Monday) — pour toute formation avec fichier */}
                         {(uploadedFormationIds.has(f.id) || f.has_fichier) && !(isInitier && certificats.length > 0) && !(isCamp && (certDoc || lettreDoc)) && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
-                              ✅ Certificat au dossier
-                            </span>
+                            {f.fichiers && f.fichiers.length > 0 ? (
+                              f.fichiers.map((fichier, fi) => (
+                                fichier.url ? (
+                                  <a key={fi} href={fichier.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500', cursor: 'pointer' }}>
+                                    📄 {fichier.name}
+                                  </a>
+                                ) : (
+                                  <span key={fi} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                                    ✅ {fichier.name}
+                                  </span>
+                                )
+                              ))
+                            ) : (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                                ✅ Certificat au dossier
+                              </span>
+                            )}
                           </div>
                         )}
 
