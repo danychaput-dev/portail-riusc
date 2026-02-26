@@ -128,23 +128,79 @@ function FormationContent() {
   }, [loading, loadingCamp, campParam]);
 
   async function loadData() {
+    // 🔧 SUPPORT MODE DEBUG
+    if (typeof window !== 'undefined') {
+      const debugMode = localStorage.getItem('debug_mode');
+      if (debugMode === 'true') {
+        const debugUser = localStorage.getItem('debug_user');
+        if (debugUser) {
+          const userData = JSON.parse(debugUser);
+          console.log('🔧 Mode debug formation:', userData.email);
+          setUser({ id: `debug_${userData.benevole_id}`, email: userData.email });
+          setReserviste(userData);
+
+          if (userData.benevole_id) {
+            try {
+              const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${userData.benevole_id}`);
+              if (response.ok) { const data = await response.json(); if (data.success && data.files) setCertificats(data.files); }
+            } catch (e) { console.error('Erreur certificats:', e); }
+            setLoadingCertificats(false);
+
+            try {
+              const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${userData.benevole_id}`);
+              if (response.ok) { const data = await response.json(); setCampStatus(data); }
+            } catch (e) { console.error('Erreur camp:', e); }
+            setLoadingCamp(false);
+
+            try {
+              const formRes = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${userData.benevole_id}`);
+              if (formRes.ok) { const formJson = await formRes.json(); if (formJson.success && formJson.formations) setFormations(formJson.formations); }
+            } catch (e) { console.error('Erreur formations:', e); }
+            setLoadingFormations(false);
+          } else {
+            setLoadingCertificats(false); setLoadingCamp(false); setLoadingFormations(false);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
     setUser(user);
 
+    // Vérifier emprunt d'identité
+    let targetBenevoleId: string | null = null;
+    try {
+      const impRes = await fetch('/api/check-impersonate', { credentials: 'include' });
+      if (impRes.ok) {
+        const impData = await impRes.json();
+        if (impData.isImpersonating && impData.benevole_id) {
+          targetBenevoleId = impData.benevole_id;
+        }
+      }
+    } catch (e) { console.error('Erreur check impersonate:', e); }
+
     let reservisteData = null;
-    if (user.email) {
-      const { data } = await supabase.from('reservistes').select(selectFields).ilike('email', user.email).single();
-      reservisteData = data;
-    }
-    if (!reservisteData && user.phone) {
-      const phoneDigits = user.phone.replace(/\D/g, '');
-      const { data } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneDigits).single();
-      if (!data) {
-        const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits;
-        const { data: data2 } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneWithout1).single();
-        reservisteData = data2;
-      } else { reservisteData = data; }
+
+    if (targetBenevoleId) {
+      const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: targetBenevoleId });
+      if (rpcData?.[0]) reservisteData = rpcData[0];
+    } else {
+      if (user.email) {
+        const { data } = await supabase.from('reservistes').select(selectFields).ilike('email', user.email).single();
+        reservisteData = data;
+      }
+      if (!reservisteData && user.phone) {
+        const phoneDigits = user.phone.replace(/\D/g, '');
+        const { data } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneDigits).single();
+        if (!data) {
+          const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits;
+          const { data: data2 } = await supabase.from('reservistes').select(selectFields).eq('telephone', phoneWithout1).single();
+          reservisteData = data2;
+        } else { reservisteData = data; }
+      }
     }
 
     if (reservisteData) {
@@ -169,7 +225,6 @@ function FormationContent() {
         } catch (e) { console.error('Erreur camp:', e); }
         setLoadingCamp(false);
 
-        // Charger les formations depuis Monday
         try {
           const formRes = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${reservisteData.benevole_id}`);
           if (formRes.ok) {
@@ -181,7 +236,7 @@ function FormationContent() {
         } catch (e) { console.error('Erreur formations:', e); }
         setLoadingFormations(false);
 
-        // Charger les documents officiels (certificats camp, lettres attestation)
+        // Charger les documents officiels
         try {
           const { data: docs } = await supabase
             .from('documents_officiels')
