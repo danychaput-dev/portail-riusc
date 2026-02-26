@@ -411,9 +411,16 @@ export default function InscriptionPage() {
       if (!response.ok) throw new Error("Erreur lors de l'inscription. Veuillez réessayer.")
 
       // Récupérer le benevole_id directement de la réponse webhook
-      const responseData = await response.json()
-      const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_item_id) : null
+     const responseData = await response.json()
 
+if (responseData.error === 'DOUBLON') {
+  setFieldErrors(prev => ({ ...prev, email: 'Ce courriel est déjà enregistré' }))
+  setMessage({ type: 'error', text: 'Ce courriel est déjà associé à un compte existant. Connectez-vous via la page de connexion.' })
+  setLoading(false)
+  return
+}
+
+const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_item_id) : null
       // Attendre que le sync Monday → Supabase soit complété
       await new Promise(resolve => setTimeout(resolve, 1500))
 
