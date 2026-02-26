@@ -459,11 +459,59 @@ export default function ProfilPage() {
 
   // ─── Chargement initial ──────────────────────────────────────────────────
 
-  useEffect(() => {
-  const loadData = async () => {
+ useEffect(() => {
+    const loadData = async () => {
       // Attendre que l'auth soit chargée
       if (authLoading) return
       
+      // 🔧 SUPPORT MODE DEBUG
+      if (typeof window !== 'undefined') {
+        const debugMode = localStorage.getItem('debug_mode')
+        if (debugMode === 'true') {
+          const debugUser = localStorage.getItem('debug_user')
+          if (debugUser) {
+            const userData = JSON.parse(debugUser)
+            console.log('🔧 Mode debug profil - Utilisateur:', userData.email)
+            
+            setUser({ id: `debug_${userData.benevole_id}`, email: userData.email })
+            setReserviste(userData)
+            
+            setProfilData({
+              telephone: formatPhoneDisplay(userData.telephone || ''),
+              telephone_secondaire: formatPhoneDisplay(userData.telephone_secondaire || ''),
+              adresse: userData.adresse || '',
+              ville: userData.ville || '',
+              region: userData.region || '',
+              latitude: userData.latitude || null,
+              longitude: userData.longitude || null,
+              contact_urgence_nom: userData.contact_urgence_nom || '',
+              contact_urgence_telephone: formatPhoneDisplay(userData.contact_urgence_telephone || ''),
+            })
+
+            setOriginalProfilData({
+              telephone: formatPhoneDisplay(userData.telephone || ''),
+              telephone_secondaire: formatPhoneDisplay(userData.telephone_secondaire || ''),
+              adresse: userData.adresse || '',
+              ville: userData.ville || '',
+              region: userData.region || '',
+              latitude: userData.latitude || null,
+              longitude: userData.longitude || null,
+              contact_urgence_nom: userData.contact_urgence_nom || '',
+              contact_urgence_telephone: formatPhoneDisplay(userData.contact_urgence_telephone || ''),
+            })
+
+            // Charger organisations et langues
+            const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
+            setAllOrgs(orgsData || [])
+            const { data: languesData } = await supabase.from('langues').select('id, nom').order('nom')
+            setAllLangues(languesData || [])
+
+            setLoading(false)
+            return
+          }
+        }
+      }
+
       if (!authUser) {
         router.push('/login')
         return
@@ -471,29 +519,8 @@ export default function ProfilPage() {
 
       let reservisteData = null
 
-      // CAS 0 : Mode debug — charger depuis localStorage
-      if ('isDebug' in authUser && authUser.isDebug) {
-        const debugUser = localStorage.getItem('debug_user')
-        if (debugUser) {
-          const userData = JSON.parse(debugUser)
-          // Fetch complet depuis Supabase via service (contourne RLS)
-          try {
-            const response = await fetch(
-              `https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${userData.benevole_id}`
-            )
-            if (response.ok) {
-              // On a les données du dossier, mais on a besoin du profil reservistes
-              // Utiliser les données localStorage comme fallback
-            }
-          } catch (e) {
-            console.error('Debug: erreur fetch dossier', e)
-          }
-          // Utiliser les données de debug directement
-          reservisteData = userData
-        }
-      }
       // CAS 1 : Emprunt d'identité
-      else if ('isImpersonated' in authUser && authUser.isImpersonated) {
+      if ('isImpersonated' in authUser && authUser.isImpersonated) {
         setUser(authUser)
         const { data } = await supabase
           .from('reservistes')
@@ -506,11 +533,12 @@ export default function ProfilPage() {
         setUser(authUser)
 
         if ('email' in authUser && authUser.email) {
-          const { data } = await supabase
+          const { data, error } = await supabase
             .from('reservistes')
             .select('*')
             .ilike('email', authUser.email)
             .single()
+          if (error) console.error('❌ Erreur fetch par email:', error)
           reservisteData = data
         }
 
@@ -535,7 +563,7 @@ export default function ProfilPage() {
           }
         }
       }
-      
+
       if (!reservisteData) {
         setLoading(false)
         return
@@ -571,7 +599,7 @@ export default function ProfilPage() {
       // Charger organisations
       const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
       setAllOrgs(orgsData || [])
-
+      
       const { data: myOrgsData } = await supabase
         .from('reserviste_organisations')
         .select('organisation_id')
