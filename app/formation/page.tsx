@@ -374,6 +374,7 @@ function FormationContent() {
 
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
+  const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
   const formationCertInputRef = useRef<HTMLInputElement>(null);
 
   const handleFormationCertUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -394,7 +395,13 @@ function FormationContent() {
       });
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benevole_id: reserviste.benevole_id, file_name: file.name, file_base64: base64 })
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          file_name: file.name,
+          file_base64: base64,
+          formation_id: uploadingForFormationId || null,
+          formation_nom: uploadingForFormationNom || null
+        })
       });
       const data = await response.json();
       if (data.success) {
@@ -406,6 +413,7 @@ function FormationContent() {
     } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
     setUploadingCertificat(false);
     setUploadingForFormationId(null);
+    setUploadingForFormationNom(null);
     if (formationCertInputRef.current) formationCertInputRef.current.value = '';
   };
 
@@ -422,7 +430,7 @@ function FormationContent() {
 
         {/* Skeleton Header */}
         <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: '16px' }}>
             <Bone w="48px" h="48px" r="10px" />
             <div>
               <Bone w="160px" h="20px" mb="6px" />
@@ -431,7 +439,7 @@ function FormationContent() {
           </div>
         </header>
 
-        <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+        <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
           {/* Breadcrumb */}
           <Bone w="130px" h="14px" mb="20px" />
 
@@ -617,7 +625,7 @@ function FormationContent() {
       <PortailHeader subtitle="Formation et parcours du réserviste" />
 
       <ImpersonateBanner />
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+      <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
 
         <h2 style={{ color: '#1e3a5f', margin: '20px 0 8px 0', fontSize: '26px', fontWeight: '700' }}>Parcours du réserviste</h2>
@@ -676,31 +684,34 @@ function FormationContent() {
                         🎓
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{f.catalogue}</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                        {/* Ligne titre + badges — tout sur une ligne en desktop */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{f.catalogue}</div>
                           {f.date_reussite && (
                             <span style={{ fontSize: '12px', color: '#6b7280' }}>
                               {new Date(f.date_reussite + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </span>
                           )}
-                          {f.role && (
-                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.role === 'Instructeur' ? '#fef3c7' : '#f3f4f6', color: f.role === 'Instructeur' ? '#92400e' : '#374151', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
-                              {f.role}
-                            </span>
-                          )}
-                          {f.resultat && (
-                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
-                              {f.resultat}
-                            </span>
-                          )}
-                          {f.etat_validite && (
-                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.etat_validite === 'À jour' ? '#eff6ff' : '#fef2f2', color: f.etat_validite === 'À jour' ? '#1e40af' : '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
-                              {f.etat_validite}
-                            </span>
-                          )}
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {f.role && (
+                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.role === 'Instructeur' ? '#fef3c7' : '#f3f4f6', color: f.role === 'Instructeur' ? '#92400e' : '#374151', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                                {f.role}
+                              </span>
+                            )}
+                            {f.resultat && (
+                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                                {f.resultat}
+                              </span>
+                            )}
+                            {f.etat_validite && (
+                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.etat_validite === 'À jour' ? '#eff6ff' : '#fef2f2', color: f.etat_validite === 'À jour' ? '#1e40af' : '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                                {f.etat_validite}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {f.date_expiration && (
-                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Expire le {new Date(f.date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '4px' }}>Expire le {new Date(f.date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                         )}
 
                         {/* Documents liés — S'initier : certificats du webhook */}
@@ -744,7 +755,7 @@ function FormationContent() {
                         {!hasCert && (
                           <div style={{ marginTop: '8px' }}>
                             <button
-                              onClick={() => { setUploadingForFormationId(f.id); formationCertInputRef.current?.click(); }}
+                              onClick={() => { setUploadingForFormationId(f.id); setUploadingForFormationNom(f.catalogue || f.nom); formationCertInputRef.current?.click(); }}
                               disabled={uploadingCertificat}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat && uploadingForFormationId === f.id ? 0.7 : 1 }}
                             >
