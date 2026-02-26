@@ -108,7 +108,7 @@ export default function InformationsPage() {
         
         // Charger les documents officiels
         const { data: docs } = await supabase
-          .from('documents_officiels')
+          .from('documents-officiels')
           .select('*')
           .eq('benevole_id', reservisteData.benevole_id)
           .order('date_creation', { ascending: false })
