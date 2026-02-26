@@ -108,7 +108,7 @@ export default function InformationsPage() {
         
         // Charger les documents officiels
         const { data: docs } = await supabase
-          .from('documents-officiels')
+          .from('documents_officiels')
           .select('*')
           .eq('benevole_id', reservisteData.benevole_id)
           .order('date_creation', { ascending: false })
@@ -120,7 +120,7 @@ export default function InformationsPage() {
           const urls: Record<number, string> = {}
           for (const doc of docs) {
             const { data: signedData } = await supabase.storage
-              .from('documents-officiels')
+              .from('documents_officiels')
               .createSignedUrl(doc.chemin_storage, 3600) // Expire après 1 heure
             
             if (signedData?.signedUrl) {
