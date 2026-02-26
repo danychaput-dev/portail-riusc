@@ -238,7 +238,11 @@ export default function HomePage() {
             console.log('🔧 Mode debug actif - Utilisateur:', userData.email)
             
             setUser({ id: `debug_${userData.benevole_id}`, email: userData.email })
-            setReserviste(userData)
+            
+            // Charger le profil complet depuis Supabase (RPC = SECURITY DEFINER, pas besoin de session)
+            const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: userData.benevole_id })
+            const fullReserviste = rpcData?.[0] || userData
+            setReserviste(fullReserviste)
             
             try {
               const response = await fetch(

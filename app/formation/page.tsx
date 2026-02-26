@@ -137,10 +137,11 @@ function FormationContent() {
           const userData = JSON.parse(debugUser);
           console.log('🔧 Mode debug formation:', userData.email);
           setUser({ id: `debug_${userData.benevole_id}`, email: userData.email });
-          // Charger le profil complet depuis Supabase
-            const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: userData.benevole_id });
-            const fullReserviste = rpcData?.[0] || userData;
-            setReserviste(fullReserviste);  
+          
+          // Charger le profil complet depuis Supabase (RPC = SECURITY DEFINER, pas besoin de session)
+          const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: userData.benevole_id });
+          const fullReserviste = rpcData?.[0] || userData;
+          setReserviste(fullReserviste);
 
           if (userData.benevole_id) {
             try {
