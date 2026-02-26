@@ -409,10 +409,8 @@ function FormationContent() {
       if (data.success) {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
         if (uploadingForFormationId) {
-          // Track que cette formation a maintenant un certificat
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
         } else {
-          // S'initier — recharger les certificats du Répertoire
           const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
           if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
         }
@@ -758,8 +756,8 @@ function FormationContent() {
                           </div>
                         )}
 
-                        {/* Confirmation upload récent */}
-                        {(uploadedFormationIds.has(f.id) || f.has_fichier) && !isInitier && !isCamp && (
+                        {/* Badge certificat au dossier (fichier Monday) — pour toute formation avec fichier */}
+                        {(uploadedFormationIds.has(f.id) || f.has_fichier) && !(isInitier && certificats.length > 0) && !(isCamp && (certDoc || lettreDoc)) && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
                               ✅ Certificat au dossier
