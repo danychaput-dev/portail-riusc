@@ -80,8 +80,13 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       // Charger réserviste seulement si pas passé en prop
       let res = reservisteOverride ?? null
       if (!res) {
+        // CAS 0 : Mode debug (localStorage)
+        if ('isDebug' in authUser && authUser.isDebug) {
+          const { data: rpcData } = await supabase
+            .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
+          res = rpcData?.[0] || null
         // CAS 1 : Emprunt d'identité (via fonction sécurisée car profil d'un autre user)
-        if ('isImpersonated' in authUser && authUser.isImpersonated) {
+        } else if ('isImpersonated' in authUser && authUser.isImpersonated) {
           const { data: rpcData } = await supabase
             .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
           res = rpcData?.[0] || null
@@ -190,6 +195,10 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   }, [authUser, authLoading, reservisteOverride])
 
   const handleSignOut = async () => {
+    // Nettoyer le mode debug si actif
+    localStorage.removeItem('debug_mode')
+    localStorage.removeItem('debug_user')
+    localStorage.removeItem('debug_email')
     await supabase.auth.signOut()
     router.push('/login')
   }
