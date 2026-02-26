@@ -410,7 +410,108 @@ function FormationContent() {
   };
 
   if (loading) {
-    return (<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>);
+    const shimmer = `@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`;
+    const skeletonBase: React.CSSProperties = { background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.5s infinite ease-in-out', borderRadius: '6px' };
+    const Bone = ({ w, h, r, mb, style }: { w?: string; h?: string; r?: string; mb?: string; style?: React.CSSProperties }) => (
+      <div style={{ ...skeletonBase, width: w || '100%', height: h || '16px', borderRadius: r || '6px', marginBottom: mb || '0', ...style }} />
+    );
+
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+        <style>{shimmer}</style>
+
+        {/* Skeleton Header */}
+        <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Bone w="48px" h="48px" r="10px" />
+            <div>
+              <Bone w="160px" h="20px" mb="6px" />
+              <Bone w="220px" h="14px" />
+            </div>
+          </div>
+        </header>
+
+        <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
+          {/* Breadcrumb */}
+          <Bone w="130px" h="14px" mb="20px" />
+
+          {/* Title + subtitle */}
+          <Bone w="280px" h="28px" mb="10px" />
+          <Bone w="380px" h="15px" mb="28px" />
+
+          {/* Progress bar card */}
+          <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <Bone w="220px" h="14px" />
+              <Bone w="32px" h="14px" />
+            </div>
+            <Bone w="100%" h="8px" r="4px" mb="8px" />
+            <Bone w="180px" h="12px" />
+          </div>
+
+          {/* Steps cards */}
+          {[1, 2].map(i => (
+            <div key={i} style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <Bone w="44px" h="44px" r="50%" />
+              <div style={{ flex: 1 }}>
+                <Bone w={i === 1 ? '180px' : '200px'} h="15px" mb="8px" />
+                <Bone w={i === 1 ? '260px' : '300px'} h="13px" />
+              </div>
+              <Bone w="28px" h="28px" r="50%" />
+            </div>
+          ))}
+
+          {/* Separator MES FORMATIONS */}
+          <div style={{ margin: '32px 0 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Bone w="140px" h="12px" />
+          </div>
+
+          {/* Formations card */}
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '16px' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+              <Bone w="200px" h="16px" mb="6px" />
+              <Bone w="140px" h="13px" />
+            </div>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ padding: '16px 24px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                <Bone w="40px" h="40px" r="50%" />
+                <div style={{ flex: 1 }}>
+                  <Bone w={`${180 + i * 30}px`} h="14px" mb="8px" />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Bone w="90px" h="12px" />
+                    <Bone w="60px" h="20px" r="12px" />
+                    <Bone w="50px" h="20px" r="12px" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Separator RESSOURCES */}
+          <div style={{ margin: '32px 0 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Bone w="110px" h="12px" />
+          </div>
+
+          {/* Resource cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Bone w="36px" h="36px" r="8px" />
+                <div style={{ flex: 1 }}>
+                  <Bone w="140px" h="15px" mb="6px" />
+                  <Bone w="190px" h="13px" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer style={{ backgroundColor: '#1e3a5f', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
+          <Bone w="360px" h="14px" style={{ margin: '0 auto', background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 25%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.1) 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.5s infinite ease-in-out' }} />
+        </footer>
+      </div>
+    );
   }
 
   return (
@@ -662,8 +763,24 @@ function FormationContent() {
         )}
 
         {loadingFormations && (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', padding: '24px', textAlign: 'center', color: '#6b7280', marginBottom: '16px' }}>
-            Chargement des formations...
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '16px' }}>
+            <style>{`@keyframes shimmerInline { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ width: '200px', height: '16px', marginBottom: '6px', background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmerInline 1.5s infinite ease-in-out', borderRadius: '6px' }} />
+              <div style={{ width: '140px', height: '13px', background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmerInline 1.5s infinite ease-in-out', borderRadius: '6px' }} />
+            </div>
+            {[1, 2].map(i => (
+              <div key={i} style={{ padding: '16px 24px', borderBottom: i < 2 ? '1px solid #f3f4f6' : 'none', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmerInline 1.5s infinite ease-in-out', flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ width: `${170 + i * 40}px`, height: '14px', marginBottom: '8px', background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmerInline 1.5s infinite ease-in-out', borderRadius: '6px' }} />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ width: '90px', height: '12px', background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmerInline 1.5s infinite ease-in-out', borderRadius: '6px' }} />
+                    <div style={{ width: '60px', height: '20px', background: 'linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%)', backgroundSize: '800px 100%', animation: 'shimmerInline 1.5s infinite ease-in-out', borderRadius: '12px' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -716,7 +833,12 @@ function FormationContent() {
 
 export default function FormationPage() {
   return (
-    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>}>
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
+        <div style={{ width: '48px', height: '48px', border: '4px solid #e5e7eb', borderTopColor: '#1e3a5f', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    }>
       <FormationContent />
     </Suspense>
   );
