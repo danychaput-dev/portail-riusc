@@ -535,20 +535,6 @@ function FormationContent() {
           <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/2 étapes obligatoires complétées</p>
         </div>
 
-        {/* ÉTAPE 1 : Profil */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: isProfilComplet ? '1px solid #10b981' : '2px solid #f59e0b', overflow: 'hidden' }}>
-          <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: isProfilComplet ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{isProfilComplet ? '✅' : '1'}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Compléter mon profil</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles'}</div>
-            </div>
-            <a href="/profil" style={{ padding: '8px 16px', backgroundColor: isProfilComplet ? 'white' : '#1e3a5f', color: isProfilComplet ? '#1e3a5f' : 'white', border: isProfilComplet ? '1px solid #1e3a5f' : 'none', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', flexShrink: 0 }}>
-              {isProfilComplet ? 'Voir' : 'Compléter'}
-            </a>
-          </div>
-        </div>
-
         {/* Hidden input pour upload certificat formation */}
         <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
 
@@ -557,49 +543,6 @@ function FormationContent() {
             {certificatMessage.text}
           </div>
         )}
-
-        {/* ÉTAPE 2 : Camp de qualification */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: campStatus?.is_certified ? '1px solid #10b981' : campStatus?.has_inscription ? '1px solid #10b981' : '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: campStatus?.is_certified ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{campStatus?.is_certified ? '✅' : '2'}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Camp de qualification</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{campStatus?.is_certified ? 'Certifié !' : campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours"}</div>
-            </div>
-            {campStatus?.has_inscription && <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>Inscrit</span>}
-          </div>
-
-          {!loadingCamp && campStatus && !campStatus.is_certified && (
-            <div style={{ padding: '0 24px 20px 24px' }}>
-              {campStatus.has_inscription && campStatus.camp ? (
-                <div>
-                  <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '16px' }}>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>{campStatus.camp.nom}</div>
-                    <div style={{ display: 'grid', gap: '6px', fontSize: '14px', color: '#4b5563' }}>
-                      {campStatus.camp.dates && <div><strong>Dates :</strong> {campStatus.camp.dates}</div>}
-                      {campStatus.camp.site && <div><strong>Site :</strong> {campStatus.camp.site}</div>}
-                      {campStatus.camp.location && <div style={{ color: '#6b7280' }}>{campStatus.camp.location}</div>}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <button onClick={openCampModal} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' }}>Modifier mon inscription</button>
-                    <button onClick={handleCancelInscription} disabled={cancellingInscription} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: cancellingInscription ? 'not-allowed' : 'pointer', opacity: cancellingInscription ? 0.7 : 1 }}>
-                      {cancellingInscription ? 'Annulation...' : 'Je ne suis plus disponible'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique.</p>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>S&apos;inscrire à un camp de qualification</button>
-                    <a href="/tournee-camps" style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>🗓️ Voir la tournée des camps</a>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* SECTION : Mes formations complétées */}
         {!loadingFormations && formations.length > 0 && (
