@@ -120,7 +120,7 @@ export default function InformationsPage() {
           const urls: Record<number, string> = {}
           for (const doc of docs) {
             const { data: signedData } = await supabase.storage
-              .from('documents_officiels')
+              .from('documents-officiels')
               .createSignedUrl(doc.chemin_storage, 3600) // Expire après 1 heure
             
             if (signedData?.signedUrl) {
