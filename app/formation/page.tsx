@@ -55,6 +55,15 @@ interface CertificatFile {
   url?: string;
 }
 
+interface DocumentOfficiel {
+  id: number;
+  benevole_id: string;
+  type_document: string;
+  titre: string;
+  nom_fichier: string;
+  chemin_storage: string;
+}
+
 interface Formation {
   id: string;
   nom: string;
@@ -103,6 +112,9 @@ function FormationContent() {
 
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
+
+  const [documentsOfficiels, setDocumentsOfficiels] = useState<DocumentOfficiel[]>([]);
+  const [documentUrls, setDocumentUrls] = useState<Record<number, string>>({});
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
@@ -169,6 +181,29 @@ function FormationContent() {
           }
         } catch (e) { console.error('Erreur formations:', e); }
         setLoadingFormations(false);
+
+        // Charger les documents officiels (certificats camp, lettres attestation)
+        try {
+          const { data: docs } = await supabase
+            .from('documents_officiels')
+            .select('*')
+            .eq('benevole_id', reservisteData.benevole_id)
+            .order('date_creation', { ascending: false });
+
+          if (docs && docs.length > 0) {
+            setDocumentsOfficiels(docs);
+            const urls: Record<number, string> = {};
+            for (const doc of docs) {
+              const { data: signedData } = await supabase.storage
+                .from('documents-officiels')
+                .createSignedUrl(doc.chemin_storage, 3600);
+              if (signedData?.signedUrl) {
+                urls[doc.id] = signedData.signedUrl;
+              }
+            }
+            setDocumentUrls(urls);
+          }
+        } catch (e) { console.error('Erreur documents officiels:', e); }
       } else {
         setLoadingCertificats(false);
         setLoadingCamp(false);
@@ -549,10 +584,16 @@ function FormationContent() {
               <div style={{ padding: '0' }}>
                 {formations
                   .sort((a, b) => (b.date_reussite || '').localeCompare(a.date_reussite || ''))
-                  .map((f, index) => (
+                  .map((f, index) => {
+                    // Vérifier si cette formation est un camp de qualification
+                    const isCamp = f.catalogue?.toLowerCase().includes('camp') || f.catalogue?.toLowerCase().includes('qualification');
+                    const certDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
+                    const lettreDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
+
+                    return (
                   <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-                      {f.resultat === 'Réussi' ? '✅' : '⏳'}
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                      🎓
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{f.catalogue}</div>
@@ -581,9 +622,25 @@ function FormationContent() {
                       {f.date_expiration && (
                         <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Expire le {new Date(f.date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
                       )}
+                      {/* Documents liés au camp de qualification */}
+                      {isCamp && (certDoc || lettreDoc) && (
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+                          {certDoc && documentUrls[certDoc.id] && (
+                            <a href={documentUrls[certDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
+                              📄 Certificat
+                            </a>
+                          )}
+                          {lettreDoc && documentUrls[lettreDoc.id] && (
+                            <a href={documentUrls[lettreDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1e40af', textDecoration: 'none', fontWeight: '500' }}>
+                              📄 Lettre d&apos;attestation
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
+                    );
+                  })}
               </div>
             </div>
           </>
