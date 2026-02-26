@@ -157,6 +157,29 @@ function FormationContent() {
               if (formRes.ok) { const formJson = await formRes.json(); if (formJson.success && formJson.formations) setFormations(formJson.formations); }
             } catch (e) { console.error('Erreur formations:', e); }
             setLoadingFormations(false);
+
+            // Charger les documents officiels (certificat camp, lettre attestation)
+            try {
+              const { data: docs } = await supabase
+                .from('documents_officiels')
+                .select('*')
+                .eq('benevole_id', userData.benevole_id)
+                .order('date_creation', { ascending: false });
+
+              if (docs && docs.length > 0) {
+                setDocumentsOfficiels(docs);
+                const urls: Record<number, string> = {};
+                for (const doc of docs) {
+                  const { data: signedData } = await supabase.storage
+                    .from('documents-officiels')
+                    .createSignedUrl(doc.chemin_storage, 3600);
+                  if (signedData?.signedUrl) {
+                    urls[doc.id] = signedData.signedUrl;
+                  }
+                }
+                setDocumentUrls(urls);
+              }
+            } catch (e) { console.error('Erreur documents officiels (debug):', e); }
           } else {
             setLoadingCertificats(false); setLoadingCamp(false); setLoadingFormations(false);
           }
@@ -656,10 +679,20 @@ function FormationContent() {
                                 📄 Certificat
                               </a>
                             )}
+                            {certDoc && !documentUrls[certDoc.id] && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                                ✅ Certificat au dossier
+                              </span>
+                            )}
                             {lettreDoc && documentUrls[lettreDoc.id] && (
                               <a href={documentUrls[lettreDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1e40af', textDecoration: 'none', fontWeight: '500' }}>
                                 📄 Lettre d&apos;attestation
                               </a>
+                            )}
+                            {lettreDoc && !documentUrls[lettreDoc.id] && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1e40af', fontWeight: '500' }}>
+                                ✅ Lettre au dossier
+                              </span>
                             )}
                           </div>
                         )}
