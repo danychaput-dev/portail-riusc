@@ -113,6 +113,7 @@ function FormationContent() {
 
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
+  const [dateInscription, setDateInscription] = useState<string | null>(null);
 
   const [documentsOfficiels, setDocumentsOfficiels] = useState<DocumentOfficiel[]>([]);
   const [documentUrls, setDocumentUrls] = useState<Record<number, string>>({});
@@ -170,6 +171,7 @@ function FormationContent() {
             // Formations
             if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
               setFormations(formResult.value.formations);
+              if (formResult.value.date_inscription) setDateInscription(formResult.value.date_inscription);
             }
             setLoadingFormations(false);
 
@@ -263,6 +265,7 @@ function FormationContent() {
         // Formations
         if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
           setFormations(formResult.value.formations);
+          if (formResult.value.date_inscription) setDateInscription(formResult.value.date_inscription);
         }
         setLoadingFormations(false);
 
@@ -635,7 +638,13 @@ function FormationContent() {
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
 
         <h2 style={{ color: '#1e3a5f', margin: '20px 0 8px 0', fontSize: '26px', fontWeight: '700' }}>Parcours du réserviste</h2>
-        <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>Suivez ces étapes pour compléter votre intégration à la RIUSC.</p>
+        <p style={{ color: '#6b7280', margin: '0 0 12px 0', fontSize: '15px' }}>Suivez ces étapes pour compléter votre intégration à la RIUSC.</p>
+        {dateInscription && !isNaN(new Date(dateInscription).getTime()) && (
+          <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '13px' }}>
+            📅 Membre depuis le {new Date(dateInscription).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+        )}
+        {(!dateInscription || isNaN(new Date(dateInscription).getTime())) && <div style={{ marginBottom: '28px' }} />}
 
         {/* Barre de progression */}
         <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
