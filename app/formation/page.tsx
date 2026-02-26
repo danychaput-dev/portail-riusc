@@ -91,7 +91,6 @@ function FormationContent() {
   const [loadingCertificats, setLoadingCertificats] = useState(true);
   const [uploadingCertificat, setUploadingCertificat] = useState(false);
   const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const certificatInputRef = useRef<HTMLInputElement>(null);
 
   const [campStatus, setCampStatus] = useState<CampStatus | null>(null);
   const [loadingCamp, setLoadingCamp] = useState(true);
@@ -218,37 +217,6 @@ function FormationContent() {
     setLoading(false);
   }
 
-  const handleCertificatUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !reserviste) return;
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) { setCertificatMessage({ type: 'error', text: 'Format accepté : PDF, JPG ou PNG' }); return; }
-    if (file.size > 10 * 1024 * 1024) { setCertificatMessage({ type: 'error', text: 'Le fichier ne doit pas dépasser 10 Mo' }); return; }
-
-    setUploadingCertificat(true);
-    setCertificatMessage(null);
-    try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benevole_id: reserviste.benevole_id, file_name: file.name, file_base64: base64 })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
-        const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
-        if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
-      } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
-    } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
-    setUploadingCertificat(false);
-    if (certificatInputRef.current) certificatInputRef.current.value = '';
-  };
-
   const openCampModal = async () => {
     setShowCampModal(true); setLoadingSessions(true); setInscriptionError(null); setInscriptionSuccess(false); setSelectedSessionId('');
     setModalAllergiesAlim(reserviste?.allergies_alimentaires || '');
@@ -322,11 +290,47 @@ function FormationContent() {
 
   const steps = [
     { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'formation', label: 'Formation en ligne', done: certificats.length > 0, href: null, emoji: '🎓', description: "Suivre « S'initier à la sécurité civile » et soumettre le certificat" },
     { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
   ];
   const completedCount = steps.filter(s => s.done).length;
-  const progressPercent = Math.round((completedCount / 3) * 100);
+  const progressPercent = Math.round((completedCount / 2) * 100);
+
+  // Upload certificat pour une formation spécifique
+  const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
+  const formationCertInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFormationCertUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !reserviste) return;
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) { setCertificatMessage({ type: 'error', text: 'Format accepté : PDF, JPG ou PNG' }); return; }
+    if (file.size > 10 * 1024 * 1024) { setCertificatMessage({ type: 'error', text: 'Le fichier ne doit pas dépasser 10 Mo' }); return; }
+
+    setUploadingCertificat(true);
+    setCertificatMessage(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benevole_id: reserviste.benevole_id, file_name: file.name, file_base64: base64 })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
+        // Recharger les certificats
+        const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
+        if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+      } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
+    } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
+    setUploadingCertificat(false);
+    setUploadingForFormationId(null);
+    if (formationCertInputRef.current) formationCertInputRef.current.value = '';
+  };
 
   if (loading) {
     return (<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>);
@@ -450,7 +454,7 @@ function FormationContent() {
           <div style={{ height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#059669' : '#1e3a5f', borderRadius: '4px', transition: 'width 0.5s ease' }} />
           </div>
-          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/3 étapes obligatoires complétées</p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/2 étapes obligatoires complétées</p>
         </div>
 
         {/* ÉTAPE 1 : Profil */}
@@ -467,68 +471,19 @@ function FormationContent() {
           </div>
         </div>
 
-        {/* ÉTAPE 2 : Formation en ligne + certificat */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: certificats.length > 0 ? '1px solid #10b981' : '2px solid #f59e0b', overflow: 'hidden' }}>
-          <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: certificats.length > 0 ? '#d1fae5' : '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{certificats.length > 0 ? '✅' : '2'}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Formation en ligne</div>
-              <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{certificats.length > 0 ? `${certificats.length} certificat${certificats.length > 1 ? 's' : ''} soumis` : 'Suivre la formation et soumettre votre certificat'}</div>
-            </div>
+        {/* Hidden input pour upload certificat formation */}
+        <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
+
+        {certificatMessage && (
+          <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2', color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>
+            {certificatMessage.text}
           </div>
+        )}
 
-          <div style={{ padding: '0 24px 20px 24px' }}>
-            {!loadingCertificats && certificats.length === 0 && (
-              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '16px' }}>
-                <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>Formation obligatoire requise</p>
-                <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>Pour compléter votre inscription à la RIUSC, vous devez suivre la formation <strong>« S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC, puis nous soumettre votre certificat de réussite.</p>
-                <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                  <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>🎓 Accéder à la formation</a>
-                  <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>📺 Tutoriel vidéo</a>
-                </div>
-              </div>
-            )}
-
-            {!loadingCertificats && certificats.length > 0 && (
-              <div style={{ marginBottom: '16px' }}>
-                {certificats.map((cert) => (
-                  <div key={cert.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <span style={{ fontSize: '20px' }}>📄</span>
-                      <span style={{ fontSize: '14px', color: '#374151' }}>{cert.name}</span>
-                    </div>
-                    {cert.url && <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500' }}>Télécharger</a>}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {loadingCertificats && <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>Chargement des certificats...</div>}
-
-            {certificatMessage && (
-              <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2', color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>
-                {certificatMessage.text}
-              </div>
-            )}
-
-            <input ref={certificatInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertificatUpload} style={{ display: 'none' }} />
-            <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: certificats.length === 0 ? '#059669' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
-              {uploadingCertificat ? '⏳ Envoi en cours...' : certificats.length === 0 ? '📤 Soumettre mon certificat' : '➕ Ajouter un certificat'}
-            </button>
-            <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
-          </div>
-        </div>
-
-        {/* ÉTAPE 3 : Camp de qualification */}
+        {/* ÉTAPE 2 : Camp de qualification */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '16px', border: campStatus?.is_certified ? '1px solid #10b981' : campStatus?.has_inscription ? '1px solid #10b981' : '1px solid #e5e7eb', overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: campStatus?.is_certified ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{campStatus?.is_certified ? '✅' : '3'}</div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: campStatus?.is_certified ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>{campStatus?.is_certified ? '✅' : '2'}</div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Camp de qualification</div>
               <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{campStatus?.is_certified ? 'Certifié !' : campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours"}</div>
@@ -585,58 +540,88 @@ function FormationContent() {
                 {formations
                   .sort((a, b) => (b.date_reussite || '').localeCompare(a.date_reussite || ''))
                   .map((f, index) => {
-                    // Vérifier si cette formation est un camp de qualification
-                    const isCamp = f.catalogue?.toLowerCase().includes('camp') || f.catalogue?.toLowerCase().includes('qualification');
+                    const cat = f.catalogue?.toLowerCase() || '';
+                    // Matching certificats selon le type de formation
+                    const isInitier = cat.includes('initier') || cat.includes('s\'initier');
+                    const isCamp = cat.includes('camp') || cat.includes('qualification');
                     const certDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
                     const lettreDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
+                    const hasCert = isInitier ? certificats.length > 0 : isCamp ? !!certDoc : false;
 
                     return (
-                  <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
-                      🎓
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{f.catalogue}</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                        {f.date_reussite && (
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                            {new Date(f.date_reussite + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
-                          </span>
-                        )}
-                        {f.role && (
-                          <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.role === 'Instructeur' ? '#fef3c7' : '#f3f4f6', color: f.role === 'Instructeur' ? '#92400e' : '#374151', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
-                            {f.role}
-                          </span>
-                        )}
-                        {f.resultat && (
-                          <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
-                            {f.resultat}
-                          </span>
-                        )}
-                        {f.etat_validite && (
-                          <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.etat_validite === 'À jour' ? '#eff6ff' : '#fef2f2', color: f.etat_validite === 'À jour' ? '#1e40af' : '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
-                            {f.etat_validite}
-                          </span>
-                        )}
+                  <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                        🎓
                       </div>
-                      {f.date_expiration && (
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Expire le {new Date(f.date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                      )}
-                      {/* Documents liés au camp de qualification */}
-                      {isCamp && (certDoc || lettreDoc) && (
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-                          {certDoc && documentUrls[certDoc.id] && (
-                            <a href={documentUrls[certDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
-                              📄 Certificat
-                            </a>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>{f.catalogue}</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                          {f.date_reussite && (
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {new Date(f.date_reussite + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </span>
                           )}
-                          {lettreDoc && documentUrls[lettreDoc.id] && (
-                            <a href={documentUrls[lettreDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1e40af', textDecoration: 'none', fontWeight: '500' }}>
-                              📄 Lettre d&apos;attestation
-                            </a>
+                          {f.role && (
+                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.role === 'Instructeur' ? '#fef3c7' : '#f3f4f6', color: f.role === 'Instructeur' ? '#92400e' : '#374151', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                              {f.role}
+                            </span>
+                          )}
+                          {f.resultat && (
+                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                              {f.resultat}
+                            </span>
+                          )}
+                          {f.etat_validite && (
+                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.etat_validite === 'À jour' ? '#eff6ff' : '#fef2f2', color: f.etat_validite === 'À jour' ? '#1e40af' : '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                              {f.etat_validite}
+                            </span>
                           )}
                         </div>
-                      )}
+                        {f.date_expiration && (
+                          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Expire le {new Date(f.date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                        )}
+
+                        {/* Documents liés — S'initier : certificats du webhook */}
+                        {isInitier && certificats.length > 0 && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                            {certificats.map((cert) => (
+                              <a key={cert.id} href={cert.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
+                                📄 {cert.name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Documents liés — Camp : certificat + lettre */}
+                        {isCamp && (certDoc || lettreDoc) && (
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                            {certDoc && documentUrls[certDoc.id] && (
+                              <a href={documentUrls[certDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
+                                📄 Certificat
+                              </a>
+                            )}
+                            {lettreDoc && documentUrls[lettreDoc.id] && (
+                              <a href={documentUrls[lettreDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1e40af', textDecoration: 'none', fontWeight: '500' }}>
+                                📄 Lettre d&apos;attestation
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Bouton upload si pas de certificat */}
+                        {!hasCert && (
+                          <div style={{ marginTop: '8px' }}>
+                            <button
+                              onClick={() => { setUploadingForFormationId(f.id); formationCertInputRef.current?.click(); }}
+                              disabled={uploadingCertificat}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat && uploadingForFormationId === f.id ? 0.7 : 1 }}
+                            >
+                              {uploadingCertificat && uploadingForFormationId === f.id ? '⏳ Envoi...' : '📤 Ajouter un certificat'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                     );
