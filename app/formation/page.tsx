@@ -144,46 +144,49 @@ function FormationContent() {
           setReserviste(fullReserviste);
 
           if (userData.benevole_id) {
-            try {
-              const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${userData.benevole_id}`);
-              if (response.ok) { const data = await response.json(); if (data.success && data.files) setCertificats(data.files); }
-            } catch (e) { console.error('Erreur certificats:', e); }
+            // Charger tout en parallèle
+            const bid = userData.benevole_id;
+            const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+              fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
+            ]);
+
+            // Certificats
+            if (certResult.status === 'fulfilled' && certResult.value?.success && certResult.value.files) {
+              setCertificats(certResult.value.files);
+            }
             setLoadingCertificats(false);
 
-            try {
-              const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${userData.benevole_id}`);
-              if (response.ok) { const data = await response.json(); setCampStatus(data); }
-            } catch (e) { console.error('Erreur camp:', e); }
+            // Camp status
+            if (campResult.status === 'fulfilled' && campResult.value) {
+              setCampStatus(campResult.value);
+            }
             setLoadingCamp(false);
 
-            try {
-              const formRes = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${userData.benevole_id}`);
-              if (formRes.ok) { const formJson = await formRes.json(); if (formJson.success && formJson.formations) setFormations(formJson.formations); }
-            } catch (e) { console.error('Erreur formations:', e); }
+            // Formations
+            if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
+              setFormations(formResult.value.formations);
+            }
             setLoadingFormations(false);
 
-            // Charger les documents officiels (certificat camp, lettre attestation)
-            try {
-              const { data: docs } = await supabase
-                .from('documents_officiels')
-                .select('*')
-                .eq('benevole_id', userData.benevole_id)
-                .order('date_creation', { ascending: false });
-
+            // Documents officiels + signed URLs
+            if (docsResult.status === 'fulfilled') {
+              const docs = docsResult.value?.data;
               if (docs && docs.length > 0) {
                 setDocumentsOfficiels(docs);
                 const urls: Record<number, string> = {};
-                for (const doc of docs) {
+                const urlPromises = docs.map(async (doc: any) => {
                   const { data: signedData } = await supabase.storage
                     .from('documents-officiels')
                     .createSignedUrl(doc.chemin_storage, 3600);
-                  if (signedData?.signedUrl) {
-                    urls[doc.id] = signedData.signedUrl;
-                  }
-                }
+                  if (signedData?.signedUrl) urls[doc.id] = signedData.signedUrl;
+                });
+                await Promise.allSettled(urlPromises);
                 setDocumentUrls(urls);
               }
-            } catch (e) { console.error('Erreur documents officiels (debug):', e); }
+            }
           } else {
             setLoadingCertificats(false); setLoadingCamp(false); setLoadingFormations(false);
           }
@@ -234,57 +237,49 @@ function FormationContent() {
       setReserviste(reservisteData);
 
       if (reservisteData.benevole_id) {
-        try {
-          const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reservisteData.benevole_id}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.files) setCertificats(data.files);
-          }
-        } catch (e) { console.error('Erreur certificats:', e); }
+        // Charger tout en parallèle
+        const bid = reservisteData.benevole_id;
+        const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
+        ]);
+
+        // Certificats
+        if (certResult.status === 'fulfilled' && certResult.value?.success && certResult.value.files) {
+          setCertificats(certResult.value.files);
+        }
         setLoadingCertificats(false);
 
-        try {
-          const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setCampStatus(data);
-          }
-        } catch (e) { console.error('Erreur camp:', e); }
+        // Camp status
+        if (campResult.status === 'fulfilled' && campResult.value) {
+          setCampStatus(campResult.value);
+        }
         setLoadingCamp(false);
 
-        try {
-          const formRes = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${reservisteData.benevole_id}`);
-          if (formRes.ok) {
-            const formJson = await formRes.json();
-            if (formJson.success && formJson.formations) {
-              setFormations(formJson.formations);
-            }
-          }
-        } catch (e) { console.error('Erreur formations:', e); }
+        // Formations
+        if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
+          setFormations(formResult.value.formations);
+        }
         setLoadingFormations(false);
 
-        // Charger les documents officiels
-        try {
-          const { data: docs } = await supabase
-            .from('documents_officiels')
-            .select('*')
-            .eq('benevole_id', reservisteData.benevole_id)
-            .order('date_creation', { ascending: false });
-
+        // Documents officiels + signed URLs
+        if (docsResult.status === 'fulfilled') {
+          const docs = docsResult.value?.data;
           if (docs && docs.length > 0) {
             setDocumentsOfficiels(docs);
             const urls: Record<number, string> = {};
-            for (const doc of docs) {
+            const urlPromises = docs.map(async (doc: any) => {
               const { data: signedData } = await supabase.storage
                 .from('documents-officiels')
                 .createSignedUrl(doc.chemin_storage, 3600);
-              if (signedData?.signedUrl) {
-                urls[doc.id] = signedData.signedUrl;
-              }
-            }
+              if (signedData?.signedUrl) urls[doc.id] = signedData.signedUrl;
+            });
+            await Promise.allSettled(urlPromises);
             setDocumentUrls(urls);
           }
-        } catch (e) { console.error('Erreur documents officiels:', e); }
+        }
       } else {
         setLoadingCertificats(false);
         setLoadingCamp(false);

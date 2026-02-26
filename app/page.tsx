@@ -244,67 +244,42 @@ export default function HomePage() {
             const fullReserviste = rpcData?.[0] || userData
             setReserviste(fullReserviste)
             
-            try {
-              const response = await fetch(
-                `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${userData.benevole_id}`
-              )
-              if (response.ok) {
-                const data = await response.json()
-                setCampStatus(data)
-              }
-            } catch (error) {
-              console.error('Erreur fetch camp status:', error)
+            // Charger tout en parallèle
+            const bid = userData.benevole_id
+            const [campResult, selectionResult, certResult, ciblagesResult] = await Promise.allSettled([
+              fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              loadCertificats(bid),
+              supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid)
+            ])
+
+            // Camp status
+            if (campResult.status === 'fulfilled' && campResult.value) {
+              setCampStatus(campResult.value)
             }
             setLoadingCamp(false)
-            
-            try {
-              const response = await fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${userData.benevole_id}`)
-              const data = await response.json()
-              console.log('Statut de sélection reçu:', data)
-              if (data.statut) {
-                setSelectionStatus(data)
-              } else {
-                setSelectionStatus(null)
-              }
-            } catch (error) {
-              console.error('Erreur chargement statut sélection:', error)
+
+            // Selection status
+            if (selectionResult.status === 'fulfilled' && selectionResult.value?.statut) {
+              setSelectionStatus(selectionResult.value)
+            } else {
               setSelectionStatus(null)
             }
             setLoadingSelection(false)
-            
-            await loadCertificats(userData.benevole_id)
 
-            // 🔍 DEBUG CIBLAGES
-            console.log('🔍 Début chargement ciblages pour benevole_id:', userData.benevole_id)
-
-            const { data: ciblagesData } = await supabase
-              .from('ciblages')
-              .select('deploiement_id')
-              .eq('benevole_id', userData.benevole_id)
-
-            console.log('🔍 Ciblages reçus:', ciblagesData)
-
-            if (ciblagesData && ciblagesData.length > 0) {
-              const deployIds = ciblagesData.map(c => c.deploiement_id)
-              console.log('🔍 Deploy IDs extraits:', deployIds)
-              setCiblages(deployIds)
-              
-              const { data: deploiements } = await supabase
-                .from('deploiements_actifs')
-                .select('*')
-                .in('deploiement_id', deployIds)
-                .order('date_debut', { ascending: true })
-              
-              console.log('🔍 Deploiements actifs reçus:', deploiements)
-              
-              if (deploiements) {
-                console.log('✅ setDeploiementsActifs appelé avec:', deploiements)
-                setDeploiementsActifs(deploiements)
-              } else {
-                console.log('❌ deploiements est null/undefined')
+            // Ciblages + deploiements
+            if (ciblagesResult.status === 'fulfilled') {
+              const ciblagesData = ciblagesResult.value?.data
+              if (ciblagesData && ciblagesData.length > 0) {
+                const deployIds = ciblagesData.map((c: any) => c.deploiement_id)
+                setCiblages(deployIds)
+                const { data: deploiements } = await supabase
+                  .from('deploiements_actifs')
+                  .select('*')
+                  .in('deploiement_id', deployIds)
+                  .order('date_debut', { ascending: true })
+                if (deploiements) setDeploiementsActifs(deploiements)
               }
-            } else {
-              console.log('❌ Aucun ciblage trouvé ou ciblagesData est null')
             }
             
             setLoading(false)
@@ -406,58 +381,41 @@ export default function HomePage() {
       if (reservisteData) {
         setReserviste(reservisteData)
         
-        try {
-          const response = await fetch(
-            `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reservisteData.benevole_id}`
-          )
-          if (response.ok) {
-            const data = await response.json()
-            setCampStatus(data)
-          }
-        } catch (error) {
-          console.error('Erreur fetch camp status:', error)
+        // Charger tout en parallèle
+        const bid = reservisteData.benevole_id
+        const [campResult, selectionResult, certResult, ciblagesResult] = await Promise.allSettled([
+          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          loadCertificats(bid),
+          supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid)
+        ])
+
+        // Camp status
+        if (campResult.status === 'fulfilled' && campResult.value) {
+          setCampStatus(campResult.value)
         }
         setLoadingCamp(false)
-        
-        // Charger le statut de sélection pour le déploiement
-        // Appel au webhook n8n qui lit Monday board 18394053402 (Ciblage), colonne color_mm0ry1gw (Sélectionné ?)
-        try {
-          const response = await fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${reservisteData.benevole_id}`)
-          const data = await response.json()
-          
-          console.log('Statut de sélection reçu:', data)
-          
-          // Si statut est null, ne pas afficher l'encadré (réserviste pas encore ciblé)
-          if (data.statut) {
-            setSelectionStatus(data)
-          } else {
-            setSelectionStatus(null)
-          }
-        } catch (error) {
-          console.error('Erreur chargement statut sélection:', error)
+
+        // Selection status
+        if (selectionResult.status === 'fulfilled' && selectionResult.value?.statut) {
+          setSelectionStatus(selectionResult.value)
+        } else {
           setSelectionStatus(null)
         }
         setLoadingSelection(false)
-        
-        await loadCertificats(reservisteData.benevole_id)
 
-        const { data: ciblagesData } = await supabase
-          .from('ciblages')
-          .select('deploiement_id')
-          .eq('benevole_id', reservisteData.benevole_id)
-
-        if (ciblagesData && ciblagesData.length > 0) {
-          const deployIds = ciblagesData.map(c => c.deploiement_id)
-          setCiblages(deployIds)
-          
-          const { data: deploiements } = await supabase
-            .from('deploiements_actifs')
-            .select('*')
-            .in('deploiement_id', deployIds)
-            .order('date_debut', { ascending: true })
-          
-          if (deploiements) {
-            setDeploiementsActifs(deploiements)
+        // Ciblages + deploiements
+        if (ciblagesResult.status === 'fulfilled') {
+          const ciblagesData = ciblagesResult.value?.data
+          if (ciblagesData && ciblagesData.length > 0) {
+            const deployIds = ciblagesData.map((c: any) => c.deploiement_id)
+            setCiblages(deployIds)
+            const { data: deploiements } = await supabase
+              .from('deploiements_actifs')
+              .select('*')
+              .in('deploiement_id', deployIds)
+              .order('date_debut', { ascending: true })
+            if (deploiements) setDeploiementsActifs(deploiements)
           }
         }
       }
