@@ -55,117 +55,6 @@ interface CertificatFile {
   url?: string;
 }
 
-interface DossierData {
-  competence_rs: number[];
-  certificat_premiers_soins: number[];
-  certification_csi: number[];
-  competences_securite: number[];
-  competences_sauvetage: number[];
-  communication: number[];
-  cartographie_sig: number[];
-  operation_urgence: number[];
-  permis_conduire: number[];
-  vehicule_tout_terrain: number[];
-  navire_marin: number[];
-  satp_drone: number[];
-  equipe_canine: number[];
-  autres_competences: string;
-}
-
-const DOSSIER_OPTIONS: Record<string, { id: number; label: string }[]> = {
-  competence_rs: [
-    { id: 1, label: 'Niveau 1 - Équipier' },
-    { id: 2, label: "Niveau 2 - Chef d'équipe" },
-    { id: 3, label: 'Niveau 3 - Responsable des opérations' },
-  ],
-  certificat_premiers_soins: [
-    { id: 1, label: 'RCR/DEA (4-6h)' },
-    { id: 2, label: 'Premiers soins standard (8-16h)' },
-    { id: 3, label: 'Secourisme en milieu de travail (16h)' },
-    { id: 4, label: 'Secourisme en milieu éloigné (20-40h)' },
-    { id: 5, label: 'Premier répondant (80-120h)' },
-  ],
-  certification_csi: [
-    { id: 1, label: 'SCI / ICS 100' },
-    { id: 2, label: 'SCI / ICS 200' },
-    { id: 3, label: 'SCI / ICS 300' },
-    { id: 4, label: 'SCI / ICS 400' },
-  ],
-  competences_securite: [
-    { id: 1, label: 'Scies à chaînes' },
-    { id: 2, label: 'Contrôle de la circulation routière' },
-  ],
-  competences_sauvetage: [
-    { id: 1, label: 'Sauvetage sur corde' },
-    { id: 2, label: 'Sauvetage en eau vive' },
-    { id: 3, label: 'Sauvetage sur glace' },
-  ],
-  communication: [
-    { id: 1, label: 'Radio aéronautique' },
-    { id: 2, label: 'Radio maritime' },
-    { id: 3, label: 'Radio amateur' },
-    { id: 4, label: 'Radio générale opérateur' },
-    { id: 5, label: 'Radio restreinte' },
-    { id: 6, label: 'PCRS / GSAR Radio operator' },
-    { id: 7, label: "Télécommunication d'urgence" },
-  ],
-  cartographie_sig: [
-    { id: 1, label: 'ArcGIS Pro' },
-    { id: 2, label: 'ArcGIS Online' },
-    { id: 3, label: 'ArcGIS QuickCapture (Mobile)' },
-    { id: 4, label: 'Caltopo - Sartopo' },
-    { id: 5, label: 'Sartrack' },
-    { id: 6, label: 'Autre' },
-  ],
-  operation_urgence: [
-    { id: 1, label: "Gestion de l'hébergement" },
-    { id: 2, label: 'Gestion de point de service' },
-    { id: 3, label: 'Accueil et inscription' },
-    { id: 4, label: 'Alimentation' },
-    { id: 5, label: 'Services aux sinistrés' },
-    { id: 6, label: 'Aide psychosociale' },
-    { id: 7, label: 'Gestion des dons' },
-    { id: 8, label: 'Soutien logistique' },
-    { id: 9, label: 'Analyse et évaluation' },
-    { id: 10, label: 'Animaux' },
-  ],
-  permis_conduire: [
-    { id: 1, label: 'Classe 5 Voiture' },
-    { id: 2, label: 'Classe 4b Autobus (4-14 passagers)' },
-    { id: 3, label: 'Classe 2 Autobus (24+ passagers)' },
-    { id: 4, label: 'Classe 1 Ensemble véhicules routiers' },
-    { id: 5, label: "Classe 4a Véhicule d'urgence" },
-    { id: 6, label: 'Classe 3 Camions' },
-    { id: 7, label: 'Classe 6 Motocyclette' },
-  ],
-  vehicule_tout_terrain: [
-    { id: 1, label: 'VTT / ATV' },
-    { id: 2, label: 'Motoneige' },
-    { id: 3, label: 'Argo' },
-    { id: 4, label: 'Côte à côte' },
-  ],
-  navire_marin: [
-    { id: 1, label: "Permis d'embarcation de plaisance" },
-    { id: 2, label: 'Petits bateaux' },
-  ],
-  satp_drone: [
-    { id: 1, label: 'Observateur' },
-    { id: 2, label: 'Opérations de base' },
-    { id: 3, label: 'Opérations avancées' },
-  ],
-  equipe_canine: [
-    { id: 1, label: 'Ratissage' },
-    { id: 2, label: 'Pistage' },
-    { id: 3, label: 'Avalanche' },
-    { id: 4, label: 'Décombres' },
-  ],
-}
-
-function getLabels(field: string, ids: number[]): string[] {
-  const options = DOSSIER_OPTIONS[field] || [];
-  return ids.map(id => options.find(o => o.id === id)?.label || `#${id}`);
-}
-
 function FormationContent() {
   const supabase = createClient();
   const router = useRouter();
@@ -198,9 +87,6 @@ function FormationContent() {
   const [modalAllergiesAutres, setModalAllergiesAutres] = useState('');
   const [modalConditions, setModalConditions] = useState('');
   const [modalConsentPhoto, setModalConsentPhoto] = useState(false);
-
-  const [dossierData, setDossierData] = useState<DossierData | null>(null);
-  const [loadingDossier, setLoadingDossier] = useState(true);
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
@@ -255,43 +141,13 @@ function FormationContent() {
           }
         } catch (e) { console.error('Erreur camp:', e); }
         setLoadingCamp(false);
-
-        // Charger le dossier de compétences
-        try {
-          const dossierRes = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`);
-          if (dossierRes.ok) {
-            const dossierJson = await dossierRes.json();
-            if (dossierJson.success && dossierJson.dossier) {
-              const d = dossierJson.dossier;
-              setDossierData({
-                competence_rs: d.competence_rs || [],
-                certificat_premiers_soins: d.certificat_premiers_soins || [],
-                certification_csi: d.certification_csi || [],
-                competences_securite: d.competences_securite || [],
-                competences_sauvetage: d.competences_sauvetage || [],
-                communication: d.communication || [],
-                cartographie_sig: d.cartographie_sig || [],
-                operation_urgence: d.operation_urgence || [],
-                permis_conduire: d.permis_conduire || [],
-                vehicule_tout_terrain: d.vehicule_tout_terrain || [],
-                navire_marin: d.navire_marin || [],
-                satp_drone: d.satp_drone || [],
-                equipe_canine: d.equipe_canine || [],
-                autres_competences: d.autres_competences || '',
-              });
-            }
-          }
-        } catch (e) { console.error('Erreur dossier:', e); }
-        setLoadingDossier(false);
       } else {
         setLoadingCertificats(false);
         setLoadingCamp(false);
-        setLoadingDossier(false);
       }
     } else {
       setLoadingCertificats(false);
       setLoadingCamp(false);
-      setLoadingDossier(false);
     }
 
     setLoading(false);
@@ -646,88 +502,6 @@ function FormationContent() {
             </div>
           )}
         </div>
-
-        {/* Séparateur COMPÉTENCES ET DOSSIER */}
-        {!loadingDossier && dossierData && (
-          (() => {
-            const sections = [
-              { key: 'competence_rs', title: 'Compétence en recherche et sauvetage', icon: '🔍' },
-              { key: 'certificat_premiers_soins', title: 'Premiers soins', icon: '🩺' },
-              { key: 'certification_csi', title: 'Système de commandement (SCI/ICS)', icon: '🎖️' },
-              { key: 'competences_securite', title: 'Compétences en sécurité', icon: '🛡️' },
-              { key: 'competences_sauvetage', title: 'Compétences en sauvetage', icon: '🚒' },
-              { key: 'communication', title: 'Communication radio', icon: '📡' },
-              { key: 'cartographie_sig', title: 'Cartographie et SIG', icon: '🗺️' },
-              { key: 'operation_urgence', title: "Opérations d'urgence", icon: '🚨' },
-              { key: 'permis_conduire', title: 'Permis de conduire', icon: '🚗' },
-              { key: 'vehicule_tout_terrain', title: 'Véhicule tout-terrain', icon: '🏔️' },
-              { key: 'navire_marin', title: 'Navigation maritime', icon: '⛵' },
-              { key: 'satp_drone', title: 'Drone (SATP)', icon: '🚁' },
-              { key: 'equipe_canine', title: 'Équipe canine', icon: '🐕' },
-            ];
-            const filledSections = sections.filter(s => {
-              const val = dossierData[s.key as keyof DossierData];
-              return Array.isArray(val) && val.length > 0;
-            });
-            const hasAny = filledSections.length > 0 || (dossierData.autres_competences && dossierData.autres_competences.trim());
-
-            if (!hasAny) return null;
-
-            return (
-              <>
-                <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
-                  <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>MON DOSSIER DE COMPÉTENCES</span>
-                </div>
-
-                <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '16px' }}>
-                  <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Mes compétences et certifications</div>
-                      <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Données provenant de votre dossier réserviste</div>
-                    </div>
-                    {isApproved && (
-                      <a href="/dossier" style={{ padding: '8px 16px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: '500', flexShrink: 0 }}>Modifier</a>
-                    )}
-                  </div>
-
-                  <div style={{ padding: '20px 24px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-                      {filledSections.map(section => {
-                        const values = dossierData[section.key as keyof DossierData] as number[];
-                        const labels = getLabels(section.key, values);
-                        return (
-                          <div key={section.key}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                              <span style={{ fontSize: '16px' }}>{section.icon}</span>
-                              <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e3a5f' }}>{section.title}</span>
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {labels.map((label, i) => (
-                                <span key={i} style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '12px', color: '#1e40af', fontWeight: '500' }}>
-                                  {label}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {dossierData.autres_competences && dossierData.autres_competences.trim() && (
-                      <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '16px' }}>📝</span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e3a5f' }}>Autres compétences</span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '14px', color: '#4b5563', lineHeight: '1.5' }}>{dossierData.autres_competences}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </>
-            );
-          })()
-        )}
 
         {/* Séparateur RESSOURCES */}
         <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
