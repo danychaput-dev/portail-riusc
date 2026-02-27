@@ -174,7 +174,7 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_CHICOUTIMI_AVR26',
-        monday_id: '11267314669',
+        monday_id: '',
         nom: 'Cohorte 9 - Camp de qualification - Chicoutimi',
         dates: '25-26 avril 2026',
         site: 'Hôtel Chicoutimi',
@@ -182,7 +182,7 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_QUEBEC_MAI26',
-        monday_id: '11267288411',
+        monday_id: '',
         nom: 'Cohorte 10 - Camp de qualification - Québec',
         dates: '23-24 mai 2026',
         site: 'Résidences Campus Notre-Dame-De-Foy',
@@ -190,7 +190,7 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_RIMOUSKI_SEP26',
-        monday_id: '11267307391',
+        monday_id: '',
         nom: 'Cohorte 11 - Camp de qualification - Rimouski',
         dates: '26-27 septembre 2026',
         site: 'À définir',
@@ -198,7 +198,7 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_SHERBROOKE_OCT26',
-        monday_id: '11267307484',
+        monday_id: '',
         nom: 'Cohorte 12 - Camp de qualification - Sherbrooke',
         dates: '17-18 octobre 2026',
         site: 'À définir',
@@ -206,7 +206,7 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_GATINEAU_NOV26',
-        monday_id: '11267277716',
+        monday_id: '',
         nom: 'Cohorte 13 - Camp de qualification - Gatineau',
         dates: '14-15 novembre 2026',
         site: 'À définir',
