@@ -23,6 +23,8 @@ interface Reserviste {
   id: number;
   prenom: string | null;
   nom: string | null;
+  email: string | null;
+  telephone: string | null;
   groupe: string | null;
   region: string | null;
   statut: string | null;
@@ -267,7 +269,7 @@ export default function StatsPage() {
           .order('created_at', { ascending: false }),
         supabase
           .from('reservistes')
-          .select('id, prenom, nom, groupe, region, statut, created_at, user_id'),
+          .select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, user_id'),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
@@ -361,13 +363,37 @@ export default function StatsPage() {
     // Build user_id → name lookup from reservistes
     const userNameMap: Record<string, string> = {};
     reservistes.forEach(r => {
-      if (r.user_id && r.prenom && r.nom) userNameMap[r.user_id] = `${r.prenom} ${r.nom}`;
+      if (r.prenom && r.nom) {
+        const fullName = `${r.prenom} ${r.nom}`;
+        if (r.user_id) userNameMap[r.user_id] = fullName;
+      }
     });
+    // Also build phone → name and email → name for fallback
+    const phoneNameMap: Record<string, string> = {};
+    const emailNameMap: Record<string, string> = {};
+    reservistes.forEach(r => {
+      if (!r.prenom || !r.nom) return;
+      const fullName = `${r.prenom} ${r.nom}`;
+      if (r.telephone) {
+        phoneNameMap[r.telephone] = fullName;
+        // Also store with leading 1 stripped and with leading 1 added
+        if (r.telephone.startsWith('1')) phoneNameMap[r.telephone.slice(1)] = fullName;
+        else phoneNameMap['1' + r.telephone] = fullName;
+      }
+      if (r.email) emailNameMap[r.email.toLowerCase()] = fullName;
+    });
+
+    const resolveName = (l: LogRow): string => {
+      if (l.user_id && userNameMap[l.user_id]) return userNameMap[l.user_id];
+      if (l.telephone && phoneNameMap[l.telephone]) return phoneNameMap[l.telephone];
+      if (l.email && emailNameMap[l.email.toLowerCase()]) return emailNameMap[l.email.toLowerCase()];
+      return l.email || l.telephone || l.user_id || '?';
+    };
 
     const userPageCounts: Record<string, { email: string; count: number }> = {};
     authenticated.forEach(l => {
       if (!l.user_id) return;
-      if (!userPageCounts[l.user_id]) userPageCounts[l.user_id] = { email: userNameMap[l.user_id] || l.email || l.telephone || l.user_id, count: 0 };
+      if (!userPageCounts[l.user_id]) userPageCounts[l.user_id] = { email: resolveName(l), count: 0 };
       userPageCounts[l.user_id].count++;
     });
     const activeUsers = Object.values(userPageCounts).sort((a, b) => b.count - a.count).slice(0, 10);
