@@ -148,7 +148,7 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
 
 function Section({ title, children, accent }: { title: string; children: React.ReactNode; accent?: string }) {
   return (
-    <div style={{
+    <div className="print-section" style={{
       background: '#fff',
       borderRadius: 12,
       border: `1px solid ${GREY_BORDER}`,
@@ -197,12 +197,37 @@ export default function StatsPage() {
     style.setAttribute('data-print-stats', 'true');
     style.textContent = `
       @media print {
-        @page { size: A4 landscape; margin: 12mm; }
-        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        @page { size: A4 landscape; margin: 10mm; }
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-size: 11px !important; }
         .no-print { display: none !important; }
         .print-only { display: block !important; }
         header { position: relative !important; }
         div[style*="box-shadow"] { box-shadow: none !important; }
+
+        /* Empêcher les coupures dans les sections */
+        .print-section { break-inside: avoid !important; page-break-inside: avoid !important; }
+
+        /* Forcer les grilles en 2 colonnes fixes */
+        .print-grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+
+        /* Les cartes KPI en ligne */
+        .print-cards { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
+        .print-cards > div { flex: 1 1 22% !important; min-width: 0 !important; padding: 12px 16px !important; }
+        .print-cards > div > div:nth-child(2) { font-size: 24px !important; }
+
+        /* Tables */
+        table { font-size: 11px !important; }
+        th, td { padding: 5px 8px !important; }
+
+        /* Réduire les marges */
+        .print-content { padding: 12px 8px !important; }
+        .print-content h3 { font-size: 14px !important; margin-bottom: 8px !important; }
+
+        /* Barres : réduire hauteur */
+        .print-bar-row { padding: 3px 0 !important; }
+
+        /* Sparkline & histogram plus petits */
+        .print-chart { height: 60px !important; }
       }
     `;
     document.head.appendChild(style);
@@ -471,7 +496,7 @@ export default function StatsPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
+      <div className="print-content" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
 
         {/* En-tête PDF avec date — visible seulement à l'impression */}
         <div className="print-only" style={{ display: 'none', textAlign: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${GREY_BORDER}` }}>
@@ -491,7 +516,7 @@ export default function StatsPage() {
             <Divider label="🧑‍🤝‍🧑 Réservistes" />
 
             {/* KPI globaux */}
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
               <StatCard icon="👥" label="Total réservistes" value={resStats.total} />
               <StatCard icon="✅" label="Approuvés" value={resStats.approuves} color={GREEN} sub={`${resStats.total > 0 ? Math.round(resStats.approuves / resStats.total * 100) : 0}% du total`} />
               <StatCard icon="🔵" label="Intérêt" value={resStats.interets} color={BLUE} sub={`${resStats.total > 0 ? Math.round(resStats.interets / resStats.total * 100) : 0}% du total`} />
@@ -499,7 +524,7 @@ export default function StatsPage() {
             </div>
 
             {/* Nouvelles inscriptions */}
-            <div style={{
+            <div className="print-section" style={{
               background: '#fff',
               borderRadius: 12,
               border: `1px solid ${GREY_BORDER}`,
@@ -516,7 +541,7 @@ export default function StatsPage() {
 
               {/* Sparkline 30 jours */}
               <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8, fontWeight: 500 }}>Inscriptions par jour (30 derniers jours)</div>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
+              <div className="print-chart" style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
                 {resStats.dailyData.map(([day, count]) => {
                   const maxD = Math.max(...resStats.dailyData.map(d => d[1] as number), 1);
                   const height = ((count as number) / maxD) * 100;
@@ -549,7 +574,7 @@ export default function StatsPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 20 }}>
+            <div className="print-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 20 }}>
               {/* Groupes */}
               <Section title="📋 Répartition par groupe" accent={PRIMARY}>
                 {resStats.groupRanking.map(([group, count]) => (
@@ -672,14 +697,14 @@ export default function StatsPage() {
             </div>
 
             {/* KPI Cards trafic */}
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+            <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
               <StatCard icon="👁️" label="Pages vues" value={logStats.totalVisits} sub={`${logStats.anonymous} anonymes · ${logStats.authenticated} connectés`} />
               <StatCard icon="🧑" label="Utilisateurs uniques" value={logStats.uniqueUsers} color={PRIMARY_LIGHT} />
               <StatCard icon="✅" label="Connexions réussies" value={logStats.logins} color={GREEN} />
               <StatCard icon="⚠️" label="Connexions échouées" value={logStats.failed} color={logStats.failed > 0 ? RED : '#6b7280'} />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 24 }}>
+            <div className="print-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 24 }}>
               {/* Pages populaires */}
               <Section title="📄 Pages les plus visitées">
                 {logStats.pageRanking.length === 0
@@ -724,7 +749,7 @@ export default function StatsPage() {
             {/* Distribution horaire */}
             <div style={{ marginBottom: 24 }}>
               <Section title="🕐 Distribution horaire des visites">
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 120, paddingTop: 8 }}>
+                <div className="print-chart" style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 120, paddingTop: 8 }}>
                   {logStats.hourlyCounts.map((count, h) => {
                     const maxH = Math.max(...logStats.hourlyCounts, 1);
                     const height = (count / maxH) * 100;
