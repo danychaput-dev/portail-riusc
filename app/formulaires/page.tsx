@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
+import { logPageVisit } from '@/utils/logEvent'
 
 interface Reserviste {
   benevole_id: string;
@@ -73,6 +74,7 @@ export default function InformationsPage() {
         }
       }
       if (reservisteData) setReserviste(reservisteData)
+      logPageVisit('/informations')
       setLoading(false)
     }
     loadData()

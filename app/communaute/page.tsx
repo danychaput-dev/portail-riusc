@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
+import { logPageVisit } from '@/utils/logEvent';
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -189,6 +190,7 @@ export default function CommunautePage() {
         setReserviste(debugUser);
         const debugEmail = debugUser.email?.toLowerCase() || '';
         setIsAdmin(ADMIN_EMAILS.includes(debugEmail));
+        logPageVisit('/communaute');
         setLoading(false);
         return;
       }
@@ -221,6 +223,7 @@ export default function CommunautePage() {
       { user_id: user.id, last_seen_at: new Date().toISOString() },
       { onConflict: 'user_id' }
     );
+    logPageVisit('/communaute');
     setLoading(false);
   }
 

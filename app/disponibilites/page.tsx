@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
+import { logPageVisit } from '@/utils/logEvent';
 
 interface Disponibilite {
   id: string;
@@ -117,6 +118,7 @@ export default function DisponibilitesPage() {
       await fetchDeploiementsActifs(reservisteData.benevole_id);
       await fetchCiblageReponses(reservisteData.benevole_id);
     }
+    logPageVisit('/disponibilites/soumettre');
     setLoading(false);
   }
 

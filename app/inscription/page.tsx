@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
+import { logPageVisit } from '@/utils/logEvent'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -137,6 +138,7 @@ export default function InscriptionPage() {
 
   const [campId, setCampId] = useState('')
   useEffect(() => {
+    logPageVisit('/inscription')
     const params = new URLSearchParams(window.location.search)
     setCampId(params.get('camp') || '')
     const emailParam = params.get('email')

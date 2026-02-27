@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
+import { logPageVisit } from '@/utils/logEvent'
 
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 
@@ -478,6 +479,7 @@ export default function DossierPage() {
 
       if (reservisteData.groupe !== 'Approuvé') { router.push('/'); return }
 
+      logPageVisit('/dossier')
       setLoading(false)
 
       // Charger organisations

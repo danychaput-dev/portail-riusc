@@ -7,6 +7,7 @@ import ImageCropper from '@/app/components/ImageCropper'
 import PortailHeader from '@/app/components/PortailHeader'
 import { useAuth } from '@/utils/useAuth'
 import ImpersonateBanner from '@/app/components/ImpersonateBanner'
+import { logPageVisit } from '@/utils/logEvent'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -506,6 +507,7 @@ export default function ProfilPage() {
             const { data: languesData } = await supabase.from('langues').select('id, nom').order('nom')
             setAllLangues(languesData || [])
 
+            logPageVisit('/profil')
             setLoading(false)
             return
           }
@@ -671,6 +673,7 @@ export default function ProfilPage() {
         console.error('Erreur chargement dossier:', error)
       }
 
+      logPageVisit('/profil')
       setLoading(false)
     }
     loadData()

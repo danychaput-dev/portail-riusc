@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
+import { logPageVisit } from '@/utils/logEvent';
 
 /* =============================
    INTERFACES
@@ -322,6 +323,7 @@ function FichesTachesContent() {
       } else { reservisteData = data; }
     }
     if (reservisteData) setReserviste(reservisteData);
+    logPageVisit('/disponibilites');
     setLoading(false);
   }
 

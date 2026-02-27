@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
 import { useAuth } from '@/utils/useAuth'
 import ImpersonateBanner from '@/app/components/ImpersonateBanner'
-import { logPageVisit } from '@/utils/logEvent'
 
 interface Reserviste {
   benevole_id: string;
@@ -131,7 +130,6 @@ export default function InformationsPage() {
           setDocumentUrls(urls)
         }
       }
-      logPageVisit('/informations')
       setLoading(false)
     }
     loadData()

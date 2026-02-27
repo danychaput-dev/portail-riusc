@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import Image from 'next/image'
+import { logPageVisit } from '@/utils/logEvent'
 
 interface DeploiementInfo {
   deploiement_id: string;
@@ -90,6 +91,7 @@ function SoumettreContent() {
       } else {
         setError('Déploiement introuvable.')
       }
+      logPageVisit('/disponibilites/soumettre')
       setLoading(false)
     }
     loadData()

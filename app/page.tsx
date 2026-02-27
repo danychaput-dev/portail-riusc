@@ -8,6 +8,7 @@ import GuidedTour from './components/GuidedTour'
 import { useAuth } from '@/utils/useAuth'
 import ImpersonateBanner from './components/ImpersonateBanner'
 import PortailHeader from './components/PortailHeader'
+import { logEvent, logPageVisit } from '@/utils/logEvent'
 
 interface DeploiementActif {
   id: string;
@@ -282,6 +283,8 @@ export default function HomePage() {
               }
             }
             
+            logPageVisit('/')
+            
             setLoading(false)
             return
           }
@@ -437,12 +440,17 @@ export default function HomePage() {
         if (count) setUnreadCount(count)
       }
 
+      logPageVisit('/')
+
       setLoading(false)
     }
     loadData()
    }, [authUser, authLoading])
 
   const handleSignOut = async () => {
+    // Logger le logout AVANT de détruire la session
+    await logEvent({ eventType: 'logout' })
+
     // 🔧 Nettoyer mode debug
     if (typeof window !== 'undefined') {
       localStorage.removeItem('debug_mode')

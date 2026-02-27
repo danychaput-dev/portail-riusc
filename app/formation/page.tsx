@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
+import { logPageVisit } from '@/utils/logEvent';
 
 interface Reserviste {
   benevole_id: string;
@@ -194,6 +195,7 @@ function FormationContent() {
           } else {
             setLoadingCertificats(false); setLoadingCamp(false); setLoadingFormations(false);
           }
+          logPageVisit('/formation');
           setLoading(false);
           return;
         }
@@ -296,6 +298,7 @@ function FormationContent() {
       setLoadingFormations(false);
     }
 
+    logPageVisit('/formation');
     setLoading(false);
   }
 
