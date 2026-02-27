@@ -21,6 +21,8 @@ interface LogRow {
 
 interface Reserviste {
   id: number;
+  prenom: string | null;
+  nom: string | null;
   groupe: string | null;
   region: string | null;
   statut: string | null;
@@ -187,6 +189,24 @@ export default function StatsPage() {
   const [customFrom, setCustomFrom] = useState(formatDate(new Date()));
   const [customTo, setCustomTo] = useState(formatDate(new Date()));
 
+  // Print styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.setAttribute('data-print-stats', 'true');
+    style.textContent = `
+      @media print {
+        @page { size: A4 landscape; margin: 12mm; }
+        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        header { position: relative !important; }
+        div[style*="box-shadow"] { box-shadow: none !important; }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => { style.remove(); };
+  }, []);
+
   // Auth check
   useEffect(() => {
     (async () => {
@@ -247,7 +267,7 @@ export default function StatsPage() {
           .order('created_at', { ascending: false }),
         supabase
           .from('reservistes')
-          .select('id, groupe, region, statut, created_at, user_id'),
+          .select('id, prenom, nom, groupe, region, statut, created_at, user_id'),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
@@ -338,10 +358,16 @@ export default function StatsPage() {
       method: l.auth_method || '—',
     }));
 
+    // Build user_id → name lookup from reservistes
+    const userNameMap: Record<string, string> = {};
+    reservistes.forEach(r => {
+      if (r.user_id && r.prenom && r.nom) userNameMap[r.user_id] = `${r.prenom} ${r.nom}`;
+    });
+
     const userPageCounts: Record<string, { email: string; count: number }> = {};
     authenticated.forEach(l => {
       if (!l.user_id) return;
-      if (!userPageCounts[l.user_id]) userPageCounts[l.user_id] = { email: l.email || l.telephone || l.user_id, count: 0 };
+      if (!userPageCounts[l.user_id]) userPageCounts[l.user_id] = { email: userNameMap[l.user_id] || l.email || l.telephone || l.user_id, count: 0 };
       userPageCounts[l.user_id].count++;
     });
     const activeUsers = Object.values(userPageCounts).sort((a, b) => b.count - a.count).slice(0, 10);
@@ -350,7 +376,7 @@ export default function StatsPage() {
     pageVisits.forEach(l => { hourlyCounts[new Date(l.created_at).getHours()]++; });
 
     return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, activeUsers, authEvents, hourlyCounts };
-  }, [logs]);
+  }, [logs, reservistes]);
 
   // ─── Render ───────────────────────────────────────────────────────
   if (!authorized) {
@@ -382,23 +408,52 @@ export default function StatsPage() {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>📊 Tableau de bord</h1>
           <div style={{ fontSize: 13, opacity: 0.8, marginTop: 2 }}>Statistiques du portail RIUSC — Réservé aux administrateurs</div>
         </div>
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            background: 'rgba(255,255,255,0.15)',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: 8,
-            padding: '8px 16px',
-            cursor: 'pointer',
-            fontSize: 14,
-          }}
-        >
-          ← Retour au portail
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => window.print()}
+            className="no-print"
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            🖨️ Exporter PDF
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            className="no-print"
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: 14,
+            }}
+          >
+            ← Retour au portail
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px' }}>
+
+        {/* En-tête PDF avec date — visible seulement à l'impression */}
+        <div className="print-only" style={{ display: 'none', textAlign: 'center', marginBottom: 16, paddingBottom: 12, borderBottom: `2px solid ${GREY_BORDER}` }}>
+          <div style={{ fontSize: 11, color: '#6b7280' }}>
+            Rapport généré le {new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Montreal' })}
+            {period === 'today' ? " — Période : Aujourd'hui" : period === '7d' ? ' — Période : 7 derniers jours' : period === '30d' ? ' — Période : 30 derniers jours' : ` — Période : ${customFrom} au ${customTo}`}
+          </div>
+        </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: 60, color: '#6b7280' }}>Chargement des données...</div>
@@ -497,7 +552,7 @@ export default function StatsPage() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                         <thead>
                           <tr style={{ borderBottom: `2px solid ${GREY_BORDER}` }}>
-                            <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>ID</th>
+                            <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Nom</th>
                             <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Groupe</th>
                             <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Région</th>
                             <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Quand</th>
@@ -507,7 +562,7 @@ export default function StatsPage() {
                         <tbody>
                           {resStats.recentInscriptions.map((r) => (
                             <tr key={r.id} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
-                              <td style={{ padding: '8px 12px', color: '#374151', fontWeight: 500 }}>#{r.id}</td>
+                              <td style={{ padding: '8px 12px', color: '#374151', fontWeight: 500 }}>{r.prenom && r.nom ? `${r.prenom} ${r.nom}` : `#${r.id}`}</td>
                               <td style={{ padding: '8px 12px' }}>
                                 <span style={{
                                   display: 'inline-block',
@@ -545,7 +600,7 @@ export default function StatsPage() {
             <Divider label="📈 Trafic & connexions" />
 
             {/* Period selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+            <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
               {([
                 ['today', "Aujourd'hui"],
                 ['7d', '7 jours'],
