@@ -75,6 +75,7 @@ export default function InscriptionPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [campInscrit, setCampInscrit] = useState(false)
   const [nomCampInscrit, setNomCampInscrit] = useState('')
+  const [isListeAttente, setIsListeAttente] = useState(false)
   
   const [formData, setFormData] = useState({
     prenom: '',
@@ -522,6 +523,13 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
       // Stocker l'info pour la page de succès
       setCampInscrit(campInscritSuccess)
       setNomCampInscrit(campNom)
+      
+      // Vérifier si c'est une liste d'attente
+      if (selectedSessionId && selectedSessionId !== 'PLUS_TARD') {
+        const sessionSel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
+        const capInfo = sessionSel?.monday_id ? sessionCapacities[sessionSel.monday_id] : null
+        setIsListeAttente(capInfo?.statut === 'liste_attente')
+      }
 
       // Afficher la page de succès avec le bon message
       setStep('success')
@@ -554,20 +562,34 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
         <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', textAlign: 'center' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>✅</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>{isListeAttente ? '⏳' : '✅'}</div>
           <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '24px' }}>Inscription réussie !</h2>
           
           <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0 0 16px 0' }}>
             Bienvenue dans la RIUSC, <strong>{formData.prenom}</strong> ! Votre compte est en cours de création.
           </p>
 
-          {campInscrit && nomCampInscrit && (
+          {campInscrit && nomCampInscrit && !isListeAttente && (
             <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '16px', margin: '0 0 16px 0' }}>
               <p style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '15px', fontWeight: '600' }}>
                 🎓 Inscription au camp confirmée
               </p>
               <p style={{ margin: 0, color: '#059669', fontSize: '14px' }}>
                 {nomCampInscrit}
+              </p>
+            </div>
+          )}
+
+          {campInscrit && nomCampInscrit && isListeAttente && (
+            <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '16px', margin: '0 0 16px 0' }}>
+              <p style={{ margin: '0 0 8px 0', color: '#92400e', fontSize: '15px', fontWeight: '600' }}>
+                ⏳ Vous êtes sur la liste d&apos;attente
+              </p>
+              <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>
+                {nomCampInscrit}
+              </p>
+              <p style={{ margin: '8px 0 0 0', color: '#92400e', fontSize: '13px', lineHeight: '1.5' }}>
+                Les places sont actuellement toutes comblées. Nous vous contacterons si une place se libère.
               </p>
             </div>
           )}
