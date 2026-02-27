@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import Image from 'next/image'
+import { logEvent, logPageVisit } from '@/utils/logEvent'
 
 function LoginContent() {
   const [loading, setLoading] = useState(false)
@@ -27,6 +28,9 @@ function LoginContent() {
   )
 
   useEffect(() => {
+    // Log visite page login
+    logPageVisit('/login')
+
     const errorParam = searchParams.get('error')
     if (errorParam === 'not_authorized') {
       setError(<>Votre courriel n&apos;est pas autorisé.{contactLink}</>)
@@ -70,11 +74,25 @@ function LoginContent() {
 
         if (fetchError || !reserviste) {
           setError('Réserviste non trouvé pour cet email')
+          await logEvent({
+            eventType: 'login_failed',
+            email: email.trim(),
+            authMethod: 'debug',
+            metadata: { reason: 'reserviste_not_found' },
+          })
           setLoading(false)
           return
         }
 
         console.log('✅ Réserviste trouvé:', reserviste)
+
+        // Log login debug
+        await logEvent({
+          eventType: 'login_debug',
+          email: email.trim(),
+          authMethod: 'debug',
+          metadata: { impersonated_email: email.trim() },
+        })
 
         // Créer une session debug en localStorage
         localStorage.setItem('debug_mode', 'true')
@@ -112,12 +130,22 @@ function LoginContent() {
       if (fetchError) {
         console.error('Erreur recherche réserviste:', fetchError)
         setError(<>Erreur de connexion. Veuillez réessayer.{contactLink}</>)
+        await logEvent({
+          eventType: 'login_failed',
+          email: email.trim(),
+          metadata: { reason: 'rpc_error', error: fetchError.message },
+        })
         setLoading(false)
         return
       }
 
       if (!reserviste) {
         setShowJoinPrompt(true)
+        await logEvent({
+          eventType: 'login_failed',
+          email: email.trim(),
+          metadata: { reason: 'reserviste_not_found', showed_join_prompt: true },
+        })
         setLoading(false)
         return
       }
@@ -140,6 +168,11 @@ function LoginContent() {
         if (emailError) {
           console.error('Email OTP Error:', emailError)
           setError(<>Erreur d&apos;envoi du code de connexion.{contactLink}</>)
+          await logEvent({
+            eventType: 'login_failed',
+            email: email.trim(),
+            metadata: { reason: 'otp_send_failed', error: emailError.message },
+          })
           setLoading(false)
           return
         }
@@ -150,6 +183,11 @@ function LoginContent() {
     } catch (err) {
       console.error('Unexpected error:', err)
       setError(<>Une erreur inattendue est survenue. Réessayez.{contactLink}</>)
+      await logEvent({
+        eventType: 'login_failed',
+        email: email.trim(),
+        metadata: { reason: 'unexpected_error', error: String(err) },
+      })
     }
 
     setLoading(false)
@@ -177,16 +215,35 @@ function LoginContent() {
       if (verifyResult?.error) {
         console.error('Verify Error:', verifyResult.error)
         setError(<>Code invalide ou expiré. Réessayez.{contactLink}</>)
+        await logEvent({
+          eventType: 'login_failed',
+          email: email.trim(),
+          authMethod: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
+          metadata: { reason: 'otp_verify_failed', error: verifyResult.error.message },
+        })
         setLoading(false)
         return
       }
 
       if (verifyResult?.data?.user) {
+        // ✅ Login réussi — logger avant la redirection
+        await logEvent({
+          eventType: otpMethod === 'sms' ? 'login_sms' : 'login_email',
+          email: email.trim(),
+          userId: verifyResult.data.user.id,
+          telephone: verifyResult.data.user.phone || null,
+          authMethod: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
+        })
         router.push(campId ? `/formation?camp=${campId}` : '/')
       }
     } catch (err) {
       console.error('Verify unexpected error:', err)
       setError(<>Erreur de vérification. Réessayez.{contactLink}</>)
+      await logEvent({
+        eventType: 'login_failed',
+        email: email.trim(),
+        metadata: { reason: 'verify_unexpected_error', error: String(err) },
+      })
     }
 
     setLoading(false)

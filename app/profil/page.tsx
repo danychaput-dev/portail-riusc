@@ -139,7 +139,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 2, label: 'Petits bateaux / Small craft' },
   ],
   permis_conduire: [
-    { id: 1, label: 'Classe 5 Voiture (G ontario) / Car' },
+    { id: 1, label: 'Classe 5 Voiture (classe G ontario) / Car' },
     { id: 2, label: 'Classe 4b Autobus (4-14 passagers) / Bus (4-14 passengers)' },
     { id: 3, label: 'Classe 2 Autobus (24+ passager) / Bus (24+ passenger)' },
     { id: 4, label: 'Classe 1 Ensemble de véhicules routiers / Heavy vehicle' },
