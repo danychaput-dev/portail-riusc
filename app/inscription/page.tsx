@@ -166,7 +166,7 @@ export default function InscriptionPage() {
     const campsStat = [
       {
         session_id: 'CAMP_STE_CATHERINE_MAR26',
-        monday_id: '11051840169',
+        monday_id: '11074000836',
         nom: 'Cohorte 8 - Camp de qualification - Sainte-Catherine',
         dates: '14 et 15 mars 2026',
         site: "Centre Municipal Aimé-Guérin",
@@ -985,3 +985,4 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
     </div>
   )
 }
+Git a
