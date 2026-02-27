@@ -104,7 +104,6 @@ export default function InscriptionPage() {
   // ─── Camps et Santé ─────────────────────────────────────────────────────────
   const [sessionsDisponibles, setSessionsDisponibles] = useState<Array<{
     session_id: string;
-    monday_id?: string;
     nom: string;
     dates: string;
     site: string;
@@ -116,7 +115,6 @@ export default function InscriptionPage() {
   const [autresAllergies, setAutresAllergies] = useState('')
   const [conditionsMedicales, setConditionsMedicales] = useState('')
   const [consentementPhoto, setConsentementPhoto] = useState(false)
-  const [sessionCapacities, setSessionCapacities] = useState<Record<string, { inscrits: number; capacite: number; attente: number; attente_max: number; places_restantes: number; statut: string }>>({})
   // ────────────────────────────────────────────────────────────────────────────
 
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
@@ -166,7 +164,6 @@ export default function InscriptionPage() {
     const campsStat = [
       {
         session_id: 'CAMP_STE_CATHERINE_MAR26',
-        monday_id: '11051840169',
         nom: 'Cohorte 8 - Camp de qualification - Sainte-Catherine',
         dates: '14 et 15 mars 2026',
         site: "Centre Municipal Aimé-Guérin",
@@ -174,7 +171,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_CHICOUTIMI_AVR26',
-        monday_id: '',
         nom: 'Cohorte 9 - Camp de qualification - Chicoutimi',
         dates: '25-26 avril 2026',
         site: 'Hôtel Chicoutimi',
@@ -182,7 +178,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_QUEBEC_MAI26',
-        monday_id: '',
         nom: 'Cohorte 10 - Camp de qualification - Québec',
         dates: '23-24 mai 2026',
         site: 'Résidences Campus Notre-Dame-De-Foy',
@@ -190,7 +185,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_RIMOUSKI_SEP26',
-        monday_id: '',
         nom: 'Cohorte 11 - Camp de qualification - Rimouski',
         dates: '26-27 septembre 2026',
         site: 'À définir',
@@ -198,7 +192,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_SHERBROOKE_OCT26',
-        monday_id: '',
         nom: 'Cohorte 12 - Camp de qualification - Sherbrooke',
         dates: '17-18 octobre 2026',
         site: 'À définir',
@@ -206,7 +199,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_GATINEAU_NOV26',
-        monday_id: '',
         nom: 'Cohorte 13 - Camp de qualification - Gatineau',
         dates: '14-15 novembre 2026',
         site: 'À définir',
@@ -224,16 +216,6 @@ export default function InscriptionPage() {
         setSelectedSessionId(campId)
       }
     }
-
-    // Charger les capacités
-    fetch('https://n8n.aqbrs.ca/webhook/camp-capacity')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.success && data.sessions) {
-          setSessionCapacities(data.sessions)
-        }
-      })
-      .catch(e => console.error('Erreur capacité camps:', e))
   }, [campId])
 
   // NOTE: useEffect de pré-sélection retiré car fusionné ci-dessus
@@ -488,10 +470,6 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
             .eq('benevole_id', newBenevoleId)
 
           // Appeler l'API d'inscription au camp
-          const sessionSel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
-          const capInfo = sessionSel?.monday_id ? sessionCapacities[sessionSel.monday_id] : null
-          const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
-          
           const campResponse = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -503,7 +481,6 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
               camp_site: sessionSelectionnee?.site,
               camp_location: sessionSelectionnee?.location,
               presence: 'confirme',
-              statut: inscriptionStatut,
               courriel: emailClean,
               telephone: isTestPhone ? null : phoneClean,
               prenom_nom: `${formData.prenom.trim()} ${formData.nom.trim()}`
@@ -819,23 +796,16 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                 {sessionsDisponibles.length > 0 && (
                   <>
                     <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '8px 0' }}></div>
-                    {sessionsDisponibles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => {
-                      const cap = session.monday_id ? sessionCapacities[session.monday_id] : null
-                      const isComplet = cap?.statut === 'complet'
-                      const isAttente = cap?.statut === 'liste_attente'
-                      const isDisabled = isComplet
-                      
-                      return (
+                    {sessionsDisponibles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => (
                       <label
                         key={session.session_id}
                         style={{
                           display: 'block',
                           padding: '16px',
-                          border: isDisabled ? '1px solid #e5e7eb' : selectedSessionId === session.session_id ? '2px solid #059669' : '1px solid #e5e7eb',
+                          border: selectedSessionId === session.session_id ? '2px solid #059669' : '1px solid #e5e7eb',
                           borderRadius: '8px',
-                          cursor: isDisabled ? 'not-allowed' : 'pointer',
-                          backgroundColor: isDisabled ? '#f9fafb' : selectedSessionId === session.session_id ? '#f0fdf4' : 'white',
-                          opacity: isDisabled ? 0.6 : 1,
+                          cursor: 'pointer',
+                          backgroundColor: selectedSessionId === session.session_id ? '#f0fdf4' : 'white',
                           transition: 'all 0.2s'
                         }}
                       >
@@ -845,23 +815,11 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                             name="session"
                             value={session.session_id}
                             checked={selectedSessionId === session.session_id}
-                            onChange={(e) => !isDisabled && setSelectedSessionId(e.target.value)}
-                            disabled={isDisabled}
+                            onChange={(e) => setSelectedSessionId(e.target.value)}
                             style={{ marginTop: '4px', accentColor: '#059669' }}
                           />
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                              <span style={{ fontWeight: '600', color: isDisabled ? '#9ca3af' : '#111827' }}>{session.nom}</span>
-                              {isComplet && (
-                                <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Complet</span>
-                              )}
-                              {isAttente && (
-                                <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
-                              )}
-                              {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
-                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
-                              )}
-                            </div>
+                            <div style={{ fontWeight: '600', color: '#111827', marginBottom: '6px' }}>{session.nom}</div>
                             <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
                               {session.dates && <div>{session.dates}</div>}
                               {session.site && <div>{session.site}</div>}
@@ -870,8 +828,7 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                           </div>
                         </div>
                       </label>
-                      )
-                    })}
+                    ))}
                   </>
                 )}
               </div>
@@ -881,22 +838,6 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           {/* ── Informations santé (conditionnel si camp sélectionné) ── */}
           {selectedSessionId && selectedSessionId !== 'PLUS_TARD' && (
             <div style={sectionStyle}>
-              {/* Avertissement liste d'attente */}
-              {(() => {
-                const sel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
-                const cap = sel?.monday_id ? sessionCapacities[sel.monday_id] : null
-                if (cap?.statut === 'liste_attente') {
-                  return (
-                    <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <span style={{ fontSize: '18px', flexShrink: 0 }}>⏳</span>
-                      <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
-                        <strong>Ce camp est complet.</strong> Votre inscription sera placée sur la liste d&apos;attente. Vous serez contacté si une place se libère.
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              })()}
               <h3 style={sectionTitleStyle}>Informations santé pour le camp</h3>
               <p style={sectionDescStyle}>Ces informations aideront l&apos;équipe à mieux vous accompagner durant le camp.</p>
 
