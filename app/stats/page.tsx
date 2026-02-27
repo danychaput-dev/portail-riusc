@@ -29,6 +29,7 @@ interface Reserviste {
   region: string | null;
   statut: string | null;
   created_at: string | null;
+  monday_created_at: string | null;
   user_id: string | null;
 }
 
@@ -294,7 +295,7 @@ export default function StatsPage() {
           .order('created_at', { ascending: false }),
         supabase
           .from('reservistes')
-          .select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, user_id'),
+          .select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
@@ -319,10 +320,14 @@ export default function StatsPage() {
     const approuves = groupCounts['Approuvé'] || 0;
     const interets = groupCounts['Intérêt'] || 0;
 
-    // Inscriptions récentes
-    const last24h = reservistes.filter(r => r.created_at && (now - new Date(r.created_at).getTime()) <= DAY).length;
-    const last7d = reservistes.filter(r => r.created_at && (now - new Date(r.created_at).getTime()) <= 7 * DAY).length;
-    const last30d = reservistes.filter(r => r.created_at && (now - new Date(r.created_at).getTime()) <= 30 * DAY).length;
+    // Inscriptions récentes — utilise monday_created_at (vraie date Monday), fallback sur created_at
+    const getInscDate = (r: Reserviste): number | null => {
+      const d = r.monday_created_at || r.created_at;
+      return d ? new Date(d).getTime() : null;
+    };
+    const last24h = reservistes.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY; }).length;
+    const last7d = reservistes.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY; }).length;
+    const last30d = reservistes.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY; }).length;
 
     // Régions
     const regionCounts: Record<string, number> = {};
@@ -337,8 +342,12 @@ export default function StatsPage() {
 
     // 10 derniers inscrits
     const recentInscriptions = [...reservistes]
-      .filter(r => r.created_at)
-      .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+      .filter(r => r.monday_created_at || r.created_at)
+      .sort((a, b) => {
+        const da = new Date(a.monday_created_at || a.created_at!).getTime();
+        const db = new Date(b.monday_created_at || b.created_at!).getTime();
+        return db - da;
+      })
       .slice(0, 10);
 
     // Sparkline 30 jours
@@ -348,8 +357,9 @@ export default function StatsPage() {
       dailyCounts[formatDate(d)] = 0;
     }
     reservistes.forEach(r => {
-      if (!r.created_at) return;
-      const day = formatDate(new Date(r.created_at));
+      const d = r.monday_created_at || r.created_at;
+      if (!d) return;
+      const day = formatDate(new Date(d));
       if (day in dailyCounts) dailyCounts[day]++;
     });
     const dailyData = Object.entries(dailyCounts);
@@ -628,7 +638,7 @@ export default function StatsPage() {
                                 </span>
                               </td>
                               <td style={{ padding: '8px 12px', color: '#6b7280' }}>{r.region || '—'}</td>
-                              <td style={{ padding: '8px 12px', color: '#6b7280' }}>{r.created_at ? timeAgo(r.created_at) : '—'}</td>
+                              <td style={{ padding: '8px 12px', color: '#6b7280' }}>{(r.monday_created_at || r.created_at) ? timeAgo(r.monday_created_at || r.created_at!) : '—'}</td>
                               <td style={{ padding: '8px 12px', textAlign: 'center' }}>
                                 {r.user_id
                                   ? <span style={{ color: GREEN, fontWeight: 600 }}>✓</span>
