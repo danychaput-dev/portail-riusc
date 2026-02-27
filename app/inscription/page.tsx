@@ -903,22 +903,6 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           {/* ── Informations santé (conditionnel si camp sélectionné) ── */}
           {selectedSessionId && selectedSessionId !== 'PLUS_TARD' && (
             <div style={sectionStyle}>
-              {/* Avertissement liste d'attente */}
-              {(() => {
-                const sel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
-                const cap = sel?.monday_id ? sessionCapacities[sel.monday_id] : null
-                if (cap?.statut === 'liste_attente') {
-                  return (
-                    <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <span style={{ fontSize: '18px', flexShrink: 0 }}>⏳</span>
-                      <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
-                        <strong>Ce camp est complet.</strong> Votre inscription sera placée sur la liste d&apos;attente. Vous serez contacté si une place se libère.
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              })()}
               <h3 style={sectionTitleStyle}>Informations santé pour le camp</h3>
               <p style={sectionDescStyle}>Ces informations aideront l&apos;équipe à mieux vous accompagner durant le camp.</p>
 
@@ -970,6 +954,22 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           {/* ── Confirmations ── */}
           <div style={sectionStyle}>
             <h3 style={sectionTitleStyle}>Confirmations requises</h3>
+            {/* Avertissement liste d'attente */}
+            {(() => {
+              const sel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
+              const cap = sel?.monday_id ? sessionCapacities[sel.monday_id] : null
+              if (selectedSessionId && selectedSessionId !== 'PLUS_TARD' && cap?.statut === 'liste_attente') {
+                return (
+                  <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>⏳</span>
+                    <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
+                      <strong>Ce camp est complet.</strong> Votre inscription sera placée sur la liste d&apos;attente. Vous serez contacté si une place se libère.
+                    </div>
+                  </div>
+                )
+              }
+              return null
+            })()}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.confirm_18 ? '#fef2f2' : '#f9fafb', border: fieldErrors.confirm_18 ? '1px solid #fca5a5' : '1px solid transparent' }}>
                 <input type="checkbox" checked={formData.confirm_18} onChange={(e) => handleInputChange('confirm_18', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
