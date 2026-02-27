@@ -3,7 +3,7 @@
 // RIUSC — Utilitaire de logging des événements
 // ============================================
 
-import { createClient } from '@/app/utils/supabase/client';
+import { createClient } from '@/utils/supabase/client';
 
 export type EventType =
   | 'login_email'
