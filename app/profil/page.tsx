@@ -495,32 +495,71 @@ export default function ProfilPage() {
             const userData = JSON.parse(debugUser)
             console.log('🔧 Mode debug profil - Utilisateur:', userData.email)
             
-            setUser({ id: `debug_${userData.benevole_id}`, email: userData.email })
-            setReserviste(userData)
+            // Charger le profil complet depuis Supabase (RPC = SECURITY DEFINER)
+            const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: userData.benevole_id })
+            const fullData = rpcData?.[0] || userData
+            
+            setUser({ id: `debug_${fullData.benevole_id}`, email: fullData.email })
+            setReserviste(fullData)
             
             setProfilData({
-              telephone: formatPhoneDisplay(userData.telephone || ''),
-              telephone_secondaire: formatPhoneDisplay(userData.telephone_secondaire || ''),
-              adresse: userData.adresse || '',
-              ville: userData.ville || '',
-              region: userData.region || '',
-              latitude: userData.latitude || null,
-              longitude: userData.longitude || null,
-              contact_urgence_nom: userData.contact_urgence_nom || '',
-              contact_urgence_telephone: formatPhoneDisplay(userData.contact_urgence_telephone || ''),
+              telephone: formatPhoneDisplay(fullData.telephone || ''),
+              telephone_secondaire: formatPhoneDisplay(fullData.telephone_secondaire || ''),
+              adresse: fullData.adresse || '',
+              ville: fullData.ville || '',
+              region: fullData.region || '',
+              latitude: fullData.latitude || null,
+              longitude: fullData.longitude || null,
+              contact_urgence_nom: fullData.contact_urgence_nom || '',
+              contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
             })
 
             setOriginalProfilData({
-              telephone: formatPhoneDisplay(userData.telephone || ''),
-              telephone_secondaire: formatPhoneDisplay(userData.telephone_secondaire || ''),
-              adresse: userData.adresse || '',
-              ville: userData.ville || '',
-              region: userData.region || '',
-              latitude: userData.latitude || null,
-              longitude: userData.longitude || null,
-              contact_urgence_nom: userData.contact_urgence_nom || '',
-              contact_urgence_telephone: formatPhoneDisplay(userData.contact_urgence_telephone || ''),
+              telephone: formatPhoneDisplay(fullData.telephone || ''),
+              telephone_secondaire: formatPhoneDisplay(fullData.telephone_secondaire || ''),
+              adresse: fullData.adresse || '',
+              ville: fullData.ville || '',
+              region: fullData.region || '',
+              latitude: fullData.latitude || null,
+              longitude: fullData.longitude || null,
+              contact_urgence_nom: fullData.contact_urgence_nom || '',
+              contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
             })
+
+            // Charger dossier depuis Supabase
+            const d = fullData
+            const loaded: DossierData = {
+              prenom: d.prenom || '',
+              nom: d.nom || '',
+              email: d.email || '',
+              date_naissance: d.date_naissance || '',
+              grandeur_bottes: d.grandeur_bottes || '',
+              j_ai_18_ans: d.j_ai_18_ans || false,
+              allergies_alimentaires: d.allergies_alimentaires || '',
+              allergies_autres: d.allergies_autres || '',
+              problemes_sante: d.problemes_sante || '',
+              groupe_sanguin: d.groupe_sanguin || '',
+              competence_rs: labelsToIds('competence_rs', d.competence_rs),
+              certificat_premiers_soins: labelsToIds('certificat_premiers_soins', d.certificat_premiers_soins),
+              date_expiration_certificat: d.date_expiration_certificat || '',
+              vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
+              navire_marin: labelsToIds('navire_marin', d.navire_marin),
+              permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
+              disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
+              satp_drone: labelsToIds('satp_drone', d.satp_drone),
+              equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
+              competences_securite: labelsToIds('competences_securite', d.competences_securite),
+              competences_sauvetage: labelsToIds('competences_sauvetage', d.competences_sauvetage),
+              certification_csi: labelsToIds('certification_csi', d.certification_csi),
+              communication: labelsToIds('communication', d.communication),
+              cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
+              operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
+              autres_competences: d.autres_competences || '',
+              commentaire: d.commentaire || '',
+              confidentialite: d.confidentialite || false,
+            }
+            setDossier(loaded)
+            setOriginalDossier(loaded)
 
             // Charger organisations et langues
             const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
@@ -1837,7 +1876,7 @@ export default function ProfilPage() {
         {/* ── Bouton de sauvegarde ── */}
         <div style={{
           position: 'fixed',
-          bottom: 0,
+          bottom: user && 'isImpersonated' in user && user.isImpersonated ? 56 : 0,
           left: 0,
           right: 0,
           backgroundColor: 'white',
