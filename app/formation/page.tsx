@@ -939,4 +939,3 @@ export default function FormationPage() {
     </Suspense>
   );
 }
-git ad
