@@ -151,8 +151,8 @@ function FormationContent() {
             const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
+              supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
+              supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
 
             // Certificats
@@ -167,9 +167,22 @@ function FormationContent() {
             }
             setLoadingCamp(false);
 
-            // Formations
-            if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
-              setFormations(formResult.value.formations);
+            // Formations (from Supabase RPC)
+            if (formResult.status === 'fulfilled' && formResult.value?.data) {
+              setFormations(formResult.value.data.map((f: any) => ({
+                id: f.id?.toString() || f.monday_item_id?.toString() || '',
+                nom: f.nom_formation || '',
+                catalogue: f.nom_formation || '',
+                session: f.nom_formation || '',
+                role: f.role || 'Participant',
+                resultat: f.resultat || '',
+                etat_validite: f.etat_validite || '',
+                date_reussite: f.date_reussite || null,
+                date_expiration: f.date_expiration || null,
+                commentaire: f.commentaire || '',
+                has_fichier: !!f.certificat_url,
+                fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : []
+              })));
             }
             setLoadingFormations(false);
 
@@ -244,8 +257,8 @@ function FormationContent() {
         const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
+          supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
+          supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
 
         // Certificats
@@ -260,9 +273,22 @@ function FormationContent() {
         }
         setLoadingCamp(false);
 
-        // Formations
-        if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
-          setFormations(formResult.value.formations);
+        // Formations (from Supabase RPC)
+        if (formResult.status === 'fulfilled' && formResult.value?.data) {
+          setFormations(formResult.value.data.map((f: any) => ({
+            id: f.id?.toString() || f.monday_item_id?.toString() || '',
+            nom: f.nom_formation || '',
+            catalogue: f.nom_formation || '',
+            session: f.nom_formation || '',
+            role: f.role || 'Participant',
+            resultat: f.resultat || '',
+            etat_validite: f.etat_validite || '',
+            date_reussite: f.date_reussite || null,
+            date_expiration: f.date_expiration || null,
+            commentaire: f.commentaire || '',
+            has_fichier: !!f.certificat_url,
+            fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : []
+          })));
         }
         setLoadingFormations(false);
 
