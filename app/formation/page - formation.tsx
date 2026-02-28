@@ -92,6 +92,7 @@ export default function HomePage() {
   
   const [certificats, setCertificats] = useState<CertificatFile[]>([])
   const [loadingCertificats, setLoadingCertificats] = useState(true)
+  const [hasSinitier, setHasSinitier] = useState(true) // true par défaut pour ne pas flasher
   const [uploadingCertificat, setUploadingCertificat] = useState(false)
   const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const certificatInputRef = useRef<HTMLInputElement>(null)
@@ -111,6 +112,7 @@ export default function HomePage() {
   const [inscriptionLoading, setInscriptionLoading] = useState(false)
   const [inscriptionError, setInscriptionError] = useState<string | null>(null)
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false)
+  const [sessionCapacities, setSessionCapacities] = useState<Record<string, { inscrits: number; capacite: number; attente: number; attente_max: number; places_restantes: number; statut: string }>>({})
   
   const [showTour, setShowTour] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -168,6 +170,16 @@ export default function HomePage() {
     setLoadingCertificats(false)
   }
 
+  const checkSinitier = async (benevoleId: string) => {
+    try {
+      const { data } = await supabase
+        .rpc('get_formations_by_benevole_id', { target_benevole_id: benevoleId })
+      setHasSinitier(!!data && data.some((f: any) => f.nom_formation === "S'initier à la sécurité civile"))
+    } catch (error) {
+      console.error('Erreur check S\'initier:', error)
+    }
+  }
+
   const handleCertificatUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !reserviste) return
@@ -204,7 +216,9 @@ export default function HomePage() {
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
           file_name: file.name,
-          file_base64: base64
+          file_base64: base64,
+          groupe: reserviste.groupe || null,
+          nom_complet: `${reserviste.nom} ${reserviste.prenom}`
         })
       })
 
@@ -213,6 +227,7 @@ export default function HomePage() {
       if (data.success) {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
         await loadCertificats(reserviste.benevole_id)
+        setHasSinitier(true)
       } else {
         setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" })
       }
@@ -251,7 +266,8 @@ export default function HomePage() {
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
-              supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid)
+              supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid),
+              checkSinitier(bid)
             ])
 
             // Camp status
@@ -390,7 +406,8 @@ export default function HomePage() {
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
-          supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid)
+          supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid),
+          checkSinitier(bid)
         ])
 
         // Camp status
@@ -490,12 +507,21 @@ export default function HomePage() {
     
     setConsentementPhoto(reserviste?.consent_photos || false)
 
-    // Charger les sessions
+    // Charger les sessions et capacités
     try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps')
-      if (response.ok) {
-        const data = await response.json()
+      const [sessionsResp, capacityResp] = await Promise.allSettled([
+        fetch('https://n8n.aqbrs.ca/webhook/sessions-camps'),
+        fetch('https://n8n.aqbrs.ca/webhook/camp-capacity')
+      ])
+      
+      if (sessionsResp.status === 'fulfilled' && sessionsResp.value.ok) {
+        const data = await sessionsResp.value.json()
         if (data.success && data.sessions) setSessionsDisponibles(data.sessions)
+      }
+      
+      if (capacityResp.status === 'fulfilled' && capacityResp.value.ok) {
+        const capData = await capacityResp.value.json()
+        if (capData.success && capData.sessions) setSessionCapacities(capData.sessions)
       }
     } catch (error) {
       console.error('Erreur fetch sessions:', error)
@@ -536,6 +562,9 @@ export default function HomePage() {
         })
       }).catch(e => console.error('Erreur update dossier allergies:', e))
 
+      const capInfo = sessionCapacities[selectedSessionId]
+      const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
+      
       const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -543,6 +572,7 @@ export default function HomePage() {
           benevole_id: reserviste.benevole_id,
           session_id: selectedSessionId,
           presence: 'confirme',
+          statut: inscriptionStatut,
           courriel: reserviste.email,
           telephone: reserviste.telephone || null,
           prenom_nom: `${reserviste.prenom} ${reserviste.nom}`,
@@ -666,12 +696,29 @@ export default function HomePage() {
                     <div style={{ padding: '24px', textAlign: 'center', color: '#92400e', backgroundColor: '#fef3c7', borderRadius: '8px' }}>Aucun autre camp disponible pour le moment.</div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {sessionsDisponibles.filter(session => session.session_id !== campStatus?.session_id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => (
-                        <label key={session.session_id} style={{ display: 'block', padding: '16px', border: selectedSessionId === session.session_id ? '2px solid #1e3a5f' : '1px solid #e5e7eb', borderRadius: '8px', cursor: 'pointer', backgroundColor: selectedSessionId === session.session_id ? '#f0f4f8' : 'white', transition: 'all 0.2s' }}>
+                      {sessionsDisponibles.filter(session => session.session_id !== campStatus?.session_id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => {
+                        const cap = sessionCapacities[session.session_id]
+                        const isComplet = cap?.statut === 'complet'
+                        const isAttente = cap?.statut === 'liste_attente'
+                        const isDisabled = isComplet
+                        
+                        return (
+                        <label key={session.session_id} style={{ display: 'block', padding: '16px', border: isDisabled ? '1px solid #e5e7eb' : selectedSessionId === session.session_id ? '2px solid #1e3a5f' : '1px solid #e5e7eb', borderRadius: '8px', cursor: isDisabled ? 'not-allowed' : 'pointer', backgroundColor: isDisabled ? '#f9fafb' : selectedSessionId === session.session_id ? '#f0f4f8' : 'white', opacity: isDisabled ? 0.6 : 1, transition: 'all 0.2s' }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                            <input type="radio" name="session" value={session.session_id} checked={selectedSessionId === session.session_id} onChange={(e) => setSelectedSessionId(e.target.value)} style={{ marginTop: '4px' }} />
+                            <input type="radio" name="session" value={session.session_id} checked={selectedSessionId === session.session_id} onChange={(e) => !isDisabled && setSelectedSessionId(e.target.value)} disabled={isDisabled} style={{ marginTop: '4px' }} />
                             <div>
-                              <div style={{ fontWeight: '600', color: '#111827', marginBottom: '6px' }}>{session.nom}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                <span style={{ fontWeight: '600', color: isDisabled ? '#9ca3af' : '#111827' }}>{session.nom}</span>
+                                {isComplet && (
+                                  <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Complet</span>
+                                )}
+                                {isAttente && (
+                                  <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
+                                )}
+                                {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
+                                  <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
+                                )}
+                              </div>
                               <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
                                 {session.dates && <div>{session.dates}</div>}
                                 {session.site && <div>{session.site}</div>}
@@ -680,11 +727,22 @@ export default function HomePage() {
                             </div>
                           </div>
                         </label>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
                 {inscriptionError && <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{inscriptionError}</div>}
+
+                {/* Avertissement liste d'attente */}
+                {selectedSessionId && sessionCapacities[selectedSessionId]?.statut === 'liste_attente' && (
+                  <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>⏳</span>
+                    <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
+                      <strong>Ce camp est complet.</strong> Votre inscription sera placée sur la liste d&apos;attente. Vous serez contacté si une place se libère.
+                    </div>
+                  </div>
+                )}
 
                 {/* Allergies alimentaires */}
                 <div style={{ marginBottom: '16px' }}>
@@ -742,8 +800,8 @@ export default function HomePage() {
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
-                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
-                    {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : "Confirmer mon inscription"}
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : sessionCapacities[selectedSessionId]?.statut === 'liste_attente' ? '#d97706' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
+                    {inscriptionLoading ? 'Traitement...' : sessionCapacities[selectedSessionId]?.statut === 'liste_attente' ? "S'inscrire sur la liste d'attente" : campStatus?.has_inscription ? 'Confirmer la modification' : "Confirmer mon inscription"}
                   </button>
                 </div>
               </>
@@ -767,7 +825,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {!isApproved && !loadingCertificats && certificats.length === 0 && (
+        {!hasSinitier && !loadingCertificats && (
           <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
             <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
               Formation et certificats
