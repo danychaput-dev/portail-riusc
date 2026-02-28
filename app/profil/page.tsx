@@ -455,6 +455,7 @@ export default function ProfilPage() {
   const [newLangueIds, setNewLangueIds] = useState<string[]>([])
   const [newLangueName, setNewLangueName] = useState('')
   const [showNewLangueInput, setShowNewLangueInput] = useState(false)
+  const [removedLangueIds, setRemovedLangueIds] = useState<string[]>([])
 
   // États pour autocomplete
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
@@ -477,7 +478,7 @@ export default function ProfilPage() {
   const hasChanges = JSON.stringify(dossier) !== JSON.stringify(originalDossier)
   const profilHasChanges = JSON.stringify(profilData) !== JSON.stringify(originalProfilData)
   const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== ''
-  const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== ''
+  const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== '' || removedLangueIds.length > 0
 
   // ─── Chargement initial ──────────────────────────────────────────────────
 
@@ -1099,6 +1100,15 @@ export default function ProfilPage() {
 
       // 4. Langues
       if (langueHasChanges) {
+        // Supprimer les langues retirées
+        if (removedLangueIds.length > 0) {
+          await supabase
+            .from('reserviste_langues')
+            .delete()
+            .eq('benevole_id', reserviste.benevole_id)
+            .in('langue_id', removedLangueIds)
+        }
+
         let langueIdsToAdd = [...newLangueIds]
         if (newLangueName.trim()) {
           const { data: createdLangue, error: createError } = await supabase
@@ -1118,10 +1128,11 @@ export default function ProfilPage() {
         }
         const { data: refreshedLangues } = await supabase.from('langues').select('id, nom').order('nom')
         setAllLangues(refreshedLangues || [])
-        setMyLangueIds(prev => [...prev, ...uniqueLangues])
+        setMyLangueIds(prev => [...prev.filter(id => !removedLangueIds.includes(id)), ...uniqueLangues])
         setNewLangueIds([])
         setNewLangueName('')
         setShowNewLangueInput(false)
+        setRemovedLangueIds([])
       }
 
       setSaveMessage({ type: 'success', text: 'Profil sauvegardé avec succès !' })
@@ -1698,7 +1709,7 @@ export default function ProfilPage() {
               Langues parlées
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {allLangues.filter(langue => myLangueIds.includes(langue.id)).map(langue => (
+              {allLangues.filter(langue => myLangueIds.includes(langue.id) && !removedLangueIds.includes(langue.id)).map(langue => (
                 <span key={langue.id} style={{
                   backgroundColor: '#e0f2fe',
                   color: '#0369a1',
@@ -1706,8 +1717,24 @@ export default function ProfilPage() {
                   borderRadius: '16px',
                   fontSize: '13px',
                   fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}>
                   {langue.nom}
+                  <button
+                    onClick={() => setRemovedLangueIds(prev => [...prev, langue.id])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0369a1',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      padding: '0',
+                      lineHeight: '1',
+                    }}
+                    title="Retirer"
+                  >×</button>
                 </span>
               ))}
             </div>
@@ -1723,7 +1750,7 @@ export default function ProfilPage() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {LANGUES_EPINGLEES.map(nomLangue => {
                     const langue = allLangues.find(l => l.nom === nomLangue)
-                    if (!langue || myLangueIds.includes(langue.id) || newLangueIds.includes(langue.id)) return null
+                    if (!langue || (myLangueIds.includes(langue.id) && !removedLangueIds.includes(langue.id)) || newLangueIds.includes(langue.id)) return null
                     return (
                       <button
                         key={langue.id}
@@ -1750,7 +1777,7 @@ export default function ProfilPage() {
               <div>
                 <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>Autres langues:</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {allLangues.filter(langue => !LANGUES_EPINGLEES.includes(langue.nom) && !myLangueIds.includes(langue.id) && !newLangueIds.includes(langue.id)).map(langue => (
+                  {allLangues.filter(langue => !LANGUES_EPINGLEES.includes(langue.nom) && (!myLangueIds.includes(langue.id) || removedLangueIds.includes(langue.id)) && !newLangueIds.includes(langue.id)).map(langue => (
                     <button
                       key={langue.id}
                       onClick={() => setNewLangueIds(prev => [...prev, langue.id])}
