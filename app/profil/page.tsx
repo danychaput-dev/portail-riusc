@@ -191,6 +191,27 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
   ],
 }
 
+// ─── Conversion labels ↔ IDs (Supabase stocke les labels, UI utilise les IDs) ─
+function labelsToIds(field: string, labels: string[] | null): number[] {
+  if (!labels || labels.length === 0) return []
+  const opts = OPTIONS[field]
+  if (!opts) return []
+  return labels.map(label => {
+    const opt = opts.find(o => o.label === label)
+    return opt ? opt.id : null
+  }).filter((id): id is number => id !== null)
+}
+
+function idsToLabels(field: string, ids: number[]): string[] {
+  if (!ids || ids.length === 0) return []
+  const opts = OPTIONS[field]
+  if (!opts) return []
+  return ids.map(id => {
+    const opt = opts.find(o => o.id === id)
+    return opt ? opt.label : null
+  }).filter((label): label is string => label !== null)
+}
+
 // ─── Fonctions utilitaires ──────────────────────────────────────────────────
 
 function formatPhoneDisplay(phone: string | null | undefined): string {
@@ -619,58 +640,48 @@ export default function ProfilPage() {
         .eq('benevole_id', reservisteData.benevole_id)
       setMyLangueIds((myLanguesData || []).map(r => r.langue_id))
 
-      // Charger dossier depuis Monday
-      try {
-        const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.dossier) {
-            const d = data.dossier
-            const loaded: DossierData = {
-              prenom: d.prenom || '',
-              nom: d.nom || '',
-              email: d.email || '',
-              date_naissance: d.date_naissance || '',
-              grandeur_bottes: d.grandeur_bottes || '',
-              j_ai_18_ans: d.j_ai_18_ans || false,
-              allergies_alimentaires: d.allergies_alimentaires || '',
-              allergies_autres: d.allergies_autres || '',
-              problemes_sante: d.problemes_sante || '',
-              groupe_sanguin: Array.isArray(d.groupe_sanguin) && d.groupe_sanguin.length > 0 ? (GROUPE_SANGUIN_REVERSE[d.groupe_sanguin[0]] || '') : '',
-              competence_rs: d.competence_rs || [],
-              certificat_premiers_soins: d.certificat_premiers_soins || [],
-              date_expiration_certificat: d.date_expiration_certificat || '',
-              vehicule_tout_terrain: d.vehicule_tout_terrain || [],
-              navire_marin: d.navire_marin || [],
-              permis_conduire: d.permis_conduire || [],
-              disponible_covoiturage: d.disponible_covoiturage || [],
-              satp_drone: d.satp_drone || [],
-              equipe_canine: d.equipe_canine || [],
-              competences_securite: d.competences_securite || [],
-              competences_sauvetage: d.competences_sauvetage || [],
-              certification_csi: d.certification_csi || [],
-              communication: d.communication || [],
-              cartographie_sig: d.cartographie_sig || [],
-              operation_urgence: d.operation_urgence || [],
-              autres_competences: d.autres_competences || '',
-              commentaire: d.commentaire || '',
-              confidentialite: d.confidentialite || false,
-            }
-            setDossier(loaded)
-            setOriginalDossier(loaded)
+      // Charger dossier depuis Supabase (déjà dans reservisteData via select *)
+      const d = reservisteData
+      const loaded: DossierData = {
+        prenom: d.prenom || '',
+        nom: d.nom || '',
+        email: d.email || '',
+        date_naissance: d.date_naissance || '',
+        grandeur_bottes: d.grandeur_bottes || '',
+        j_ai_18_ans: d.j_ai_18_ans || false,
+        allergies_alimentaires: d.allergies_alimentaires || '',
+        allergies_autres: d.allergies_autres || '',
+        problemes_sante: d.problemes_sante || '',
+        groupe_sanguin: d.groupe_sanguin || '',
+        competence_rs: labelsToIds('competence_rs', d.competence_rs),
+        certificat_premiers_soins: labelsToIds('certificat_premiers_soins', d.certificat_premiers_soins),
+        date_expiration_certificat: d.date_expiration_certificat || '',
+        vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
+        navire_marin: labelsToIds('navire_marin', d.navire_marin),
+        permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
+        disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
+        satp_drone: labelsToIds('satp_drone', d.satp_drone),
+        equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
+        competences_securite: labelsToIds('competences_securite', d.competences_securite),
+        competences_sauvetage: labelsToIds('competences_sauvetage', d.competences_sauvetage),
+        certification_csi: labelsToIds('certification_csi', d.certification_csi),
+        communication: labelsToIds('communication', d.communication),
+        cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
+        operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
+        autres_competences: d.autres_competences || '',
+        commentaire: d.commentaire || '',
+        confidentialite: d.confidentialite || false,
+      }
+      setDossier(loaded)
+      setOriginalDossier(loaded)
 
-            // Backfill AQBRS si compétence RS remplie
-            if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
-              await supabase.from('reserviste_organisations').insert({
-                benevole_id: reservisteData.benevole_id,
-                organisation_id: AQBRS_ORG_ID
-              })
-              setMyOrgIds(prev => [...prev, AQBRS_ORG_ID])
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Erreur chargement dossier:', error)
+      // Backfill AQBRS si compétence RS remplie
+      if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
+        await supabase.from('reserviste_organisations').insert({
+          benevole_id: reservisteData.benevole_id,
+          organisation_id: AQBRS_ORG_ID
+        })
+        setMyOrgIds(prev => [...prev, AQBRS_ORG_ID])
       }
 
       logPageVisit('/profil')
@@ -939,9 +950,47 @@ export default function ProfilPage() {
         setOriginalProfilData({ ...profilData })
       }
 
-      // 2. Sauvegarder le dossier dans Monday
+      // 2. Sauvegarder le dossier dans Supabase
       if (hasChanges) {
-        const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+        const { error: dossierError } = await supabase
+          .from('reservistes')
+          .update({
+            grandeur_bottes: dossier.grandeur_bottes || null,
+            j_ai_18_ans: dossier.j_ai_18_ans,
+            allergies_alimentaires: dossier.allergies_alimentaires || null,
+            allergies_autres: dossier.allergies_autres || null,
+            problemes_sante: dossier.problemes_sante || null,
+            groupe_sanguin: dossier.groupe_sanguin || null,
+            competence_rs: idsToLabels('competence_rs', dossier.competence_rs),
+            certificat_premiers_soins: idsToLabels('certificat_premiers_soins', dossier.certificat_premiers_soins),
+            date_expiration_certificat: dossier.date_expiration_certificat || null,
+            vehicule_tout_terrain: idsToLabels('vehicule_tout_terrain', dossier.vehicule_tout_terrain),
+            navire_marin: idsToLabels('navire_marin', dossier.navire_marin),
+            permis_conduire: idsToLabels('permis_conduire', dossier.permis_conduire),
+            disponible_covoiturage: idsToLabels('disponible_covoiturage', dossier.disponible_covoiturage),
+            satp_drone: idsToLabels('satp_drone', dossier.satp_drone),
+            equipe_canine: idsToLabels('equipe_canine', dossier.equipe_canine),
+            competences_securite: idsToLabels('competences_securite', dossier.competences_securite),
+            competences_sauvetage: idsToLabels('competences_sauvetage', dossier.competences_sauvetage),
+            certification_csi: idsToLabels('certification_csi', dossier.certification_csi),
+            communication: idsToLabels('communication', dossier.communication),
+            cartographie_sig: idsToLabels('cartographie_sig', dossier.cartographie_sig),
+            operation_urgence: idsToLabels('operation_urgence', dossier.operation_urgence),
+            autres_competences: dossier.autres_competences || null,
+            commentaire: dossier.commentaire || null,
+            confidentialite: dossier.confidentialite,
+          })
+          .eq('id', reserviste.id)
+
+        if (dossierError) {
+          console.error('Erreur update dossier Supabase:', dossierError)
+          setSaveMessage({ type: 'error', text: 'Erreur lors de la sauvegarde du dossier' })
+          setSaving(false)
+          return
+        }
+
+        // Fire-and-forget sync vers Monday
+        fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -977,13 +1026,8 @@ export default function ProfilPage() {
               confidentialite: dossier.confidentialite,
             }
           })
-        })
-        const data = await response.json()
-        if (!data.success) {
-          setSaveMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde du dossier' })
-          setSaving(false)
-          return
-        }
+        }).catch(() => {}) // fire-and-forget
+
         setOriginalDossier({ ...dossier })
       }
 
