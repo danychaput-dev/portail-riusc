@@ -152,7 +152,7 @@ function FormationContent() {
             const bid = userData.benevole_id;
             const [certResult, formResult, inscResult, docsResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid })
+              supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.from('inscriptions_camps').select('*').eq('benevole_id', bid).order('created_at', { ascending: false }).limit(1),
               supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
             ]);
