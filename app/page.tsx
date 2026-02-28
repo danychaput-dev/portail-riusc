@@ -92,6 +92,7 @@ export default function HomePage() {
   
   const [certificats, setCertificats] = useState<CertificatFile[]>([])
   const [loadingCertificats, setLoadingCertificats] = useState(true)
+  const [hasSinitier, setHasSinitier] = useState(true) // true par défaut pour ne pas flasher
   const [uploadingCertificat, setUploadingCertificat] = useState(false)
   const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const certificatInputRef = useRef<HTMLInputElement>(null)
@@ -169,6 +170,20 @@ export default function HomePage() {
     setLoadingCertificats(false)
   }
 
+  const checkSinitier = async (benevoleId: string) => {
+    try {
+      const { data } = await supabase
+        .from('formations_benevoles')
+        .select('id')
+        .eq('benevole_id', benevoleId)
+        .eq('nom_formation', "S'initier à la sécurité civile")
+        .limit(1)
+      setHasSinitier(!!data && data.length > 0)
+    } catch (error) {
+      console.error('Erreur check S\'initier:', error)
+    }
+  }
+
   const handleCertificatUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !reserviste) return
@@ -205,7 +220,9 @@ export default function HomePage() {
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
           file_name: file.name,
-          file_base64: base64
+          file_base64: base64,
+          groupe: reserviste.groupe || null,
+          nom_complet: `${reserviste.nom} ${reserviste.prenom}`
         })
       })
 
@@ -214,16 +231,7 @@ export default function HomePage() {
       if (data.success) {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
         await loadCertificats(reserviste.benevole_id)
-
-        // Créer l'entrée S'initier dans formations_benevoles si elle n'existe pas
-        if (!isApproved) {
-          await supabase.rpc('insert_formation_sinitier', {
-            p_benevole_id: reserviste.benevole_id,
-            p_nom_complet: `${reserviste.nom} ${reserviste.prenom}`,
-            p_certificat_url: data.file_url || null,
-            p_date_reussite: new Date().toISOString().split('T')[0]
-          })
-        }
+        setHasSinitier(true)
       } else {
         setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" })
       }
@@ -262,7 +270,8 @@ export default function HomePage() {
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
-              supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid)
+              supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid),
+              checkSinitier(bid)
             ])
 
             // Camp status
@@ -401,7 +410,8 @@ export default function HomePage() {
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
-          supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid)
+          supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid),
+          checkSinitier(bid)
         ])
 
         // Camp status
@@ -819,7 +829,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {!isApproved && !loadingCertificats && certificats.length === 0 && (
+        {!hasSinitier && !loadingCertificats && (
           <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
             <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
               Formation et certificats
