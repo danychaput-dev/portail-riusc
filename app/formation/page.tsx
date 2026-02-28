@@ -121,7 +121,7 @@ function FormationContent() {
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, monday_created_at';
 
   useEffect(() => { loadData(); }, []);
 
@@ -150,10 +150,10 @@ function FormationContent() {
           if (userData.benevole_id) {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
-            const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+            const [certResult, formResult, inscResult, docsResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              supabase.from('formations_benevoles').select('*').eq('benevole_id', bid),
+              supabase.from('inscriptions_camps').select('*').eq('benevole_id', bid).order('created_at', { ascending: false }).limit(1),
               supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
             ]);
 
@@ -163,18 +163,40 @@ function FormationContent() {
             }
             setLoadingCertificats(false);
 
-            // Camp status
-            if (campResult.status === 'fulfilled' && campResult.value) {
-              setCampStatus(campResult.value);
-            }
-            setLoadingCamp(false);
-
-            // Formations
-            if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
-              setFormations(formResult.value.formations);
-              if (formResult.value.date_inscription) setDateInscription(formResult.value.date_inscription);
+            // Formations (Supabase)
+            if (formResult.status === 'fulfilled' && formResult.value?.data) {
+              const formData = formResult.value.data.map((f: any) => ({
+                id: f.id,
+                nom: f.nom_formation || '',
+                catalogue: f.nom_formation || '',
+                session: '',
+                role: f.role || '',
+                resultat: f.resultat || '',
+                etat_validite: f.etat_validite || '',
+                date_reussite: f.date_reussite,
+                date_expiration: f.date_expiration,
+                commentaire: f.commentaire || '',
+                has_fichier: !!f.certificat_url,
+                fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : [],
+              }));
+              setFormations(formData);
+              if (fullReserviste?.monday_created_at) setDateInscription(fullReserviste.monday_created_at);
             }
             setLoadingFormations(false);
+
+            // Camp status (dérivé de formations + inscriptions)
+            const isCertified = formResult.status === 'fulfilled' && (formResult.value?.data || []).some(
+              (f: any) => (f.nom_formation || '').toLowerCase().includes('camp') && f.resultat === 'Réussi'
+            );
+            const campStatusData: CampStatus = { is_certified: !!isCertified, has_inscription: false, session_id: null, camp: null, lien_inscription: null };
+            if (inscResult.status === 'fulfilled' && inscResult.value?.data?.[0]) {
+              const insc = inscResult.value.data[0];
+              campStatusData.has_inscription = true;
+              campStatusData.session_id = insc.session_id;
+              campStatusData.camp = { nom: insc.camp_nom, dates: insc.camp_dates, site: insc.camp_lieu, location: insc.camp_adresse };
+            }
+            setCampStatus(campStatusData);
+            setLoadingCamp(false);
 
             // Documents officiels + signed URLs
             if (docsResult.status === 'fulfilled') {
@@ -245,10 +267,10 @@ function FormationContent() {
       if (reservisteData.benevole_id) {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
-        const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+        const [certResult, formResult, inscResult, docsResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          supabase.from('formations_benevoles').select('*').eq('benevole_id', bid),
+          supabase.from('inscriptions_camps').select('*').eq('benevole_id', bid).order('created_at', { ascending: false }).limit(1),
           supabase.from('documents_officiels').select('*').eq('benevole_id', bid).order('date_creation', { ascending: false })
         ]);
 
@@ -258,18 +280,40 @@ function FormationContent() {
         }
         setLoadingCertificats(false);
 
-        // Camp status
-        if (campResult.status === 'fulfilled' && campResult.value) {
-          setCampStatus(campResult.value);
-        }
-        setLoadingCamp(false);
-
-        // Formations
-        if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
-          setFormations(formResult.value.formations);
-          if (formResult.value.date_inscription) setDateInscription(formResult.value.date_inscription);
+        // Formations (Supabase)
+        if (formResult.status === 'fulfilled' && formResult.value?.data) {
+          const formData = formResult.value.data.map((f: any) => ({
+            id: f.id,
+            nom: f.nom_formation || '',
+            catalogue: f.nom_formation || '',
+            session: '',
+            role: f.role || '',
+            resultat: f.resultat || '',
+            etat_validite: f.etat_validite || '',
+            date_reussite: f.date_reussite,
+            date_expiration: f.date_expiration,
+            commentaire: f.commentaire || '',
+            has_fichier: !!f.certificat_url,
+            fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : [],
+          }));
+          setFormations(formData);
+          if (reservisteData.monday_created_at) setDateInscription(reservisteData.monday_created_at);
         }
         setLoadingFormations(false);
+
+        // Camp status (dérivé de formations + inscriptions)
+        const isCertified = formResult.status === 'fulfilled' && (formResult.value?.data || []).some(
+          (f: any) => (f.nom_formation || '').toLowerCase().includes('camp') && f.resultat === 'Réussi'
+        );
+        const campStatusData: CampStatus = { is_certified: !!isCertified, has_inscription: false, session_id: null, camp: null, lien_inscription: null };
+        if (inscResult.status === 'fulfilled' && inscResult.value?.data?.[0]) {
+          const insc = inscResult.value.data[0];
+          campStatusData.has_inscription = true;
+          campStatusData.session_id = insc.session_id;
+          campStatusData.camp = { nom: insc.camp_nom, dates: insc.camp_dates, site: insc.camp_lieu, location: insc.camp_adresse };
+        }
+        setCampStatus(campStatusData);
+        setLoadingCamp(false);
 
         // Documents officiels + signed URLs
         if (docsResult.status === 'fulfilled') {
