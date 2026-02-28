@@ -214,6 +214,16 @@ export default function HomePage() {
       if (data.success) {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
         await loadCertificats(reserviste.benevole_id)
+
+        // Créer l'entrée S'initier dans formations_benevoles si elle n'existe pas
+        if (!isApproved) {
+          await supabase.rpc('insert_formation_sinitier', {
+            p_benevole_id: reserviste.benevole_id,
+            p_nom_complet: `${reserviste.nom} ${reserviste.prenom}`,
+            p_certificat_url: data.file_url || null,
+            p_date_reussite: new Date().toISOString().split('T')[0]
+          })
+        }
       } else {
         setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" })
       }
