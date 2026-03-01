@@ -176,15 +176,10 @@ export default function HomePage() {
   }
 
   const DEMO_CAMP_STATUS_INSCRIT: CampStatus = {
-    is_certified: false,
-    has_inscription: true,
-    session_id: 'demo-session-1',
-    camp: {
-      nom: 'Cohorte 8 - Camp de qualification',
-      dates: '12-13 avril 2026',
-      site: 'Centre de formation de Nicolet',
-      location: 'Nicolet, Québec',
-    },
+    is_certified: true,
+    has_inscription: false,
+    session_id: null,
+    camp: null,
     lien_inscription: null,
   }
 
@@ -238,6 +233,10 @@ export default function HomePage() {
     setDemoGroupe(newGroupe)
     localStorage.setItem('demo_groupe', newGroupe)
     applyDemoData(newGroupe)
+    // Forcer la visite guidée au changement de mode
+    localStorage.removeItem('riusc-tour-new')
+    localStorage.removeItem('riusc-tour-approved')
+    setTimeout(() => setShowTour(true), 600)
   }
 
   const [demoToast, setDemoToast] = useState<string | null>(null)
@@ -454,6 +453,10 @@ export default function HomePage() {
           const savedGroupe = (localStorage.getItem('demo_groupe') || 'Intérêt') as 'Intérêt' | 'Approuvé'
           setDemoGroupe(savedGroupe)
           applyDemoData(savedGroupe)
+          // Forcer la visite guidée en mode démo
+          localStorage.removeItem('riusc-tour-new')
+          localStorage.removeItem('riusc-tour-approved')
+          setTimeout(() => setShowTour(true), 600)
           logPageVisit('/')
           return
         }

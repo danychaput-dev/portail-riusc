@@ -222,7 +222,7 @@ function FormationContent() {
         if (groupe === 'Approuvé') {
           setCertificats([{ id: 'demo-cert-1', name: 'Certificat_Sinitier_Tremblay.pdf', url: '#' }]);
           setFormations(DEMO_FORMATIONS as any);
-          setCampStatus({ is_certified: false, has_inscription: true, session_id: 'demo-s1', camp: { nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' }, lien_inscription: null });
+          setCampStatus({ is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
         } else {
           setCertificats([]);
           setFormations([]);

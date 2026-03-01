@@ -186,7 +186,7 @@ export default function CommunautePage() {
     if (isDemoActive()) {
       setUser(DEMO_USER);
       setReserviste({ benevole_id: DEMO_RESERVISTE.benevole_id, prenom: DEMO_RESERVISTE.prenom, nom: DEMO_RESERVISTE.nom, email: DEMO_RESERVISTE.email } as any);
-      setMessages(DEMO_MESSAGES as any);
+      setMessages(DEMO_MESSAGES.filter(m => m.canal === canal) as any);
       setIsAdmin(false);
       logPageVisit('/communaute');
       setLoading(false);
@@ -245,6 +245,9 @@ export default function CommunautePage() {
     if (!user) return;
     loadMessages();
 
+    // 🎯 MODE DÉMO — pas de realtime
+    if (isDemoActive()) return;
+
     const msgChannel = supabase
       .channel(`messages-${canal}`)
       .on('postgres_changes', {
@@ -289,8 +292,11 @@ export default function CommunautePage() {
   }, [messages]);
 
   async function loadMessages() {
-    // 🎯 MODE DÉMO — messages déjà chargés
-    if (isDemoActive()) return;
+    // 🎯 MODE DÉMO — filtrer messages par canal
+    if (isDemoActive()) {
+      setMessages(DEMO_MESSAGES.filter(m => m.canal === canal) as any);
+      return;
+    }
     const { data } = await supabase
       .from('messages')
       .select('*')
