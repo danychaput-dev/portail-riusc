@@ -155,9 +155,8 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 1, label: 'Je peux transporter des gens' },
   ],
   satp_drone: [
-    { id: 1, label: 'Observateur' },
-    { id: 2, label: 'Opérations de base' },
-    { id: 3, label: 'Opérations avancées' },
+    { id: 4, label: 'Utilisation de drone (petit drone de moins de 250g)' },
+    { id: 5, label: 'Licence de pilote de drone (Transport Canada)' },
   ],
   equipe_canine: [
     { id: 1, label: 'Ratissage' },
@@ -1574,18 +1573,6 @@ export default function ProfilPage() {
           />
         </Section>
 
-        {/* ── 5. Compétences RS (visible seulement si AQBRS sélectionné) ── */}
-        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
-        <Section title="Compétences en recherche et sauvetage" icon="🔍">
-          <CheckboxGroup
-            label="Niveau de compétence"
-            options={OPTIONS.competence_rs}
-            selected={dossier.competence_rs}
-            onChange={v => updateDossier('competence_rs', v)}
-          />
-        </Section>
-        )}
-
         {/* ── 6. Premiers soins ── */}
         <Section title="Certifications premiers soins" icon="🩹">
           <CheckboxGroup
@@ -1604,24 +1591,30 @@ export default function ProfilPage() {
 
         {/* ── 7. Permis et conduite ── */}
         <Section title="Permis de conduite et navigation" icon="🚗">
-          <CheckboxGroup
-            label="Habileté à conduire"
-            options={OPTIONS.vehicule_tout_terrain}
-            selected={dossier.vehicule_tout_terrain}
-            onChange={v => updateDossier('vehicule_tout_terrain', v)}
-          />
-          <CheckboxGroup
-            label="Permis de navigation"
-            options={OPTIONS.navire_marin}
-            selected={dossier.navire_marin}
-            onChange={v => updateDossier('navire_marin', v)}
-          />
-          <CheckboxGroup
-            label="Permis de conduire"
-            options={OPTIONS.permis_conduire}
-            selected={dossier.permis_conduire}
-            onChange={v => updateDossier('permis_conduire', v)}
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+            <div>
+              <CheckboxGroup
+                label="Habileté à conduire"
+                options={OPTIONS.vehicule_tout_terrain}
+                selected={dossier.vehicule_tout_terrain}
+                onChange={v => updateDossier('vehicule_tout_terrain', v)}
+              />
+              <CheckboxGroup
+                label="Permis de navigation"
+                options={OPTIONS.navire_marin}
+                selected={dossier.navire_marin}
+                onChange={v => updateDossier('navire_marin', v)}
+              />
+            </div>
+            <div>
+              <CheckboxGroup
+                label="Permis de conduire"
+                options={OPTIONS.permis_conduire}
+                selected={dossier.permis_conduire}
+                onChange={v => updateDossier('permis_conduire', v)}
+              />
+            </div>
+          </div>
         </Section>
 
         {/* ── 8. Compétences spécialisées ── */}
@@ -1820,6 +1813,18 @@ export default function ProfilPage() {
             </div>
           </div>
         </Section>
+
+        {/* ── Compétences RS (visible seulement si AQBRS sélectionné) ── */}
+        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
+        <Section title="Compétences en recherche et sauvetage" icon="🔍">
+          <CheckboxGroup
+            label="Niveau de compétence"
+            options={OPTIONS.competence_rs}
+            selected={dossier.competence_rs}
+            onChange={v => updateDossier('competence_rs', v)}
+          />
+        </Section>
+        )}
 
         {/* ── 10. Langues ── */}
         <Section title="Langues" icon="🌐">
