@@ -59,7 +59,7 @@ const SECTIONS = [
     emoji: '🦺',
     titre: 'Ce qui est fourni sur place',
     items: [
-      'ÉPI de base : dossard haute visibilité, lunettes de protection, gants de travail — distribués à l\'inscription sur le site.',
+      'Équipements de protection individuelle (ÉPI) de base : dossard haute visibilité, lunettes de protection, gants de travail — distribués à l\'inscription sur le site.',
       'ÉPI spécialisé selon la tâche assignée (casque, protection respiratoire, etc.).',
       'Repas pendant le déploiement.',
       'Hébergement (si applicable selon la durée et le lieu).',
@@ -72,8 +72,9 @@ const SECTIONS = [
     items: [
       'Se présenter au point d\'inscription désigné.',
       'Recevoir le briefing de sécurité et les consignes terrain.',
-      'Recevoir vos ÉPI de base.',
+      'Recevoir vos ÉPI (équipements de protection individuelle) de base.',
       'Prendre connaissance de votre affectation : tâche, équipe et responsable terrain.',
+      '⚠️ IMPORTANT — Vous devez signer le formulaire de présence à chaque jour, à l\'entrée ET à la sortie du site. C\'est obligatoire pour votre couverture d\'assurance et le suivi des effectifs sur le terrain. Ne l\'oubliez pas !',
     ],
   },
   {
@@ -234,7 +235,7 @@ export default function PreparationDeploiementPage() {
           <span style={{ fontSize: '20px', flexShrink: 0 }}>💡</span>
           <p style={{ margin: 0, fontSize: '14px', color: '#1e40af', lineHeight: '1.7' }}>
             <strong>Rappel :</strong> Lorsque vous arrivez sur le site de déploiement, présentez-vous au point d&apos;inscription désigné.
-            Vous y recevrez toutes les informations pertinentes ainsi que vos ÉPI de base.
+            Vous y recevrez toutes les informations pertinentes ainsi que vos équipements de protection individuelle (ÉPI) de base.
           </p>
         </div>
 
