@@ -240,7 +240,14 @@ function LoginContent() {
       }
 
       if (verifyResult?.data?.user) {
-        // ✅ Login réussi — logger avant la redirection
+        // ✅ Login réussi — syncer le user_id dans reservistes
+        const authUserId = verifyResult.data.user.id
+        await supabase.rpc('sync_user_id_on_login', {
+          login_email: email.trim().toLowerCase(),
+          auth_uid: authUserId,
+        })
+
+        // Logger avant la redirection
         await logEvent({
           eventType: otpMethod === 'sms' ? 'login_sms' : 'login_email',
           email: email.trim(),
