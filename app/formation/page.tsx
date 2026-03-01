@@ -28,7 +28,7 @@ interface Reserviste {
   antecedents_statut?: string;
   antecedents_date_verification?: string;
   antecedents_date_expiration?: string;
-  created_at?: string;
+  monday_created_at?: string;
 }
 
 interface CampInfo {
@@ -124,7 +124,7 @@ function FormationContent() {
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, created_at';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, monday_created_at';
 
   useEffect(() => { loadData(); }, []);
 
@@ -222,7 +222,7 @@ function FormationContent() {
         const demoAntecedents = groupe === 'Approuvé'
           ? { antecedents_statut: 'verifie', antecedents_date_verification: '2025-06-15', antecedents_date_expiration: '2028-06-15' }
           : { antecedents_statut: 'en_attente', antecedents_date_verification: null, antecedents_date_expiration: null };
-        const demoRes = { ...DEMO_RESERVISTE, groupe, ...demoAntecedents, created_at: '2024-09-15T10:00:00Z' };
+        const demoRes = { ...DEMO_RESERVISTE, groupe, ...demoAntecedents, monday_created_at: '2025-03-12' };
         setUser(DEMO_USER);
         setReserviste(demoRes as any);
         
@@ -747,9 +747,9 @@ function FormationContent() {
         <h2 style={{ color: '#1e3a5f', margin: '20px 0 8px 0', fontSize: '26px', fontWeight: '700' }}>Parcours du réserviste</h2>
         <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>
           Suivez ces étapes pour compléter votre intégration à la RIUSC.
-          {reserviste?.created_at && (
+          {reserviste?.monday_created_at && (
             <span style={{ marginLeft: '8px', color: '#9ca3af' }}>
-              — Membre depuis {new Date(reserviste.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' })}
+              — Membre depuis {new Date(reserviste.monday_created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' })}
             </span>
           )}
         </p>
