@@ -454,9 +454,23 @@ function FormationContent() {
       ? 'Expiré — renouvellement requis'
       : 'En attente de vérification';
 
+  // Statut S'initier à la sécurité civile
+  const hasSinitier = formations.some(f => {
+    const cat = (f.catalogue || f.nom || '').toLowerCase();
+    return cat.includes('initier') || cat.includes("s'initier");
+  });
+
+  // Description camp selon statut
+  const campDescription = campStatus?.is_certified
+    ? 'Complété'
+    : campStatus?.has_inscription
+      ? 'Inscrit — en attente du camp'
+      : "S'inscrire à un camp pratique de 2 jours";
+
   const steps = [
-    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', onClick: null as (() => void) | null, emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, onClick: (!campStatus?.is_certified ? openCampModal : null) as (() => void) | null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
+    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', onClick: null as (() => void) | null, emoji: '👤', description: isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles' },
+    { id: 'sinitier', label: "S'initier à la sécurité civile", done: hasSinitier, href: null, onClick: null as (() => void) | null, emoji: '🎓', description: hasSinitier ? 'Formation complétée' : 'Formation en ligne obligatoire (environ 1 h 45)' },
+    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, onClick: (!campStatus?.is_certified ? openCampModal : null) as (() => void) | null, emoji: '🏕️', description: campDescription },
     { id: 'antecedents', label: 'Antécédents judiciaires', done: antecedentsDone, href: null, onClick: null as (() => void) | null, emoji: '🔍', description: antecedentsDescription },
   ];
   const completedCount = steps.filter(s => s.done).length;
@@ -560,7 +574,7 @@ function FormationContent() {
           </div>
 
           {/* Steps cards */}
-          {[1, 2, 3].map(i => (
+          {[1, 2, 3, 4].map(i => (
             <div key={i} style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
               <Bone w="44px" h="44px" r="50%" />
               <div style={{ flex: 1 }}>
