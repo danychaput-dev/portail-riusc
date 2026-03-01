@@ -454,6 +454,7 @@ export default function ProfilPage() {
   const [newOrgIds, setNewOrgIds] = useState<string[]>([])
   const [newOrgName, setNewOrgName] = useState('')
   const [showNewOrgInput, setShowNewOrgInput] = useState(false)
+  const [removedOrgIds, setRemovedOrgIds] = useState<string[]>([])
 
   const [allLangues, setAllLangues] = useState<Langue[]>([])
   const [myLangueIds, setMyLangueIds] = useState<string[]>([])
@@ -482,7 +483,7 @@ export default function ProfilPage() {
   // Détecter les changements
   const hasChanges = JSON.stringify(dossier) !== JSON.stringify(originalDossier)
   const profilHasChanges = JSON.stringify(profilData) !== JSON.stringify(originalProfilData)
-  const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== ''
+  const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== '' || removedOrgIds.length > 0
   const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== '' || removedLangueIds.length > 0
 
   // ─── Chargement initial ──────────────────────────────────────────────────
@@ -1161,6 +1162,15 @@ export default function ProfilPage() {
 
       // 3. Organisations
       if (orgHasChanges) {
+        // Supprimer les organisations retirées
+        if (removedOrgIds.length > 0) {
+          await supabase
+            .from('reserviste_organisations')
+            .delete()
+            .eq('benevole_id', reserviste.benevole_id)
+            .in('organisation_id', removedOrgIds)
+        }
+
         let orgIdsToAdd = [...newOrgIds]
         if (newOrgName.trim()) {
           const { data: createdOrg, error: createError } = await supabase
@@ -1180,10 +1190,11 @@ export default function ProfilPage() {
         }
         const { data: refreshedOrgs } = await supabase.from('organisations').select('id, nom').order('nom')
         setAllOrgs(refreshedOrgs || [])
-        setMyOrgIds(prev => [...prev, ...uniqueOrgs])
+        setMyOrgIds(prev => [...prev.filter(id => !removedOrgIds.includes(id)), ...uniqueOrgs])
         setNewOrgIds([])
         setNewOrgName('')
         setShowNewOrgInput(false)
+        setRemovedOrgIds([])
       }
 
       // 4. Langues
@@ -1564,7 +1575,7 @@ export default function ProfilPage() {
         </Section>
 
         {/* ── 5. Compétences RS (visible seulement si AQBRS sélectionné) ── */}
-        {(myOrgIds.includes(AQBRS_ORG_ID) || myOrgIds.includes('demo-org-aqbrs') || newOrgIds.includes(AQBRS_ORG_ID)) && (
+        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
         <Section title="Compétences en recherche et sauvetage" icon="🔍">
           <CheckboxGroup
             label="Niveau de compétence"
@@ -1610,12 +1621,6 @@ export default function ProfilPage() {
             options={OPTIONS.permis_conduire}
             selected={dossier.permis_conduire}
             onChange={v => updateDossier('permis_conduire', v)}
-          />
-          <CheckboxGroup
-            label="Covoiturage"
-            options={OPTIONS.disponible_covoiturage}
-            selected={dossier.disponible_covoiturage}
-            onChange={v => updateDossier('disponible_covoiturage', v)}
           />
         </Section>
 
@@ -1679,7 +1684,7 @@ export default function ProfilPage() {
               Organisations dont vous faites partie
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {allOrgs.filter(org => myOrgIds.includes(org.id)).map(org => (
+              {allOrgs.filter(org => myOrgIds.includes(org.id) && !removedOrgIds.includes(org.id)).map(org => (
                 <span key={org.id} style={{
                   backgroundColor: '#e0f2fe',
                   color: '#0369a1',
@@ -1687,8 +1692,24 @@ export default function ProfilPage() {
                   borderRadius: '16px',
                   fontSize: '13px',
                   fontWeight: '500',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                 }}>
                   {org.nom}
+                  <button
+                    onClick={() => setRemovedOrgIds(prev => [...prev, org.id])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#0369a1',
+                      cursor: 'pointer',
+                      fontSize: '16px',
+                      padding: '0',
+                      lineHeight: '1',
+                    }}
+                    title="Retirer"
+                  >×</button>
                 </span>
               ))}
             </div>
@@ -1698,7 +1719,7 @@ export default function ProfilPage() {
                 Ajouter une organisation
               </label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {allOrgs.filter(org => !myOrgIds.includes(org.id) && !newOrgIds.includes(org.id)).map(org => (
+                {allOrgs.filter(org => (!myOrgIds.includes(org.id) || removedOrgIds.includes(org.id)) && !newOrgIds.includes(org.id)).map(org => (
                   <button
                     key={org.id}
                     onClick={() => setNewOrgIds(prev => [...prev, org.id])}
