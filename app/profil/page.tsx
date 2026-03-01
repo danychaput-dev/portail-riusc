@@ -31,6 +31,8 @@ interface Reserviste {
   longitude?: number | null
   contact_urgence_nom?: string
   contact_urgence_telephone?: string
+  contact_urgence_lien?: string
+  contact_urgence_courriel?: string
   groupe?: string
   photo_url?: string
 }
@@ -125,70 +127,70 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
   ],
   certificat_premiers_soins: [
     { id: 1, label: 'a) RCR/DEA (4-6h) certificat' },
-    { id: 2, label: 'b) Premiers soins standard (8-16h) / Standard first aid' },
-    { id: 3, label: 'c) Secourisme en milieu de travail (16h) / First aid in the workplace' },
-    { id: 4, label: 'd) Secourisme en milieu éloigné (20-40h) / Wilderness first aid' },
-    { id: 5, label: 'e) Premier répondant (80-120h) / First responder' },
+    { id: 2, label: 'b) Premiers soins standard (8-16h)' },
+    { id: 3, label: 'c) Secourisme en milieu de travail (16h)' },
+    { id: 4, label: 'd) Secourisme en milieu éloigné (20-40h)' },
+    { id: 5, label: 'e) Premier répondant (80-120h)' },
   ],
   vehicule_tout_terrain: [
-    { id: 1, label: 'VTT / ATV' },
-    { id: 2, label: 'Motoneige / Snowmobile' },
+    { id: 1, label: 'VTT' },
+    { id: 2, label: 'Motoneige' },
     { id: 3, label: 'Argo' },
-    { id: 4, label: 'Côte à côte / Side by side' },
+    { id: 4, label: 'Côte à côte' },
   ],
   navire_marin: [
     { id: 1, label: "Permis d'embarcation de plaisance" },
-    { id: 2, label: 'Petits bateaux / Small craft' },
+    { id: 2, label: 'Petits bateaux' },
   ],
   permis_conduire: [
-    { id: 1, label: 'Classe 5 Voiture (classe G ontario) / Car' },
-    { id: 2, label: 'Classe 4b Autobus (4-14 passagers) / Bus (4-14 passengers)' },
-    { id: 3, label: 'Classe 2 Autobus (24+ passager) / Bus (24+ passenger)' },
-    { id: 4, label: 'Classe 1 Ensemble de véhicules routiers / Heavy vehicle' },
-    { id: 5, label: "Classe 4a Véhicule d'urgence / Emergency vehicle" },
-    { id: 6, label: 'Classe 3 Camions / Trucks' },
-    { id: 7, label: 'Classe 6 Motocyclette / Motocycle' },
+    { id: 1, label: 'Classe 5 Voiture (classe G Ontario)' },
+    { id: 2, label: 'Classe 4b Autobus (4-14 passagers)' },
+    { id: 3, label: 'Classe 2 Autobus (24+ passagers)' },
+    { id: 4, label: 'Classe 1 Ensemble de véhicules routiers' },
+    { id: 5, label: "Classe 4a Véhicule d'urgence" },
+    { id: 6, label: 'Classe 3 Camions' },
+    { id: 7, label: 'Classe 6 Motocyclette' },
   ],
   disponible_covoiturage: [
-    { id: 1, label: 'Je peux transporter des gens / I can transport people' },
+    { id: 1, label: 'Je peux transporter des gens' },
   ],
   satp_drone: [
-    { id: 1, label: 'Observateur / Observer' },
-    { id: 2, label: 'Opérations de base / Basic operations' },
-    { id: 3, label: 'Opérations avancées / Advanced operations' },
+    { id: 1, label: 'Observateur' },
+    { id: 2, label: 'Opérations de base' },
+    { id: 3, label: 'Opérations avancées' },
   ],
   equipe_canine: [
-    { id: 1, label: 'Ratissage / Area search' },
-    { id: 2, label: 'Pistage / Trailing-Tracking' },
+    { id: 1, label: 'Ratissage' },
+    { id: 2, label: 'Pistage' },
     { id: 3, label: 'Avalanche' },
-    { id: 4, label: 'Décombres / Disaster' },
+    { id: 4, label: 'Décombres' },
   ],
   competences_securite: [
-    { id: 1, label: 'Scies à chaînes / Chainsaw' },
-    { id: 2, label: 'Contrôle de la circulation routière / Traffic control' },
+    { id: 1, label: 'Scies à chaînes' },
+    { id: 2, label: 'Contrôle de la circulation routière' },
   ],
   competences_sauvetage: [
-    { id: 1, label: 'Sauvetage sur corde / Rope rescue' },
-    { id: 2, label: 'Sauvetage en eau vive / Swift water rescue' },
-    { id: 3, label: 'Sauvetage sur glace / Ice rescue' },
-    { id: 4, label: 'Sauvetage en hauteur / High angle rescue' },
+    { id: 1, label: 'Sauvetage sur corde' },
+    { id: 2, label: 'Sauvetage en eau vive' },
+    { id: 3, label: 'Sauvetage sur glace' },
+    { id: 4, label: 'Sauvetage en hauteur' },
   ],
   certification_csi: [
     { id: 1, label: 'Certification CSI (Centre de services incendie)' },
   ],
   communication: [
     { id: 1, label: 'Radio VHF marine' },
-    { id: 2, label: 'Radio amateur / Ham radio' },
+    { id: 2, label: 'Radio amateur' },
     { id: 3, label: 'Téléphonie satellite' },
   ],
   cartographie_sig: [
-    { id: 1, label: 'Lecture de cartes topographiques / Topographic map reading' },
-    { id: 2, label: 'Utilisation GPS / GPS usage' },
-    { id: 3, label: 'SIG (Système d\'information géographique) / GIS' },
+    { id: 1, label: 'Lecture de cartes topographiques' },
+    { id: 2, label: 'Utilisation GPS' },
+    { id: 3, label: 'SIG (Système d\'information géographique)' },
   ],
   operation_urgence: [
-    { id: 1, label: 'Gestion des opérations d\'urgence / Emergency operations management' },
-    { id: 2, label: 'Planification de continuité / Continuity planning' },
+    { id: 1, label: 'Gestion des opérations d\'urgence' },
+    { id: 2, label: 'Planification de continuité' },
   ],
 }
 
@@ -441,6 +443,8 @@ export default function ProfilPage() {
     longitude: null as number | null,
     contact_urgence_nom: '',
     contact_urgence_telephone: '',
+    contact_urgence_lien: '',
+    contact_urgence_courriel: '',
   })
   const [originalProfilData, setOriginalProfilData] = useState(profilData)
 
@@ -514,6 +518,8 @@ export default function ProfilPage() {
               longitude: fullData.longitude || null,
               contact_urgence_nom: fullData.contact_urgence_nom || '',
               contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
+              contact_urgence_lien: fullData.contact_urgence_lien || '',
+              contact_urgence_courriel: fullData.contact_urgence_courriel || '',
             })
 
             setOriginalProfilData({
@@ -526,6 +532,8 @@ export default function ProfilPage() {
               longitude: fullData.longitude || null,
               contact_urgence_nom: fullData.contact_urgence_nom || '',
               contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
+              contact_urgence_lien: fullData.contact_urgence_lien || '',
+              contact_urgence_courriel: fullData.contact_urgence_courriel || '',
             })
 
             // Charger dossier depuis Supabase
@@ -593,6 +601,8 @@ export default function ProfilPage() {
             longitude: null,
             contact_urgence_nom: demoRes.contact_urgence_nom || '',
             contact_urgence_telephone: '(418) 555-9876',
+            contact_urgence_lien: 'Conjoint',
+            contact_urgence_courriel: 'jean.tremblay@example.com',
           })
           setOriginalProfilData({
             telephone: '(418) 555-1234',
@@ -604,6 +614,8 @@ export default function ProfilPage() {
             longitude: null,
             contact_urgence_nom: demoRes.contact_urgence_nom || '',
             contact_urgence_telephone: '(418) 555-9876',
+            contact_urgence_lien: 'Conjoint',
+            contact_urgence_courriel: 'jean.tremblay@example.com',
           })
           setDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
@@ -711,6 +723,8 @@ export default function ProfilPage() {
         longitude: reservisteData.longitude || null,
         contact_urgence_nom: reservisteData.contact_urgence_nom || '',
         contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
+        contact_urgence_lien: reservisteData.contact_urgence_lien || '',
+        contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
       })
 
       setOriginalProfilData({
@@ -723,6 +737,8 @@ export default function ProfilPage() {
         longitude: reservisteData.longitude || null,
         contact_urgence_nom: reservisteData.contact_urgence_nom || '',
         contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
+        contact_urgence_lien: reservisteData.contact_urgence_lien || '',
+        contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
       })
 
       // Charger organisations
@@ -1023,6 +1039,8 @@ export default function ProfilPage() {
             longitude: profilData.longitude,
             contact_urgence_nom: profilData.contact_urgence_nom,
             contact_urgence_telephone: cleanPhoneForSave(profilData.contact_urgence_telephone),
+            contact_urgence_lien: profilData.contact_urgence_lien,
+            contact_urgence_courriel: profilData.contact_urgence_courriel,
           })
           .eq('id', reserviste.id)
 
@@ -1052,6 +1070,8 @@ export default function ProfilPage() {
             longitude: profilData.longitude,
             contact_urgence_nom: profilData.contact_urgence_nom,
             contact_urgence_telephone: cleanPhoneForSave(profilData.contact_urgence_telephone),
+            contact_urgence_lien: profilData.contact_urgence_lien,
+            contact_urgence_courriel: profilData.contact_urgence_courriel,
           })
         })
 
@@ -1466,18 +1486,32 @@ export default function ProfilPage() {
 
         {/* ── 3. Contact d'urgence ── */}
         <Section title="Contact d'urgence" icon="🚨">
-          <TextInput
-            label="Nom du contact"
-            value={profilData.contact_urgence_nom}
-            onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_nom: v }))}
-            placeholder="Ex: Marie Dupont"
-          />
-          <TextInput
-            label="Téléphone du contact"
-            value={profilData.contact_urgence_telephone}
-            onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_telephone: v }))}
-            placeholder="(555) 123-4567"
-          />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <TextInput
+              label="Nom du contact"
+              value={profilData.contact_urgence_nom}
+              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_nom: v }))}
+              placeholder="Ex: Jean Tremblay"
+            />
+            <TextInput
+              label="Lien avec la personne"
+              value={profilData.contact_urgence_lien}
+              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_lien: v }))}
+              placeholder="Ex: Conjoint, Parent, Ami(e)"
+            />
+            <TextInput
+              label="Téléphone du contact"
+              value={profilData.contact_urgence_telephone}
+              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_telephone: v }))}
+              placeholder="(555) 123-4567"
+            />
+            <TextInput
+              label="Courriel du contact"
+              value={profilData.contact_urgence_courriel}
+              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_courriel: v }))}
+              placeholder="Ex: jean.tremblay@example.com"
+            />
+          </div>
         </Section>
 
         {/* ── 4. Santé ── */}
@@ -1529,7 +1563,8 @@ export default function ProfilPage() {
           />
         </Section>
 
-        {/* ── 5. Compétences RS ── */}
+        {/* ── 5. Compétences RS (visible seulement si AQBRS sélectionné) ── */}
+        {(myOrgIds.includes(AQBRS_ORG_ID) || myOrgIds.includes('demo-org-aqbrs') || newOrgIds.includes(AQBRS_ORG_ID)) && (
         <Section title="Compétences en recherche et sauvetage" icon="🔍">
           <CheckboxGroup
             label="Niveau de compétence"
@@ -1538,6 +1573,7 @@ export default function ProfilPage() {
             onChange={v => updateDossier('competence_rs', v)}
           />
         </Section>
+        )}
 
         {/* ── 6. Premiers soins ── */}
         <Section title="Certifications premiers soins" icon="🩹">
@@ -1555,10 +1591,10 @@ export default function ProfilPage() {
           />
         </Section>
 
-        {/* ── 7. Véhicules ── */}
-        <Section title="Véhicules et permis" icon="🚗">
+        {/* ── 7. Permis et conduite ── */}
+        <Section title="Permis de conduite et navigation" icon="🚗">
           <CheckboxGroup
-            label="Véhicules tout-terrain"
+            label="Habileté à conduire"
             options={OPTIONS.vehicule_tout_terrain}
             selected={dossier.vehicule_tout_terrain}
             onChange={v => updateDossier('vehicule_tout_terrain', v)}
@@ -1586,16 +1622,10 @@ export default function ProfilPage() {
         {/* ── 8. Compétences spécialisées ── */}
         <Section title="Compétences spécialisées" icon="🎓">
           <CheckboxGroup
-            label="SATP / Drone"
+            label="Drone"
             options={OPTIONS.satp_drone}
             selected={dossier.satp_drone}
             onChange={v => updateDossier('satp_drone', v)}
-          />
-          <CheckboxGroup
-            label="Équipe canine"
-            options={OPTIONS.equipe_canine}
-            selected={dossier.equipe_canine}
-            onChange={v => updateDossier('equipe_canine', v)}
           />
           <CheckboxGroup
             label="Compétences sécurité"

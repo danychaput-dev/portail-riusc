@@ -25,6 +25,8 @@ export const DEMO_RESERVISTE = {
   region: 'Estrie',
   contact_urgence_nom: 'Jean Tremblay',
   contact_urgence_telephone: '4185559876',
+  contact_urgence_lien: 'Conjoint',
+  contact_urgence_courriel: 'jean.tremblay@example.com',
   allergies_alimentaires: 'Arachides',
   allergies_autres: '',
   conditions_medicales: '',
