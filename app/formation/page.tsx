@@ -25,6 +25,9 @@ interface Reserviste {
   allergies_autres?: string;
   conditions_medicales?: string;
   consent_photo?: boolean;
+  antecedents_statut?: string;
+  antecedents_date_verification?: string;
+  antecedents_date_expiration?: string;
 }
 
 interface CampInfo {
@@ -120,7 +123,7 @@ function FormationContent() {
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration';
 
   useEffect(() => { loadData(); }, []);
 
@@ -215,7 +218,10 @@ function FormationContent() {
       const demoActive = isDemoActive();
       if (demoActive) {
         const groupe = getDemoGroupe();
-        const demoRes = { ...DEMO_RESERVISTE, groupe };
+        const demoAntecedents = groupe === 'Approuvé'
+          ? { antecedents_statut: 'verifie', antecedents_date_verification: '2025-06-15', antecedents_date_expiration: '2028-06-15' }
+          : { antecedents_statut: 'en_attente', antecedents_date_verification: null, antecedents_date_expiration: null };
+        const demoRes = { ...DEMO_RESERVISTE, groupe, ...demoAntecedents };
         setUser(DEMO_USER);
         setReserviste(demoRes as any);
         
@@ -434,12 +440,26 @@ function FormationContent() {
     reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
   );
 
+  // Statut antécédents judiciaires
+  const antecedentsVerifie = reserviste?.antecedents_statut === 'verifie';
+  const antecedentsExpire = reserviste?.antecedents_statut === 'expire' || (
+    reserviste?.antecedents_date_expiration && new Date(reserviste.antecedents_date_expiration) < new Date()
+  );
+  const antecedentsDone = antecedentsVerifie && !antecedentsExpire;
+
+  const antecedentsDescription = antecedentsDone
+    ? `Vérifié${reserviste?.antecedents_date_expiration ? ` — expire le ${new Date(reserviste.antecedents_date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}` : ''}`
+    : antecedentsExpire
+      ? 'Expiré — renouvellement requis'
+      : 'En attente de vérification';
+
   const steps = [
     { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
     { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
+    { id: 'antecedents', label: 'Antécédents judiciaires', done: antecedentsDone, href: null, emoji: '🔍', description: antecedentsDescription },
   ];
   const completedCount = steps.filter(s => s.done).length;
-  const progressPercent = Math.round((completedCount / 2) * 100);
+  const progressPercent = Math.round((completedCount / steps.length) * 100);
 
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
@@ -539,12 +559,12 @@ function FormationContent() {
           </div>
 
           {/* Steps cards */}
-          {[1, 2].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
               <Bone w="44px" h="44px" r="50%" />
               <div style={{ flex: 1 }}>
-                <Bone w={i === 1 ? '180px' : '200px'} h="15px" mb="8px" />
-                <Bone w={i === 1 ? '260px' : '300px'} h="13px" />
+                <Bone w={i === 1 ? '180px' : i === 2 ? '200px' : '220px'} h="15px" mb="8px" />
+                <Bone w={i === 1 ? '260px' : i === 2 ? '300px' : '240px'} h="13px" />
               </div>
               <Bone w="28px" h="28px" r="50%" />
             </div>
@@ -721,7 +741,7 @@ function FormationContent() {
           <div style={{ height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#059669' : '#1e3a5f', borderRadius: '4px', transition: 'width 0.5s ease' }} />
           </div>
-          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/2 étapes obligatoires complétées</p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/{steps.length} étapes obligatoires complétées</p>
         </div>
 
         {/* Hidden input pour upload certificat formation */}
@@ -746,6 +766,28 @@ function FormationContent() {
             <a href="/profil" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
               Compléter mon profil
             </a>
+          </div>
+        )}
+
+        {/* Alerte antécédents judiciaires */}
+        {!loading && !antecedentsDone && (
+          <div style={{ backgroundColor: 'white', border: `2px solid ${antecedentsExpire ? '#ef4444' : '#d1d5db'}`, borderRadius: '12px', padding: '20px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '24px' }}>🔍</span>
+              <div>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: antecedentsExpire ? '#dc2626' : '#1e3a5f', fontSize: '15px' }}>
+                  {antecedentsExpire ? 'Vérification des antécédents expirée' : 'Vérification des antécédents en cours'}
+                </p>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                  {antecedentsExpire
+                    ? 'Votre vérification des antécédents judiciaires est expirée. Un renouvellement est nécessaire pour maintenir votre statut déployable.'
+                    : 'La vérification de vos antécédents judiciaires est en cours de traitement. Cette étape est obligatoire pour être déployable. Aucune action requise de votre part pour le moment.'}
+                </p>
+              </div>
+            </div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 14px', backgroundColor: antecedentsExpire ? '#fef2f2' : '#f3f4f6', color: antecedentsExpire ? '#dc2626' : '#6b7280', borderRadius: '20px', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>
+              {antecedentsExpire ? '⚠️ Expiré' : '⏳ En attente'}
+            </span>
           </div>
         )}
 
