@@ -733,6 +733,22 @@ function FormationContent() {
           </div>
         )}
 
+        {/* Alerte profil incomplet */}
+        {!loading && !isProfilComplet && (
+          <div style={{ backgroundColor: 'white', border: '2px solid #3b82f6', borderRadius: '12px', padding: '20px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '24px' }}>👤</span>
+              <div>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '15px' }}>Profil incomplet</p>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>Votre profil doit être complété pour être déployable. Vérifiez vos informations personnelles et votre contact d&apos;urgence.</p>
+              </div>
+            </div>
+            <a href="/profil" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+              Compléter mon profil
+            </a>
+          </div>
+        )}
+
         {/* SECTION : Mes formations complétées */}
         {!loadingFormations && formations.length > 0 && (
           <>
