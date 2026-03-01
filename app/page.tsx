@@ -116,12 +116,140 @@ export default function HomePage() {
   
   const [showTour, setShowTour] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [demoGroupe, setDemoGroupe] = useState<'Intérêt' | 'Approuvé'>('Intérêt')
   const router = useRouter()
   const supabase = createClient()
   
   const { user: authUser, loading: authLoading } = useAuth()
 
   const isApproved = reserviste?.groupe === 'Approuvé'
+
+  // ========== DONNÉES DÉMO ==========
+  const DEMO_RESERVISTE_INTERET: Reserviste = {
+    benevole_id: 'DEMO-001',
+    prenom: 'Marie-Ève',
+    nom: 'Tremblay',
+    email: 'marie-eve.tremblay@example.com',
+    telephone: '4185551234',
+    groupe: 'Intérêt',
+  }
+
+  const DEMO_RESERVISTE_APPROUVE: Reserviste = {
+    ...DEMO_RESERVISTE_INTERET,
+    groupe: 'Approuvé',
+  }
+
+  const DEMO_DEPLOIEMENTS: DeploiementActif[] = [
+    {
+      id: 'demo-dep-1',
+      deploiement_id: 'demo-dep-1',
+      nom_deploiement: 'Inondations printanières - Gatineau',
+      nom_sinistre: 'Inondations printanières 2026',
+      organisme: 'Ville de Gatineau',
+      date_debut: '2026-03-15',
+      date_fin: '2026-03-22',
+      lieu: 'Gatineau, secteur Hull',
+      statut: 'actif',
+      type_incident: 'Inondation',
+    },
+    {
+      id: 'demo-dep-2',
+      deploiement_id: 'demo-dep-1',
+      nom_deploiement: 'Inondations printanières - Laval',
+      nom_sinistre: 'Inondations printanières 2026',
+      organisme: 'Ville de Laval',
+      date_debut: '2026-03-18',
+      date_fin: '2026-03-25',
+      lieu: 'Laval, secteur Sainte-Rose',
+      statut: 'actif',
+      type_incident: 'Inondation',
+    },
+  ]
+
+  const DEMO_CAMP_STATUS: CampStatus = {
+    is_certified: false,
+    has_inscription: false,
+    session_id: null,
+    camp: null,
+    lien_inscription: null,
+  }
+
+  const DEMO_CAMP_STATUS_INSCRIT: CampStatus = {
+    is_certified: false,
+    has_inscription: true,
+    session_id: 'demo-session-1',
+    camp: {
+      nom: 'Cohorte 8 - Camp de qualification',
+      dates: '12-13 avril 2026',
+      site: 'Centre de formation de Nicolet',
+      location: 'Nicolet, Québec',
+    },
+    lien_inscription: null,
+  }
+
+  const DEMO_CERTIFICATS: CertificatFile[] = [
+    {
+      id: 'demo-cert-1',
+      name: 'Certificat_Sinitier_Tremblay_Marie-Eve.pdf',
+      url: '#',
+    },
+  ]
+
+  const DEMO_SELECTION_APPROUVE: SelectionStatus = {
+    statut: null,
+    deploiement: null,
+  }
+
+  // Fonction pour appliquer le mode démo selon le groupe
+  const applyDemoData = (groupe: 'Intérêt' | 'Approuvé') => {
+    const isApprouveDemo = groupe === 'Approuvé'
+    const demoRes = isApprouveDemo ? DEMO_RESERVISTE_APPROUVE : DEMO_RESERVISTE_INTERET
+    
+    setUser({ id: 'demo_user', email: demoRes.email })
+    setReserviste(demoRes)
+    
+    if (isApprouveDemo) {
+      setHasSinitier(true)
+      setCertificats(DEMO_CERTIFICATS)
+      setDeploiementsActifs(DEMO_DEPLOIEMENTS)
+      setCiblages(['demo-dep-1'])
+      setCampStatus(DEMO_CAMP_STATUS_INSCRIT)
+      setSelectionStatus(DEMO_SELECTION_APPROUVE)
+    } else {
+      setHasSinitier(false)
+      setCertificats([])
+      setDeploiementsActifs([])
+      setCiblages([])
+      setCampStatus(DEMO_CAMP_STATUS)
+      setSelectionStatus(null)
+    }
+    
+    setLoadingCamp(false)
+    setLoadingSelection(false)
+    setLoadingCertificats(false)
+    setUnreadCount(isApprouveDemo ? 3 : 0)
+    setLoading(false)
+  }
+
+  // Toggle du mode démo
+  const handleDemoToggle = () => {
+    const newGroupe = demoGroupe === 'Intérêt' ? 'Approuvé' : 'Intérêt'
+    setDemoGroupe(newGroupe)
+    localStorage.setItem('demo_groupe', newGroupe)
+    applyDemoData(newGroupe)
+  }
+
+  const [demoToast, setDemoToast] = useState<string | null>(null)
+  
+  // Intercepter la navigation en mode démo
+  const handleDemoNavClick = (e: React.MouseEvent, pageName: string) => {
+    if (isDemoMode) {
+      e.preventDefault()
+      setDemoToast(`📌 La page « ${pageName} » n'est pas disponible en mode démonstration. Explorez la page d'accueil pour voir les fonctionnalités principales.`)
+      setTimeout(() => setDemoToast(null), 4000)
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -183,6 +311,17 @@ export default function HomePage() {
   const handleCertificatUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !reserviste) return
+
+    // 🎯 Mode démo : simuler l'upload
+    if (isDemoMode) {
+      setCertificatMessage({ type: 'success', text: '✅ Mode démo — Certificat simulé avec succès !' })
+      setTimeout(() => {
+        setHasSinitier(true)
+        setCertificats([{ id: 'demo-cert-1', name: file.name, url: '#' }])
+        setCertificatMessage(null)
+      }, 2000)
+      return
+    }
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
     if (!allowedTypes.includes(file.type)) {
@@ -304,6 +443,18 @@ export default function HomePage() {
             setLoading(false)
             return
           }
+        }
+
+        // 🎯 MODE DÉMO
+        const demoMode = localStorage.getItem('demo_mode')
+        if (demoMode === 'true') {
+          console.log('🎯 Mode démo actif')
+          setIsDemoMode(true)
+          const savedGroupe = (localStorage.getItem('demo_groupe') || 'Intérêt') as 'Intérêt' | 'Approuvé'
+          setDemoGroupe(savedGroupe)
+          applyDemoData(savedGroupe)
+          logPageVisit('/', { demo: true })
+          return
         }
       }
 
@@ -473,6 +624,9 @@ export default function HomePage() {
       localStorage.removeItem('debug_mode')
       localStorage.removeItem('debug_user')
       localStorage.removeItem('debug_email')
+      // 🎯 Nettoyer mode démo
+      localStorage.removeItem('demo_mode')
+      localStorage.removeItem('demo_groupe')
     }
     
     await supabase.auth.signOut()
@@ -485,6 +639,25 @@ export default function HomePage() {
     setInscriptionError(null)
     setInscriptionSuccess(false)
     setSelectedSessionId('')
+
+    // 🎯 Mode démo : données fictives pour les sessions
+    if (isDemoMode) {
+      setAllergiesAlimentaires('')
+      setAutresAllergies('')
+      setConditionsMedicales('')
+      setConsentementPhoto(false)
+      setLoadingDossier(false)
+      setSessionsDisponibles([
+        { session_id: 'demo-s1', nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' },
+        { session_id: 'demo-s2', nom: 'Cohorte 9 - Camp de qualification', dates: '24-25 mai 2026', site: 'Base de plein air de Val-Cartier', location: 'Shannon, Québec' },
+      ])
+      setSessionCapacities({
+        'demo-s1': { inscrits: 18, capacite: 25, attente: 0, attente_max: 5, places_restantes: 7, statut: 'ouvert' },
+        'demo-s2': { inscrits: 24, capacite: 25, attente: 2, attente_max: 5, places_restantes: 1, statut: 'ouvert' },
+      })
+      setLoadingSessions(false)
+      return
+    }
     
     // Charger les données du dossier depuis Monday/n8n
     if (reserviste?.benevole_id) {
@@ -541,6 +714,29 @@ export default function HomePage() {
   const handleSubmitInscription = async () => {
     if (!reserviste || !selectedSessionId) {
       setInscriptionError('Veuillez sélectionner un camp')
+      return
+    }
+
+    // 🎯 Mode démo : simuler l'inscription
+    if (isDemoMode) {
+      setInscriptionLoading(true)
+      setTimeout(() => {
+        setInscriptionSuccess(true)
+        setInscriptionLoading(false)
+        const selectedSession = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
+        setTimeout(() => {
+          closeCampModal()
+          if (selectedSession) {
+            setCampStatus({
+              is_certified: false,
+              has_inscription: true,
+              session_id: selectedSessionId,
+              camp: { nom: selectedSession.nom, dates: selectedSession.dates, site: selectedSession.site, location: selectedSession.location },
+              lien_inscription: null,
+            })
+          }
+        }, 2000)
+      }, 1000)
       return
     }
     
@@ -614,6 +810,12 @@ export default function HomePage() {
     if (!reserviste || !confirm("Êtes-vous sûr de vouloir annuler votre inscription au camp ?")) {
       return
     }
+
+    // 🎯 Mode démo : simuler l'annulation
+    if (isDemoMode) {
+      setCampStatus(DEMO_CAMP_STATUS)
+      return
+    }
     
     setCancellingInscription(true)
     
@@ -665,7 +867,7 @@ export default function HomePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', paddingTop: isDemoMode ? '36px' : 0 }}>
       <style>{`@media (max-width: 640px) { .hide-mobile { display: none !important; } }`}</style>
       {showCampModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
@@ -1026,7 +1228,7 @@ export default function HomePage() {
                     ))}
                   </div>
                   <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', textAlign: 'center' }}>
-                    <a href={genererLienDisponibilite(deps[0].deploiement_id)} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                    <a href={genererLienDisponibilite(deps[0].deploiement_id)} onClick={(e) => handleDemoNavClick(e, 'Soumettre mes disponibilités')} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
                       Soumettre mes disponibilités
                     </a>
                   </div>
@@ -1081,7 +1283,7 @@ export default function HomePage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           {isApproved && ciblages.length > 0 && (
-          <a href="/disponibilites" data-tour="disponibilites" style={{ textDecoration: 'none' }}>
+          <a href="/disponibilites" data-tour="disponibilites" style={{ textDecoration: 'none' }} onClick={(e) => handleDemoNavClick(e, 'Mes Disponibilités')}>
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📅</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Mes Disponibilités</h3>
@@ -1090,7 +1292,7 @@ export default function HomePage() {
           </a>
           )}
 
-          <a href="/formation" data-tour="formation" style={{ textDecoration: 'none' }}>
+          <a href="/formation" data-tour="formation" style={{ textDecoration: 'none' }} onClick={(e) => handleDemoNavClick(e, 'Formation et parcours')}>
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎓</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Formation et parcours</h3>
@@ -1098,7 +1300,7 @@ export default function HomePage() {
             </div>
           </a>
 
-          <a href="/informations" data-tour="informations" style={{ textDecoration: 'none' }}>
+          <a href="/informations" data-tour="informations" style={{ textDecoration: 'none' }} onClick={(e) => handleDemoNavClick(e, 'Informations pratiques')}>
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Informations pratiques</h3>
@@ -1106,7 +1308,7 @@ export default function HomePage() {
             </div>
           </a>
 
-          <a href="/communaute" data-tour="communaute" style={{ textDecoration: 'none', position: 'relative' }}>
+          <a href="/communaute" data-tour="communaute" style={{ textDecoration: 'none', position: 'relative' }} onClick={(e) => handleDemoNavClick(e, 'Communauté')}>
             <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px', position: 'relative', display: 'inline-block' }}>
                 💬
@@ -1131,6 +1333,111 @@ export default function HomePage() {
       />
 
       <ImpersonateBanner />
+
+      {/* 🎯 DEMO MODE - Bandeau informatif */}
+      {isDemoMode && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#7c3aed',
+          color: 'white',
+          padding: '8px 16px',
+          fontSize: '13px',
+          fontWeight: '500',
+          textAlign: 'center',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+        }}>
+          <span>🎯 Mode démonstration — Données fictives</span>
+          <span style={{ opacity: 0.7 }}>|</span>
+          <span>Profil actuel : <strong>{demoGroupe === 'Intérêt' ? 'Nouveau réserviste (Intérêt)' : 'Réserviste approuvé'}</strong></span>
+        </div>
+      )}
+
+      {/* 🎯 DEMO MODE - Bouton flottant pour basculer */}
+      {isDemoMode && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9998,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '10px',
+        }}>
+          <button
+            onClick={handleDemoToggle}
+            style={{
+              padding: '14px 24px',
+              backgroundColor: demoGroupe === 'Intérêt' ? '#059669' : '#f59e0b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)' }}
+            onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            {demoGroupe === 'Intérêt' ? (
+              <>🔄 Voir en mode Approuvé</>
+            ) : (
+              <>🔄 Voir en mode Intérêt</>
+            )}
+          </button>
+          <button
+            onClick={handleSignOut}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: 'white',
+              color: '#6b7280',
+              border: '1px solid #d1d5db',
+              borderRadius: '50px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            Quitter la démo
+          </button>
+        </div>
+      )}
+
+      {/* 🎯 DEMO Toast */}
+      {demoToast && (
+        <div style={{
+          position: 'fixed',
+          top: isDemoMode ? '48px' : '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#1e3a5f',
+          color: 'white',
+          padding: '14px 24px',
+          borderRadius: '10px',
+          fontSize: '14px',
+          fontWeight: '500',
+          zIndex: 10000,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+          maxWidth: '500px',
+          textAlign: 'center',
+          animation: 'fadeIn 0.3s ease-out',
+        }}>
+          {demoToast}
+        </div>
+      )}
 
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>

@@ -110,6 +110,27 @@ function LoginContent() {
       }
     }
 
+    // 🎯 MODE DÉMO : taper "demoriusc" comme identifiant
+    if (email.trim().toLowerCase() === 'demoriusc') {
+      setLoading(true)
+      setError('')
+      
+      // Stocker le mode démo
+      localStorage.setItem('demo_mode', 'true')
+      localStorage.setItem('demo_groupe', 'Intérêt')
+      
+      await logEvent({
+        eventType: 'login_demo',
+        email: 'demo@riusc.ca',
+        authMethod: 'demo',
+        metadata: { mode: 'demo' },
+      })
+      
+      // Rediriger
+      window.location.href = '/'
+      return
+    }
+
     // Mode normal
     if (!email || !email.includes('@')) {
       setError('Veuillez entrer une adresse courriel valide')
@@ -355,10 +376,10 @@ function LoginContent() {
             <button
               type="button"
               onClick={handleSendOtp}
-              disabled={loading || !email.includes('@')}
-              style={{ width: '100%', padding: '14px 20px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || !email.includes('@') ? 0.7 : 1, transition: 'all 0.2s' }}
+              disabled={loading || (!email.includes('@') && email.trim().toLowerCase() !== 'demoriusc')}
+              style={{ width: '100%', padding: '14px 20px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '500', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading || (!email.includes('@') && email.trim().toLowerCase() !== 'demoriusc') ? 0.7 : 1, transition: 'all 0.2s' }}
             >
-              {loading ? 'Vérification en cours...' : 'Recevoir un code de connexion'}
+              {loading ? 'Vérification en cours...' : email.trim().toLowerCase() === 'demoriusc' ? 'Accéder à la démo' : 'Recevoir un code de connexion'}
             </button>
             <p style={{ marginTop: '16px', fontSize: '13px', color: '#6b7280', textAlign: 'center', lineHeight: '1.5' }}>
               Un code vous sera envoyé par SMS si votre numéro est enregistré, sinon par courriel.
