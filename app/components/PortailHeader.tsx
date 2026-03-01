@@ -290,7 +290,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           </a>
 
           {/* Menu utilisateur */}
-          <div ref={userMenuRef} style={{ position: 'relative' }}>
+          <div ref={userMenuRef} data-tour="menu" style={{ position: 'relative' }}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'background-color 0.2s' }}

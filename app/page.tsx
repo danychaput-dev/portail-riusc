@@ -1037,7 +1037,7 @@ export default function HomePage() {
               Formation et certificats
             </h3>
             
-            <div data-tour="formation-obligatoire" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+            <div data-tour="certificats" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                 <span style={{ fontSize: '24px' }}>⚠️</span>
                 <div>

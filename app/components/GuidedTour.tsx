@@ -150,7 +150,18 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     })
 
     const tooltipWidth = Math.min(380, window.innerWidth - 40)
-    const position = step.position || 'bottom'
+    const tooltipHeight = 200
+    let position = step.position || 'bottom'
+    
+    // Auto-flip : si le tooltip dépasse en bas, passer en haut
+    if (position === 'bottom' && rect.bottom + padding + 16 + tooltipHeight > window.innerHeight) {
+      position = 'top'
+    }
+    // Auto-flip : si le tooltip dépasse en haut, passer en bas
+    if (position === 'top' && rect.top - padding - 16 - tooltipHeight < 0) {
+      position = 'bottom'
+    }
+    
     let top = 0, left = 0, arrowTop = '', arrowLeft = '', arrowBorder = {}
 
     switch (position) {
@@ -162,7 +173,7 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
         arrowBorder = { borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid white' }
         break
       case 'top':
-        top = rect.top - padding - 16 - 200
+        top = rect.top - padding - 16 - tooltipHeight
         left = Math.max(20, Math.min(rect.left + rect.width / 2 - tooltipWidth / 2, window.innerWidth - tooltipWidth - 20))
         arrowTop = 'auto'
         arrowLeft = `${Math.min(Math.max(rect.left + rect.width / 2 - left, 20), tooltipWidth - 20)}px`
