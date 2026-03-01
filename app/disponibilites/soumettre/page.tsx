@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
+import { isDemoActive, DEMO_RESERVISTE, DEMO_DEPLOIEMENTS } from '@/utils/demoMode'
 
 interface DeploiementInfo {
   deploiement_id: string;
@@ -60,8 +61,21 @@ function SoumettreContent() {
     return date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
+  const [demoToast, setDemoToast] = useState('')
+
   useEffect(() => {
     const loadData = async () => {
+      // 🎯 MODE DÉMO
+      if (isDemoActive()) {
+        setReserviste({ benevole_id: DEMO_RESERVISTE.benevole_id, prenom: DEMO_RESERVISTE.prenom, nom: DEMO_RESERVISTE.nom, email: DEMO_RESERVISTE.email, telephone: DEMO_RESERVISTE.telephone })
+        const demoDep = DEMO_DEPLOIEMENTS.find(d => d.deploiement_id === deploiementId) || DEMO_DEPLOIEMENTS[0]
+        setDeploiement(demoDep as any)
+        if (demoDep.date_debut) setDateDebut(demoDep.date_debut)
+        if (demoDep.date_fin) setDateFin(demoDep.date_fin)
+        setLoading(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       if (!deploiementId) { setError('Aucun déploiement spécifié.'); setLoading(false); return }
@@ -113,6 +127,12 @@ function SoumettreContent() {
 
     setSubmitting(true)
     setError('')
+
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setTimeout(() => { setSubmitting(false); setSubmitted(true) }, 1000)
+      return
+    }
 
     const statutMap: Record<ReponseType, string> = {
       disponible: 'Disponible',

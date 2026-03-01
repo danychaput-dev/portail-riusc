@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import { logPageVisit } from '@/utils/logEvent';
+import { isDemoActive, DEMO_RESERVISTE, DEMO_USER, DEMO_MESSAGES } from '@/utils/demoMode';
 
 /* ──────────────────── Types ──────────────────── */
 
@@ -181,6 +182,17 @@ export default function CommunautePage() {
   useEffect(() => { checkUser(); }, []);
 
   async function checkUser() {
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setUser(DEMO_USER);
+      setReserviste({ benevole_id: DEMO_RESERVISTE.benevole_id, prenom: DEMO_RESERVISTE.prenom, nom: DEMO_RESERVISTE.nom, email: DEMO_RESERVISTE.email } as any);
+      setMessages(DEMO_MESSAGES as any);
+      setIsAdmin(false);
+      logPageVisit('/communaute');
+      setLoading(false);
+      return;
+    }
+
     const debugMode = typeof window !== 'undefined' && localStorage.getItem('debug_mode') === 'true';
     if (debugMode) {
       const raw = localStorage.getItem('debug_user');
@@ -277,6 +289,8 @@ export default function CommunautePage() {
   }, [messages]);
 
   async function loadMessages() {
+    // 🎯 MODE DÉMO — messages déjà chargés
+    if (isDemoActive()) return;
     const { data } = await supabase
       .from('messages')
       .select('*')
@@ -354,6 +368,25 @@ export default function CommunautePage() {
 
   async function sendMessage() {
     if ((!newMessage.trim() && !filePreview) || !reserviste || sending) return;
+    // 🎯 MODE DÉMO — simuler l'envoi
+    if (isDemoActive()) {
+      const demoMsg: Message = {
+        id: `demo-msg-${Date.now()}`,
+        user_id: 'demo_user',
+        benevole_id: reserviste.benevole_id,
+        auteur_nom: `${reserviste.prenom} ${reserviste.nom}`,
+        auteur_photo: null,
+        contenu: newMessage.trim(),
+        canal,
+        created_at: new Date().toISOString(),
+        reply_to_id: replyTo?.id || null,
+      };
+      setMessages(prev => [...prev, demoMsg]);
+      setNewMessage('');
+      setReplyTo(null);
+      if (filePreview) { setFilePreview(null); }
+      return;
+    }
     setSending(true);
 
     let imageUrl: string | null = null;

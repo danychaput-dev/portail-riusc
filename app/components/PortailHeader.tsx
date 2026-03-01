@@ -7,6 +7,7 @@ import Image from 'next/image'
 import ImpersonateBanner from './ImpersonateBanner'
 import ImpersonateModal from './ImpersonateModal'
 import { useAuth } from '@/utils/useAuth'
+import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
 
 interface Reserviste {
   benevole_id: string
@@ -70,6 +71,29 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
   useEffect(() => {
     const load = async () => {
+      // 🎯 MODE DÉMO
+      if (isDemoActive()) {
+        const groupe = getDemoGroupe()
+        const isAppr = groupe === 'Approuvé'
+        const demoRes = { ...DEMO_RESERVISTE, groupe } as any
+        setUser(DEMO_USER)
+        setReserviste(demoRes)
+        // Intérêt → isApproved=true mais conditions manquantes → affiche "Non déployable"
+        // Approuvé → toutes conditions remplies → affiche "Déployable"
+        setIsApproved(true)
+        if (isAppr) {
+          setCampStatus({ is_certified: true })
+          setHasCertificats(true)
+          setHasCiblages(true)
+        } else {
+          setCampStatus({ is_certified: false })
+          setHasCertificats(false)
+          setHasCiblages(false)
+        }
+        setLoadingStatus(false)
+        return
+      }
+
       // Attendre que l'auth soit chargée
       if (authLoading) return
       
@@ -199,6 +223,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
     localStorage.removeItem('debug_mode')
     localStorage.removeItem('debug_user')
     localStorage.removeItem('debug_email')
+    // Nettoyer le mode démo si actif
+    localStorage.removeItem('demo_mode')
+    localStorage.removeItem('demo_groupe')
     await supabase.auth.signOut()
     router.push('/login')
   }

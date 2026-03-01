@@ -7,6 +7,7 @@ import PortailHeader from '@/app/components/PortailHeader'
 import { useAuth } from '@/utils/useAuth'
 import ImpersonateBanner from '@/app/components/ImpersonateBanner'
 import { logPageVisit } from '@/utils/logEvent'
+import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
 
 interface Reserviste {
   benevole_id: string;
@@ -57,6 +58,17 @@ export default function InformationsPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      // 🎯 MODE DÉMO
+      if (isDemoActive()) {
+        const groupe = getDemoGroupe()
+        setUser(DEMO_USER)
+        setReserviste({ ...DEMO_RESERVISTE, groupe } as any)
+        setDocumentsOfficiels([])
+        logPageVisit('/informations')
+        setLoading(false)
+        return
+      }
+
       // Attendre le chargement de l'auth
       if (authLoading) return
       if (!authUser) { router.push('/login'); return }

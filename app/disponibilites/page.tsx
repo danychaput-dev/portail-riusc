@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { logPageVisit } from '@/utils/logEvent';
+import { isDemoActive, DEMO_RESERVISTE, DEMO_USER, DEMO_DEPLOIEMENTS, DEMO_DISPONIBILITES } from '@/utils/demoMode';
 
 interface Disponibilite {
   id: string;
@@ -75,6 +76,12 @@ export default function DisponibilitesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [demoToast, setDemoToast] = useState<string | null>(null);
+
+  const showDemoToast = (msg: string) => {
+    setDemoToast(msg);
+    setTimeout(() => setDemoToast(null), 3000);
+  };
 
   const refreshData = useCallback(async (benevoleId: string) => {
     setRefreshing(true);
@@ -94,6 +101,20 @@ export default function DisponibilitesPage() {
   }, [reserviste, refreshData]);
 
   async function checkUser() {
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setUser(DEMO_USER);
+      const demoRes = { ...DEMO_RESERVISTE, groupe: 'Approuvé' };
+      setReserviste(demoRes as any);
+      setDeploiementsActifs(DEMO_DEPLOIEMENTS as any);
+      setCiblages(['demo-dep-1']);
+      setDisponibilites(DEMO_DISPONIBILITES as any);
+      setCiblageReponses([]);
+      logPageVisit('/disponibilites/soumettre');
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
     setUser(user);
@@ -150,6 +171,7 @@ export default function DisponibilitesPage() {
 
   const handleConfirmer = async (dispo: Disponibilite) => {
     if (!reserviste) return;
+    if (isDemoActive()) { showDemoToast('✅ Mode démo — Confirmation simulée'); return; }
     setActionLoading(`confirmer-${dispo.id}`);
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
@@ -163,6 +185,7 @@ export default function DisponibilitesPage() {
 
   const handleAnnuler = async (dispo: Disponibilite) => {
     if (!reserviste) return;
+    if (isDemoActive()) { showDemoToast('❌ Mode démo — Annulation simulée'); return; }
     if (!confirm('Êtes-vous sûr de vouloir annuler cette plage de disponibilité ?')) return;
     setActionLoading(`annuler-${dispo.id}`);
     try {
@@ -443,6 +466,12 @@ export default function DisponibilitesPage() {
       </main>
 
       <ImpersonateBanner position="bottom" />
+
+      {demoToast && (
+        <div style={{ position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#1e3a5f', color: 'white', padding: '14px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 20px rgba(0,0,0,0.25)', maxWidth: '500px', textAlign: 'center' }}>
+          {demoToast}
+        </div>
+      )}
 
       <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
         <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>

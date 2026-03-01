@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
+import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER, DEMO_FORMATIONS } from '@/utils/demoMode';
 
 interface Reserviste {
   benevole_id: string;
@@ -209,6 +210,30 @@ function FormationContent() {
           return;
         }
       }
+
+      // 🎯 MODE DÉMO
+      const demoActive = isDemoActive();
+      if (demoActive) {
+        const groupe = getDemoGroupe();
+        const demoRes = { ...DEMO_RESERVISTE, groupe };
+        setUser(DEMO_USER);
+        setReserviste(demoRes as any);
+        
+        if (groupe === 'Approuvé') {
+          setCertificats([{ id: 'demo-cert-1', name: 'Certificat_Sinitier_Tremblay.pdf', url: '#' }]);
+          setFormations(DEMO_FORMATIONS as any);
+          setCampStatus({ is_certified: false, has_inscription: true, session_id: 'demo-s1', camp: { nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' }, lien_inscription: null });
+        } else {
+          setCertificats([]);
+          setFormations([]);
+          setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        }
+        setLoadingCertificats(false);
+        setLoadingCamp(false);
+        setLoadingFormations(false);
+        setLoading(false);
+        return;
+      }
     }
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -328,6 +353,15 @@ function FormationContent() {
     setModalAllergiesAutres(reserviste?.allergies_autres || '');
     setModalConditions(reserviste?.conditions_medicales || '');
     setModalConsentPhoto(reserviste?.consent_photo || false);
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setSessionsDisponibles([
+        { session_id: 'demo-s1', nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' },
+        { session_id: 'demo-s2', nom: 'Cohorte 9 - Camp de qualification', dates: '24-25 mai 2026', site: 'Base de plein air de Val-Cartier', location: 'Shannon, Québec' },
+      ]);
+      setLoadingSessions(false);
+      return;
+    }
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps');
       if (response.ok) { const data = await response.json(); if (data.success && data.sessions) setSessionsDisponibles(data.sessions); }
@@ -339,6 +373,12 @@ function FormationContent() {
   const handleSubmitInscription = async () => {
     if (!reserviste || !selectedSessionId) { setInscriptionError('Veuillez sélectionner un camp'); return; }
     if (!reserviste.consent_photo && !modalConsentPhoto) { setInscriptionError('Veuillez accepter le consentement photo/vidéo pour continuer.'); return; }
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setInscriptionLoading(true);
+      setTimeout(() => { setInscriptionSuccess(true); setInscriptionLoading(false); setTimeout(() => closeCampModal(), 2000); }, 1000);
+      return;
+    }
     setInscriptionLoading(true); setInscriptionError(null);
     try {
       const { error: updateError } = await supabase
@@ -377,6 +417,7 @@ function FormationContent() {
 
   const handleCancelInscription = async () => {
     if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp ?')) return;
+    if (isDemoActive()) { setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null }); return; }
     setCancellingInscription(true);
     try {
       const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`, { method: 'POST' });
@@ -415,6 +456,14 @@ function FormationContent() {
 
     setUploadingCertificat(true);
     setCertificatMessage(null);
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setTimeout(() => {
+        setCertificatMessage({ type: 'success', text: '✅ Mode démo — Certificat simulé avec succès !' });
+        setUploadingCertificat(false);
+      }, 1000);
+      return;
+    }
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();

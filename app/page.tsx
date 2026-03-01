@@ -242,13 +242,14 @@ export default function HomePage() {
 
   const [demoToast, setDemoToast] = useState<string | null>(null)
   
-  // Intercepter la navigation en mode démo
+  // Intercepter la navigation en mode démo (seulement mode Intérêt)
   const handleDemoNavClick = (e: React.MouseEvent, pageName: string) => {
-    if (isDemoMode) {
+    if (isDemoMode && demoGroupe === 'Intérêt') {
       e.preventDefault()
-      setDemoToast(`📌 La page « ${pageName} » n'est pas disponible en mode démonstration. Explorez la page d'accueil pour voir les fonctionnalités principales.`)
+      setDemoToast(`📌 La page « ${pageName} » est disponible en mode Approuvé. Basculez avec le bouton en bas à droite.`)
       setTimeout(() => setDemoToast(null), 4000)
     }
+    // En mode Approuvé → navigation normale
   }
 
   useEffect(() => {
