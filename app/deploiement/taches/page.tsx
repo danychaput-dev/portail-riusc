@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import Image from 'next/image';
 import { logPageVisit } from '@/utils/logEvent';
+import { isDemoActive, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode';
 
 /* =============================
    INTERFACES
@@ -304,6 +305,15 @@ function FichesTachesContent() {
   }, [searchParams]);
 
   async function checkUser() {
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setUser(DEMO_USER);
+      setReserviste({ benevole_id: DEMO_RESERVISTE.benevole_id, prenom: DEMO_RESERVISTE.prenom, nom: DEMO_RESERVISTE.nom, email: DEMO_RESERVISTE.email } as any);
+      logPageVisit('/disponibilites');
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
     setUser(user);
@@ -327,7 +337,7 @@ function FichesTachesContent() {
     setLoading(false);
   }
 
-  const handleSignOut = async () => { await supabase.auth.signOut(); router.push('/login'); };
+  const handleSignOut = async () => { localStorage.removeItem('demo_mode'); localStorage.removeItem('demo_groupe'); await supabase.auth.signOut(); router.push('/login'); };
 
   const getInitials = () => {
     if (reserviste) return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase();
