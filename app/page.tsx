@@ -453,7 +453,7 @@ export default function HomePage() {
           const savedGroupe = (localStorage.getItem('demo_groupe') || 'Intérêt') as 'Intérêt' | 'Approuvé'
           setDemoGroupe(savedGroupe)
           applyDemoData(savedGroupe)
-          logPageVisit('/', { demo: true })
+          logPageVisit('/')
           return
         }
       }
