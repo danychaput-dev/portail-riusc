@@ -8,6 +8,7 @@ import PortailHeader from '@/app/components/PortailHeader'
 import { useAuth } from '@/utils/useAuth'
 import ImpersonateBanner from '@/app/components/ImpersonateBanner'
 import { logPageVisit } from '@/utils/logEvent'
+import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -576,6 +577,59 @@ export default function ProfilPage() {
       }
 
       if (!authUser) {
+        // Mode démo : charger données fictives
+        if (isDemoActive()) {
+          const groupe = getDemoGroupe()
+          const demoRes = { ...DEMO_RESERVISTE, groupe } as any
+          setUser(DEMO_USER)
+          setReserviste(demoRes)
+          setProfilData({
+            telephone: '(418) 555-1234',
+            telephone_secondaire: '',
+            adresse: demoRes.adresse || '',
+            ville: demoRes.ville || '',
+            region: demoRes.region || '',
+            latitude: null,
+            longitude: null,
+            contact_urgence_nom: demoRes.contact_urgence_nom || '',
+            contact_urgence_telephone: '(418) 555-9876',
+          })
+          setOriginalProfilData({
+            telephone: '(418) 555-1234',
+            telephone_secondaire: '',
+            adresse: demoRes.adresse || '',
+            ville: demoRes.ville || '',
+            region: demoRes.region || '',
+            latitude: null,
+            longitude: null,
+            contact_urgence_nom: demoRes.contact_urgence_nom || '',
+            contact_urgence_telephone: '(418) 555-9876',
+          })
+          setDossier({
+            prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
+            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', j_ai_18_ans: true,
+            allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
+            competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
+            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
+            satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
+            certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
+            autres_competences: '', commentaire: '', confidentialite: true,
+          })
+          setOriginalDossier({
+            prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
+            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', j_ai_18_ans: true,
+            allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
+            competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
+            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
+            satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
+            certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
+            autres_competences: '', commentaire: '', confidentialite: true,
+          })
+          logPageVisit('/profil')
+          setLoading(false)
+          return
+        }
+
         router.push('/login')
         return
       }
@@ -875,6 +929,7 @@ export default function ProfilPage() {
 
   const handleCroppedPhoto = async (croppedBlob: Blob) => {
     if (!reserviste) return
+    if (isDemoActive()) { setSaveMessage({ type: 'success', text: 'Mode démonstration — la photo ne peut pas être modifiée.' }); return }
 
     setUploadingPhoto(true)
     setSaveMessage(null)
@@ -937,6 +992,7 @@ export default function ProfilPage() {
 
   const handleSave = async () => {
     if (!reserviste) return
+    if (isDemoActive()) { setSaveMessage({ type: 'success', text: 'Mode démonstration — les modifications ne sont pas enregistrées.' }); return }
     setSaving(true)
     setSaveMessage(null)
 
