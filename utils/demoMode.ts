@@ -174,7 +174,7 @@ export const DEMO_MESSAGES = [
     benevole_id: 'DEMO-006',
     auteur_nom: 'Alexandre Côté',
     auteur_photo: null,
-    contenu: 'J\'ai fait une petite liste de ce que j\'amène en déploiement : sac de couchage, lampe frontale, collations, chargeur portatif, vêtements de rechange. Hésitez pas à compléter !',
+    contenu: 'Pour savoir quoi apporter en déploiement, allez voir la page Informations pratiques sur le portail. Tout y est détaillé ! 📋',
     canal: 'entraide',
     created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
   },
