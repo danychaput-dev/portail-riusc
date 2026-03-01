@@ -17,7 +17,7 @@ export const DEMO_RESERVISTE = {
   nom: 'Tremblay',
   email: 'marie-eve.tremblay@example.com',
   telephone: '4185551234',
-  photo_url: undefined as string | undefined,
+  photo_url: '/demo-avatar.jpg'
   groupe: 'Approuvé', // sera overridé dynamiquement
   date_naissance: '1988-06-15',
   adresse: '123 rue des Érables',
