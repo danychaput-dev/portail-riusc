@@ -119,12 +119,7 @@ function LoginContent() {
       localStorage.setItem('demo_mode', 'true')
       localStorage.setItem('demo_groupe', 'Intérêt')
       
-      await logEvent({
-        eventType: 'login_demo',
-        email: 'demo@riusc.ca',
-        authMethod: 'demo',
-        metadata: { mode: 'demo' },
-      })
+
       
       // Rediriger
       window.location.href = '/'
