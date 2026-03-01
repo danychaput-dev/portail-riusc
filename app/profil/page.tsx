@@ -626,6 +626,18 @@ export default function ProfilPage() {
             autres_competences: '', commentaire: '', confidentialite: true,
           })
           logPageVisit('/profil')
+          // Charger organisations et langues fictives pour démo
+          setAllLangues([
+            { id: 'demo-lang-fr', nom: 'Français' },
+            { id: 'demo-lang-en', nom: 'Anglais' },
+            { id: 'demo-lang-es', nom: 'Espagnol' },
+          ])
+          setMyLangueIds(['demo-lang-fr', 'demo-lang-en'])
+          setAllOrgs([
+            { id: 'demo-org-aqbrs', nom: 'AQBRS' },
+            { id: 'demo-org-cr', nom: 'Croix-Rouge canadienne' },
+          ])
+          setMyOrgIds(['demo-org-aqbrs'])
           setLoading(false)
           return
         }
