@@ -28,6 +28,7 @@ interface Reserviste {
   antecedents_statut?: string;
   antecedents_date_verification?: string;
   antecedents_date_expiration?: string;
+  created_at?: string;
 }
 
 interface CampInfo {
@@ -123,7 +124,7 @@ function FormationContent() {
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, created_at';
 
   useEffect(() => { loadData(); }, []);
 
@@ -221,7 +222,7 @@ function FormationContent() {
         const demoAntecedents = groupe === 'Approuvé'
           ? { antecedents_statut: 'verifie', antecedents_date_verification: '2025-06-15', antecedents_date_expiration: '2028-06-15' }
           : { antecedents_statut: 'en_attente', antecedents_date_verification: null, antecedents_date_expiration: null };
-        const demoRes = { ...DEMO_RESERVISTE, groupe, ...demoAntecedents };
+        const demoRes = { ...DEMO_RESERVISTE, groupe, ...demoAntecedents, created_at: '2024-09-15T10:00:00Z' };
         setUser(DEMO_USER);
         setReserviste(demoRes as any);
         
@@ -454,9 +455,9 @@ function FormationContent() {
       : 'En attente de vérification';
 
   const steps = [
-    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
-    { id: 'antecedents', label: 'Antécédents judiciaires', done: antecedentsDone, href: null, emoji: '🔍', description: antecedentsDescription },
+    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', onClick: null as (() => void) | null, emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
+    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, onClick: (!campStatus?.is_certified ? openCampModal : null) as (() => void) | null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
+    { id: 'antecedents', label: 'Antécédents judiciaires', done: antecedentsDone, href: null, onClick: null as (() => void) | null, emoji: '🔍', description: antecedentsDescription },
   ];
   const completedCount = steps.filter(s => s.done).length;
   const progressPercent = Math.round((completedCount / steps.length) * 100);
@@ -730,7 +731,14 @@ function FormationContent() {
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
 
         <h2 style={{ color: '#1e3a5f', margin: '20px 0 8px 0', fontSize: '26px', fontWeight: '700' }}>Parcours du réserviste</h2>
-        <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>Suivez ces étapes pour compléter votre intégration à la RIUSC.</p>
+        <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>
+          Suivez ces étapes pour compléter votre intégration à la RIUSC.
+          {reserviste?.created_at && (
+            <span style={{ marginLeft: '8px', color: '#9ca3af' }}>
+              — Membre depuis {new Date(reserviste.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' })}
+            </span>
+          )}
+        </p>
 
         {/* Barre de progression */}
         <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
@@ -744,50 +752,86 @@ function FormationContent() {
           <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/{steps.length} étapes obligatoires complétées</p>
         </div>
 
+        {/* Cartes des étapes */}
+        {steps.map((step) => {
+          const isLink = !!step.href && !step.done;
+          const isClickable = isLink || (!!step.onClick && !step.done);
+          const handleClick = () => { if (step.onClick && !step.done) step.onClick(); };
+          return (
+            <div key={step.id} onClick={!isLink ? handleClick : undefined}>
+              {isLink ? (
+                <a href={step.href!} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '16px 20px',
+                    borderRadius: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    marginBottom: '12px',
+                    border: step.done ? '1px solid #bbf7d0' : step.id === 'antecedents' && antecedentsExpire ? '1px solid #fca5a5' : '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = step.done ? '#bbf7d0' : '#e5e7eb'; }}
+                  >
+                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: step.done ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                      {step.done ? '✅' : step.emoji}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: step.done ? '#065f46' : '#1e3a5f' }}>{step.label}</div>
+                      <div style={{ fontSize: '13px', color: step.done ? '#059669' : '#6b7280', marginTop: '2px' }}>{step.description}</div>
+                    </div>
+                    <svg width="20" height="20" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                </a>
+              ) : (
+                <div style={{
+                  backgroundColor: 'white',
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  marginBottom: '12px',
+                  border: step.done ? '1px solid #bbf7d0' : step.id === 'antecedents' && antecedentsExpire ? '1px solid #fca5a5' : '1px solid #e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  cursor: isClickable ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => { if (isClickable) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = '#1e3a5f'; } }}
+                onMouseOut={(e) => { if (isClickable) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = step.done ? '#bbf7d0' : step.id === 'antecedents' && antecedentsExpire ? '#fca5a5' : '#e5e7eb'; } }}
+                >
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: step.done ? '#d1fae5' : step.id === 'antecedents' && antecedentsExpire ? '#fef2f2' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                    {step.done ? '✅' : step.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: step.done ? '#065f46' : '#1e3a5f' }}>{step.label}</div>
+                    <div style={{ fontSize: '13px', color: step.done ? '#059669' : '#6b7280', marginTop: '2px' }}>{step.description}</div>
+                  </div>
+                  {step.done ? (
+                    <svg width="24" height="24" fill="none" stroke="#059669" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  ) : isClickable ? (
+                    <svg width="20" height="20" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  ) : step.id === 'antecedents' && antecedentsExpire ? (
+                    <span style={{ padding: '4px 10px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>Expiré</span>
+                  ) : (
+                    <span style={{ padding: '4px 10px', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>En attente</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
         {/* Hidden input pour upload certificat formation */}
         <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
 
         {certificatMessage && (
           <div style={{ padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2', color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>
             {certificatMessage.text}
-          </div>
-        )}
-
-        {/* Alerte profil incomplet */}
-        {!loading && !isProfilComplet && (
-          <div style={{ backgroundColor: 'white', border: '2px solid #3b82f6', borderRadius: '12px', padding: '20px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '24px' }}>👤</span>
-              <div>
-                <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '15px' }}>Profil incomplet</p>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>Votre profil doit être complété pour être déployable. Vérifiez vos informations personnelles et votre contact d&apos;urgence.</p>
-              </div>
-            </div>
-            <a href="/profil" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500', whiteSpace: 'nowrap', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
-              Compléter mon profil
-            </a>
-          </div>
-        )}
-
-        {/* Alerte antécédents judiciaires */}
-        {!loading && !antecedentsDone && (
-          <div style={{ backgroundColor: 'white', border: `2px solid ${antecedentsExpire ? '#ef4444' : '#d1d5db'}`, borderRadius: '12px', padding: '20px 24px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '24px' }}>🔍</span>
-              <div>
-                <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: antecedentsExpire ? '#dc2626' : '#1e3a5f', fontSize: '15px' }}>
-                  {antecedentsExpire ? 'Vérification des antécédents expirée' : 'Vérification des antécédents en cours'}
-                </p>
-                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
-                  {antecedentsExpire
-                    ? 'Votre vérification des antécédents judiciaires est expirée. Un renouvellement est nécessaire pour maintenir votre statut déployable.'
-                    : 'La vérification de vos antécédents judiciaires est en cours de traitement. Cette étape est obligatoire pour être déployable. Aucune action requise de votre part pour le moment.'}
-                </p>
-              </div>
-            </div>
-            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 14px', backgroundColor: antecedentsExpire ? '#fef2f2' : '#f3f4f6', color: antecedentsExpire ? '#dc2626' : '#6b7280', borderRadius: '20px', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>
-              {antecedentsExpire ? '⚠️ Expiré' : '⏳ En attente'}
-            </span>
           </div>
         )}
 
