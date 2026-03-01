@@ -877,6 +877,87 @@ function FormationContent() {
           </>
         )}
 
+        {/* État vide — aucune formation au dossier */}
+        {!loadingFormations && formations.length === 0 && (
+          <>
+            <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
+              <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>MES FORMATIONS</span>
+            </div>
+
+            <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
+                Formation et certificats
+              </h3>
+
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>⚠️</span>
+                  <div>
+                    <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
+                      Formation obligatoire requise
+                    </p>
+                    <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                      Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
+                      <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
+                      puis nous soumettre votre certificat de réussite.
+                    </p>
+                    <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                      <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                        🎓 Accéder à la formation
+                      </a>
+                      <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                        📺 Tutoriel vidéo
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '0' }}>
+                <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
+                <button onClick={() => { setUploadingForFormationId(null); setUploadingForFormationNom('S\'initier à la sécurité civile'); formationCertInputRef.current?.click(); }} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
+                  {uploadingCertificat ? '⏳ Envoi en cours...' : '📤 Soumettre mon certificat'}
+                </button>
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
+              </div>
+            </div>
+
+            {/* Camp de qualification — si pas encore certifié */}
+            {!campStatus?.is_certified && (
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
+                <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600' }}>
+                  🏕️ Camp de qualification
+                </h3>
+                {campStatus?.has_inscription && campStatus.camp ? (
+                  <div>
+                    <div style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '12px', fontSize: '13px', fontWeight: '600', marginBottom: '12px' }}>⏳ Inscrit — en attente du camp</div>
+                    <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                      <div style={{ fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{campStatus.camp.nom}</div>
+                      <div style={{ fontSize: '14px', color: '#4b5563', lineHeight: '1.6' }}>
+                        {campStatus.camp.dates && <div>{campStatus.camp.dates}</div>}
+                        {campStatus.camp.site && <div>{campStatus.camp.site}</div>}
+                        {campStatus.camp.location && <div style={{ color: '#6b7280' }}>{campStatus.camp.location}</div>}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique de 2 jours.</p>
+                    <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                      S&apos;inscrire à un camp de qualification
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         {loadingFormations && (
           <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '16px' }}>
             <style>{`@keyframes shimmerInline { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
