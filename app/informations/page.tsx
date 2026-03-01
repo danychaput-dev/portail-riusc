@@ -264,6 +264,23 @@ export default function InformationsPage() {
               </div>
               <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </a>
+
+            {/* Se préparer pour un déploiement */}
+            <a
+              href="/informations/preparation-deploiement"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', textDecoration: 'none', transition: 'all 0.2s' }}
+              onMouseOver={(e) => { e.currentTarget.style.borderColor = '#1e3a5f'; e.currentTarget.style.backgroundColor = '#f0f4f8' }}
+              onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.backgroundColor = '#f9fafb' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <span style={{ fontSize: '28px' }}>🎒</span>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>Comment se préparer pour un déploiement</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Quoi apporter, quoi prévoir et à quoi s&apos;attendre</div>
+                </div>
+              </div>
+              <svg width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </a>
           </div>
         </div>
 
