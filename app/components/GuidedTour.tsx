@@ -109,6 +109,17 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
     }
   }, [isApproved, forceStart, filterVisibleSteps])
 
+  // Écouter l'événement "restart-guided-tour" déclenché depuis le menu
+  useEffect(() => {
+    const handleRestart = () => {
+      setIsActive(false)
+      setCurrentStep(0)
+      setTimeout(() => { filterVisibleSteps(); setShowStartModal(true) }, 300)
+    }
+    window.addEventListener('restart-guided-tour', handleRestart)
+    return () => window.removeEventListener('restart-guided-tour', handleRestart)
+  }, [filterVisibleSteps])
+
   const endTour = useCallback(() => {
     setIsActive(false)
     setCurrentStep(0)

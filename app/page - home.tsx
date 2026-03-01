@@ -173,12 +173,8 @@ export default function HomePage() {
   const checkSinitier = async (benevoleId: string) => {
     try {
       const { data } = await supabase
-        .from('formations_benevoles')
-        .select('id')
-        .eq('benevole_id', benevoleId)
-        .eq('nom_formation', "S'initier à la sécurité civile")
-        .limit(1)
-      setHasSinitier(!!data && data.length > 0)
+        .rpc('get_formations_by_benevole_id', { target_benevole_id: benevoleId })
+      setHasSinitier(!!data && data.some((f: any) => f.nom_formation === "S'initier à la sécurité civile"))
     } catch (error) {
       console.error('Erreur check S\'initier:', error)
     }
@@ -270,7 +266,7 @@ export default function HomePage() {
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
-              supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid),
+              supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
               checkSinitier(bid)
             ])
 
@@ -410,7 +406,7 @@ export default function HomePage() {
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
-          supabase.from('ciblages').select('deploiement_id').eq('benevole_id', bid),
+          supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
           checkSinitier(bid)
         ])
 
