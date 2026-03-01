@@ -199,8 +199,13 @@ function labelsToIds(field: string, labels: string[] | null): number[] {
   const opts = OPTIONS[field]
   if (!opts) return []
   return labels.map(label => {
-    const opt = opts.find(o => o.label === label)
-    return opt ? opt.id : null
+    // Match exact
+    const exact = opts.find(o => o.label === label)
+    if (exact) return exact.id
+    // Match si l'ancien label contenait " / English" — comparer la partie française (insensible à la casse)
+    const frPart = label.split(' / ')[0].trim().toLowerCase()
+    const partial = opts.find(o => o.label.toLowerCase() === frPart || o.label.toLowerCase().startsWith(frPart))
+    return partial ? partial.id : null
   }).filter((id): id is number => id !== null)
 }
 
