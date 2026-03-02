@@ -83,6 +83,7 @@ interface DossierData {
   communication: number[]
   cartographie_sig: number[]
   operation_urgence: number[]
+  experience_urgence_detail: string
   autres_competences: string
   commentaire: string
   confidentialite: boolean
@@ -118,7 +119,7 @@ const GROUPE_SANGUIN_REVERSE: Record<number, string> = {
   8: 'O-',
 }
 
-const LANGUES_EPINGLEES = ['Anglais', 'Espagnol', 'Français']
+const LANGUES_EPINGLEES = ['Anglais', 'Français']
 
 const OPTIONS: Record<string, { id: number; label: string }[]> = {
   competence_rs: [
@@ -181,7 +182,6 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
   ],
   communication: [
     { id: 2, label: 'Radio amateur' },
-    { id: 3, label: 'Téléphonie satellite' },
   ],
   cartographie_sig: [
     { id: 1, label: 'Lecture de cartes topographiques' },
@@ -189,8 +189,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 3, label: 'SIG (Système d\'information géographique)' },
   ],
   operation_urgence: [
-    { id: 1, label: 'Gestion des opérations d\'urgence' },
-    { id: 2, label: 'Planification de continuité' },
+    { id: 3, label: 'J\'ai déjà été déployé dans un contexte d\'urgence' },
   ],
 }
 
@@ -432,6 +431,7 @@ export default function ProfilPage() {
     communication: [],
     cartographie_sig: [],
     operation_urgence: [],
+    experience_urgence_detail: '',
     autres_competences: '',
     commentaire: '',
     confidentialite: false,
@@ -572,6 +572,7 @@ export default function ProfilPage() {
               communication: labelsToIds('communication', d.communication),
               cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
               operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
+              experience_urgence_detail: d.experience_urgence_detail || '',
               autres_competences: d.autres_competences || '',
               commentaire: d.commentaire || '',
               confidentialite: d.confidentialite || false,
@@ -633,7 +634,7 @@ export default function ProfilPage() {
             vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
-            autres_competences: '', commentaire: '', confidentialite: true,
+            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
           })
           setOriginalDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
@@ -643,7 +644,7 @@ export default function ProfilPage() {
             vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
-            autres_competences: '', commentaire: '', confidentialite: true,
+            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
           })
           logPageVisit('/profil')
           // Charger organisations et langues fictives pour démo
@@ -799,6 +800,7 @@ export default function ProfilPage() {
         communication: labelsToIds('communication', d.communication),
         cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
         operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
+        experience_urgence_detail: d.experience_urgence_detail || '',
         autres_competences: d.autres_competences || '',
         commentaire: d.commentaire || '',
         confidentialite: d.confidentialite || false,
@@ -1114,6 +1116,7 @@ export default function ProfilPage() {
             communication: idsToLabels('communication', dossier.communication),
             cartographie_sig: idsToLabels('cartographie_sig', dossier.cartographie_sig),
             operation_urgence: idsToLabels('operation_urgence', dossier.operation_urgence),
+            experience_urgence_detail: dossier.experience_urgence_detail || null,
             autres_competences: dossier.autres_competences || null,
             commentaire: dossier.commentaire || null,
             confidentialite: dossier.confidentialite,
@@ -1160,6 +1163,7 @@ export default function ProfilPage() {
               communication: dossier.communication,
               cartographie_sig: dossier.cartographie_sig,
               operation_urgence: dossier.operation_urgence,
+              experience_urgence_detail: dossier.experience_urgence_detail,
               autres_competences: dossier.autres_competences,
               commentaire: dossier.commentaire,
               confidentialite: dossier.confidentialite,
@@ -1673,11 +1677,19 @@ export default function ProfilPage() {
             onChange={v => updateDossier('cartographie_sig', v)}
           />
           <CheckboxGroup
-            label="Opérations d'urgence"
+            label="Expérience en situation d'urgence"
             options={OPTIONS.operation_urgence}
             selected={dossier.operation_urgence}
             onChange={v => updateDossier('operation_urgence', v)}
           />
+          {dossier.operation_urgence.length > 0 && (
+            <TextInput
+              label="Précisez votre expérience"
+              value={dossier.experience_urgence_detail}
+              onChange={v => updateDossier('experience_urgence_detail', v)}
+              placeholder="Ex: Déployé lors des inondations 2019, opération Lac-Mégantic..."
+            />
+          )}
           <TextArea
             label="Autres compétences"
             value={dossier.autres_competences}
@@ -1751,7 +1763,7 @@ export default function ProfilPage() {
                     <option value="">— Sélectionner —</option>
                     {allOrgs
                       .filter(org => (!myOrgIds.includes(org.id) || removedOrgIds.includes(org.id)) && !newOrgIds.includes(org.id))
-                      .sort((a, b) => a.nom.localeCompare(b.nom))
+                      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
                       .map(org => (
                         <option key={org.id} value={org.id}>{org.nom}</option>
                       ))
@@ -1938,7 +1950,7 @@ export default function ProfilPage() {
                     <option value="">— Sélectionner une langue —</option>
                     {allLangues
                       .filter(langue => !LANGUES_EPINGLEES.includes(langue.nom) && (!myLangueIds.includes(langue.id) || removedLangueIds.includes(langue.id)) && !newLangueIds.includes(langue.id))
-                      .sort((a, b) => a.nom.localeCompare(b.nom))
+                      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
                       .map(langue => (
                         <option key={langue.id} value={langue.id}>{langue.nom}</option>
                       ))
