@@ -180,7 +180,6 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 1, label: 'Certification CSI (Centre de services incendie)' },
   ],
   communication: [
-    { id: 1, label: 'Radio VHF marine' },
     { id: 2, label: 'Radio amateur' },
     { id: 3, label: 'Téléphonie satellite' },
   ],
