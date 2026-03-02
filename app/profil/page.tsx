@@ -1914,27 +1914,36 @@ export default function ProfilPage() {
                 </div>
               </div>
 
-              {/* Autres langues */}
+              {/* Autres langues — dropdown */}
               <div>
                 <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>Autres langues:</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {allLangues.filter(langue => !LANGUES_EPINGLEES.includes(langue.nom) && (!myLangueIds.includes(langue.id) || removedLangueIds.includes(langue.id)) && !newLangueIds.includes(langue.id)).map(langue => (
-                    <button
-                      key={langue.id}
-                      onClick={() => setNewLangueIds(prev => [...prev, langue.id])}
-                      style={{
-                        backgroundColor: 'white',
-                        border: '1px solid #d1d5db',
-                        color: '#374151',
-                        padding: '6px 12px',
-                        borderRadius: '16px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      + {langue.nom}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    value=""
+                    onChange={e => {
+                      if (e.target.value) {
+                        setNewLangueIds(prev => [...prev, e.target.value])
+                      }
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      color: '#374151',
+                      backgroundColor: 'white',
+                      minWidth: '200px',
+                    }}
+                  >
+                    <option value="">— Sélectionner une langue —</option>
+                    {allLangues
+                      .filter(langue => !LANGUES_EPINGLEES.includes(langue.nom) && (!myLangueIds.includes(langue.id) || removedLangueIds.includes(langue.id)) && !newLangueIds.includes(langue.id))
+                      .sort((a, b) => a.nom.localeCompare(b.nom))
+                      .map(langue => (
+                        <option key={langue.id} value={langue.id}>{langue.nom}</option>
+                      ))
+                    }
+                  </select>
                   {!showNewLangueInput && (
                     <button
                       onClick={() => setShowNewLangueInput(true)}
@@ -1942,13 +1951,14 @@ export default function ProfilPage() {
                         backgroundColor: 'white',
                         border: '1px dashed #d1d5db',
                         color: '#6b7280',
-                        padding: '6px 12px',
-                        borderRadius: '16px',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
                         fontSize: '13px',
                         cursor: 'pointer',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      + Ajouter autre langue
+                      + Autre
                     </button>
                   )}
                 </div>
