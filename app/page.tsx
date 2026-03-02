@@ -1149,9 +1149,6 @@ export default function ProfilPage() {
     // ── Détecter les changements de compétences → certificats ──
     const snapshotApres = prendreSnapshotCompetences(dossier)
     const { aCreer, aDesactiver } = diffCompetencesCertificats(snapshotAvantCompetences, snapshotApres)
-    console.log('🔍 AVANT:', JSON.stringify(snapshotAvantCompetences))
-    console.log('🔍 APRÈS:', JSON.stringify(snapshotApres))
-    console.log('🔍 À CRÉER:', aCreer.length, '| À DÉSACTIVER:', aDesactiver.length)
     // Vérifier si des retraits nécessitent une confirmation
     if (aDesactiver.length > 0) {
       const retraitsParChamp: Record<string, string[]> = {}
@@ -1480,25 +1477,6 @@ export default function ProfilPage() {
           }}>
             {saveMessage.text}
           </div>
-          {showRedirectFormation && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '8px',
-              marginTop: '8px', border: '1px solid #bfdbfe',
-            }}>
-              <span style={{ fontSize: '16px' }}>📋</span>
-              <span style={{ fontSize: '14px', color: '#1e40af', flex: 1 }}>
-                Des certificats sont à compléter dans votre parcours Formation.
-              </span>
-              <a href="/formation" style={{
-                padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white',
-                borderRadius: '6px', textDecoration: 'none', fontSize: '13px',
-                fontWeight: '500', whiteSpace: 'nowrap',
-              }}>
-                Voir mon parcours
-              </a>
-            </div>
-          )}
         </div>
       )}
 
@@ -2312,12 +2290,32 @@ export default function ProfilPage() {
           right: 0,
           backgroundColor: 'white',
           borderTop: '1px solid #e5e7eb',
-          padding: '16px 24px',
+          padding: '12px 24px',
           display: 'flex',
-          justifyContent: 'center',
-          gap: '12px',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
           zIndex: 100,
         }}>
+          {showRedirectFormation && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '10px 16px', backgroundColor: '#eff6ff', borderRadius: '8px',
+              border: '1px solid #bfdbfe', maxWidth: '600px', width: '100%',
+            }}>
+              <span style={{ fontSize: '16px' }}>📋</span>
+              <span style={{ fontSize: '13px', color: '#1e40af', flex: 1 }}>
+                Certificat(s) à compléter dans votre parcours Formation
+              </span>
+              <a href="/formation" style={{
+                padding: '6px 14px', backgroundColor: '#1e3a5f', color: 'white',
+                borderRadius: '6px', textDecoration: 'none', fontSize: '13px',
+                fontWeight: '500', whiteSpace: 'nowrap',
+              }}>
+                Voir →
+              </a>
+            </div>
+          )}
           <button
             onClick={handleSave}
             disabled={!canSave || saving}
