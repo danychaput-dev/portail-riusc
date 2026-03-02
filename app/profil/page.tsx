@@ -178,7 +178,10 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 4, label: 'Sauvetage en hauteur' },
   ],
   certification_csi: [
-    { id: 1, label: 'Certification CSI (Centre de services incendie)' },
+    { id: 2, label: 'ICS 100 - Introduction au Système de commandement des interventions' },
+    { id: 3, label: 'ICS 200 - Système de commandement de base en cas d\'incident' },
+    { id: 4, label: 'ICS 300 - Fonctions de supervision et planification des incidents complexes' },
+    { id: 5, label: 'ICS 400 - Commandement et gestion des incidents complexes et de grande envergure' },
   ],
   communication: [
     { id: 2, label: 'Radio amateur' },
@@ -1658,12 +1661,29 @@ export default function ProfilPage() {
             selected={dossier.competences_sauvetage}
             onChange={v => updateDossier('competences_sauvetage', v)}
           />
-          <CheckboxGroup
-            label="Certification CSI"
-            options={OPTIONS.certification_csi}
-            selected={dossier.certification_csi}
-            onChange={v => updateDossier('certification_csi', v)}
-          />
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+              Formation en système de commandement d&apos;intervention (ICS)
+            </label>
+            <select
+              value={dossier.certification_csi.length > 0 ? dossier.certification_csi[0] : ''}
+              onChange={e => updateDossier('certification_csi', e.target.value ? [Number(e.target.value)] : [])}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                fontSize: '14px',
+                color: '#374151',
+                backgroundColor: 'white',
+              }}
+            >
+              <option value="">— Aucune formation ICS —</option>
+              {OPTIONS.certification_csi.map(opt => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
           <CheckboxGroup
             label="Communication"
             options={OPTIONS.communication}
