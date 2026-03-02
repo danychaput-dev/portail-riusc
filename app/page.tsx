@@ -1171,7 +1171,9 @@ export default function ProfilPage() {
     // Pas de confirmation nécessaire → sauvegarder directement
     await executerSauvegarde(aCreer, aDesactiver)
   }
-
+ const handleSave = async () => {
+    console.log('🔴 HANDLE SAVE V2')
+    if (!reserviste) return
   /** Exécute la sauvegarde complète (profil + compétences) */
   const executerSauvegarde = async (
     competenceAjouts: Array<{ champProfil: string; label: string; nomFormation: string; aExpiration: boolean }>,
@@ -1399,8 +1401,7 @@ export default function ProfilPage() {
       if (competenceAjouts.length > 0 || competenceRetraits.length > 0) {
         const result = await appliquerChangementsCompetences(competenceAjouts, competenceRetraits)
         console.log('🔍 result:', JSON.stringify(result))
-        
-        // Rafraîchir les certificats et le snapshot
+                // Rafraîchir les certificats et le snapshot
         const nouveauxCerts = await chargerCertificatsCompetence(reserviste!.benevole_id)
         setCertificatsCompetence(nouveauxCerts)
         setSnapshotAvantCompetences(prendreSnapshotCompetences(dossier))
