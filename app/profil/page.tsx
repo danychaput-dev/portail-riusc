@@ -62,6 +62,7 @@ interface DossierData {
   email: string
   date_naissance: string
   grandeur_bottes: string
+  profession: string
   j_ai_18_ans: boolean
   allergies_alimentaires: string
   allergies_autres: string
@@ -410,6 +411,7 @@ export default function ProfilPage() {
     email: '',
     date_naissance: '',
     grandeur_bottes: '',
+    profession: '',
     j_ai_18_ans: false,
     allergies_alimentaires: '',
     allergies_autres: '',
@@ -549,6 +551,7 @@ export default function ProfilPage() {
               email: d.email || '',
               date_naissance: d.date_naissance || '',
               grandeur_bottes: d.grandeur_bottes || '',
+              profession: d.profession || '',
               j_ai_18_ans: d.j_ai_18_ans || false,
               allergies_alimentaires: d.allergies_alimentaires || '',
               allergies_autres: d.allergies_autres || '',
@@ -624,7 +627,7 @@ export default function ProfilPage() {
           })
           setDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
-            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', j_ai_18_ans: true,
+            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
             allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
             competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
             vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
@@ -634,7 +637,7 @@ export default function ProfilPage() {
           })
           setOriginalDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
-            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', j_ai_18_ans: true,
+            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
             allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
             competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
             vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
@@ -775,6 +778,7 @@ export default function ProfilPage() {
         email: d.email || '',
         date_naissance: d.date_naissance || '',
         grandeur_bottes: d.grandeur_bottes || '',
+        profession: d.profession || '',
         j_ai_18_ans: d.j_ai_18_ans || false,
         allergies_alimentaires: d.allergies_alimentaires || '',
         allergies_autres: d.allergies_autres || '',
@@ -1089,6 +1093,7 @@ export default function ProfilPage() {
           .from('reservistes')
           .update({
             grandeur_bottes: dossier.grandeur_bottes || null,
+            profession: dossier.profession || null,
             j_ai_18_ans: dossier.j_ai_18_ans,
             allergies_alimentaires: dossier.allergies_alimentaires || null,
             allergies_autres: dossier.allergies_autres || null,
@@ -1134,6 +1139,7 @@ export default function ProfilPage() {
               email: dossier.email,
               date_naissance: dossier.date_naissance,
               grandeur_bottes: dossier.grandeur_bottes,
+              profession: dossier.profession,
               j_ai_18_ans: dossier.j_ai_18_ans,
               allergies_alimentaires: dossier.allergies_alimentaires,
               allergies_autres: dossier.allergies_autres,
@@ -1350,6 +1356,12 @@ export default function ProfilPage() {
           />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
+            <TextInput
+              label="Profession / Métier"
+              value={dossier.profession}
+              onChange={v => updateDossier('profession', v)}
+              placeholder="Ex: Infirmière, Électricien, Enseignant..."
+            />
             <TextInput
               label="Grandeur de bottes"
               value={dossier.grandeur_bottes}
