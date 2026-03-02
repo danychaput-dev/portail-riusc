@@ -1149,12 +1149,9 @@ export default function ProfilPage() {
     // ── Détecter les changements de compétences → certificats ──
     const snapshotApres = prendreSnapshotCompetences(dossier)
     const { aCreer, aDesactiver } = diffCompetencesCertificats(snapshotAvantCompetences, snapshotApres)
-// Accéder au state React interne
-const fiber = document.querySelector('main').__reactFiber$;
-let f = fiber;
-while(f && !f.memoizedState?.memoizedState?.queue) f = f.return;
-console.log('Fiber trouvé:', !!f);
-
+    console.log('🔍 AVANT:', JSON.stringify(snapshotAvantCompetences))
+    console.log('🔍 APRÈS:', JSON.stringify(snapshotApres))
+    console.log('🔍 À CRÉER:', aCreer.length, '| À DÉSACTIVER:', aDesactiver.length)
     // Vérifier si des retraits nécessitent une confirmation
     if (aDesactiver.length > 0) {
       const retraitsParChamp: Record<string, string[]> = {}
