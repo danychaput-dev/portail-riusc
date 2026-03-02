@@ -168,6 +168,7 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
   competences_securite: [
     { id: 1, label: 'Scies à chaînes' },
     { id: 2, label: 'Contrôle de la circulation routière' },
+    { id: 3, label: 'Formateur certifié CNESST' },
   ],
   competences_sauvetage: [
     { id: 1, label: 'Sauvetage sur corde' },
@@ -1687,164 +1688,164 @@ export default function ProfilPage() {
           />
         </Section>
 
-        {/* ── 9. Organisations ── */}
-        <Section title="Organisations" icon="🏢">
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Organisations dont vous faites partie
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {allOrgs.filter(org => myOrgIds.includes(org.id) && !removedOrgIds.includes(org.id)).map(org => (
-                <span key={org.id} style={{
-                  backgroundColor: '#e0f2fe',
-                  color: '#0369a1',
-                  padding: '6px 12px',
-                  borderRadius: '16px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}>
-                  {org.nom}
-                  <button
-                    onClick={() => setRemovedOrgIds(prev => [...prev, org.id])}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#0369a1',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      padding: '0',
-                      lineHeight: '1',
-                    }}
-                    title="Retirer"
-                  >×</button>
-                </span>
-              ))}
-            </div>
-
-            <div style={{ marginTop: '12px' }}>
+        {/* ── 9. Organisations et Langues ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+          <Section title="Organisations" icon="🏢">
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Ajouter une organisation
+                Organisations dont vous faites partie
               </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {allOrgs.filter(org => (!myOrgIds.includes(org.id) || removedOrgIds.includes(org.id)) && !newOrgIds.includes(org.id)).map(org => (
-                  <button
-                    key={org.id}
-                    onClick={() => setNewOrgIds(prev => [...prev, org.id])}
-                    style={{
-                      backgroundColor: 'white',
-                      border: '1px solid #d1d5db',
-                      color: '#374151',
-                      padding: '6px 12px',
-                      borderRadius: '16px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + {org.nom}
-                  </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                {allOrgs.filter(org => myOrgIds.includes(org.id) && !removedOrgIds.includes(org.id)).map(org => (
+                  <span key={org.id} style={{
+                    backgroundColor: '#e0f2fe',
+                    color: '#0369a1',
+                    padding: '6px 12px',
+                    borderRadius: '16px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}>
+                    {org.nom}
+                    <button
+                      onClick={() => setRemovedOrgIds(prev => [...prev, org.id])}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#0369a1',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        padding: '0',
+                        lineHeight: '1',
+                      }}
+                      title="Retirer"
+                    >×</button>
+                  </span>
                 ))}
-                {!showNewOrgInput && (
-                  <button
-                    onClick={() => setShowNewOrgInput(true)}
-                    style={{
-                      backgroundColor: 'white',
-                      border: '1px dashed #d1d5db',
-                      color: '#6b7280',
-                      padding: '6px 12px',
-                      borderRadius: '16px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + Créer nouvelle organisation
-                  </button>
-                )}
               </div>
 
-              {newOrgIds.length > 0 && (
-                <div style={{ marginTop: '12px' }}>
-                  <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>À ajouter lors de la sauvegarde:</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {newOrgIds.map(orgId => {
-                      const org = allOrgs.find(o => o.id === orgId)
-                      return org ? (
-                        <span key={orgId} style={{
-                          backgroundColor: '#fef3c7',
-                          color: '#92400e',
-                          padding: '6px 12px',
-                          borderRadius: '16px',
-                          fontSize: '13px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}>
-                          {org.nom}
-                          <button
-                            onClick={() => setNewOrgIds(prev => prev.filter(id => id !== orgId))}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: '1' }}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ) : null
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {showNewOrgInput && (
-                <div style={{ marginTop: '12px' }}>
-                  <input
-                    type="text"
-                    value={newOrgName}
-                    onChange={e => setNewOrgName(e.target.value)}
-                    placeholder="Nom de la nouvelle organisation"
+              <div style={{ marginTop: '12px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                  Ajouter une organisation
+                </label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    value=""
+                    onChange={e => {
+                      if (e.target.value) {
+                        setNewOrgIds(prev => [...prev, e.target.value])
+                      }
+                    }}
                     style={{
-                      width: '100%',
                       padding: '8px 12px',
                       border: '1px solid #d1d5db',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      marginBottom: '8px',
-                    }}
-                  />
-                  <button
-                    onClick={() => setShowNewOrgInput(false)}
-                    style={{
-                      backgroundColor: '#f3f4f6',
-                      border: 'none',
                       color: '#374151',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
+                      backgroundColor: 'white',
+                      minWidth: '200px',
+                      flex: '1',
                     }}
                   >
-                    Annuler
-                  </button>
+                    <option value="">— Sélectionner —</option>
+                    {allOrgs
+                      .filter(org => (!myOrgIds.includes(org.id) || removedOrgIds.includes(org.id)) && !newOrgIds.includes(org.id))
+                      .sort((a, b) => a.nom.localeCompare(b.nom))
+                      .map(org => (
+                        <option key={org.id} value={org.id}>{org.nom}</option>
+                      ))
+                    }
+                  </select>
+                  {!showNewOrgInput && (
+                    <button
+                      onClick={() => setShowNewOrgInput(true)}
+                      style={{
+                        backgroundColor: 'white',
+                        border: '1px dashed #d1d5db',
+                        color: '#6b7280',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      + Autre
+                    </button>
+                  )}
                 </div>
-              )}
+
+                {newOrgIds.length > 0 && (
+                  <div style={{ marginTop: '12px' }}>
+                    <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>À ajouter lors de la sauvegarde:</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {newOrgIds.map(orgId => {
+                        const org = allOrgs.find(o => o.id === orgId)
+                        return org ? (
+                          <span key={orgId} style={{
+                            backgroundColor: '#fef3c7',
+                            color: '#92400e',
+                            padding: '6px 12px',
+                            borderRadius: '16px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}>
+                            {org.nom}
+                            <button
+                              onClick={() => setNewOrgIds(prev => prev.filter(id => id !== orgId))}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: '1' }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ) : null
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {showNewOrgInput && (
+                  <div style={{ marginTop: '12px' }}>
+                    <input
+                      type="text"
+                      value={newOrgName}
+                      onChange={e => setNewOrgName(e.target.value)}
+                      placeholder="Nom de la nouvelle organisation"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        marginBottom: '8px',
+                      }}
+                    />
+                    <button
+                      onClick={() => setShowNewOrgInput(false)}
+                      style={{
+                        backgroundColor: '#f3f4f6',
+                        border: 'none',
+                        color: '#374151',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </Section>
+          </Section>
 
-        {/* ── Compétences RS (visible seulement si AQBRS sélectionné) ── */}
-        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
-        <Section title="Compétences en recherche et sauvetage" icon="🔍">
-          <CheckboxGroup
-            label="Niveau de compétence"
-            options={OPTIONS.competence_rs}
-            selected={dossier.competence_rs}
-            onChange={v => updateDossier('competence_rs', v)}
-          />
-        </Section>
-        )}
-
-        {/* ── 10. Langues ── */}
-        <Section title="Langues" icon="🌐">
+          {/* ── 10. Langues ── */}
+          <Section title="Langues" icon="🌐">
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
               Langues parlées
@@ -2030,6 +2031,19 @@ export default function ProfilPage() {
             </div>
           </div>
         </Section>
+        </div>
+
+        {/* ── Compétences RS (visible seulement si AQBRS sélectionné) ── */}
+        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
+        <Section title="Compétences en recherche et sauvetage" icon="🔍">
+          <CheckboxGroup
+            label="Niveau de compétence"
+            options={OPTIONS.competence_rs}
+            selected={dossier.competence_rs}
+            onChange={v => updateDossier('competence_rs', v)}
+          />
+        </Section>
+        )}
 
         {/* ── 11. Commentaires ── */}
         <Section title="Commentaires" icon="💬">
