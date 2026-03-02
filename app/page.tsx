@@ -1171,9 +1171,7 @@ export default function ProfilPage() {
     // Pas de confirmation nécessaire → sauvegarder directement
     await executerSauvegarde(aCreer, aDesactiver)
   }
- const handleSave = async () => {
-    console.log('🔴 HANDLE SAVE V2')
-    if (!reserviste) return
+
   /** Exécute la sauvegarde complète (profil + compétences) */
   const executerSauvegarde = async (
     competenceAjouts: Array<{ champProfil: string; label: string; nomFormation: string; aExpiration: boolean }>,
