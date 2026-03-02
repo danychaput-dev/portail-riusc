@@ -135,25 +135,22 @@ export function diffCompetencesCertificats(
       const avaitCompetence = labelsAvant.size > 0;
       const aCompetence = labelsApres.size > 0;
 
-      // Le label stocké est le premier label non-exclu, ou 'Général'
-      const labelRepresentatif = 
-        [...labelsApres].find(l => !exclus.has(l)) || 'Général';
+      // Label fixe pour que l'index unique (benevole_id, champ, label) bloque les doublons
+      const labelFixe = '__global__';
 
       if (!avaitCompetence && aCompetence) {
         // Compétence ajoutée
         aCreer.push({
           champProfil: config.champProfil,
-          label: labelRepresentatif,
-          nomFormation: resolveNomFormation(config.nomFormationTemplate, labelRepresentatif),
+          label: labelFixe,
+          nomFormation: config.nomFormationTemplate,
           aExpiration: config.aExpiration,
         });
       } else if (avaitCompetence && !aCompetence) {
-        // Compétence retirée — désactiver avec le label qu'on avait avant
-        const ancienLabel = 
-          [...labelsAvant].find(l => !exclus.has(l)) || 'Général';
+        // Compétence retirée — désactiver
         aDesactiver.push({
           champProfil: config.champProfil,
-          label: ancienLabel,
+          label: labelFixe,
         });
       }
     }
