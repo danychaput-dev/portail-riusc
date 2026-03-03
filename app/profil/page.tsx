@@ -404,6 +404,7 @@ export default function ProfilPage() {
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [csiDialog, setCsiDialog] = useState<{ show: boolean; oldLabel: string | null; newLabel: string | null; oldFormationId: string | null; pendingSave: (() => Promise<void>) | null }>({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null })
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // États pour le dossier
@@ -1176,37 +1177,79 @@ export default function ProfilPage() {
 
         setOriginalDossier({ ...dossier })
 
-        // 2b. Créer formation si certification CSI a changé
+        // 2b. Gérer formation si certification CSI a changé
         const oldCsi = originalDossier.certification_csi || []
         const newCsi = dossier.certification_csi || []
 
-        if (JSON.stringify(oldCsi) !== JSON.stringify(newCsi) && newCsi.length > 0) {
-          const selectedOption = OPTIONS.certification_csi.find(o => o.id === newCsi[0])
-          if (selectedOption) {
-            // Vérifier si une formation existe déjà pour ce niveau
-            const { data: existingFormation } = await supabase
+        if (JSON.stringify(oldCsi) !== JSON.stringify(newCsi)) {
+          const oldOption = oldCsi.length > 0 ? OPTIONS.certification_csi.find(o => o.id === oldCsi[0]) : null
+          const newOption = newCsi.length > 0 ? OPTIONS.certification_csi.find(o => o.id === newCsi[0]) : null
+
+          let oldFormationId: string | null = null
+          if (oldOption) {
+            const { data: oldForm } = await supabase
               .from('formations_benevoles')
               .select('id')
               .eq('benevole_id', reserviste.benevole_id)
-              .eq('nom_formation', selectedOption.label)
+              .eq('nom_formation', oldOption.label)
+              .maybeSingle()
+            oldFormationId = oldForm?.id || null
+          }
+
+          if (oldFormationId) {
+            setSaving(false)
+            setCsiDialog({
+              show: true,
+              oldLabel: oldOption?.label || null,
+              newLabel: newOption?.label || null,
+              oldFormationId,
+              pendingSave: async () => {
+                await supabase.from('formations_benevoles').delete().eq('id', oldFormationId!)
+
+                if (newOption) {
+                  const { data: alreadyExists } = await supabase
+                    .from('formations_benevoles')
+                    .select('id')
+                    .eq('benevole_id', reserviste.benevole_id)
+                    .eq('nom_formation', newOption.label)
+                    .maybeSingle()
+
+                  if (!alreadyExists) {
+                    await supabase.from('formations_benevoles').insert({
+                      benevole_id: reserviste.benevole_id,
+                      nom_complet: dossier.nom + ' ' + dossier.prenom,
+                      nom_formation: newOption.label,
+                      resultat: 'En attente',
+                      role: 'Participant',
+                      source: 'portail',
+                      competence_profil_champ: 'certification_csi',
+                      competence_profil_label: newOption.label,
+                    })
+                  }
+                }
+                setSaveMessage({ type: 'success', text: 'Modifications enregistr\u00e9es avec succ\u00e8s!' })
+              }
+            })
+            return
+          } else if (newOption) {
+            const { data: alreadyExists } = await supabase
+              .from('formations_benevoles')
+              .select('id')
+              .eq('benevole_id', reserviste.benevole_id)
+              .eq('nom_formation', newOption.label)
               .maybeSingle()
 
-            if (!existingFormation) {
-              const { error: formError } = await supabase
-                .from('formations_benevoles')
-                .insert({
-                  benevole_id: reserviste.benevole_id,
-                  nom_complet: `${dossier.nom} ${dossier.prenom}`,
-                  nom_formation: selectedOption.label,
-                  resultat: 'En attente',
-                  role: 'Participant',
-                  source: 'portail',
-                  competence_profil_champ: 'certification_csi',
-                  competence_profil_label: selectedOption.label,
-                })
-              if (formError) {
-                console.error('Erreur création formation CSI:', formError)
-              }
+            if (!alreadyExists) {
+              await supabase.from('formations_benevoles').insert({
+                benevole_id: reserviste.benevole_id,
+                nom_complet: dossier.nom + ' ' + dossier.prenom,
+                nom_formation: newOption.label,
+                resultat: 'En attente',
+                role: 'Participant',
+                source: 'portail',
+                competence_profil_champ: 'certification_csi',
+                competence_profil_label: newOption.label,
+              })
             }
           }
         }
@@ -2147,7 +2190,7 @@ export default function ProfilPage() {
         }}>
           <button
             onClick={handleSave}
-            disabled={!canSave || saving}
+            disabled={!canSave || saving || csiDialog.show}
             style={{
               backgroundColor: canSave && !saving ? '#1e3a5f' : '#d1d5db',
               color: 'white',
@@ -2162,6 +2205,36 @@ export default function ProfilPage() {
           >
             {saving ? 'Sauvegarde en cours...' : 'Sauvegarder les modifications'}
           </button>
+
+          {/* Dialog confirmation changement CSI */}
+          {csiDialog.show && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a5f', marginBottom: '16px' }}>Modifier votre certification CSI</div>
+                <div style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6', marginBottom: '8px' }}>
+                  {csiDialog.oldLabel && (
+                    <p style={{ marginBottom: '8px' }}>La formation <strong>{csiDialog.oldLabel}</strong> sera retir\u00e9e de votre parcours de formation.</p>
+                  )}
+                  {csiDialog.newLabel ? (
+                    <p>Elle sera remplac\u00e9e par <strong>{csiDialog.newLabel}</strong>.</p>
+                  ) : (
+                    <p>Aucune nouvelle certification ne sera ajout\u00e9e.</p>
+                  )}
+                </div>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>\u00cates-vous s\u00fbr de vouloir continuer ?</p>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setCsiDialog({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null }); setSaveMessage({ type: 'error', text: 'Modification annul\u00e9e' }) }}
+                    style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+                  >Annuler</button>
+                  <button
+                    onClick={async () => { if (csiDialog.pendingSave) { await csiDialog.pendingSave() } setCsiDialog({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null }) }}
+                    style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#dc2626', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
+                  >Oui, modifier</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
