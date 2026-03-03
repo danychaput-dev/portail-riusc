@@ -18,7 +18,7 @@ function LoginContent() {
   const [email, setEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
-  const [otpMethod, setOtpMethod] = useState<'sms' | 'email' | null>(null)
+  const [otpMethod, setOtpMethod] = useState<'email' | null>(null)
 
   // Récupérer le camp_id si présent dans l'URL
   const campId = searchParams.get('camp') || ''
@@ -46,13 +46,6 @@ function LoginContent() {
     }
     checkUser()
   }, [searchParams])
-
-  const toE164 = (phoneNumber: string) => {
-    const numbers = phoneNumber.replace(/\D/g, '')
-    if (numbers.length === 10) return `+1${numbers}`
-    if (numbers.length === 11 && numbers.startsWith('1')) return `+${numbers}`
-    return `+${numbers}`
-  }
 
   const handleSendOtp = async (e?: React.MouseEvent<HTMLButtonElement>) => {
     // Empêcher le submit du form si événement vient d'un click
@@ -164,45 +157,20 @@ function LoginContent() {
         return
       }
 
-      let smsSent = false
-
-      if (reserviste.telephone) {
-        const formattedPhone = toE164(reserviste.telephone)
-
-        // Préparer le login phone : mettre le phone sur le bon auth.user
-        // et supprimer les comptes fantômes (évite les doublons)
-        const { data: prepResult, error: prepError } = await supabase.rpc('prepare_phone_login', {
-          login_email: email.trim().toLowerCase(),
-          phone_number: formattedPhone,
+      // Toujours envoyer par email (évite les doublons auth avec phone)
+      const { error: emailError } = await supabase.auth.signInWithOtp({ email: email.toLowerCase().trim() })
+      if (emailError) {
+        console.error('Email OTP Error:', emailError)
+        setError(<>Erreur d&apos;envoi du code de connexion.{contactLink}</>)
+        await logEvent({
+          eventType: 'login_failed',
+          email: email.trim(),
+          metadata: { reason: 'otp_send_failed', error: emailError.message },
         })
-        if (prepError) {
-          console.warn('prepare_phone_login error:', prepError.message)
-        }
-
-        const { error: smsError } = await supabase.auth.signInWithOtp({ phone: formattedPhone })
-        if (!smsError) {
-          smsSent = true
-          setOtpMethod('sms')
-        } else {
-          console.warn('SMS échoué, fallback email:', smsError.message)
-        }
+        setLoading(false)
+        return
       }
-
-      if (!smsSent) {
-        const { error: emailError } = await supabase.auth.signInWithOtp({ email: email.toLowerCase().trim() })
-        if (emailError) {
-          console.error('Email OTP Error:', emailError)
-          setError(<>Erreur d&apos;envoi du code de connexion.{contactLink}</>)
-          await logEvent({
-            eventType: 'login_failed',
-            email: email.trim(),
-            metadata: { reason: 'otp_send_failed', error: emailError.message },
-          })
-          setLoading(false)
-          return
-        }
-        setOtpMethod('email')
-      }
+      setOtpMethod('email')
 
       setOtpSent(true)
     } catch (err) {
@@ -224,18 +192,7 @@ function LoginContent() {
     setError('')
 
     try {
-      let verifyResult
-
-      if (otpMethod === 'sms') {
-        const { data: reservistes } = await supabase.rpc('check_reserviste_login', { lookup_email: email.trim() })
-        const reserviste = reservistes?.[0] || null
-        if (reserviste?.telephone) {
-          const formattedPhone = toE164(reserviste.telephone)
-          verifyResult = await supabase.auth.verifyOtp({ phone: formattedPhone, token: otpCode, type: 'sms' })
-        }
-      } else {
-        verifyResult = await supabase.auth.verifyOtp({ email: email.toLowerCase().trim(), token: otpCode, type: 'email' })
-      }
+      const verifyResult = await supabase.auth.verifyOtp({ email: email.toLowerCase().trim(), token: otpCode, type: 'email' })
 
       if (verifyResult?.error) {
         console.error('Verify Error:', verifyResult.error)
@@ -243,7 +200,7 @@ function LoginContent() {
         await logEvent({
           eventType: 'login_failed',
           email: email.trim(),
-          authMethod: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
+          authMethod: 'email_otp',
           metadata: { reason: 'otp_verify_failed', error: verifyResult.error.message },
         })
         setLoading(false)
@@ -260,11 +217,11 @@ function LoginContent() {
 
         // Logger avant la redirection
         await logEvent({
-          eventType: otpMethod === 'sms' ? 'login_sms' : 'login_email',
+          eventType: 'login_email',
           email: email.trim(),
           userId: verifyResult.data.user.id,
           telephone: verifyResult.data.user.phone || null,
-          authMethod: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
+          authMethod: 'email_otp',
         })
         router.push(campId ? `/formation?camp=${campId}` : '/')
       }
@@ -393,7 +350,7 @@ function LoginContent() {
               {loading ? 'Vérification en cours...' : email.trim().toLowerCase() === 'demoriusc' ? 'Accéder à la démo' : 'Recevoir un code de connexion'}
             </button>
             <p style={{ marginTop: '16px', fontSize: '13px', color: '#6b7280', textAlign: 'center', lineHeight: '1.5' }}>
-              Un code vous sera envoyé par SMS si votre numéro est enregistré, sinon par courriel.
+              Un code de connexion à 6 chiffres vous sera envoyé par courriel.
             </p>
             
             <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}>
@@ -404,11 +361,7 @@ function LoginContent() {
         ) : (
           <>
             <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px', textAlign: 'center', lineHeight: '1.6' }}>
-              {otpMethod === 'sms' ? (
-                <>Code envoyé par <strong>SMS</strong> au numéro associé à votre compte</>
-              ) : (
-                <>Code envoyé par <strong>courriel</strong> à <strong>{email}</strong></>
-              )}
+              <>Code envoyé par <strong>courriel</strong> à <strong>{email}</strong></>
               <br />
               <button type="button" onClick={handleReset} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', marginTop: '4px' }}>Changer de courriel</button>
             </p>
