@@ -1356,21 +1356,6 @@ export default function ProfilPage() {
 
       <ImpersonateBanner />
 
-      {saveMessage && (
-        <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>
-          <div style={{
-            padding: '12px 16px',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            backgroundColor: saveMessage.type === 'success' ? '#d1fae5' : '#fef2f2',
-            color: saveMessage.type === 'success' ? '#065f46' : '#dc2626',
-            border: `1px solid ${saveMessage.type === 'success' ? '#6ee7b7' : '#fca5a5'}`
-          }}>
-            {saveMessage.text}
-          </div>
-        </div>
-      )}
 
       <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ marginBottom: '24px' }}>
@@ -2188,6 +2173,20 @@ export default function ProfilPage() {
           gap: '12px',
           zIndex: 100,
         }}>
+          {saveMessage && (
+            <div style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '500',
+              backgroundColor: saveMessage.type === 'success' ? '#d1fae5' : '#fef2f2',
+              color: saveMessage.type === 'success' ? '#065f46' : '#dc2626',
+              border: '1px solid ' + (saveMessage.type === 'success' ? '#6ee7b7' : '#fca5a5'),
+              marginBottom: '8px',
+            }}>
+              {saveMessage.text}
+            </div>
+          )}
           <button
             onClick={handleSave}
             disabled={!canSave || saving || csiDialog.show}
