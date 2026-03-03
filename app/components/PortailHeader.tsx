@@ -291,6 +291,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
           {/* Menu utilisateur */}
           <div ref={userMenuRef} data-tour="menu" style={{ position: 'relative' }}>
+            {(reserviste || user) ? (
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', backgroundColor: showUserMenu ? '#f3f4f6' : 'transparent', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -337,6 +338,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
+            ) : (
+              <div style={{ width: '40px', height: '40px' }} />
+            )}
 
             {/* Dropdown */}
             {showUserMenu && (
