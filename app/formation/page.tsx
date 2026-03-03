@@ -120,6 +120,33 @@ function FormationContent() {
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
 
+  // Helper: mapper les formations avec signed URLs pour les certificats Supabase Storage
+  const mapFormationsWithSignedUrls = async (rawFormations: any[]) => {
+    return Promise.all(rawFormations.map(async (f: any) => {
+      let certUrl = f.certificat_url;
+      if (certUrl && certUrl.startsWith('storage:')) {
+        const path = certUrl.replace('storage:', '');
+        const { data: signed } = await supabase.storage.from('certificats').createSignedUrl(path, 3600);
+        certUrl = signed?.signedUrl || null;
+      }
+      return {
+        id: f.id?.toString() || f.monday_item_id?.toString() || '',
+        nom: f.nom_formation || '',
+        catalogue: f.nom_formation || '',
+        session: f.nom_formation || '',
+        role: f.role || 'Participant',
+        resultat: f.resultat || '',
+        etat_validite: f.etat_validite || '',
+        date_reussite: f.date_reussite || null,
+        date_expiration: f.date_expiration || null,
+        commentaire: f.commentaire || '',
+        has_fichier: !!certUrl,
+        fichiers: certUrl ? [{ name: 'Certificat', url: certUrl }] : [],
+        source: f.source || null
+      };
+    }));
+  };
+
   const [documentsOfficiels, setDocumentsOfficiels] = useState<DocumentOfficiel[]>([]);
   const [documentUrls, setDocumentUrls] = useState<Record<number, string>>({});
 
@@ -175,21 +202,7 @@ function FormationContent() {
 
             // Formations (from Supabase RPC)
             if (formResult.status === 'fulfilled' && formResult.value?.data) {
-              setFormations(formResult.value.data.map((f: any) => ({
-                id: f.id?.toString() || f.monday_item_id?.toString() || '',
-                nom: f.nom_formation || '',
-                catalogue: f.nom_formation || '',
-                session: f.nom_formation || '',
-                role: f.role || 'Participant',
-                resultat: f.resultat || '',
-                etat_validite: f.etat_validite || '',
-                date_reussite: f.date_reussite || null,
-                date_expiration: f.date_expiration || null,
-                commentaire: f.commentaire || '',
-                has_fichier: !!f.certificat_url,
-                fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : [],
-                source: f.source || null
-              })));
+              setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
             }
             setLoadingFormations(false);
 
@@ -309,21 +322,7 @@ function FormationContent() {
 
         // Formations (from Supabase RPC)
         if (formResult.status === 'fulfilled' && formResult.value?.data) {
-          setFormations(formResult.value.data.map((f: any) => ({
-            id: f.id?.toString() || f.monday_item_id?.toString() || '',
-            nom: f.nom_formation || '',
-            catalogue: f.nom_formation || '',
-            session: f.nom_formation || '',
-            role: f.role || 'Participant',
-            resultat: f.resultat || '',
-            etat_validite: f.etat_validite || '',
-            date_reussite: f.date_reussite || null,
-            date_expiration: f.date_expiration || null,
-            commentaire: f.commentaire || '',
-            has_fichier: !!f.certificat_url,
-            fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : [],
-            source: f.source || null
-          })));
+          setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
         }
         setLoadingFormations(false);
 
@@ -514,12 +513,13 @@ function FormationContent() {
         const { error: uploadError } = await supabase.storage.from('certificats').upload(filePath, file, { upsert: true });
         if (uploadError) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + uploadError.message }); }
         else {
-          const { data: urlData } = supabase.storage.from('certificats').getPublicUrl(filePath);
-          const certUrl = urlData?.publicUrl || filePath;
-          await supabase.from('formations_benevoles').update({ certificat_url: certUrl }).eq('id', uploadingForFormationId);
+          // Stocker le path (pas l'URL publique) — on génère un signed URL à l'affichage
+          const certPath = 'storage:' + filePath;
+          await supabase.from('formations_benevoles').update({ certificat_url: certPath }).eq('id', uploadingForFormationId);
+          const { data: signedData } = await supabase.storage.from('certificats').createSignedUrl(filePath, 3600);
+          const signedUrl = signedData?.signedUrl || '#';
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
-          // Rafraîchir les formations pour afficher le lien
-          setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: certUrl }] } : f));
+          setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: signedUrl }] } : f));
           setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
         }
       } else {
