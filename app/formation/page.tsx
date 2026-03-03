@@ -481,6 +481,8 @@ function FormationContent() {
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
   const [editingDatesForId, setEditingDatesForId] = useState<string | null>(null);
+  const dateReussiteRef = useRef<HTMLInputElement>(null);
+  const dateExpirationRef = useRef<HTMLInputElement>(null);
   const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
   const [uploadedFormationIds, setUploadedFormationIds] = useState<Set<string>>(new Set());
   const formationCertInputRef = useRef<HTMLInputElement>(null);
@@ -924,7 +926,7 @@ function FormationContent() {
                               </span>
                             )}
                             {f.resultat && f.resultat === 'En attente' && f.source === 'portail' ? (
-                              <button onClick={() => setEditingDatesForId(editingDatesForId === f.id ? null : f.id)} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
+                              <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
                             ) : f.resultat ? (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.resultat}
@@ -1021,33 +1023,14 @@ function FormationContent() {
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                               <div>
                                 <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date de réussite</label>
-                                <input
-                                  type="date"
-                                  defaultValue={f.date_reussite || ''}
-                                  onChange={async (e) => {
-                                    const val = e.target.value;
-                                    if (val) {
-                                      await supabase.from('formations_benevoles').update({ date_reussite: val, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id);
-                                      setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: val, resultat: 'Réussi', etat_validite: 'À jour' } : fm));
-                                      setEditingDatesForId(null);
-                                    }
-                                  }}
-                                  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                                />
+                                <input type="date" ref={dateReussiteRef} defaultValue={f.date_reussite || ""} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
                               </div>
                               <div>
-                                <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date d'expiration (optionnel)</label>
-                                <input
-                                  type="date"
-                                  defaultValue={f.date_expiration || ''}
-                                  onChange={async (e) => {
-                                    const val = e.target.value || null;
-                                    await supabase.from('formations_benevoles').update({ date_expiration: val, a_expiration: !!val }).eq('id', f.id);
-                                    setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_expiration: val } : fm));
-                                  }}
-                                  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }}
-                                />
+                                <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date d&apos;expiration (optionnel)</label>
+                                <input type="date" ref={dateExpirationRef} defaultValue={f.date_expiration || ""} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
                               </div>
+                              <button onClick={async () => { const dr = dateReussiteRef.current?.value || ''; const de = dateExpirationRef.current?.value || ''; if (!dr) return; await supabase.from('formations_benevoles').update({ date_reussite: dr, date_expiration: de || null, a_expiration: !!de, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id); setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: dr, date_expiration: de || null, resultat: 'Réussi', etat_validite: 'À jour' } : fm)); setEditingDatesForId(null); }} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#1e3a5f', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Confirmer</button>
+                              <button onClick={() => setEditingDatesForId(null)} style={{ padding: '6px 16px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', cursor: 'pointer' }}>Annuler</button>
                             </div>
                           </div>
                         )}
