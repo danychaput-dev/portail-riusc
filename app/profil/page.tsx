@@ -2215,10 +2215,8 @@ export default function ProfilPage() {
                   {csiDialog.oldLabel && (
                     <p style={{ marginBottom: '8px' }}>La formation <strong>{csiDialog.oldLabel}</strong> sera retirée de votre parcours de formation.</p>
                   )}
-                  {csiDialog.newLabel ? (
+                  {csiDialog.newLabel && (
                     <p>Elle sera remplacée par <strong>{csiDialog.newLabel}</strong>.</p>
-                  ) : (
-                    <p>Aucune nouvelle certification ne sera ajoutée.</p>
                   )}
                 </div>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Êtes-vous sûr de vouloir continuer ?</p>
