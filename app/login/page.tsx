@@ -168,6 +168,17 @@ function LoginContent() {
 
       if (reserviste.telephone) {
         const formattedPhone = toE164(reserviste.telephone)
+
+        // Préparer le login phone : mettre le phone sur le bon auth.user
+        // et supprimer les comptes fantômes (évite les doublons)
+        const { data: prepResult, error: prepError } = await supabase.rpc('prepare_phone_login', {
+          login_email: email.trim().toLowerCase(),
+          phone_number: formattedPhone,
+        })
+        if (prepError) {
+          console.warn('prepare_phone_login error:', prepError.message)
+        }
+
         const { error: smsError } = await supabase.auth.signInWithOtp({ phone: formattedPhone })
         if (!smsError) {
           smsSent = true
