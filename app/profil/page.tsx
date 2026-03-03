@@ -1227,7 +1227,7 @@ export default function ProfilPage() {
                     })
                   }
                 }
-                setSaveMessage({ type: 'success', text: 'Modifications enregistr\u00e9es avec succ\u00e8s!' })
+                setSaveMessage({ type: 'success', text: 'Modifications enregistrées avec succès!' })
               }
             })
             return
@@ -2213,18 +2213,18 @@ export default function ProfilPage() {
                 <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a5f', marginBottom: '16px' }}>Modifier votre certification CSI</div>
                 <div style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6', marginBottom: '8px' }}>
                   {csiDialog.oldLabel && (
-                    <p style={{ marginBottom: '8px' }}>La formation <strong>{csiDialog.oldLabel}</strong> sera retir\u00e9e de votre parcours de formation.</p>
+                    <p style={{ marginBottom: '8px' }}>La formation <strong>{csiDialog.oldLabel}</strong> sera retirée de votre parcours de formation.</p>
                   )}
                   {csiDialog.newLabel ? (
-                    <p>Elle sera remplac\u00e9e par <strong>{csiDialog.newLabel}</strong>.</p>
+                    <p>Elle sera remplacée par <strong>{csiDialog.newLabel}</strong>.</p>
                   ) : (
-                    <p>Aucune nouvelle certification ne sera ajout\u00e9e.</p>
+                    <p>Aucune nouvelle certification ne sera ajoutée.</p>
                   )}
                 </div>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>\u00cates-vous s\u00fbr de vouloir continuer ?</p>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Êtes-vous sûr de vouloir continuer ?</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={() => { setCsiDialog({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null }); setSaveMessage({ type: 'error', text: 'Modification annul\u00e9e' }) }}
+                    onClick={() => { setCsiDialog({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null }); setSaveMessage({ type: 'error', text: 'Modification annulée' }) }}
                     style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
                   >Annuler</button>
                   <button
