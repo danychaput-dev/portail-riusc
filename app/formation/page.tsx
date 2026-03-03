@@ -480,6 +480,7 @@ function FormationContent() {
 
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
+  const [editingDatesForId, setEditingDatesForId] = useState<string | null>(null);
   const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
   const [uploadedFormationIds, setUploadedFormationIds] = useState<Set<string>>(new Set());
   const formationCertInputRef = useRef<HTMLInputElement>(null);
@@ -922,11 +923,13 @@ function FormationContent() {
                                 {f.role}
                               </span>
                             )}
-                            {f.resultat && (
-                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                            {f.resultat && f.resultat === 'En attente' && f.source === 'portail' ? (
+                              <button onClick={() => setEditingDatesForId(editingDatesForId === f.id ? null : f.id)} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
+                            ) : f.resultat ? (
+                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.resultat}
                               </span>
-                            )}
+                            ) : null}
                             {f.etat_validite && (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.etat_validite === 'À jour' ? '#eff6ff' : '#fef2f2', color: f.etat_validite === 'À jour' ? '#1e40af' : '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.etat_validite}
@@ -1012,7 +1015,7 @@ function FormationContent() {
                         )}
 
                         {/* Champs date pour formations portail En attente */}
-                        {f.source === 'portail' && f.resultat === 'En attente' && (
+                        {f.source === 'portail' && editingDatesForId === f.id && (
                           <div style={{ marginTop: '12px', padding: '12px 16px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
                             <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>Complétez votre formation</div>
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
