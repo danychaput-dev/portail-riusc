@@ -1029,6 +1029,7 @@ function FormationContent() {
                                     if (val) {
                                       await supabase.from('formations_benevoles').update({ date_reussite: val, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id);
                                       setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: val, resultat: 'Réussi', etat_validite: 'À jour' } : fm));
+                                      setEditingDatesForId(null);
                                     }
                                   }}
                                   style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }}
