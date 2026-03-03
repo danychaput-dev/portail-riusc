@@ -1175,6 +1175,41 @@ export default function ProfilPage() {
         }).catch(() => {}) // fire-and-forget
 
         setOriginalDossier({ ...dossier })
+
+        // 2b. Créer formation si certification CSI a changé
+        const oldCsi = originalDossier.certification_csi || []
+        const newCsi = dossier.certification_csi || []
+
+        if (JSON.stringify(oldCsi) !== JSON.stringify(newCsi) && newCsi.length > 0) {
+          const selectedOption = OPTIONS.certification_csi.find(o => o.id === newCsi[0])
+          if (selectedOption) {
+            // Vérifier si une formation existe déjà pour ce niveau
+            const { data: existingFormation } = await supabase
+              .from('formations_benevoles')
+              .select('id')
+              .eq('benevole_id', reserviste.benevole_id)
+              .eq('nom_formation', selectedOption.label)
+              .maybeSingle()
+
+            if (!existingFormation) {
+              const { error: formError } = await supabase
+                .from('formations_benevoles')
+                .insert({
+                  benevole_id: reserviste.benevole_id,
+                  nom_complet: `${dossier.nom} ${dossier.prenom}`,
+                  nom_formation: selectedOption.label,
+                  resultat: 'En attente',
+                  role: 'Participant',
+                  source: 'portail',
+                  competence_profil_champ: 'certification_csi',
+                  competence_profil_label: selectedOption.label,
+                })
+              if (formError) {
+                console.error('Erreur création formation CSI:', formError)
+              }
+            }
+          }
+        }
       }
 
       // 3. Organisations
