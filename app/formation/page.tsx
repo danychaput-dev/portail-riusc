@@ -521,6 +521,8 @@ function FormationContent() {
         setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
         if (uploadingForFormationId) {
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
+          // Persister le certificat_url dans Supabase
+          await supabase.from('formations_benevoles').update({ certificat_url: data.url || file.name }).eq('id', uploadingForFormationId);
         } else {
           const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
           if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
