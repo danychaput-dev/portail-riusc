@@ -601,7 +601,7 @@ export default function HomePage() {
           .from('community_last_seen')
           .select('last_seen_at')
           .eq('user_id', user.id)
-          .single()
+          .maybeSingle()
 
         const since = lastSeen?.last_seen_at || '2000-01-01'
         const { count } = await supabase
