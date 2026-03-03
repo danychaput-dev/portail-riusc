@@ -477,12 +477,14 @@ function FormationContent() {
   ];
   const completedCount = steps.filter(s => s.done).length;
   const progressPercent = Math.round((completedCount / steps.length) * 100);
+  const [checklistCollapsed, setChecklistCollapsed] = useState(false);
+  useEffect(() => { if (completedCount === steps.length && steps.length > 0 && !loading) setChecklistCollapsed(true); }, [completedCount, loading]);
 
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
   const [editingDatesForId, setEditingDatesForId] = useState<string | null>(null);
-  const [pendingDateReussite, setPendingDateReussite] = useState<string>('');
-  const [pendingDateExpiration, setPendingDateExpiration] = useState<string>('');
+  const dateReussiteRef = useRef<HTMLInputElement>(null);
+  const dateExpirationRef = useRef<HTMLInputElement>(null);
   const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
   const [uploadedFormationIds, setUploadedFormationIds] = useState<Set<string>>(new Set());
   const formationCertInputRef = useRef<HTMLInputElement>(null);
@@ -786,7 +788,7 @@ function FormationContent() {
         {/* Barre de progression */}
         <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f' }}>Progression des étapes obligatoires</span>
+            <span onClick={() => setChecklistCollapsed(!checklistCollapsed)} style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>Progression des étapes obligatoires <svg width="14" height="14" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24" style={{ transform: checklistCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg></span>
             <span style={{ fontSize: '14px', fontWeight: '700', color: progressPercent === 100 ? '#059669' : '#1e3a5f' }}>{progressPercent}%</span>
           </div>
           <div style={{ height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
@@ -796,6 +798,7 @@ function FormationContent() {
         </div>
 
         {/* Cartes des étapes */}
+        {!checklistCollapsed && (<>
         {steps.map((step) => {
           const isLink = !!step.href && !step.done;
           const isClickable = isLink || (!!step.onClick && !step.done);
@@ -868,6 +871,7 @@ function FormationContent() {
             </div>
           );
         })}
+        </>)}
 
         {/* Hidden input pour upload certificat formation */}
         <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
@@ -926,7 +930,7 @@ function FormationContent() {
                               </span>
                             )}
                             {f.resultat && f.resultat === 'En attente' && f.source === 'portail' ? (
-                              <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); setPendingDateReussite(f.date_reussite || ''); setPendingDateExpiration(f.date_expiration || ''); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
+                              <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
                             ) : f.resultat ? (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.resultat}
@@ -1023,13 +1027,13 @@ function FormationContent() {
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                               <div>
                                 <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date de réussite</label>
-                                <input type="date" value={pendingDateReussite} onChange={(e) => setPendingDateReussite(e.target.value)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
+                                <input type="date" ref={dateReussiteRef} defaultValue={f.date_reussite || ""} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
                               </div>
                               <div>
                                 <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date d&apos;expiration (optionnel)</label>
-                                <input type="date" value={pendingDateExpiration} onChange={(e) => setPendingDateExpiration(e.target.value)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
+                                <input type="date" ref={dateExpirationRef} defaultValue={f.date_expiration || ""} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
                               </div>
-                              <button disabled={!pendingDateReussite} onClick={async () => { await supabase.from('formations_benevoles').update({ date_reussite: pendingDateReussite, date_expiration: pendingDateExpiration || null, a_expiration: !!pendingDateExpiration, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id); setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: pendingDateReussite, date_expiration: pendingDateExpiration || null, resultat: 'Réussi', etat_validite: 'À jour' } : fm)); setEditingDatesForId(null); }} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', backgroundColor: pendingDateReussite ? '#1e3a5f' : '#d1d5db', color: 'white', fontSize: '13px', fontWeight: '600', cursor: pendingDateReussite ? 'pointer' : 'not-allowed' }}>Confirmer</button>
+                              <button onClick={async () => { const dr = dateReussiteRef.current?.value || ''; const de = dateExpirationRef.current?.value || ''; if (!dr) return; await supabase.from('formations_benevoles').update({ date_reussite: dr, date_expiration: de || null, a_expiration: !!de, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id); setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: dr, date_expiration: de || null, resultat: 'Réussi', etat_validite: 'À jour' } : fm)); setEditingDatesForId(null); }} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#1e3a5f', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Confirmer</button>
                               <button onClick={() => setEditingDatesForId(null)} style={{ padding: '6px 16px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', cursor: 'pointer' }}>Annuler</button>
                             </div>
                           </div>
