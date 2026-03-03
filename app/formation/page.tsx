@@ -82,6 +82,7 @@ interface Formation {
   commentaire: string;
   has_fichier?: boolean;
   fichiers?: { name: string; url: string | null }[];
+  source?: string;
 }
 
 function FormationContent() {
@@ -186,7 +187,8 @@ function FormationContent() {
                 date_expiration: f.date_expiration || null,
                 commentaire: f.commentaire || '',
                 has_fichier: !!f.certificat_url,
-                fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : []
+                fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : [],
+                source: f.source || null
               })));
             }
             setLoadingFormations(false);
@@ -319,7 +321,8 @@ function FormationContent() {
             date_expiration: f.date_expiration || null,
             commentaire: f.commentaire || '',
             has_fichier: !!f.certificat_url,
-            fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : []
+            fichiers: f.certificat_url ? [{ name: 'Certificat', url: f.certificat_url }] : [],
+            source: f.source || null
           })));
         }
         setLoadingFormations(false);
@@ -500,34 +503,55 @@ function FormationContent() {
       return;
     }
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          file_name: file.name,
-          file_base64: base64,
-          formation_id: uploadingForFormationId || null,
-          formation_nom: uploadingForFormationNom || null
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
-        if (uploadingForFormationId) {
+      // Trouver si c'est une formation portail (sans monday_item_id)
+      const currentFormation = formations.find(f => f.id === uploadingForFormationId);
+      const isPortailFormation = currentFormation && currentFormation.source === 'portail';
+
+      if (isPortailFormation && uploadingForFormationId) {
+        // Upload direct vers Supabase Storage pour formations portail
+        const ext = file.name.split('.').pop() || 'pdf';
+        const filePath = `${reserviste.benevole_id}/${uploadingForFormationId}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('certificats').upload(filePath, file, { upsert: true });
+        if (uploadError) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + uploadError.message }); }
+        else {
+          const { data: urlData } = supabase.storage.from('certificats').getPublicUrl(filePath);
+          const certUrl = urlData?.publicUrl || filePath;
+          await supabase.from('formations_benevoles').update({ certificat_url: certUrl }).eq('id', uploadingForFormationId);
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
-          // Persister le certificat_url dans Supabase
-          await supabase.from('formations_benevoles').update({ certificat_url: data.url || file.name }).eq('id', uploadingForFormationId);
-        } else {
-          const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
-          if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+          // Rafraîchir les formations pour afficher le lien
+          setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: certUrl }] } : f));
+          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
         }
-      } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
+      } else {
+        // Upload via webhook n8n pour formations Monday
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            benevole_id: reserviste.benevole_id,
+            file_name: file.name,
+            file_base64: base64,
+            formation_id: uploadingForFormationId || null,
+            formation_nom: uploadingForFormationNom || null
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
+          if (uploadingForFormationId) {
+            setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
+            await supabase.from('formations_benevoles').update({ certificat_url: data.url || file.name }).eq('id', uploadingForFormationId);
+          } else {
+            const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
+            if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+          }
+        } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
+      }
     } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
     setUploadingCertificat(false);
     setUploadingForFormationId(null);
