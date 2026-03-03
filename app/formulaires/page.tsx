@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
+import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER, DEMO_FORMATIONS } from '@/utils/demoMode';
 
 interface Reserviste {
   benevole_id: string;
@@ -24,6 +25,10 @@ interface Reserviste {
   allergies_autres?: string;
   conditions_medicales?: string;
   consent_photo?: boolean;
+  antecedents_statut?: string;
+  antecedents_date_verification?: string;
+  antecedents_date_expiration?: string;
+  monday_created_at?: string;
 }
 
 interface CampInfo {
@@ -77,6 +82,7 @@ interface Formation {
   commentaire: string;
   has_fichier?: boolean;
   fichiers?: { name: string; url: string | null }[];
+  source?: string;
 }
 
 function FormationContent() {
@@ -114,12 +120,39 @@ function FormationContent() {
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
 
+  // Helper: mapper les formations avec signed URLs pour les certificats Supabase Storage
+  const mapFormationsWithSignedUrls = async (rawFormations: any[]) => {
+    return Promise.all(rawFormations.map(async (f: any) => {
+      let certUrl = f.certificat_url;
+      if (certUrl && certUrl.startsWith('storage:')) {
+        const path = certUrl.replace('storage:', '');
+        const { data: signed } = await supabase.storage.from('certificats').createSignedUrl(path, 3600);
+        certUrl = signed?.signedUrl || null;
+      }
+      return {
+        id: f.id?.toString() || f.monday_item_id?.toString() || '',
+        nom: f.nom_formation || '',
+        catalogue: f.nom_formation || '',
+        session: f.nom_formation || '',
+        role: f.role || 'Participant',
+        resultat: f.resultat || '',
+        etat_validite: f.etat_validite || '',
+        date_reussite: f.date_reussite || null,
+        date_expiration: f.date_expiration || null,
+        commentaire: f.commentaire || '',
+        has_fichier: !!certUrl,
+        fichiers: certUrl ? [{ name: 'Certificat', url: certUrl }] : [],
+        source: f.source || null
+      };
+    }));
+  };
+
   const [documentsOfficiels, setDocumentsOfficiels] = useState<DocumentOfficiel[]>([]);
   const [documentUrls, setDocumentUrls] = useState<Record<number, string>>({});
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, monday_created_at';
 
   useEffect(() => { loadData(); }, []);
 
@@ -151,7 +184,7 @@ function FormationContent() {
             const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
 
@@ -167,9 +200,9 @@ function FormationContent() {
             }
             setLoadingCamp(false);
 
-            // Formations
-            if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
-              setFormations(formResult.value.formations);
+            // Formations (from Supabase RPC)
+            if (formResult.status === 'fulfilled' && formResult.value?.data) {
+              setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
             }
             setLoadingFormations(false);
 
@@ -195,6 +228,33 @@ function FormationContent() {
           setLoading(false);
           return;
         }
+      }
+
+      // 🎯 MODE DÉMO
+      const demoActive = isDemoActive();
+      if (demoActive) {
+        const groupe = getDemoGroupe();
+        const demoAntecedents = groupe === 'Approuvé'
+          ? { antecedents_statut: 'verifie', antecedents_date_verification: '2025-06-15', antecedents_date_expiration: '2028-06-15' }
+          : { antecedents_statut: 'en_attente', antecedents_date_verification: null, antecedents_date_expiration: null };
+        const demoRes = { ...DEMO_RESERVISTE, groupe, ...demoAntecedents, monday_created_at: '2025-03-12' };
+        setUser(DEMO_USER);
+        setReserviste(demoRes as any);
+        
+        if (groupe === 'Approuvé') {
+          setCertificats([{ id: 'demo-cert-1', name: 'Certificat_Sinitier_Tremblay.pdf', url: '#' }]);
+          setFormations(DEMO_FORMATIONS as any);
+          setCampStatus({ is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        } else {
+          setCertificats([]);
+          setFormations([]);
+          setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        }
+        setLoadingCertificats(false);
+        setLoadingCamp(false);
+        setLoadingFormations(false);
+        setLoading(false);
+        return;
       }
     }
 
@@ -244,7 +304,7 @@ function FormationContent() {
         const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-formations?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
 
@@ -260,9 +320,9 @@ function FormationContent() {
         }
         setLoadingCamp(false);
 
-        // Formations
-        if (formResult.status === 'fulfilled' && formResult.value?.success && formResult.value.formations) {
-          setFormations(formResult.value.formations);
+        // Formations (from Supabase RPC)
+        if (formResult.status === 'fulfilled' && formResult.value?.data) {
+          setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
         }
         setLoadingFormations(false);
 
@@ -302,6 +362,15 @@ function FormationContent() {
     setModalAllergiesAutres(reserviste?.allergies_autres || '');
     setModalConditions(reserviste?.conditions_medicales || '');
     setModalConsentPhoto(reserviste?.consent_photo || false);
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setSessionsDisponibles([
+        { session_id: 'demo-s1', nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' },
+        { session_id: 'demo-s2', nom: 'Cohorte 9 - Camp de qualification', dates: '24-25 mai 2026', site: 'Base de plein air de Val-Cartier', location: 'Shannon, Québec' },
+      ]);
+      setLoadingSessions(false);
+      return;
+    }
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps');
       if (response.ok) { const data = await response.json(); if (data.success && data.sessions) setSessionsDisponibles(data.sessions); }
@@ -313,6 +382,12 @@ function FormationContent() {
   const handleSubmitInscription = async () => {
     if (!reserviste || !selectedSessionId) { setInscriptionError('Veuillez sélectionner un camp'); return; }
     if (!reserviste.consent_photo && !modalConsentPhoto) { setInscriptionError('Veuillez accepter le consentement photo/vidéo pour continuer.'); return; }
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setInscriptionLoading(true);
+      setTimeout(() => { setInscriptionSuccess(true); setInscriptionLoading(false); setTimeout(() => closeCampModal(), 2000); }, 1000);
+      return;
+    }
     setInscriptionLoading(true); setInscriptionError(null);
     try {
       const { error: updateError } = await supabase
@@ -351,6 +426,7 @@ function FormationContent() {
 
   const handleCancelInscription = async () => {
     if (!reserviste || !confirm('Êtes-vous sûr de vouloir annuler votre inscription au camp ?')) return;
+    if (isDemoActive()) { setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null }); return; }
     setCancellingInscription(true);
     try {
       const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`, { method: 'POST' });
@@ -367,15 +443,46 @@ function FormationContent() {
     reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
   );
 
+  // Statut antécédents judiciaires
+  const antecedentsVerifie = reserviste?.antecedents_statut === 'verifie';
+  const antecedentsExpire = reserviste?.antecedents_statut === 'expire' || (
+    reserviste?.antecedents_date_expiration && new Date(reserviste.antecedents_date_expiration) < new Date()
+  );
+  const antecedentsDone = antecedentsVerifie && !antecedentsExpire;
+
+  const antecedentsDescription = antecedentsDone
+    ? `Vérifié${reserviste?.antecedents_date_expiration ? ` — expire le ${new Date(reserviste.antecedents_date_expiration + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}` : ''}`
+    : antecedentsExpire
+      ? 'Expiré — renouvellement requis'
+      : 'En attente de vérification';
+
+  // Statut S'initier à la sécurité civile
+  const hasSinitier = formations.some(f => {
+    const cat = (f.catalogue || f.nom || '').toLowerCase();
+    return cat.includes('initier') || cat.includes("s'initier");
+  });
+
+  // Description camp selon statut
+  const campDescription = campStatus?.is_certified
+    ? 'Complété'
+    : campStatus?.has_inscription
+      ? 'Inscrit — en attente du camp'
+      : "S'inscrire à un camp pratique de 2 jours";
+
   const steps = [
-    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', emoji: '👤', description: 'Vérifiez et complétez vos informations personnelles' },
-    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, emoji: '🏕️', description: campStatus?.has_inscription ? 'Inscrit — en attente du camp' : "S'inscrire à un camp pratique de 2 jours" },
+    { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', onClick: null as (() => void) | null, emoji: '👤', description: isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles' },
+    { id: 'sinitier', label: "S'initier à la sécurité civile", done: hasSinitier, href: null, onClick: null as (() => void) | null, emoji: '🎓', description: hasSinitier ? 'Formation complétée' : 'Formation en ligne obligatoire (environ 1 h 45)' },
+    { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, onClick: (!campStatus?.is_certified ? openCampModal : null) as (() => void) | null, emoji: '🏕️', description: campDescription },
+    { id: 'antecedents', label: 'Antécédents judiciaires', done: antecedentsDone, href: null, onClick: null as (() => void) | null, emoji: '🔍', description: antecedentsDescription },
   ];
   const completedCount = steps.filter(s => s.done).length;
-  const progressPercent = Math.round((completedCount / 2) * 100);
+  const progressPercent = Math.round((completedCount / steps.length) * 100);
 
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
+  const [editingDatesForId, setEditingDatesForId] = useState<string | null>(null);
+  const [pendingDateReussite, setPendingDateReussite] = useState<string>('');
+  const [pendingDateExpiration, setPendingDateExpiration] = useState<string>('');
   const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
   const [uploadedFormationIds, setUploadedFormationIds] = useState<Set<string>>(new Set());
   const formationCertInputRef = useRef<HTMLInputElement>(null);
@@ -389,33 +496,65 @@ function FormationContent() {
 
     setUploadingCertificat(true);
     setCertificatMessage(null);
+    // 🎯 MODE DÉMO
+    if (isDemoActive()) {
+      setTimeout(() => {
+        setCertificatMessage({ type: 'success', text: '✅ Mode démo — Certificat simulé avec succès !' });
+        setUploadingCertificat(false);
+      }, 1000);
+      return;
+    }
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          file_name: file.name,
-          file_base64: base64,
-          formation_id: uploadingForFormationId || null,
-          formation_nom: uploadingForFormationNom || null
-        })
-      });
-      const data = await response.json();
-      if (data.success) {
-        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
-        if (uploadingForFormationId) {
+      // Trouver si c'est une formation portail (sans monday_item_id)
+      const currentFormation = formations.find(f => f.id === uploadingForFormationId);
+      const isPortailFormation = currentFormation && currentFormation.source === 'portail';
+
+      if (isPortailFormation && uploadingForFormationId) {
+        // Upload direct vers Supabase Storage pour formations portail
+        const ext = file.name.split('.').pop() || 'pdf';
+        const filePath = `${reserviste.benevole_id}/${uploadingForFormationId}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('certificats').upload(filePath, file, { upsert: true });
+        if (uploadError) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + uploadError.message }); }
+        else {
+          // Stocker le path (pas l'URL publique) — on génère un signed URL à l'affichage
+          const certPath = 'storage:' + filePath;
+          await supabase.from('formations_benevoles').update({ certificat_url: certPath }).eq('id', uploadingForFormationId);
+          const { data: signedData } = await supabase.storage.from('certificats').createSignedUrl(filePath, 3600);
+          const signedUrl = signedData?.signedUrl || '#';
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
-        } else {
-          const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
-          if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+          setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: signedUrl }] } : f));
+          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
         }
-      } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
+      } else {
+        // Upload via webhook n8n pour formations Monday
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            benevole_id: reserviste.benevole_id,
+            file_name: file.name,
+            file_base64: base64,
+            formation_id: uploadingForFormationId || null,
+            formation_nom: uploadingForFormationNom || null
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
+          if (uploadingForFormationId) {
+            setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
+            await supabase.from('formations_benevoles').update({ certificat_url: data.url || file.name }).eq('id', uploadingForFormationId);
+          } else {
+            const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
+            if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+          }
+        } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
+      }
     } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
     setUploadingCertificat(false);
     setUploadingForFormationId(null);
@@ -464,12 +603,12 @@ function FormationContent() {
           </div>
 
           {/* Steps cards */}
-          {[1, 2].map(i => (
+          {[1, 2, 3, 4].map(i => (
             <div key={i} style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '12px', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '16px' }}>
               <Bone w="44px" h="44px" r="50%" />
               <div style={{ flex: 1 }}>
-                <Bone w={i === 1 ? '180px' : '200px'} h="15px" mb="8px" />
-                <Bone w={i === 1 ? '260px' : '300px'} h="13px" />
+                <Bone w={i === 1 ? '180px' : i === 2 ? '200px' : '220px'} h="15px" mb="8px" />
+                <Bone w={i === 1 ? '260px' : i === 2 ? '300px' : '240px'} h="13px" />
               </div>
               <Bone w="28px" h="28px" r="50%" />
             </div>
@@ -635,7 +774,14 @@ function FormationContent() {
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
 
         <h2 style={{ color: '#1e3a5f', margin: '20px 0 8px 0', fontSize: '26px', fontWeight: '700' }}>Parcours du réserviste</h2>
-        <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>Suivez ces étapes pour compléter votre intégration à la RIUSC.</p>
+        <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>
+          Suivez ces étapes pour compléter votre intégration à la RIUSC.
+          {reserviste?.monday_created_at && (
+            <span style={{ marginLeft: '8px', color: '#9ca3af' }}>
+              — Membre depuis {new Date(reserviste.monday_created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long' })}
+            </span>
+          )}
+        </p>
 
         {/* Barre de progression */}
         <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
@@ -646,8 +792,82 @@ function FormationContent() {
           <div style={{ height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${progressPercent}%`, backgroundColor: progressPercent === 100 ? '#059669' : '#1e3a5f', borderRadius: '4px', transition: 'width 0.5s ease' }} />
           </div>
-          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/2 étapes obligatoires complétées</p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#9ca3af' }}>{completedCount}/{steps.length} étapes obligatoires complétées</p>
         </div>
+
+        {/* Cartes des étapes */}
+        {steps.map((step) => {
+          const isLink = !!step.href && !step.done;
+          const isClickable = isLink || (!!step.onClick && !step.done);
+          const handleClick = () => { if (step.onClick && !step.done) step.onClick(); };
+          return (
+            <div key={step.id} onClick={!isLink ? handleClick : undefined}>
+              {isLink ? (
+                <a href={step.href!} style={{ textDecoration: 'none' }}>
+                  <div style={{
+                    backgroundColor: 'white',
+                    padding: '16px 20px',
+                    borderRadius: '12px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    marginBottom: '12px',
+                    border: step.done ? '1px solid #bbf7d0' : step.id === 'antecedents' && antecedentsExpire ? '1px solid #fca5a5' : '1px solid #e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = '#1e3a5f'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = step.done ? '#bbf7d0' : '#e5e7eb'; }}
+                  >
+                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: step.done ? '#d1fae5' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                      {step.done ? '✅' : step.emoji}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '15px', fontWeight: '600', color: step.done ? '#065f46' : '#1e3a5f' }}>{step.label}</div>
+                      <div style={{ fontSize: '13px', color: step.done ? '#059669' : '#6b7280', marginTop: '2px' }}>{step.description}</div>
+                    </div>
+                    <svg width="20" height="20" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  </div>
+                </a>
+              ) : (
+                <div style={{
+                  backgroundColor: 'white',
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  marginBottom: '12px',
+                  border: step.done ? '1px solid #bbf7d0' : step.id === 'antecedents' && antecedentsExpire ? '1px solid #fca5a5' : '1px solid #e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  cursor: isClickable ? 'pointer' : 'default',
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => { if (isClickable) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.borderColor = '#1e3a5f'; } }}
+                onMouseOut={(e) => { if (isClickable) { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = step.done ? '#bbf7d0' : step.id === 'antecedents' && antecedentsExpire ? '#fca5a5' : '#e5e7eb'; } }}
+                >
+                  <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: step.done ? '#d1fae5' : step.id === 'antecedents' && antecedentsExpire ? '#fef2f2' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                    {step.done ? '✅' : step.emoji}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: '600', color: step.done ? '#065f46' : '#1e3a5f' }}>{step.label}</div>
+                    <div style={{ fontSize: '13px', color: step.done ? '#059669' : '#6b7280', marginTop: '2px' }}>{step.description}</div>
+                  </div>
+                  {step.done ? (
+                    <svg width="24" height="24" fill="none" stroke="#059669" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  ) : isClickable ? (
+                    <svg width="20" height="20" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                  ) : step.id === 'antecedents' && antecedentsExpire ? (
+                    <span style={{ padding: '4px 10px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>Expiré</span>
+                  ) : (
+                    <span style={{ padding: '4px 10px', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>En attente</span>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Hidden input pour upload certificat formation */}
         <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
@@ -679,9 +899,10 @@ function FormationContent() {
                     // Matching certificats selon le type de formation
                     const isInitier = cat.includes('initier') || cat.includes('s\'initier');
                     const isCamp = cat.includes('camp') || cat.includes('qualification');
-                    const certDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
-                    const lettreDoc = isCamp ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
-                    const hasCert = uploadedFormationIds.has(f.id) || f.has_fichier || (isInitier ? certificats.length > 0 : isCamp ? !!certDoc : false);
+                    const isCohorte = cat.includes('cohorte');
+                    const certDoc = isCohorte ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
+                    const lettreDoc = isCohorte ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
+                    const hasCert = uploadedFormationIds.has(f.id) || f.has_fichier || (isInitier ? certificats.length > 0 : isCohorte ? !!certDoc : false);
 
                     return (
                   <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
@@ -704,11 +925,13 @@ function FormationContent() {
                                 {f.role}
                               </span>
                             )}
-                            {f.resultat && (
-                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#d1fae5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
+                            {f.resultat && f.resultat === 'En attente' && f.source === 'portail' ? (
+                              <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); setPendingDateReussite(f.date_reussite || ''); setPendingDateExpiration(f.date_expiration || ''); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
+                            ) : f.resultat ? (
+                              <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.resultat}
                               </span>
-                            )}
+                            ) : null}
                             {f.etat_validite && (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.etat_validite === 'À jour' ? '#eff6ff' : '#fef2f2', color: f.etat_validite === 'À jour' ? '#1e40af' : '#dc2626', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.etat_validite}
@@ -732,7 +955,7 @@ function FormationContent() {
                         )}
 
                         {/* Documents liés — Camp : certificat + lettre */}
-                        {isCamp && (certDoc || lettreDoc) && (
+                        {isCohorte && (certDoc || lettreDoc) && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             {certDoc && documentUrls[certDoc.id] && (
                               <a href={documentUrls[certDoc.id]} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
@@ -758,7 +981,7 @@ function FormationContent() {
                         )}
 
                         {/* Badge certificat au dossier (fichier Monday) — pour toute formation avec fichier */}
-                        {(uploadedFormationIds.has(f.id) || f.has_fichier) && !(isInitier && certificats.length > 0) && !(isCamp && (certDoc || lettreDoc)) && (
+                        {(uploadedFormationIds.has(f.id) || f.has_fichier) && !(isInitier && certificats.length > 0) && !(isCohorte && (certDoc || lettreDoc)) && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             {f.fichiers && f.fichiers.length > 0 ? (
                               f.fichiers.map((fichier, fi) => (
@@ -792,6 +1015,25 @@ function FormationContent() {
                             </button>
                           </div>
                         )}
+
+                        {/* Champs date pour formations portail En attente */}
+                        {f.source === 'portail' && editingDatesForId === f.id && (
+                          <div style={{ marginTop: '12px', padding: '12px 16px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>Complétez votre formation</div>
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                              <div>
+                                <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date de réussite</label>
+                                <input type="date" value={pendingDateReussite} onChange={(e) => setPendingDateReussite(e.target.value)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date d&apos;expiration (optionnel)</label>
+                                <input type="date" value={pendingDateExpiration} onChange={(e) => setPendingDateExpiration(e.target.value)} style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }} />
+                              </div>
+                              <button disabled={!pendingDateReussite} onClick={async () => { await supabase.from('formations_benevoles').update({ date_reussite: pendingDateReussite, date_expiration: pendingDateExpiration || null, a_expiration: !!pendingDateExpiration, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id); setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: pendingDateReussite, date_expiration: pendingDateExpiration || null, resultat: 'Réussi', etat_validite: 'À jour' } : fm)); setEditingDatesForId(null); }} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', backgroundColor: pendingDateReussite ? '#1e3a5f' : '#d1d5db', color: 'white', fontSize: '13px', fontWeight: '600', cursor: pendingDateReussite ? 'pointer' : 'not-allowed' }}>Confirmer</button>
+                              <button onClick={() => setEditingDatesForId(null)} style={{ padding: '6px 16px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', cursor: 'pointer' }}>Annuler</button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -799,6 +1041,87 @@ function FormationContent() {
                   })}
               </div>
             </div>
+          </>
+        )}
+
+        {/* État vide — aucune formation au dossier */}
+        {!loadingFormations && formations.length === 0 && (
+          <>
+            <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
+              <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>MES FORMATIONS</span>
+            </div>
+
+            <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
+                Formation et certificats
+              </h3>
+
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '24px' }}>⚠️</span>
+                  <div>
+                    <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
+                      Formation obligatoire requise
+                    </p>
+                    <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                      Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
+                      <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
+                      puis nous soumettre votre certificat de réussite.
+                    </p>
+                    <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                      <a href="https://campusnotredamedefoy.centrerisc.com/Web/MyCatalog/ViewP?pid=94b7f%2bJXTOIEwqbEfBzzBw%3d%3d&id=fkpM7dqJ0YA0hLjtTwfqvg%3d%3d" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                        🎓 Accéder à la formation
+                      </a>
+                      <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                        📺 Tutoriel vidéo
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '0' }}>
+                <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
+                <button onClick={() => { setUploadingForFormationId(null); setUploadingForFormationNom('S\'initier à la sécurité civile'); formationCertInputRef.current?.click(); }} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
+                  {uploadingCertificat ? '⏳ Envoi en cours...' : '📤 Soumettre mon certificat'}
+                </button>
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
+              </div>
+            </div>
+
+            {/* Camp de qualification — si pas encore certifié */}
+            {!campStatus?.is_certified && (
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
+                <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '18px', fontWeight: '600' }}>
+                  🏕️ Camp de qualification
+                </h3>
+                {campStatus?.has_inscription && campStatus.camp ? (
+                  <div>
+                    <div style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#fef3c7', color: '#92400e', borderRadius: '12px', fontSize: '13px', fontWeight: '600', marginBottom: '12px' }}>⏳ Inscrit — en attente du camp</div>
+                    <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                      <div style={{ fontWeight: '600', color: '#111827', marginBottom: '8px' }}>{campStatus.camp.nom}</div>
+                      <div style={{ fontSize: '14px', color: '#4b5563', lineHeight: '1.6' }}>
+                        {campStatus.camp.dates && <div>{campStatus.camp.dates}</div>}
+                        {campStatus.camp.site && <div>{campStatus.camp.site}</div>}
+                        {campStatus.camp.location && <div style={{ color: '#6b7280' }}>{campStatus.camp.location}</div>}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique de 2 jours.</p>
+                    <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                      S&apos;inscrire à un camp de qualification
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 
