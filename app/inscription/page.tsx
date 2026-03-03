@@ -91,7 +91,8 @@ export default function InscriptionPage() {
     commentaire: '',
     confirm_18: false,
     consent_photos: false,
-    consent_confidentialite: false
+    consent_confidentialite: false,
+    consent_antecedents: false
   })
 
   // ─── Organisations ──────────────────────────────────────────────────────────
@@ -396,6 +397,7 @@ export default function InscriptionPage() {
     if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
     if (!formData.consent_photos) errors.consent_photos = 'Ce consentement est requis'
     if (!formData.consent_confidentialite) errors.consent_confidentialite = 'Ce consentement est requis'
+    if (!formData.consent_antecedents) errors.consent_antecedents = 'Ce consentement est requis'
     setFieldErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -446,6 +448,12 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
       await new Promise(resolve => setTimeout(resolve, 1500))
 
       if (newBenevoleId) {
+        // Sauvegarder le consentement antécédents judiciaires
+        await supabase
+          .from('reservistes')
+          .update({ consentement_antecedents: formData.consent_antecedents })
+          .eq('benevole_id', newBenevoleId)
+
         // Filtrer "AUCUNE" - ne pas la sauvegarder dans la base
         let orgIdsToLink = selectedOrgIds.filter(id => id !== AUCUNE_ORG_ID)
         
@@ -988,6 +996,12 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                 <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je comprends et j&apos;accepte que mes informations soient utilisées conformément à la{' '}<a href="https://aqbrs.ca/wp-content/uploads/2026/02/Loi-25-Politique-AQBRS-fr.pdf" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>politique de confidentialité</a>. {requiredStar}</span>
               </label>
               {fieldErrors.consent_confidentialite && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.consent_confidentialite}</p>}
+
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: fieldErrors.consent_antecedents ? '#fef2f2' : '#f9fafb', border: fieldErrors.consent_antecedents ? '1px solid #fca5a5' : '1px solid transparent' }}>
+                <input type="checkbox" checked={formData.consent_antecedents} onChange={(e) => handleInputChange('consent_antecedents', e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
+                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>J&apos;autorise l&apos;AQBRS à procéder à la vérification de mes antécédents judiciaires dans le cadre de mon processus d&apos;adhésion à la Réserve d&apos;Intervention d&apos;Urgence en Sécurité Civile. {requiredStar}</span>
+              </label>
+              {fieldErrors.consent_antecedents && <p style={{ color: '#dc2626', fontSize: '12px', margin: '-8px 0 0 0' }}>{fieldErrors.consent_antecedents}</p>}
             </div>
           </div>
 
