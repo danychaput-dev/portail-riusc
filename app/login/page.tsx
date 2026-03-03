@@ -246,11 +246,6 @@ function LoginContent() {
           login_email: email.trim().toLowerCase(),
           phone_auth_uid: authUserId,
         })
-         const { data: mergeResult, error: mergeError } = await supabase.rpc('merge_phone_login', {
-          login_email: email.trim().toLowerCase(),
-          phone_auth_uid: authUserId,
-        })
-        console.log('🔍 MERGE result:', mergeResult, 'error:', mergeError)
 
         // Logger avant la redirection
         await logEvent({
