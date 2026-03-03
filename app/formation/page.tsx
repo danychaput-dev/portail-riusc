@@ -1010,6 +1010,43 @@ function FormationContent() {
                             </button>
                           </div>
                         )}
+
+                        {/* Champs date pour formations portail En attente */}
+                        {f.source === 'portail' && f.resultat === 'En attente' && (
+                          <div style={{ marginTop: '12px', padding: '12px 16px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>Complétez votre formation</div>
+                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                              <div>
+                                <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date de réussite</label>
+                                <input
+                                  type="date"
+                                  defaultValue={f.date_reussite || ''}
+                                  onChange={async (e) => {
+                                    const val = e.target.value;
+                                    if (val) {
+                                      await supabase.from('formations_benevoles').update({ date_reussite: val, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id);
+                                      setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: val, resultat: 'Réussi', etat_validite: 'À jour' } : fm));
+                                    }
+                                  }}
+                                  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Date d'expiration (optionnel)</label>
+                                <input
+                                  type="date"
+                                  defaultValue={f.date_expiration || ''}
+                                  onChange={async (e) => {
+                                    const val = e.target.value || null;
+                                    await supabase.from('formations_benevoles').update({ date_expiration: val, a_expiration: !!val }).eq('id', f.id);
+                                    setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_expiration: val } : fm));
+                                  }}
+                                  style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px' }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
