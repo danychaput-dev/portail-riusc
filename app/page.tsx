@@ -72,6 +72,18 @@ interface SelectionStatus {
   } | null;
 }
 
+interface MobilisationVague {
+  mobilisation_item_id: string
+  vague_id: string
+  deploiement_nom: string
+  tache: string
+  ville: string
+  date_debut: string
+  date_fin: string | null
+  horaire: string | null
+  statut_confirmation: string
+}
+
 interface CertificatFile {
   id: string;
   name: string;
@@ -97,6 +109,9 @@ export default function HomePage() {
   const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const certificatInputRef = useRef<HTMLInputElement>(null)
   
+  const [mobilisationActuelle, setMobilisationActuelle] = useState<MobilisationVague | null>(null)
+  const [confirmingMobilisation, setConfirmingMobilisation] = useState(false)
+  const [mobilisationConfirmee, setMobilisationConfirmee] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   
@@ -389,12 +404,13 @@ export default function HomePage() {
             
             // Charger tout en parallèle
             const bid = userData.benevole_id
-            const [campResult, selectionResult, certResult, ciblagesResult] = await Promise.allSettled([
+            const [campResult, selectionResult, certResult, ciblagesResult, mobilisationResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
               supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
-              checkSinitier(bid)
+              checkSinitier(bid),
+              fetch(`https://n8n.aqbrs.ca/webhook/mobilisation-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null)
             ])
 
             // Camp status
@@ -424,6 +440,12 @@ export default function HomePage() {
                   .order('date_debut', { ascending: true })
                 if (deploiements) setDeploiementsActifs(deploiements)
               }
+            }
+
+            // Mobilisation
+            if (mobilisationResult.status === 'fulfilled' && mobilisationResult.value?.vague_id) {
+              setMobilisationActuelle(mobilisationResult.value)
+              setMobilisationConfirmee(mobilisationResult.value.statut_confirmation === 'Confirmé')
             }
             
             logPageVisit('/')
@@ -545,12 +567,13 @@ export default function HomePage() {
         
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id
-        const [campResult, selectionResult, certResult, ciblagesResult] = await Promise.allSettled([
+        const [campResult, selectionResult, certResult, ciblagesResult, mobilisationResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
           supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
-          checkSinitier(bid)
+          checkSinitier(bid),
+          fetch(`https://n8n.aqbrs.ca/webhook/mobilisation-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null)
         ])
 
         // Camp status
@@ -580,6 +603,12 @@ export default function HomePage() {
               .order('date_debut', { ascending: true })
             if (deploiements) setDeploiementsActifs(deploiements)
           }
+        }
+
+        // Mobilisation
+        if (mobilisationResult.status === 'fulfilled' && mobilisationResult.value?.vague_id) {
+          setMobilisationActuelle(mobilisationResult.value)
+          setMobilisationConfirmee(mobilisationResult.value.statut_confirmation === 'Confirmé')
         }
       }
       
@@ -1173,18 +1202,103 @@ export default function HomePage() {
         )}
 
         {isApproved && !loadingCertificats && (
-        <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
+        <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: mobilisationActuelle ? '2px solid #059669' : deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
-              {deploiementsActifs.length > 0 ? 'Sollicitation de déploiement' : 'Déploiements'}
+              {mobilisationActuelle ? 'Mobilisation en cours' : deploiementsActifs.length > 0 ? 'Sollicitation de déploiement' : 'Déploiements'}
             </h3>
-            {deploiementsActifs.length > 0 && (
+            {mobilisationActuelle && (
+              <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>
+                🚨 Mobilisé
+              </span>
+            )}
+            {!mobilisationActuelle && deploiementsActifs.length > 0 && (
               <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>
                 {deploiementsActifs.length} actif{deploiementsActifs.length > 1 ? 's' : ''}
               </span>
             )}
           </div>
-          {deploiementsActifs.length > 0 ? (
+          {mobilisationActuelle ? (
+            // === ÉTAT MOBILISÉ ===
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '24px' }}>🚨</span>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#065f46' }}>
+                      {mobilisationActuelle.vague_id} — {mobilisationActuelle.tache}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#047857' }}>📍 {mobilisationActuelle.ville}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: '#047857' }}>
+                  <div>
+                    <strong>📅 Départ :</strong>{' '}
+                    {mobilisationActuelle.date_debut}
+                    {mobilisationActuelle.date_fin ? ` au ${mobilisationActuelle.date_fin}` : ''}
+                  </div>
+                  {mobilisationActuelle.horaire && (
+                    <div><strong>🕐 Horaire :</strong> {mobilisationActuelle.horaire}</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '16px' }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#92400e', fontSize: '14px' }}>⚠️ Action requise</p>
+                <p style={{ margin: 0, color: '#78350f', fontSize: '13px', lineHeight: '1.6' }}>
+                  Veuillez prendre connaissance de votre assignation et confirmer que vous avez bien lu et compris les directives.
+                  Si vous avez des questions, utilisez le chat communautaire.
+                </p>
+              </div>
+
+              {mobilisationConfirmee ? (
+                <div style={{ backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '20px' }}>✅</span>
+                  <p style={{ margin: '8px 0 0 0', fontWeight: '600', color: '#065f46', fontSize: '14px' }}>
+                    Assignation confirmée — merci !
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    setConfirmingMobilisation(true)
+                    try {
+                      await fetch('https://n8n.aqbrs.ca/webhook/confirmer-mobilisation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          mobilisation_item_id: mobilisationActuelle.mobilisation_item_id,
+                          benevole_id: reserviste?.benevole_id
+                        })
+                      })
+                      setMobilisationConfirmee(true)
+                    } catch (e) {
+                      console.error('Erreur confirmation:', e)
+                    }
+                    setConfirmingMobilisation(false)
+                  }}
+                  disabled={confirmingMobilisation}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    backgroundColor: confirmingMobilisation ? '#9ca3af' : '#059669',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    cursor: confirmingMobilisation ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => { if (!confirmingMobilisation) e.currentTarget.style.backgroundColor = '#047857' }}
+                  onMouseOut={(e) => { if (!confirmingMobilisation) e.currentTarget.style.backgroundColor = '#059669' }}
+                >
+                  {confirmingMobilisation ? 'Confirmation en cours...' : '✅ J\'ai lu et compris mes directives de déploiement'}
+                </button>
+              )}
+            </div>
+          ) : deploiementsActifs.length > 0 ? (
+            // === ÉTAT CIBLAGE (disponibilités) ===
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {Object.entries(
                 deploiementsActifs.reduce((groups: Record<string, DeploiementActif[]>, dep) => {
@@ -1228,6 +1342,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
+            // === AUCUN APPEL ===
             <div style={{ padding: '40px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
               <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
               <p style={{ color: '#374151', margin: '0 0 8px 0', fontWeight: '500', fontSize: '15px' }}>Aucun appel en cours pour le moment</p>
