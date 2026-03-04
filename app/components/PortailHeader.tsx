@@ -187,8 +187,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       const approved = res?.groupe === 'Approuvé'
       setIsApproved(approved)
 
-      if (approved && res) {
-        // Charger les 2 sources en parallèle : camp-status + certificats
+      if (res) {
+        // Charger les 2 sources en parallèle : camp-status + certificats (pour tout le monde)
         const [campResult, certResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${res.benevole_id}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${res.benevole_id}`).then(r => r.ok ? r.json() : null)
@@ -204,13 +204,15 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           setHasCertificats(true)
         }
 
-        // Vérifier s'il y a des ciblages actifs
-        const { data: ciblages } = await supabase
-          .from('ciblages')
-          .select('id')
-          .eq('benevole_id', res.benevole_id)
-          .limit(1)
-        setHasCiblages((ciblages ?? []).length > 0)
+        // Vérifier s'il y a des ciblages actifs (seulement pertinent pour Approuvé)
+        if (approved) {
+          const { data: ciblages } = await supabase
+            .from('ciblages')
+            .select('id')
+            .eq('benevole_id', res.benevole_id)
+            .limit(1)
+          setHasCiblages((ciblages ?? []).length > 0)
+        }
       }
 
       setLoadingStatus(false)
@@ -265,7 +267,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
     reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
   )
 
-  const isDeployable = isApproved && isProfilComplet && hasCertificats && (campStatus?.is_certified === true)
+  const isDeployable = isProfilComplet && hasCertificats && (campStatus?.is_certified === true)
 
   // Compteur pour le sous-texte (ex: "2/3 étapes complétées")
   const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true].filter(Boolean).length
@@ -305,9 +307,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
                   {loadingStatus ? (
-                    <span style={{ color: '#6b7280' }}>Réserviste</span>
-                  ) : !isApproved ? (
-                    <span style={{ color: '#6b7280' }}>Réserviste</span>
+                    <span style={{ color: '#6b7280' }}>...</span>
                   ) : isDeployable ? (
                     <>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3">
