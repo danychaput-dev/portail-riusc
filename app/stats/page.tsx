@@ -186,6 +186,8 @@ export default function StatsPage() {
   const [authorized, setAuthorized] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [reservistes, setReservistes] = useState<Reserviste[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [excludeMe, setExcludeMe] = useState(true);
 
   // Period (for logs)
   const [period, setPeriod] = useState<Period>('today');
@@ -252,6 +254,7 @@ export default function StatsPage() {
         return;
       }
       setAuthorized(true);
+      setCurrentUserId(user.id);
     })();
   }, []);
 
@@ -367,8 +370,14 @@ export default function StatsPage() {
     return { total, approuves, interets, last24h, last7d, last30d, groupRanking, regionRanking, linked, recentInscriptions, dailyData };
   }, [reservistes]);
 
+  const filteredLogs = useMemo(() => {
+    if (!excludeMe || !currentUserId) return logs;
+    return logs.filter(l => l.user_id !== currentUserId);
+  }, [logs, excludeMe, currentUserId]);
+
   // ─── Stats logs ───────────────────────────────────────────────────
   const logStats = useMemo(() => {
+    const logs = filteredLogs;
     const pageVisits = logs.filter(l => l.event_type === 'page_visit');
     const authEvents = logs.filter(l => l.event_type !== 'page_visit');
     const logins = logs.filter(l => l.event_type === 'login_sms');
@@ -437,7 +446,7 @@ export default function StatsPage() {
     pageVisits.forEach(l => { hourlyCounts[new Date(l.created_at).getHours()]++; });
 
     return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, activeUsers, authEvents, hourlyCounts };
-  }, [logs, reservistes]);
+  }, [filteredLogs, reservistes]);
 
   // ─── Render ───────────────────────────────────────────────────────
   if (!authorized) {
@@ -470,6 +479,26 @@ export default function StatsPage() {
           <div style={{ fontSize: 13, opacity: 0.8, marginTop: 2 }}>Statistiques du portail RIUSC — Réservé aux administrateurs</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setExcludeMe(prev => !prev)}
+            className="no-print"
+            style={{
+              background: excludeMe ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.15)',
+              color: excludeMe ? '#1e3a5f' : '#fff',
+              border: '1px solid rgba(255,255,255,0.3)',
+              borderRadius: 8,
+              padding: '8px 16px',
+              cursor: 'pointer',
+              fontSize: 14,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontWeight: excludeMe ? 600 : 400,
+            }}
+            title={excludeMe ? 'Vous êtes exclu des statistiques — cliquez pour vous inclure' : 'Vous êtes inclus dans les statistiques — cliquez pour vous exclure'}
+          >
+            {excludeMe ? '🙈 Moi exclu' : '👁️ Moi inclus'}
+          </button>
           <button
             onClick={() => window.print()}
             className="no-print"
