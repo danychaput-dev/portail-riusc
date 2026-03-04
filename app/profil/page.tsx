@@ -1198,6 +1198,7 @@ export default function ProfilPage() {
         // 2b. Gérer formations liées aux compétences du profil
         const FORMATION_TRIGGERS: { field: string; labels: string[] }[] = [
           { field: 'certification_csi', labels: OPTIONS.certification_csi.map(o => o.label) },
+          { field: 'certificat_premiers_soins', labels: OPTIONS.certificat_premiers_soins.map(o => o.label) },
           { field: 'navire_marin', labels: ["Permis d'embarcation de plaisance"] },
           { field: 'competences_securite', labels: ['Scies à chaînes', 'Contrôle de la circulation routière', 'Formateur certifié CNESST'] },
           { field: 'communication', labels: ['Radio amateur'] },
