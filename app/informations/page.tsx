@@ -29,17 +29,32 @@ interface DocumentOfficiel {
 }
 
 // === PDFs du camp ===
-const PDFS_SAMEDI = [
+const SUPABASE_DEMO = 'https://jtzwkmcfarxptpcoaxxl.supabase.co/storage/v1/object/public/documents-demo'
+
+const PDFS_SAMEDI_COMPLET = [
   { titre: "Introduction RIUSC & Sécurité civile", url: "/documents/camp/introduction-riusc-securite-civile.pdf" },
   { titre: "La synergie de la Réserve d'intervention d'urgence en sécurité civile (RIUSC)", url: "/documents/camp/synergie-reserve-intervention-urgence.pdf" },
   { titre: "Aide-mémoire — Savoir-agir et bonnes pratiques en présence de personnes sinistrées", url: "/documents/camp/savoir-agir-bonnes-pratiques-sinistres.pdf" },
   { titre: "Structure d'équipe d'intervention", url: "/documents/camp/structure-equipe-intervention.pdf" },
 ];
 
-const PDFS_DIMANCHE = [
+const PDFS_DIMANCHE_COMPLET = [
   { titre: "Atelier Croix-Rouge — Aide-mémoire lits et dortoirs", url: "/documents/camp/atelier-croix-rouge-lits-dortoirs.pdf" },
   { titre: "Atelier SOPFEU — Gestion des débris", url: "/documents/camp/atelier-sopfeu-gestion-debris.pdf" },
   { titre: "Atelier AQBRS — Sac de sable et digue", url: "/documents/camp/atelier-aqbrs-sac-sable-digue.pdf" },
+];
+
+const PDFS_SAMEDI_DEMO = [
+  { titre: "Introduction RIUSC & Sécurité civile", url: `${SUPABASE_DEMO}/introduction-riusc-4-premieres-pages-demo.pdf` },
+  { titre: "La synergie de la Réserve d'intervention d'urgence en sécurité civile (RIUSC)", url: `${SUPABASE_DEMO}/synergie-reserve-intervention-urgence-demo.pdf` },
+  { titre: "Aide-mémoire — Savoir-agir et bonnes pratiques en présence de personnes sinistrées", url: `${SUPABASE_DEMO}/savoir-agir-4-premieres-pages-demo.pdf` },
+  { titre: "Structure d'équipe d'intervention", url: `${SUPABASE_DEMO}/structure-equipe-intervention-demo.pdf` },
+];
+
+const PDFS_DIMANCHE_DEMO = [
+  { titre: "Atelier Croix-Rouge — Aide-mémoire lits et dortoirs", url: `${SUPABASE_DEMO}/atelier-croix-rouge-lits-dortoirs-demo.pdf` },
+  { titre: "Atelier SOPFEU — Gestion des débris", url: `${SUPABASE_DEMO}/atelier-sopfeu-gestion-debris-demo.pdf` },
+  { titre: "Atelier AQBRS — Sac de sable et digue", url: `${SUPABASE_DEMO}/atelier-aqbrs-sac-sable-digue-demo.pdf` },
 ];
 
 export default function InformationsPage() {
@@ -55,6 +70,9 @@ export default function InformationsPage() {
   const { user: authUser, loading: authLoading } = useAuth()
 
   const isApproved = reserviste?.groupe === 'Approuvé'
+  const isDemo = isDemoActive()
+  const PDFS_SAMEDI = isDemo ? PDFS_SAMEDI_DEMO : PDFS_SAMEDI_COMPLET
+  const PDFS_DIMANCHE = isDemo ? PDFS_DIMANCHE_DEMO : PDFS_DIMANCHE_COMPLET
 
   useEffect(() => {
     const loadData = async () => {
