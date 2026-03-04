@@ -18,7 +18,7 @@ interface DeploiementActif {
   nom_demande?: string;
   organisme?: string;
   date_debut: string;
-  date_fin: string;
+  date_fin: string | null;
   lieu?: string;
   statut: string;
   type_incident?: string;
@@ -148,20 +148,8 @@ export default function HomePage() {
       nom_sinistre: 'Inondations printanières 2026',
       organisme: 'Ville de Gatineau',
       date_debut: '2026-03-15',
-      date_fin: '2026-03-22',
+      date_fin: null,
       lieu: 'Gatineau, secteur Hull',
-      statut: 'actif',
-      type_incident: 'Inondation',
-    },
-    {
-      id: 'demo-dep-2',
-      deploiement_id: 'demo-dep-1',
-      nom_deploiement: 'Inondations printanières - Laval',
-      nom_sinistre: 'Inondations printanières 2026',
-      organisme: 'Ville de Laval',
-      date_debut: '2026-03-18',
-      date_fin: '2026-03-25',
-      lieu: 'Laval, secteur Sainte-Rose',
       statut: 'actif',
       type_incident: 'Inondation',
     },
