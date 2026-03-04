@@ -83,6 +83,7 @@ interface Formation {
   has_fichier?: boolean;
   fichiers?: { name: string; url: string | null }[];
   source?: string;
+  certificat_requis?: boolean;
 }
 
 function FormationContent() {
@@ -142,7 +143,8 @@ function FormationContent() {
         commentaire: f.commentaire || '',
         has_fichier: !!certUrl,
         fichiers: certUrl ? [{ name: 'Certificat', url: certUrl }] : [],
-        source: f.source || null
+        source: f.source || null,
+        certificat_requis: f.certificat_requis || false
       };
     }));
   };
@@ -477,6 +479,8 @@ function FormationContent() {
   ];
   const completedCount = steps.filter(s => s.done).length;
   const progressPercent = Math.round((completedCount / steps.length) * 100);
+  const [checklistCollapsed, setChecklistCollapsed] = useState(false);
+  useEffect(() => { if (completedCount === steps.length && steps.length > 0 && !loading) setChecklistCollapsed(true); }, [completedCount, loading]);
 
   // Upload certificat pour une formation spécifique
   const [uploadingForFormationId, setUploadingForFormationId] = useState<string | null>(null);
@@ -786,7 +790,7 @@ function FormationContent() {
         {/* Barre de progression */}
         <div style={{ backgroundColor: 'white', padding: '20px 24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f' }}>Progression des étapes obligatoires</span>
+            <span onClick={() => setChecklistCollapsed(!checklistCollapsed)} style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>Progression des étapes obligatoires <svg width="14" height="14" fill="none" stroke="#6b7280" strokeWidth="2" viewBox="0 0 24 24" style={{ transform: checklistCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg></span>
             <span style={{ fontSize: '14px', fontWeight: '700', color: progressPercent === 100 ? '#059669' : '#1e3a5f' }}>{progressPercent}%</span>
           </div>
           <div style={{ height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', overflow: 'hidden' }}>
@@ -796,6 +800,7 @@ function FormationContent() {
         </div>
 
         {/* Cartes des étapes */}
+        {!checklistCollapsed && (<>
         {steps.map((step) => {
           const isLink = !!step.href && !step.done;
           const isClickable = isLink || (!!step.onClick && !step.done);
@@ -868,6 +873,7 @@ function FormationContent() {
             </div>
           );
         })}
+        </>)}
 
         {/* Hidden input pour upload certificat formation */}
         <input ref={formationCertInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFormationCertUpload} style={{ display: 'none' }} />
@@ -925,7 +931,7 @@ function FormationContent() {
                                 {f.role}
                               </span>
                             )}
-                            {f.resultat && f.resultat === 'En attente' && f.source === 'portail' ? (
+                            {f.resultat && f.resultat === 'En attente' && f.certificat_requis ? (
                               <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
                             ) : f.resultat ? (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
@@ -1004,7 +1010,7 @@ function FormationContent() {
                         )}
 
                         {/* Bouton upload si pas de certificat */}
-                        {!hasCert && (
+                        {!hasCert && f.certificat_requis && (
                           <div style={{ marginTop: '8px' }}>
                             <button
                               onClick={() => { setUploadingForFormationId(f.id); setUploadingForFormationNom(f.catalogue || f.nom); formationCertInputRef.current?.click(); }}
@@ -1017,7 +1023,7 @@ function FormationContent() {
                         )}
 
                         {/* Champs date pour formations portail En attente */}
-                        {f.source === 'portail' && editingDatesForId === f.id && (
+                        {f.certificat_requis && editingDatesForId === f.id && (
                           <div style={{ marginTop: '12px', padding: '12px 16px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px' }}>
                             <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', marginBottom: '8px' }}>Complétez votre formation</div>
                             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>

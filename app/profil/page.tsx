@@ -1231,6 +1231,7 @@ export default function ProfilPage() {
               resultat: 'En attente',
               role: 'Participant',
               source: 'portail',
+              certificat_requis: true,
               competence_profil_champ: field,
               competence_profil_label: label,
             })
