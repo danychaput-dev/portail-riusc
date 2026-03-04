@@ -443,11 +443,11 @@ export default function HomePage() {
             }
 
             // Mobilisation
-if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as MobilisationVague)?.vague_id) {
-  const mob = mobilisationResult.value as MobilisationVague
-  setMobilisationActuelle(mob)
-  setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
-}
+            if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as MobilisationVague)?.vague_id) {
+              const mob = mobilisationResult.value as MobilisationVague
+              setMobilisationActuelle(mob)
+              setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
+            }
             
             logPageVisit('/')
             
@@ -606,12 +606,13 @@ if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as Mo
           }
         }
 
-// Mobilisation
-if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as MobilisationVague)?.vague_id) {
-  const mob = mobilisationResult.value as MobilisationVague
-  setMobilisationActuelle(mob)
-  setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
-}
+        // Mobilisation
+        if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as MobilisationVague)?.vague_id) {
+          const mob = mobilisationResult.value as MobilisationVague
+          setMobilisationActuelle(mob)
+          setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
+        }
+      }
       
       // Vérifier les messages non lus (seulement pour auth normale, pas pour emprunt)
       if ('id' in user && user.id) {
