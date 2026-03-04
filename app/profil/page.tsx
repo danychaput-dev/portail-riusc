@@ -74,7 +74,6 @@ interface DossierData {
   vehicule_tout_terrain: number[]
   navire_marin: number[]
   permis_conduire: number[]
-  disponible_covoiturage: number[]
   satp_drone: number[]
   equipe_canine: number[]
   competences_securite: number[]
@@ -142,7 +141,6 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
   ],
   navire_marin: [
     { id: 1, label: "Permis d'embarcation de plaisance" },
-    { id: 2, label: 'Petits bateaux' },
   ],
   permis_conduire: [
     { id: 1, label: 'Classe 5 Voiture (classe G Ontario)' },
@@ -152,9 +150,6 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 5, label: "Classe 4a Véhicule d'urgence" },
     { id: 6, label: 'Classe 3 Camions' },
     { id: 7, label: 'Classe 6 Motocyclette' },
-  ],
-  disponible_covoiturage: [
-    { id: 1, label: 'Je peux transporter des gens' },
   ],
   satp_drone: [
     { id: 4, label: 'Utilisation de drone (petit drone de moins de 250g)' },
@@ -404,7 +399,7 @@ export default function ProfilPage() {
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [csiDialog, setCsiDialog] = useState<{ show: boolean; oldLabel: string | null; newLabel: string | null; oldFormationId: string | null; pendingSave: (() => Promise<void>) | null }>({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null })
+  const [formationDialog, setFormationDialog] = useState<{ show: boolean; removedLabels: string[]; addedLabels: string[]; pendingSave: (() => Promise<void>) | null }>({ show: false, removedLabels: [], addedLabels: [], pendingSave: null })
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // États pour le dossier
@@ -426,7 +421,6 @@ export default function ProfilPage() {
     vehicule_tout_terrain: [],
     navire_marin: [],
     permis_conduire: [],
-    disponible_covoiturage: [],
     satp_drone: [],
     equipe_canine: [],
     competences_securite: [],
@@ -567,7 +561,6 @@ export default function ProfilPage() {
               vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
               navire_marin: labelsToIds('navire_marin', d.navire_marin),
               permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
-              disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
               satp_drone: labelsToIds('satp_drone', d.satp_drone),
               equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
               competences_securite: labelsToIds('competences_securite', d.competences_securite),
@@ -635,7 +628,7 @@ export default function ProfilPage() {
             date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
             allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
             competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
-            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
+            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
@@ -645,7 +638,7 @@ export default function ProfilPage() {
             date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
             allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
             competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
-            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
+            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
@@ -795,7 +788,6 @@ export default function ProfilPage() {
         vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
         navire_marin: labelsToIds('navire_marin', d.navire_marin),
         permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
-        disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
         satp_drone: labelsToIds('satp_drone', d.satp_drone),
         equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
         competences_securite: labelsToIds('competences_securite', d.competences_securite),
@@ -1111,7 +1103,6 @@ export default function ProfilPage() {
             vehicule_tout_terrain: idsToLabels('vehicule_tout_terrain', dossier.vehicule_tout_terrain),
             navire_marin: idsToLabels('navire_marin', dossier.navire_marin),
             permis_conduire: idsToLabels('permis_conduire', dossier.permis_conduire),
-            disponible_covoiturage: idsToLabels('disponible_covoiturage', dossier.disponible_covoiturage),
             satp_drone: idsToLabels('satp_drone', dossier.satp_drone),
             equipe_canine: idsToLabels('equipe_canine', dossier.equipe_canine),
             competences_securite: idsToLabels('competences_securite', dossier.competences_securite),
@@ -1158,7 +1149,6 @@ export default function ProfilPage() {
               vehicule_tout_terrain: dossier.vehicule_tout_terrain,
               navire_marin: dossier.navire_marin,
               permis_conduire: dossier.permis_conduire,
-              disponible_covoiturage: dossier.disponible_covoiturage,
               satp_drone: dossier.satp_drone,
               equipe_canine: dossier.equipe_canine,
               competences_securite: dossier.competences_securite,
@@ -1177,81 +1167,69 @@ export default function ProfilPage() {
 
         setOriginalDossier({ ...dossier })
 
-        // 2b. Gérer formation si certification CSI a changé
-        const oldCsi = originalDossier.certification_csi || []
-        const newCsi = dossier.certification_csi || []
+        // 2b. Gérer formations liées aux compétences du profil
+        const FORMATION_TRIGGERS: { field: string; labels: string[] }[] = [
+          { field: 'certification_csi', labels: OPTIONS.certification_csi.map(o => o.label) },
+          { field: 'navire_marin', labels: ["Permis d'embarcation de plaisance"] },
+          { field: 'competences_securite', labels: ['Scies à chaînes', 'Contrôle de la circulation routière', 'Formateur certifié CNESST'] },
+          { field: 'communication', labels: ['Radio amateur'] },
+        ]
 
-        if (JSON.stringify(oldCsi) !== JSON.stringify(newCsi)) {
-          const oldOption = oldCsi.length > 0 ? OPTIONS.certification_csi.find(o => o.id === oldCsi[0]) : null
-          const newOption = newCsi.length > 0 ? OPTIONS.certification_csi.find(o => o.id === newCsi[0]) : null
+        const addedFormations: { field: string; label: string }[] = []
+        const removedFormations: { field: string; label: string; formationId: string }[] = []
 
-          let oldFormationId: string | null = null
-          if (oldOption) {
-            const { data: oldForm } = await supabase
-              .from('formations_benevoles')
-              .select('id')
-              .eq('benevole_id', reserviste.benevole_id)
-              .eq('nom_formation', oldOption.label)
-              .maybeSingle()
-            oldFormationId = oldForm?.id || null
+        for (const trigger of FORMATION_TRIGGERS) {
+          const oldIds: number[] = (originalDossier as any)[trigger.field] || []
+          const newIds: number[] = (dossier as any)[trigger.field] || []
+          const opts = (OPTIONS as any)[trigger.field] || []
+          const oldLabels = oldIds.map((id: number) => opts.find((o: any) => o.id === id)?.label).filter(Boolean) as string[]
+          const newLabels = newIds.map((id: number) => opts.find((o: any) => o.id === id)?.label).filter(Boolean) as string[]
+          const oldTriggered = oldLabels.filter(l => trigger.labels.includes(l))
+          const newTriggered = newLabels.filter(l => trigger.labels.includes(l))
+
+          for (const label of newTriggered) {
+            if (!oldTriggered.includes(label)) addedFormations.push({ field: trigger.field, label })
           }
-
-          if (oldFormationId) {
-            setSaving(false)
-            setCsiDialog({
-              show: true,
-              oldLabel: oldOption?.label || null,
-              newLabel: newOption?.label || null,
-              oldFormationId,
-              pendingSave: async () => {
-                await supabase.from('formations_benevoles').delete().eq('id', oldFormationId!)
-
-                if (newOption) {
-                  const { data: alreadyExists } = await supabase
-                    .from('formations_benevoles')
-                    .select('id')
-                    .eq('benevole_id', reserviste.benevole_id)
-                    .eq('nom_formation', newOption.label)
-                    .maybeSingle()
-
-                  if (!alreadyExists) {
-                    await supabase.from('formations_benevoles').insert({
-                      benevole_id: reserviste.benevole_id,
-                      nom_complet: dossier.nom + ' ' + dossier.prenom,
-                      nom_formation: newOption.label,
-                      resultat: 'En attente',
-                      role: 'Participant',
-                      source: 'portail',
-                      competence_profil_champ: 'certification_csi',
-                      competence_profil_label: newOption.label,
-                    })
-                  }
-                }
-                setSaveMessage({ type: 'success', text: 'Modifications enregistrées avec succès!' })
-              }
-            })
-            return
-          } else if (newOption) {
-            const { data: alreadyExists } = await supabase
-              .from('formations_benevoles')
-              .select('id')
-              .eq('benevole_id', reserviste.benevole_id)
-              .eq('nom_formation', newOption.label)
-              .maybeSingle()
-
-            if (!alreadyExists) {
-              await supabase.from('formations_benevoles').insert({
-                benevole_id: reserviste.benevole_id,
-                nom_complet: dossier.nom + ' ' + dossier.prenom,
-                nom_formation: newOption.label,
-                resultat: 'En attente',
-                role: 'Participant',
-                source: 'portail',
-                competence_profil_champ: 'certification_csi',
-                competence_profil_label: newOption.label,
-              })
+          for (const label of oldTriggered) {
+            if (!newTriggered.includes(label)) {
+              const { data: existing } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).eq('source', 'portail').maybeSingle()
+              if (existing) removedFormations.push({ field: trigger.field, label, formationId: existing.id })
             }
           }
+        }
+
+        // Créer les nouvelles formations silencieusement
+        for (const { field, label } of addedFormations) {
+          const { data: exists } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).maybeSingle()
+          if (!exists) {
+            await supabase.from('formations_benevoles').insert({
+              benevole_id: reserviste.benevole_id,
+              nom_complet: dossier.nom + ' ' + dossier.prenom,
+              nom_formation: label,
+              resultat: 'En attente',
+              role: 'Participant',
+              source: 'portail',
+              competence_profil_champ: field,
+              competence_profil_label: label,
+            })
+          }
+        }
+
+        // Si des formations existantes doivent être retirées → demander confirmation
+        if (removedFormations.length > 0) {
+          setSaving(false)
+          setFormationDialog({
+            show: true,
+            removedLabels: removedFormations.map(r => r.label),
+            addedLabels: addedFormations.map(a => a.label),
+            pendingSave: async () => {
+              for (const { formationId } of removedFormations) {
+                await supabase.from('formations_benevoles').delete().eq('id', formationId)
+              }
+              setSaveMessage({ type: 'success', text: 'Modifications enregistrées avec succès!' })
+            }
+          })
+          return
         }
       }
 
@@ -2183,13 +2161,16 @@ export default function ProfilPage() {
               color: saveMessage.type === 'success' ? '#065f46' : '#dc2626',
               border: '1px solid ' + (saveMessage.type === 'success' ? '#6ee7b7' : '#fca5a5'),
               marginBottom: '8px',
+              textAlign: 'center' as const,
+              width: '100%',
+              maxWidth: '400px',
             }}>
               {saveMessage.text}
             </div>
           )}
           <button
             onClick={handleSave}
-            disabled={!canSave || saving || csiDialog.show}
+            disabled={!canSave || saving || formationDialog.show}
             style={{
               backgroundColor: canSave && !saving ? '#1e3a5f' : '#d1d5db',
               color: 'white',
@@ -2205,27 +2186,37 @@ export default function ProfilPage() {
             {saving ? 'Sauvegarde en cours...' : 'Sauvegarder les modifications'}
           </button>
 
-          {/* Dialog confirmation changement CSI */}
-          {csiDialog.show && (
+          {/* Dialog confirmation modification formations */}
+          {formationDialog.show && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a5f', marginBottom: '16px' }}>Modifier votre certification CSI</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a5f', marginBottom: '16px' }}>Modifier vos formations</div>
                 <div style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6', marginBottom: '8px' }}>
-                  {csiDialog.oldLabel && (
-                    <p style={{ marginBottom: '8px' }}>La formation <strong>{csiDialog.oldLabel}</strong> sera retirée de votre parcours de formation.</p>
+                  {formationDialog.removedLabels.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      <p style={{ marginBottom: '4px', fontWeight: '600' }}>Formations qui seront retirées :</p>
+                      {formationDialog.removedLabels.map((label, i) => (
+                        <p key={i} style={{ margin: '2px 0', paddingLeft: '12px' }}>• {label}</p>
+                      ))}
+                    </div>
                   )}
-                  {csiDialog.newLabel && (
-                    <p>Elle sera remplacée par <strong>{csiDialog.newLabel}</strong>.</p>
+                  {formationDialog.addedLabels.length > 0 && (
+                    <div>
+                      <p style={{ marginBottom: '4px', fontWeight: '600' }}>Formations ajoutées :</p>
+                      {formationDialog.addedLabels.map((label, i) => (
+                        <p key={i} style={{ margin: '2px 0', paddingLeft: '12px' }}>• {label}</p>
+                      ))}
+                    </div>
                   )}
                 </div>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Êtes-vous sûr de vouloir continuer ?</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={() => { setCsiDialog({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null }); setSaveMessage({ type: 'error', text: 'Modification annulée' }) }}
+                    onClick={() => { setFormationDialog({ show: false, removedLabels: [], addedLabels: [], pendingSave: null }); setSaveMessage({ type: 'error', text: 'Modification annulée' }) }}
                     style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
                   >Annuler</button>
                   <button
-                    onClick={async () => { if (csiDialog.pendingSave) { await csiDialog.pendingSave() } setCsiDialog({ show: false, oldLabel: null, newLabel: null, oldFormationId: null, pendingSave: null }) }}
+                    onClick={async () => { if (formationDialog.pendingSave) { await formationDialog.pendingSave() } setFormationDialog({ show: false, removedLabels: [], addedLabels: [], pendingSave: null }) }}
                     style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#dc2626', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
                   >Oui, modifier</button>
                 </div>
