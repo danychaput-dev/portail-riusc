@@ -241,6 +241,15 @@ function cleanPhoneForSave(phone: string): string {
   return phone.replace(/\D/g, '')
 }
 
+function isValidNorthAmericanPhone(phone: string): boolean {
+  if (!phone || phone.trim() === '') return true // vide = OK (champ optionnel)
+  const digits = phone.replace(/\D/g, '')
+  // 10 chiffres (4185551234) ou 11 commençant par 1 (14185551234)
+  if (digits.length === 10) return true
+  if (digits.length === 11 && digits[0] === '1') return true
+  return false
+}
+
 function isOlderThan18(dateNaissance: string): boolean {
   if (!dateNaissance) return true
   const birthDate = new Date(dateNaissance)
@@ -1397,7 +1406,7 @@ export default function ProfilPage() {
   }
 
   const showConfirm18 = !isOlderThan18(dossier.date_naissance)
-  const canSave = hasChanges || profilHasChanges || orgHasChanges || langueHasChanges
+  const canSave = (hasChanges || profilHasChanges || orgHasChanges || langueHasChanges) && isValidNorthAmericanPhone(profilData.telephone)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -1521,12 +1530,19 @@ export default function ProfilPage() {
           />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
-            <TextInput
-              label="Téléphone principal"
-              value={profilData.telephone}
-              onChange={v => setProfilData(prev => ({ ...prev, telephone: v }))}
-              placeholder="(555) 123-4567"
-            />
+            <div>
+              <TextInput
+                label="Téléphone principal"
+                value={profilData.telephone}
+                onChange={v => setProfilData(prev => ({ ...prev, telephone: v }))}
+                placeholder="(555) 123-4567"
+              />
+              {profilData.telephone && !isValidNorthAmericanPhone(profilData.telephone) && (
+                <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
+                  ⚠ Numéro invalide — entrez un numéro canadien ou américain à 10 chiffres
+                </div>
+              )}
+            </div>
             <TextInput
               label="Téléphone secondaire"
               value={profilData.telephone_secondaire}
