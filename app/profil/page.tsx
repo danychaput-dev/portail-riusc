@@ -363,6 +363,7 @@ const CERT_REQUIRED_LABELS = new Set([
   "Contrôle de la circulation routière",
   "Formateur certifié CNESST",
   "Radio amateur",
+  "Licence de pilote de drone (Transport Canada)",
 ])
 
 const CheckboxGroup = ({ label, options, selected, onChange }: {
@@ -1193,6 +1194,7 @@ export default function ProfilPage() {
           { field: 'navire_marin', labels: ["Permis d'embarcation de plaisance"] },
           { field: 'competences_securite', labels: ['Scies à chaînes', 'Contrôle de la circulation routière', 'Formateur certifié CNESST'] },
           { field: 'communication', labels: ['Radio amateur'] },
+          { field: 'satp_drone', labels: ['Licence de pilote de drone (Transport Canada)'] },
         ]
 
         const addedFormations: { field: string; label: string }[] = []
@@ -1636,7 +1638,6 @@ export default function ProfilPage() {
               <option value="">— Sélectionner —</option>
               {GROUPES_SANGUIN.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
-            <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic', marginTop: '4px', display: 'block' }}>(certificat requis)</span>
           </div>
 
           <TextArea
@@ -1725,7 +1726,7 @@ export default function ProfilPage() {
           />
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Certification en système de commandement d&apos;intervention
+              Certification en système de commandement d&apos;intervention <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic', fontWeight: '400' }}>(certificat requis)</span>
             </label>
             <select
               value={dossier.certification_csi.length > 0 ? dossier.certification_csi[0] : ''}
