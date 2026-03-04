@@ -189,23 +189,26 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       setIsApproved(approved)
 
       if (res) {
-        // Charger les 2 sources en parallèle : camp-status + certificats (pour tout le monde)
-        const [campResult, certResult] = await Promise.allSettled([
-          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${res.benevole_id}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${res.benevole_id}`).then(r => r.ok ? r.json() : null)
-        ])
+        // Une seule requête Supabase pour tout — remplace les 2 webhooks n8n Monday
+        const { data: formations } = await supabase
+          .from('formations_benevoles')
+          .select('statut, certificat_requis, source, nom')
+          .eq('benevole_id', res.benevole_id)
+          .eq('statut', 'Réussi')
 
-        // Camp status
-        if (campResult.status === 'fulfilled' && campResult.value) {
-          setCampStatus(campResult.value)
+        if (formations) {
+          // Certificat S'initier = formation portail avec certificat_requis réussie
+          const hasCert = formations.some(f => f.certificat_requis === true)
+          setHasCertificats(hasCert)
+
+          // Camp réussi = formation Monday dont le nom contient "camp" (insensible à la casse)
+          const campReussi = formations.some(f =>
+            f.source === 'monday' && f.nom?.toLowerCase().includes('camp')
+          )
+          setCampStatus({ is_certified: campReussi })
         }
 
-        // Certificats — on vérifie juste s'il y en a au moins un
-        if (certResult.status === 'fulfilled' && certResult.value?.success && certResult.value.files?.length > 0) {
-          setHasCertificats(true)
-        }
-
-        // Vérifier s'il y a des ciblages actifs (seulement pertinent pour Approuvé)
+        // Ciblages actifs (seulement pertinent pour Approuvé)
         if (approved) {
           const { data: ciblages } = await supabase
             .from('ciblages')
