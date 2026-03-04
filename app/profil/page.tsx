@@ -1539,7 +1539,7 @@ export default function ProfilPage() {
               />
               {profilData.telephone && !isValidNorthAmericanPhone(profilData.telephone) && (
                 <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
-                  ⚠ Numéro invalide — entrez un numéro canadien ou américain à 10 chiffres
+                  ⚠ Numéro invalide — entrez un numéro canadien à 10 chiffres
                 </div>
               )}
             </div>
