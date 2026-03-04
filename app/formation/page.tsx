@@ -932,7 +932,7 @@ function FormationContent() {
                               </span>
                             )}
                             {f.resultat && f.resultat === 'En attente' && f.certificat_requis ? (
-                              <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fefce8', color: '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fde68a', cursor: 'pointer' }}>Date à définir</button>
+                              <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fca5a5', cursor: 'pointer' }}>⚠️ Certificat manquant</button>
                             ) : f.resultat ? (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
                                 {f.resultat}
@@ -1015,7 +1015,7 @@ function FormationContent() {
                             <button
                               onClick={() => { setUploadingForFormationId(f.id); setUploadingForFormationNom(f.catalogue || f.nom); formationCertInputRef.current?.click(); }}
                               disabled={uploadingCertificat}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat && uploadingForFormationId === f.id ? 0.7 : 1 }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', color: '#dc2626', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat && uploadingForFormationId === f.id ? 0.7 : 1 }}
                             >
                               {uploadingCertificat && uploadingForFormationId === f.id ? '⏳ Envoi...' : '📤 Ajouter un certificat'}
                             </button>
