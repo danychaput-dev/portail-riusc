@@ -35,7 +35,6 @@ interface Reserviste {
   contact_urgence_courriel?: string
   groupe?: string
   photo_url?: string
-  consentement_antecedents?: boolean
 }
 
 interface Organisation {
@@ -88,7 +87,6 @@ interface DossierData {
   autres_competences: string
   commentaire: string
   confidentialite: boolean
-  consentement_antecedents: boolean
 }
 
 // ─── OPTIONS ─────────────────────────────────────────────────────────────────
@@ -452,7 +450,6 @@ export default function ProfilPage() {
     autres_competences: '',
     commentaire: '',
     confidentialite: false,
-    consentement_antecedents: false,
   })
   const [originalDossier, setOriginalDossier] = useState<DossierData>(dossier)
 
@@ -594,7 +591,6 @@ export default function ProfilPage() {
               autres_competences: d.autres_competences || '',
               commentaire: d.commentaire || '',
               confidentialite: d.confidentialite || false,
-              consentement_antecedents: d.consentement_antecedents || false,
             }
             setDossier(loaded)
             setOriginalDossier(loaded)
@@ -653,7 +649,7 @@ export default function ProfilPage() {
             vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
-            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
+            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
           })
           setOriginalDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
@@ -663,7 +659,7 @@ export default function ProfilPage() {
             vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
-            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
+            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
           })
           logPageVisit('/profil')
           // Charger organisations et langues fictives pour démo
@@ -823,7 +819,6 @@ export default function ProfilPage() {
         autres_competences: d.autres_competences || '',
         commentaire: d.commentaire || '',
         confidentialite: d.confidentialite || false,
-        consentement_antecedents: d.consentement_antecedents || false,
       }
       setDossier(loaded)
       setOriginalDossier(loaded)
@@ -1140,7 +1135,6 @@ export default function ProfilPage() {
             autres_competences: dossier.autres_competences || null,
             commentaire: dossier.commentaire || null,
             confidentialite: dossier.confidentialite,
-            consentement_antecedents: dossier.consentement_antecedents,
           })
           .eq('id', reserviste.id)
 
@@ -1188,7 +1182,6 @@ export default function ProfilPage() {
               autres_competences: dossier.autres_competences,
               commentaire: dossier.commentaire,
               confidentialite: dossier.confidentialite,
-              consentement_antecedents: dossier.consentement_antecedents,
             }
           })
         }).catch(() => {}) // fire-and-forget
@@ -2160,11 +2153,6 @@ export default function ProfilPage() {
 
         {/* ── 12. Confidentialité ── */}
         <Section title="Consentement" icon="✅">
-          <Checkbox
-            label="J'autorise l'AQBRS à procéder à la vérification de mes antécédents judiciaires dans le cadre de mon processus d'adhésion à la Réserve d'Intervention d'Urgence en Sécurité Civile."
-            checked={dossier.consentement_antecedents}
-            onChange={v => updateDossier('consentement_antecedents', v)}
-          />
           <Checkbox
             label="Je consens à ce que mes informations soient utilisées pour coordonner les opérations de recherche et sauvetage"
             checked={dossier.confidentialite}
