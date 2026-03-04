@@ -612,9 +612,8 @@ export default function ProfilPage() {
         }
       }
 
-      if (!authUser) {
-        // Mode démo : charger données fictives
-        if (isDemoActive()) {
+      // 🎯 MODE DÉMO — prioritaire sur authUser
+      if (isDemoActive()) {
           const groupe = getDemoGroupe()
           const demoRes = { ...DEMO_RESERVISTE, groupe } as any
           setUser(DEMO_USER)
@@ -680,8 +679,9 @@ export default function ProfilPage() {
           setMyOrgIds(['demo-org-aqbrs'])
           setLoading(false)
           return
-        }
+      }
 
+      if (!authUser) {
         router.push('/login')
         return
       }
