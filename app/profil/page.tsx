@@ -2160,16 +2160,18 @@ export default function ProfilPage() {
 
         {/* ── 12. Confidentialité ── */}
         <Section title="Consentement" icon="✅">
-          <Checkbox
-            label="J'autorise l'AQBRS à procéder à la vérification de mes antécédents judiciaires dans le cadre de mon processus d'adhésion à la Réserve d'Intervention d'Urgence en Sécurité Civile."
-            checked={dossier.consentement_antecedents}
-            onChange={v => updateDossier('consentement_antecedents', v)}
-          />
-          <Checkbox
-            label="Je consens à ce que mes informations soient utilisées pour coordonner les opérations de recherche et sauvetage"
-            checked={dossier.confidentialite}
-            onChange={v => updateDossier('confidentialite', v)}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: '#f9fafb', border: '1px solid transparent' }}>
+              <input type="checkbox" checked={dossier.consentement_antecedents} onChange={e => updateDossier('consentement_antecedents', e.target.checked)}
+                style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
+              <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>J&apos;autorise l&apos;AQBRS à procéder à la vérification de mes antécédents judiciaires dans le cadre de mon processus d&apos;adhésion à la Réserve d&apos;Intervention d&apos;Urgence en Sécurité Civile.</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: '#f9fafb', border: '1px solid transparent' }}>
+              <input type="checkbox" checked={dossier.confidentialite} onChange={e => updateDossier('confidentialite', e.target.checked)}
+                style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
+              <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je consens à ce que mes informations soient utilisées pour coordonner les opérations de recherche et sauvetage</span>
+            </label>
+          </div>
         </Section>
 
         {/* ── Bouton de sauvegarde ── */}
