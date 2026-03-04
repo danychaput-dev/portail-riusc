@@ -404,7 +404,7 @@ export default function HomePage() {
             
             // Charger tout en parallèle
             const bid = userData.benevole_id
-            const [campResult, selectionResult, certResult, ciblagesResult, mobilisationResult] = await Promise.allSettled([
+            const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
@@ -568,7 +568,7 @@ export default function HomePage() {
         
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id
-        const [campResult, selectionResult, certResult, ciblagesResult, mobilisationResult] = await Promise.allSettled([
+        const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
