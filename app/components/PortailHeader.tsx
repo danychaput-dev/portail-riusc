@@ -51,6 +51,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [hasCiblages, setHasCiblages] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showImpersonateModal, setShowImpersonateModal] = useState(false)
+  const [showStatusTooltip, setShowStatusTooltip] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Hook d'authentification avec support emprunt
@@ -305,23 +306,50 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 <div style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
                   {reserviste ? `${reserviste.prenom} ${reserviste.nom}` : user?.email}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px', position: 'relative' }}>
                   {loadingStatus ? (
                     <span style={{ color: '#6b7280' }}>...</span>
                   ) : isDeployable ? (
-                    <>
+                    <div
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'default' }}
+                      onMouseEnter={() => setShowStatusTooltip(true)}
+                      onMouseLeave={() => setShowStatusTooltip(false)}
+                    >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="3">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                       <span style={{ color: '#059669', fontWeight: '600' }}>Déployable</span>
-                    </>
+                      {showStatusTooltip && (
+                        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: '#111827', color: 'white', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', whiteSpace: 'nowrap', zIndex: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                          <div style={{ fontWeight: '600', marginBottom: '6px', color: '#6ee7b7' }}>✓ Toutes les étapes complétées</div>
+                          <div>✓ Profil complet</div>
+                          <div>✓ Certificat S'initier</div>
+                          <div>✓ Camp de qualification réussi</div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <>
+                    <a
+                      href="/formation"
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}
+                      onMouseEnter={() => setShowStatusTooltip(true)}
+                      onMouseLeave={() => setShowStatusTooltip(false)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="3">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       <span style={{ color: '#dc2626', fontWeight: '600' }}>Non déployable</span>
-                    </>
+                      {showStatusTooltip && (
+                        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: '#111827', color: 'white', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', whiteSpace: 'nowrap', zIndex: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+                          <div style={{ fontWeight: '600', marginBottom: '6px', color: '#fca5a5' }}>Étapes manquantes :</div>
+                          <div>{isProfilComplet ? '✓' : '✗'} Profil complet</div>
+                          <div>{hasCertificats ? '✓' : '✗'} Certificat S'initier</div>
+                          <div>{campStatus?.is_certified ? '✓' : '✗'} Camp de qualification réussi</div>
+                          <div style={{ marginTop: '8px', color: '#93c5fd', fontSize: '11px' }}>Cliquer pour voir Formation et parcours →</div>
+                        </div>
+                      )}
+                    </a>
                   )}
                 </div>
               </div>
