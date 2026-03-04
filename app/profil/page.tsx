@@ -74,6 +74,7 @@ interface DossierData {
   vehicule_tout_terrain: number[]
   navire_marin: number[]
   permis_conduire: number[]
+  disponible_covoiturage: number[]
   satp_drone: number[]
   equipe_canine: number[]
   competences_securite: number[]
@@ -150,6 +151,9 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 5, label: "Classe 4a Véhicule d'urgence" },
     { id: 6, label: 'Classe 3 Camions' },
     { id: 7, label: 'Classe 6 Motocyclette' },
+  ],
+  disponible_covoiturage: [
+    { id: 1, label: 'Je peux transporter des gens' },
   ],
   satp_drone: [
     { id: 4, label: 'Utilisation de drone (petit drone de moins de 250g)' },
@@ -353,6 +357,14 @@ const Checkbox = ({ label, checked, onChange }: {
   </label>
 )
 
+const CERT_REQUIRED_LABELS = new Set([
+  "Permis d'embarcation de plaisance",
+  "Scies à chaînes",
+  "Contrôle de la circulation routière",
+  "Formateur certifié CNESST",
+  "Radio amateur",
+])
+
 const CheckboxGroup = ({ label, options, selected, onChange }: {
   label: string
   options: { id: number; label: string }[]
@@ -379,6 +391,9 @@ const CheckboxGroup = ({ label, options, selected, onChange }: {
             style={{ width: '18px', height: '18px', cursor: 'pointer' }}
           />
           {opt.label}
+          {CERT_REQUIRED_LABELS.has(opt.label) && (
+            <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>(certificat requis)</span>
+          )}
         </label>
       ))}
     </div>
@@ -421,6 +436,7 @@ export default function ProfilPage() {
     vehicule_tout_terrain: [],
     navire_marin: [],
     permis_conduire: [],
+    disponible_covoiturage: [],
     satp_drone: [],
     equipe_canine: [],
     competences_securite: [],
@@ -561,6 +577,7 @@ export default function ProfilPage() {
               vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
               navire_marin: labelsToIds('navire_marin', d.navire_marin),
               permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
+              disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
               satp_drone: labelsToIds('satp_drone', d.satp_drone),
               equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
               competences_securite: labelsToIds('competences_securite', d.competences_securite),
@@ -628,7 +645,7 @@ export default function ProfilPage() {
             date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
             allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
             competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
-            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [],
+            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
@@ -638,7 +655,7 @@ export default function ProfilPage() {
             date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
             allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
             competence_rs: [], certificat_premiers_soins: [], date_expiration_certificat: '',
-            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [],
+            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [], disponible_covoiturage: [],
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true,
@@ -788,6 +805,7 @@ export default function ProfilPage() {
         vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
         navire_marin: labelsToIds('navire_marin', d.navire_marin),
         permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
+        disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
         satp_drone: labelsToIds('satp_drone', d.satp_drone),
         equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
         competences_securite: labelsToIds('competences_securite', d.competences_securite),
@@ -1103,6 +1121,7 @@ export default function ProfilPage() {
             vehicule_tout_terrain: idsToLabels('vehicule_tout_terrain', dossier.vehicule_tout_terrain),
             navire_marin: idsToLabels('navire_marin', dossier.navire_marin),
             permis_conduire: idsToLabels('permis_conduire', dossier.permis_conduire),
+            disponible_covoiturage: idsToLabels('disponible_covoiturage', dossier.disponible_covoiturage),
             satp_drone: idsToLabels('satp_drone', dossier.satp_drone),
             equipe_canine: idsToLabels('equipe_canine', dossier.equipe_canine),
             competences_securite: idsToLabels('competences_securite', dossier.competences_securite),
@@ -1149,6 +1168,7 @@ export default function ProfilPage() {
               vehicule_tout_terrain: dossier.vehicule_tout_terrain,
               navire_marin: dossier.navire_marin,
               permis_conduire: dossier.permis_conduire,
+              disponible_covoiturage: dossier.disponible_covoiturage,
               satp_drone: dossier.satp_drone,
               equipe_canine: dossier.equipe_canine,
               competences_securite: dossier.competences_securite,
@@ -1616,6 +1636,7 @@ export default function ProfilPage() {
               <option value="">— Sélectionner —</option>
               {GROUPES_SANGUIN.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
+            <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic', marginTop: '4px', display: 'block' }}>(certificat requis)</span>
           </div>
 
           <TextArea
