@@ -9,6 +9,7 @@ interface Reserviste {
   nom: string
   email: string
   groupe: string
+  deployable?: boolean
 }
 
 interface ImpersonateModalProps {
@@ -34,7 +35,37 @@ export default function ImpersonateModal({ onClose, onImpersonate }: Impersonate
       const { data } = await supabase
         .rpc('search_reservistes_admin', { search_term: search })
 
-      setReservistes(data || [])
+      if (data && data.length > 0) {
+        // Récupérer les formations pour déterminer le statut déployable
+        const benevoleIds = data.map((r: Reserviste) => r.benevole_id)
+
+        const { data: formations } = await supabase
+          .from('formations_benevoles')
+          .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee')
+          .in('benevole_id', benevoleIds)
+          .eq('resultat', 'Réussi')
+
+        // Calculer déployable par réserviste
+        const deployableMap: Record<string, boolean> = {}
+        benevoleIds.forEach((id: string) => {
+          const formationsReserviste = (formations || []).filter(f => f.benevole_id === id)
+          const aInitiation = formationsReserviste.some(f => f.initiation_sc_completee === true)
+          const aCamp = formationsReserviste.some(f =>
+            f.source === 'monday' &&
+            f.nom_formation &&
+            f.nom_formation.toLowerCase().includes('camp')
+          )
+          deployableMap[id] = aInitiation && aCamp
+        })
+
+        setReservistes(data.map((r: Reserviste) => ({
+          ...r,
+          deployable: deployableMap[r.benevole_id] ?? false
+        })))
+      } else {
+        setReservistes(data || [])
+      }
+
       setLoading(false)
     }
 
@@ -192,16 +223,32 @@ export default function ImpersonateModal({ onClose, onImpersonate }: Impersonate
                     {reserviste.email}
                   </div>
                 </div>
-                <span style={{
-                  padding: '4px 12px',
-                  backgroundColor: reserviste.groupe === 'Approuvé' ? '#d1fae5' : '#f3f4f6',
-                  color: reserviste.groupe === 'Approuvé' ? '#065f46' : '#6b7280',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '600'
-                }}>
-                  {reserviste.groupe}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* Badge déployable */}
+                  <span style={{
+                    padding: '4px 10px',
+                    backgroundColor: reserviste.deployable ? '#d1fae5' : '#fee2e2',
+                    color: reserviste.deployable ? '#065f46' : '#991b1b',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {reserviste.deployable ? '✓ Déployable' : '✗ Non déployable'}
+                  </span>
+                  {/* Badge groupe */}
+                  <span style={{
+                    padding: '4px 12px',
+                    backgroundColor: reserviste.groupe === 'Approuvé' ? '#dbeafe' : '#f3f4f6',
+                    color: reserviste.groupe === 'Approuvé' ? '#1e40af' : '#6b7280',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {reserviste.groupe}
+                  </span>
+                </div>
               </div>
             </button>
           ))}
