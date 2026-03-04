@@ -417,6 +417,8 @@ export default function ProfilPage() {
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [testNotifLoading, setTestNotifLoading] = useState(false)
+  const [testNotifResult, setTestNotifResult] = useState<'success' | 'error' | null>(null)
   const [formationDialog, setFormationDialog] = useState<{ show: boolean; removedLabels: string[]; addedLabels: string[]; pendingSave: (() => Promise<void>) | null }>({ show: false, removedLabels: [], addedLabels: [], pendingSave: null })
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -1047,6 +1049,31 @@ export default function ProfilPage() {
     }))
   }
 
+  // ─── Test notification ────────────────────────────────────────────────────
+
+  const handleTestNotification = async () => {
+    setTestNotifLoading(true)
+    setTestNotifResult(null)
+    try {
+      const tel = profilData.telephone || reserviste?.telephone || ''
+      const res = await fetch('https://n8n.aqbrs.ca/webhook/test-notification-reserviste', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prenom: profilData.prenom || reserviste?.prenom || '',
+          nom: profilData.nom || reserviste?.nom || '',
+          email: user?.email || reserviste?.email || '',
+          telephone: tel,
+        }),
+      })
+      setTestNotifResult(res.ok ? 'success' : 'error')
+    } catch {
+      setTestNotifResult('error')
+    } finally {
+      setTestNotifLoading(false)
+    }
+  }
+
   // ─── Sauvegarde ──────────────────────────────────────────────────────────
 
   const handleSave = async () => {
@@ -1425,6 +1452,39 @@ export default function ProfilPage() {
               onChange={v => setProfilData(prev => ({ ...prev, telephone_secondaire: v }))}
               placeholder="(555) 987-6543"
             />
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleTestNotification}
+              disabled={testNotifLoading || (!profilData.telephone && !reserviste?.telephone)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '8px 14px', fontSize: '13px', fontWeight: '500',
+                backgroundColor: testNotifLoading ? '#e5e7eb' : '#f59e0b',
+                color: testNotifLoading ? '#9ca3af' : '#ffffff',
+                border: 'none', borderRadius: '6px',
+                cursor: (testNotifLoading || (!profilData.telephone && !reserviste?.telephone)) ? 'not-allowed' : 'pointer',
+                opacity: (!profilData.telephone && !reserviste?.telephone) ? 0.5 : 1,
+                transition: 'background-color 0.2s',
+              }}
+            >
+              {testNotifLoading ? '⏳ Envoi...' : '📨 Tester SMS et courriel'}
+            </button>
+            <span style={{ marginLeft: '10px', fontSize: '12px', color: '#9ca3af' }}>
+              Simule un vrai avis de mobilisation à votre numéro et courriel
+            </span>
+            {testNotifResult === 'success' && (
+              <div style={{ marginTop: '6px', fontSize: '13px', color: '#059669' }}>
+                ✅ SMS et courriel de test envoyés avec succès !
+              </div>
+            )}
+            {testNotifResult === 'error' && (
+              <div style={{ marginTop: '6px', fontSize: '13px', color: '#dc2626' }}>
+                ❌ Erreur lors de l&apos;envoi. Vérifiez votre numéro de téléphone.
+              </div>
+            )}
           </div>
 
           <TextInput
