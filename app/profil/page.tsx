@@ -419,6 +419,9 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false)
   const [testNotifLoading, setTestNotifLoading] = useState(false)
   const [testNotifResult, setTestNotifResult] = useState<'success' | 'error' | null>(null)
+  const [showDemoTestModal, setShowDemoTestModal] = useState(false)
+  const [demoTestEmail, setDemoTestEmail] = useState('')
+  const [demoTestTel, setDemoTestTel] = useState('')
   const [formationDialog, setFormationDialog] = useState<{ show: boolean; removedLabels: string[]; addedLabels: string[]; pendingSave: (() => Promise<void>) | null }>({ show: false, removedLabels: [], addedLabels: [], pendingSave: null })
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -1052,19 +1055,29 @@ export default function ProfilPage() {
   // ─── Test notification ────────────────────────────────────────────────────
 
   const handleTestNotification = async () => {
+    if (isDemoActive()) {
+      setDemoTestEmail('')
+      setDemoTestTel('')
+      setTestNotifResult(null)
+      setShowDemoTestModal(true)
+      return
+    }
+    await sendTestNotification(
+      dossier.prenom || reserviste?.prenom || '',
+      dossier.nom || reserviste?.nom || '',
+      user?.email || reserviste?.email || '',
+      profilData.telephone || reserviste?.telephone || '',
+    )
+  }
+
+  const sendTestNotification = async (prenom: string, nom: string, email: string, telephone: string) => {
     setTestNotifLoading(true)
     setTestNotifResult(null)
     try {
-      const tel = profilData.telephone || reserviste?.telephone || ''
       const res = await fetch('https://n8n.aqbrs.ca/webhook/test-notification-reserviste', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prenom: profilData.prenom || reserviste?.prenom || '',
-          nom: profilData.nom || reserviste?.nom || '',
-          email: user?.email || reserviste?.email || '',
-          telephone: tel,
-        }),
+        body: JSON.stringify({ prenom, nom, email, telephone }),
       })
       setTestNotifResult(res.ok ? 'success' : 'error')
     } catch {
@@ -1388,6 +1401,74 @@ export default function ProfilPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+
+      {/* Modal test notification — Mode démo */}
+      {showDemoTestModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>📨</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '20px', fontWeight: '700' }}>Tester les notifications</h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                Entrez votre vrai numéro et courriel pour recevoir un exemple d&apos;avis de mobilisation RIUSC.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>Courriel</label>
+                <input
+                  type="email"
+                  value={demoTestEmail}
+                  onChange={e => setDemoTestEmail(e.target.value)}
+                  placeholder="votre@courriel.com"
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>Téléphone (pour SMS)</label>
+                <input
+                  type="tel"
+                  value={demoTestTel}
+                  onChange={e => setDemoTestTel(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const }}
+                />
+              </div>
+            </div>
+            {testNotifResult === 'success' && (
+              <div style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
+                ✅ SMS et courriel envoyés — vérifiez vos appareils !
+              </div>
+            )}
+            {testNotifResult === 'error' && (
+              <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
+                ❌ Erreur lors de l&apos;envoi. Vérifiez le numéro de téléphone.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => { setShowDemoTestModal(false); setTestNotifResult(null) }}
+                style={{ padding: '10px 20px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', fontWeight: '500' }}
+              >Fermer</button>
+              <button
+                type="button"
+                disabled={testNotifLoading || (!demoTestEmail && !demoTestTel)}
+                onClick={() => sendTestNotification('Marie', 'Tremblay', demoTestEmail, demoTestTel)}
+                style={{
+                  padding: '10px 20px', fontSize: '14px', fontWeight: '600', border: 'none', borderRadius: '6px',
+                  cursor: (testNotifLoading || (!demoTestEmail && !demoTestTel)) ? 'not-allowed' : 'pointer',
+                  backgroundColor: (testNotifLoading || (!demoTestEmail && !demoTestTel)) ? '#9ca3af' : '#059669',
+                  color: 'white',
+                }}
+              >
+                {testNotifLoading ? '⏳ Envoi...' : '📨 Envoyer le test'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <PortailHeader subtitle="Mon profil" />
 
       <ImpersonateBanner />
@@ -1454,7 +1535,7 @@ export default function ProfilPage() {
             />
           </div>
 
-          <div>
+          <div style={{ marginBottom: '16px' }}>
             <button
               type="button"
               onClick={handleTestNotification}
