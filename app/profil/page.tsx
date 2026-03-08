@@ -1108,7 +1108,7 @@ export default function ProfilPage() {
       // 0. Détecter et appliquer un changement d'email
       const emailChanged = dossier.email && dossier.email !== originalDossier.email
       if (emailChanged && user?.id) {
-        const emailRes = await fetch('/api/update-email', {
+        const emailRes = await fetch('/api/email-update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
