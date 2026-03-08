@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/utils/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 const ADMINS = ['dany.chaput@aqbrs.ca', 'est.lapointe@gmail.com']
 
@@ -24,40 +25,33 @@ function getMimeType(filePath: string): string {
   return ext ? MIME_TYPES[ext] : 'application/octet-stream'
 }
 
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params
-  try {
-    // 1. Vérifier l'auth via cookie Supabase
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: { Cookie: request.headers.get('cookie') || '' }
-        }
-      }
-    )
 
+  try {
+    // 1. Auth via le client serveur qui lit les cookies correctement
+    const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
-    // 2. Vérifier que l'utilisateur a accès au module
-    // Pour l'instant : admins seulement
-    // Plus tard : vérifier lms_modules.groupes vs reservistes.groupe
+    // 2. Vérifier l'accès au module
     const isAdmin = ADMINS.includes(user.email || '')
 
     if (!isAdmin) {
-      // Vérifier accès via groupe (pour plus tard quand on ouvre à tous)
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
+      const supabaseAdmin = getAdminClient()
       const { data: reserviste } = await supabaseAdmin
         .from('reservistes')
         .select('groupe, benevole_id')
@@ -68,27 +62,21 @@ export async function GET(
         return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
       }
 
-      // Vérifier que le module est actif et accessible au groupe
       const modulePath = path[0]
-      const { data: module } = await supabaseAdmin
+      const { data: lmsModule } = await supabaseAdmin
         .from('lms_modules')
         .select('actif, groupes')
         .eq('bucket_path', modulePath)
         .single()
 
-      if (!module?.actif || !module?.groupes?.includes(reserviste.groupe)) {
+      if (!lmsModule?.actif || !lmsModule?.groupes?.includes(reserviste.groupe)) {
         return NextResponse.json({ error: 'Module non disponible' }, { status: 403 })
       }
     }
 
-    // 3. Construire le chemin dans le bucket
+    // 3. Télécharger le fichier depuis Storage avec service_role
     const filePath = path.join('/')
-
-    // 4. Télécharger le fichier depuis Supabase Storage
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabaseAdmin = getAdminClient()
 
     const { data, error } = await supabaseAdmin.storage
       .from('lms-modules')
@@ -98,7 +86,7 @@ export async function GET(
       return NextResponse.json({ error: 'Fichier non trouvé' }, { status: 404 })
     }
 
-    // 5. Retourner le fichier avec le bon MIME type
+    // 4. Retourner avec le bon MIME type
     const buffer = await data.arrayBuffer()
     const mimeType = getMimeType(filePath)
 
@@ -107,7 +95,6 @@ export async function GET(
       headers: {
         'Content-Type': mimeType,
         'Cache-Control': 'private, max-age=3600',
-        // Permettre l'exécution dans iFrame du même domaine
         'X-Frame-Options': 'SAMEORIGIN',
         'Content-Security-Policy': "frame-ancestors 'self'",
       }
