@@ -110,48 +110,29 @@ export default function FormationsEnLignePage() {
     }))
   }, [reserviste, progressions])
 
-  // Tracking : détecter goodbye.html = complétion
-  const handleIframeLoad = useCallback(async () => {
-    if (!moduleActif || !reserviste) return
-
-    try {
-      const iframeUrl = iframeRef.current?.contentWindow?.location?.href || ''
-      if (iframeUrl.includes('goodbye')) {
-        await marquerCompletion(moduleActif)
-      }
-    } catch {
-      // Cross-origin dans certains cas, on ignore
-    }
-  }, [moduleActif, reserviste])
-
-  // Tracking : postMessage depuis Rise
+  // Tracking : polling toutes les secondes pour détecter goodbye.html
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (!moduleActif || !reserviste) return
+    if (!moduleActif) return
 
-      // Rise envoie des events xAPI-like
-      const data = event.data
-      if (typeof data === 'object') {
-        // Détecter complétion via différents formats Rise
-        const isComplete =
-          data?.status === 'completed' ||
-          data?.verb?.id?.includes('completed') ||
-          data?.type === 'completed' ||
-          data?.completion === true
-
-        if (isComplete) {
-          const score = data?.result?.score?.scaled
-            ? Math.round(data.result.score.scaled * 100)
-            : data?.score || null
-
-          await marquerCompletion(moduleActif, score)
+    const interval = setInterval(() => {
+      try {
+        const href = iframeRef.current?.contentWindow?.location?.href || ''
+        if (href.includes('goodbye')) {
+          marquerCompletion(moduleActif)
+          clearInterval(interval)
         }
+      } catch {
+        // Ignorer les erreurs cross-origin temporaires
       }
-    }
+    }, 1000)
 
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [moduleActif, reserviste])
+    return () => clearInterval(interval)
+  }, [moduleActif])
+
+  // handleIframeLoad — juste pour marquer le début
+  const handleIframeLoad = useCallback(() => {
+    if (moduleActif) marquerDebut(moduleActif)
+  }, [moduleActif, marquerDebut])
 
   const marquerCompletion = async (mod: Module, score?: number | null) => {
     if (!reserviste) return
@@ -261,10 +242,7 @@ export default function FormationsEnLignePage() {
           ref={iframeRef}
           src={`/api/lms/${moduleActif.bucket_path}/index.html`}
           style={{ flex: 1, border: 'none', width: '100%' }}
-          onLoad={(e) => {
-            marquerDebut(moduleActif)
-            handleIframeLoad()
-          }}
+          onLoad={() => handleIframeLoad()}
           title={moduleActif.titre}
           allow="fullscreen"
         />
