@@ -1,0 +1,412 @@
+'use client'
+
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { createClient } from '@supabase/supabase-js'
+import PortailHeader from '@/components/PortailHeader'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+interface Module {
+  id: string
+  titre: string
+  description: string
+  bucket_path: string
+  ordre: number
+  certificat: boolean
+}
+
+interface Progression {
+  module_id: string
+  statut: string
+  progression_pct: number
+  score: number | null
+  date_debut: string | null
+  date_completion: string | null
+}
+
+export default function FormationsEnLignePage() {
+  const [user, setUser] = useState<any>(null)
+  const [reserviste, setReserviste] = useState<any>(null)
+  const [modules, setModules] = useState<Module[]>([])
+  const [progressions, setProgressions] = useState<Record<string, Progression>>({})
+  const [moduleActif, setModuleActif] = useState<Module | null>(null)
+  const [loading, setLoading] = useState(true)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const debutRef = useRef<boolean>(false)
+
+  // Charger l'utilisateur et les données
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) { window.location.href = '/login'; return }
+      setUser(authUser)
+
+      // Charger le réserviste
+      const { data: res } = await supabase
+        .from('reservistes')
+        .select('benevole_id, prenom, nom, groupe')
+        .eq('user_id', authUser.id)
+        .single()
+      if (res) setReserviste(res)
+
+      // Charger les modules accessibles
+      const { data: mods } = await supabase
+        .from('lms_modules')
+        .select('id, titre, description, bucket_path, ordre, certificat')
+        .order('ordre')
+      if (mods) setModules(mods)
+
+      // Charger les progressions
+      if (res) {
+        const { data: progs } = await supabase
+          .from('lms_progression')
+          .select('*')
+          .eq('benevole_id', res.benevole_id)
+
+        if (progs) {
+          const map: Record<string, Progression> = {}
+          progs.forEach(p => { map[p.module_id] = p })
+          setProgressions(map)
+        }
+      }
+
+      setLoading(false)
+    }
+    init()
+  }, [])
+
+  // Tracking : démarrer le module
+  const marquerDebut = useCallback(async (mod: Module) => {
+    if (!reserviste || debutRef.current) return
+    debutRef.current = true
+
+    const prog = progressions[mod.id]
+    if (prog?.statut === 'complété') return
+
+    await supabase
+      .from('lms_progression')
+      .upsert({
+        benevole_id: reserviste.benevole_id,
+        module_id: mod.id,
+        statut: 'en_cours',
+        date_debut: prog?.date_debut || new Date().toISOString(),
+        nb_tentatives: (prog?.nb_tentatives || 0) + 1,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'benevole_id,module_id' })
+
+    setProgressions(prev => ({
+      ...prev,
+      [mod.id]: {
+        ...prev[mod.id],
+        module_id: mod.id,
+        statut: 'en_cours',
+        date_debut: prev[mod.id]?.date_debut || new Date().toISOString(),
+        nb_tentatives: (prev[mod.id]?.nb_tentatives || 0) + 1,
+        progression_pct: prev[mod.id]?.progression_pct || 0,
+        score: prev[mod.id]?.score || null,
+        date_completion: prev[mod.id]?.date_completion || null,
+      }
+    }))
+  }, [reserviste, progressions])
+
+  // Tracking : détecter goodbye.html = complétion
+  const handleIframeLoad = useCallback(async () => {
+    if (!moduleActif || !reserviste) return
+
+    try {
+      const iframeUrl = iframeRef.current?.contentWindow?.location?.href || ''
+      if (iframeUrl.includes('goodbye')) {
+        await marquerCompletion(moduleActif)
+      }
+    } catch {
+      // Cross-origin dans certains cas, on ignore
+    }
+  }, [moduleActif, reserviste])
+
+  // Tracking : postMessage depuis Rise
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (!moduleActif || !reserviste) return
+
+      // Rise envoie des events xAPI-like
+      const data = event.data
+      if (typeof data === 'object') {
+        // Détecter complétion via différents formats Rise
+        const isComplete =
+          data?.status === 'completed' ||
+          data?.verb?.id?.includes('completed') ||
+          data?.type === 'completed' ||
+          data?.completion === true
+
+        if (isComplete) {
+          const score = data?.result?.score?.scaled
+            ? Math.round(data.result.score.scaled * 100)
+            : data?.score || null
+
+          await marquerCompletion(moduleActif, score)
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [moduleActif, reserviste])
+
+  const marquerCompletion = async (mod: Module, score?: number | null) => {
+    if (!reserviste) return
+    const prog = progressions[mod.id]
+    if (prog?.statut === 'complété') return
+
+    await supabase
+      .from('lms_progression')
+      .upsert({
+        benevole_id: reserviste.benevole_id,
+        module_id: mod.id,
+        statut: 'complété',
+        progression_pct: 100,
+        score: score || null,
+        date_completion: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'benevole_id,module_id' })
+
+    setProgressions(prev => ({
+      ...prev,
+      [mod.id]: {
+        ...prev[mod.id],
+        module_id: mod.id,
+        statut: 'complété',
+        progression_pct: 100,
+        score: score || null,
+        date_completion: new Date().toISOString(),
+        date_debut: prev[mod.id]?.date_debut || null,
+        nb_tentatives: prev[mod.id]?.nb_tentatives || 1,
+      }
+    }))
+  }
+
+  const ouvrirModule = (mod: Module) => {
+    debutRef.current = false
+    setModuleActif(mod)
+  }
+
+  const fermerModule = () => {
+    setModuleActif(null)
+    debutRef.current = false
+  }
+
+  const getStatutBadge = (moduleId: string) => {
+    const prog = progressions[moduleId]
+    if (!prog || prog.statut === 'non_commencé') return null
+    if (prog.statut === 'complété') return { label: '✓ Complété', color: '#2e7d32', bg: '#e8f5e9' }
+    if (prog.statut === 'en_cours') return { label: '⏳ En cours', color: '#e65100', bg: '#fff3e0' }
+    return null
+  }
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#1e3a5f', fontSize: 16 }}>Chargement...</div>
+      </div>
+    )
+  }
+
+  // Mode plein écran iFrame
+  if (moduleActif) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1000, display: 'flex', flexDirection: 'column' }}>
+        {/* Barre du haut */}
+        <div style={{
+          background: '#1e3a5f',
+          color: '#fff',
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          height: 48,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{moduleActif.titre}</span>
+            {progressions[moduleActif.id]?.statut === 'en_cours' && (
+              <span style={{ fontSize: 12, background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: 4 }}>
+                En cours
+              </span>
+            )}
+            {progressions[moduleActif.id]?.statut === 'complété' && (
+              <span style={{ fontSize: 12, background: '#2e7d32', padding: '2px 8px', borderRadius: 4 }}>
+                ✓ Complété
+              </span>
+            )}
+          </div>
+          <button
+            onClick={fermerModule}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              border: 'none',
+              color: '#fff',
+              padding: '6px 14px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            ← Retour
+          </button>
+        </div>
+
+        {/* iFrame */}
+        <iframe
+          ref={iframeRef}
+          src={`/api/lms/${moduleActif.bucket_path}/index.html`}
+          style={{ flex: 1, border: 'none', width: '100%' }}
+          onLoad={(e) => {
+            marquerDebut(moduleActif)
+            handleIframeLoad()
+          }}
+          title={moduleActif.titre}
+          allow="fullscreen"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f5f7fa' }}>
+      <PortailHeader user={user} reserviste={reserviste} />
+
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
+
+        {/* En-tête */}
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1e3a5f', margin: '0 0 8px' }}>
+            Formations en ligne
+          </h1>
+          <p style={{ color: '#555', fontSize: 15, margin: 0 }}>
+            Complétez les modules à votre rythme. Votre progression est sauvegardée automatiquement.
+          </p>
+        </div>
+
+        {/* Liste des modules */}
+        {modules.length === 0 ? (
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: 40,
+            textAlign: 'center',
+            color: '#888',
+            border: '1px solid #e2e8f0',
+          }}>
+            Aucun module disponible pour l'instant.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {modules.map((mod, idx) => {
+              const badge = getStatutBadge(mod.id)
+              const prog = progressions[mod.id]
+              const isComplete = prog?.statut === 'complété'
+
+              return (
+                <div
+                  key={mod.id}
+                  style={{
+                    background: '#fff',
+                    borderRadius: 12,
+                    border: `1px solid ${isComplete ? '#a5d6a7' : '#e2e8f0'}`,
+                    padding: '24px 28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 20,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  {/* Numéro */}
+                  <div style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background: isComplete ? '#2e7d32' : '#1e3a5f',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}>
+                    {isComplete ? '✓' : idx + 1}
+                  </div>
+
+                  {/* Contenu */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span style={{ fontSize: 16, fontWeight: 600, color: '#1e3a5f' }}>
+                        {mod.titre}
+                      </span>
+                      {badge && (
+                        <span style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: badge.color,
+                          background: badge.bg,
+                          padding: '2px 10px',
+                          borderRadius: 20,
+                        }}>
+                          {badge.label}
+                        </span>
+                      )}
+                      {mod.certificat && (
+                        <span style={{
+                          fontSize: 12,
+                          color: '#b45309',
+                          background: '#fef3c7',
+                          padding: '2px 10px',
+                          borderRadius: 20,
+                        }}>
+                          🎓 Certificat
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 14, color: '#666', margin: 0, lineHeight: 1.5 }}>
+                      {mod.description}
+                    </p>
+                    {prog?.date_completion && (
+                      <p style={{ fontSize: 12, color: '#888', margin: '6px 0 0' }}>
+                        Complété le {new Date(prog.date_completion).toLocaleDateString('fr-CA', {
+                          day: 'numeric', month: 'long', year: 'numeric'
+                        })}
+                        {prog.score != null && ` · Score : ${prog.score}%`}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Bouton */}
+                  <button
+                    onClick={() => ouvrirModule(mod)}
+                    style={{
+                      background: isComplete ? '#f1f8f1' : '#1e3a5f',
+                      color: isComplete ? '#2e7d32' : '#fff',
+                      border: isComplete ? '1px solid #a5d6a7' : 'none',
+                      padding: '10px 22px',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      fontWeight: 600,
+                      flexShrink: 0,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {isComplete ? 'Revoir' : prog?.statut === 'en_cours' ? 'Continuer →' : 'Commencer →'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
