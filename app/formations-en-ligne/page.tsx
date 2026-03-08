@@ -110,28 +110,23 @@ export default function FormationsEnLignePage() {
     }))
   }, [reserviste, progressions])
 
-  // Tracking : polling toutes les secondes pour détecter goodbye.html
-  useEffect(() => {
+  // Tracking : détecter complétion via onLoad de l'iFrame
+  // Rise navigue effectivement vers goodbye.html quand le cours est terminé
+  // ce qui déclenche un nouvel événement onLoad qu'on peut intercepter
+  const handleIframeLoad = useCallback(() => {
     if (!moduleActif) return
 
-    const interval = setInterval(() => {
-      try {
-        const href = iframeRef.current?.contentWindow?.location?.href || ''
-        if (href.includes('goodbye')) {
-          marquerCompletion(moduleActif)
-          clearInterval(interval)
-        }
-      } catch {
-        // Ignorer les erreurs cross-origin temporaires
+    try {
+      const href = iframeRef.current?.contentWindow?.location?.href || ''
+      if (href.includes('goodbye')) {
+        marquerCompletion(moduleActif)
+      } else {
+        marquerDebut(moduleActif)
       }
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [moduleActif])
-
-  // handleIframeLoad — juste pour marquer le début
-  const handleIframeLoad = useCallback(() => {
-    if (moduleActif) marquerDebut(moduleActif)
+    } catch {
+      // Si on ne peut pas lire l'URL, on marque juste le début
+      marquerDebut(moduleActif)
+    }
   }, [moduleActif, marquerDebut])
 
   const marquerCompletion = async (mod: Module, score?: number | null) => {
