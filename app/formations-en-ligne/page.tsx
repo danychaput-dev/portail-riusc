@@ -277,7 +277,7 @@ export default function FormationsEnLignePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f5f7fa' }}>
-      <PortailHeader user={user} reserviste={reserviste} />
+      <PortailHeader reservisteOverride={reserviste} />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px' }}>
 
