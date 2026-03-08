@@ -23,6 +23,7 @@ interface Progression {
   statut: string
   progression_pct: number
   score: number | null
+  nb_tentatives: number
   date_debut: string | null
   date_completion: string | null
 }
