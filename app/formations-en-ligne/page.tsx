@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import PortailHeader from '@/components/PortailHeader'
+import PortailHeader from '../components/PortailHeader'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
