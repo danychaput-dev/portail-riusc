@@ -1105,6 +1105,28 @@ export default function ProfilPage() {
     setSaveMessage(null)
 
     try {
+      // 0. Détecter et appliquer un changement d'email
+      const emailChanged = dossier.email && dossier.email !== originalDossier.email
+      if (emailChanged && user?.id) {
+        const emailRes = await fetch('/api/update-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user.id,
+            new_email: dossier.email,
+            benevole_id: reserviste.benevole_id,
+          })
+        })
+        if (!emailRes.ok) {
+          const errData = await emailRes.json()
+          setSaveMessage({ type: 'error', text: `Erreur lors du changement d'email : ${errData.error || 'Erreur inconnue'}` })
+          setSaving(false)
+          return
+        }
+        // Mettre à jour l'email dans originalDossier pour éviter re-trigger
+        setOriginalDossier(prev => ({ ...prev, email: dossier.email }))
+      }
+
       // 1. Sauvegarder les champs Profil dans Supabase
       if (profilHasChanges) {
         const { error: updateError } = await supabase
