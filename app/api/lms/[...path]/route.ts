@@ -26,8 +26,9 @@ function getMimeType(filePath: string): string {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const { path } = await params
   try {
     // 1. Vérifier l'auth via cookie Supabase
     const supabase = createClient(
@@ -68,7 +69,7 @@ export async function GET(
       }
 
       // Vérifier que le module est actif et accessible au groupe
-      const modulePath = params.path[0]
+      const modulePath = path[0]
       const { data: module } = await supabaseAdmin
         .from('lms_modules')
         .select('actif, groupes')
@@ -81,7 +82,7 @@ export async function GET(
     }
 
     // 3. Construire le chemin dans le bucket
-    const filePath = params.path.join('/')
+    const filePath = path.join('/')
 
     // 4. Télécharger le fichier depuis Supabase Storage
     const supabaseAdmin = createClient(
