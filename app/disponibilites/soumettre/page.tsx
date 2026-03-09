@@ -44,6 +44,7 @@ function SoumettreContent() {
   const [transport, setTransport] = useState('')
   const [commentaires, setCommentaires] = useState('')
   const [engagementAccepte, setEngagementAccepte] = useState(false)
+  const [aptitudeAcceptee, setAptitudeAcceptee] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -123,6 +124,7 @@ function SoumettreContent() {
       if (diffJours < 4) { setError('La durée minimale de disponibilité est de 4 jours.'); return }
       if (!transport) { setError('Veuillez indiquer votre situation de transport.'); return }
       if (reponse === 'disponible' && !engagementAccepte) { setError('Veuillez confirmer votre disponibilité.'); return }
+      if (reponse === 'disponible' && !aptitudeAcceptee) { setError('Veuillez confirmer votre aptitude physique et mentale au déploiement.'); return }
     }
 
     setSubmitting(true)
@@ -482,7 +484,7 @@ function SoumettreContent() {
             </div>
 
             {reponse === 'disponible' && (
-              <div style={{ backgroundColor: '#f9fafb', padding: '16px 20px', borderRadius: '8px', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
+              <div style={{ backgroundColor: '#f9fafb', padding: '16px 20px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #e5e7eb' }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={engagementAccepte} onChange={(e) => setEngagementAccepte(e.target.checked)}
                     style={{ accentColor: '#1e3a5f', width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }} />
@@ -493,15 +495,27 @@ function SoumettreContent() {
               </div>
             )}
 
+            {reponse === 'disponible' && (
+              <div style={{ backgroundColor: '#f9fafb', padding: '16px 20px', borderRadius: '8px', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={aptitudeAcceptee} onChange={(e) => setAptitudeAcceptee(e.target.checked)}
+                    style={{ accentColor: '#1e3a5f', width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }} />
+                  <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                    Je confirme être apte, tant physiquement que mentalement, à participer à un déploiement de la RIUSC et à effectuer les tâches pouvant inclure du travail physique en conditions opérationnelles. Je m&apos;engage à signaler toute condition pouvant limiter ma capacité à accomplir ces tâches en toute sécurité.
+                  </span>
+                </label>
+              </div>
+            )}
+
             <button
               onClick={handleSubmit}
-              disabled={submitting || (reponse === 'disponible' && !engagementAccepte) || !dateDebut || !dateFin || !transport}
+              disabled={submitting || (reponse === 'disponible' && !engagementAccepte) || (reponse === 'disponible' && !aptitudeAcceptee) || !dateDebut || !dateFin || !transport}
               style={{
                 width: '100%', padding: '16px 24px',
-                backgroundColor: (submitting || (reponse === 'disponible' && !engagementAccepte) || !dateDebut || !dateFin || !transport)
+                backgroundColor: (submitting || (reponse === 'disponible' && !engagementAccepte) || (reponse === 'disponible' && !aptitudeAcceptee) || !dateDebut || !dateFin || !transport)
                   ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706',
                 color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600',
-                cursor: (submitting || (reponse === 'disponible' && !engagementAccepte)) ? 'not-allowed' : 'pointer',
+                cursor: (submitting || (reponse === 'disponible' && !engagementAccepte) || (reponse === 'disponible' && !aptitudeAcceptee)) ? 'not-allowed' : 'pointer',
                 transition: 'background-color 0.2s'
               }}>
               {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? 'Envoyer mes disponibilités' : 'Soumettre mes dates (à confirmer)'}
