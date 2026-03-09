@@ -234,10 +234,12 @@ export default function FormationsEnLignePage() {
           src={(() => {
             const endpoint = encodeURIComponent('https://lrs.aqbrs.ca/xapi/')
             const auth = encodeURIComponent('Basic ' + btoa('riusc:RiuscLrs2026!'))
-            const actor = encodeURIComponent(JSON.stringify({
+            const actorObj = {
               name: `${reserviste?.prenom || ''} ${reserviste?.nom || ''}`.trim(),
               mbox: `mailto:${user?.email || ''}`,
-            }))
+              objectType: 'Agent',
+            }
+            const actor = encodeURIComponent(JSON.stringify(actorObj))
             return `/api/lms/${moduleActif.bucket_path}/scormdriver/indexAPI.html?endpoint=${endpoint}&auth=${auth}&actor=${actor}`
           })()}
           style={{ flex: 1, border: 'none', width: '100%' }}
