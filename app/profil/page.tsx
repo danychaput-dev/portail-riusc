@@ -89,6 +89,8 @@ interface DossierData {
   commentaire: string
   confidentialite: boolean
   consentement_antecedents: boolean
+  preference_tache: string
+  preference_tache_commentaire: string
 }
 
 // ─── OPTIONS ─────────────────────────────────────────────────────────────────
@@ -467,6 +469,8 @@ export default function ProfilPage() {
     commentaire: '',
     confidentialite: false,
     consentement_antecedents: false,
+    preference_tache: 'aucune',
+    preference_tache_commentaire: '',
   })
   const [originalDossier, setOriginalDossier] = useState<DossierData>(dossier)
 
@@ -609,6 +613,8 @@ export default function ProfilPage() {
               commentaire: d.commentaire || '',
               confidentialite: d.confidentialite || false,
               consentement_antecedents: d.consentement_antecedents || false,
+              preference_tache: d.preference_tache || 'aucune',
+              preference_tache_commentaire: d.preference_tache_commentaire || '',
             }
             setDossier(loaded)
             setOriginalDossier(loaded)
@@ -667,6 +673,7 @@ export default function ProfilPage() {
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
+            preference_tache: 'aucune', preference_tache_commentaire: '',
           })
           setOriginalDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
@@ -677,6 +684,7 @@ export default function ProfilPage() {
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
+            preference_tache: 'aucune', preference_tache_commentaire: '',
           })
           logPageVisit('/profil')
           // Charger organisations et langues fictives pour démo
@@ -838,6 +846,8 @@ export default function ProfilPage() {
         commentaire: d.commentaire || '',
         confidentialite: d.confidentialite || false,
         consentement_antecedents: d.consentement_antecedents || false,
+        preference_tache: d.preference_tache || 'aucune',
+        preference_tache_commentaire: d.preference_tache_commentaire || '',
       }
       setDossier(loaded)
       setOriginalDossier(loaded)
@@ -1212,6 +1222,8 @@ export default function ProfilPage() {
             commentaire: dossier.commentaire || null,
             confidentialite: dossier.confidentialite,
             consentement_antecedents: dossier.consentement_antecedents,
+            preference_tache: dossier.preference_tache || 'aucune',
+            preference_tache_commentaire: dossier.preference_tache_commentaire || null,
           })
           .eq('id', reserviste.id)
 
@@ -2326,6 +2338,80 @@ export default function ProfilPage() {
           />
         </Section>
         )}
+
+        {/* ── Préférence de tâches ── */}
+        <Section
+          title="Préférence de tâches en déploiement"
+          icon="🎯"
+          description="Lors d'un déploiement, les besoins évoluent d'une journée à l'autre. Nous prendrons votre préférence en compte dans la mesure du possible, mais nous ne pouvons garantir que votre affectation y correspondra toujours."
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '8px' }}>
+            {[
+              { value: 'aucune', label: 'Pas de préférence — je suis disponible pour les deux types de tâches' },
+              { value: 'terrain', label: 'Soutien aux opérations sur le terrain' },
+              { value: 'sinistres', label: 'Soutien aux personnes sinistrées et aux populations vulnérables' },
+            ].map(option => (
+              <label
+                key={option.value}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: `2px solid ${dossier.preference_tache === option.value ? '#1e3a5f' : '#e5e7eb'}`,
+                  backgroundColor: dossier.preference_tache === option.value ? '#f0f4fa' : 'white',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <input
+                  type="radio"
+                  name="preference_tache"
+                  value={option.value}
+                  checked={dossier.preference_tache === option.value}
+                  onChange={() => {
+                    updateDossier('preference_tache', option.value)
+                    if (option.value !== 'sinistres') {
+                      updateDossier('preference_tache_commentaire', '')
+                    }
+                  }}
+                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }}
+                />
+                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{option.label}</span>
+              </label>
+            ))}
+          </div>
+
+          {dossier.preference_tache === 'sinistres' && (
+            <div style={{ marginTop: '16px', padding: '16px', backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+                Avez-vous une contrainte physique, médicale ou personnelle qui limite votre capacité à effectuer des tâches physiques exigeantes ?
+              </label>
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px 0', lineHeight: '1.5' }}>
+                Ex: transport de matériel lourd, travail en terrain difficile. Cette information nous aidera à vous affecter de façon appropriée. Laissez vide si aucune contrainte.
+              </p>
+              <textarea
+                value={dossier.preference_tache_commentaire}
+                onChange={e => updateDossier('preference_tache_commentaire', e.target.value)}
+                placeholder="Décrivez votre contrainte si applicable..."
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#111827',
+                  backgroundColor: 'white',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+          )}
+        </Section>
 
         {/* ── 11. Commentaires ── */}
         <Section title="Commentaires" icon="💬">
