@@ -448,6 +448,25 @@ export default function HomePage() {
               setMobilisationActuelle(mob)
               setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
             }
+
+            // Messages non lus — utilise le vrai user_id du réserviste
+            const realUserId = fullReserviste?.user_id
+            if (realUserId) {
+              const { data: lastSeen } = await supabase
+                .from('community_last_seen')
+                .select('last_seen_at')
+                .eq('user_id', realUserId)
+                .maybeSingle()
+
+              const since = lastSeen?.last_seen_at || '2000-01-01'
+              const { count } = await supabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('is_deleted', false)
+                .gt('created_at', since)
+
+              if (count) setUnreadCount(count)
+            }
             
             logPageVisit('/')
             
