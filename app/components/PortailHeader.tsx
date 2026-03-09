@@ -52,6 +52,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showImpersonateModal, setShowImpersonateModal] = useState(false)
   const [showStatusTooltip, setShowStatusTooltip] = useState(false)
+  const [unreadCommunaute, setUnreadCommunaute] = useState(0)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Hook d'authentification avec support emprunt
@@ -216,6 +217,26 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             .eq('benevole_id', res.benevole_id)
             .limit(1)
           setHasCiblages((ciblages ?? []).length > 0)
+        }
+
+        // Badge communauté — utilise le user_id réel du réserviste (fonctionne en debug aussi)
+        const realUserId = (res as any).user_id
+        if (realUserId) {
+          const { data: lastSeen } = await supabase
+            .from('community_last_seen')
+            .select('last_seen_at')
+            .eq('user_id', realUserId)
+            .maybeSingle()
+
+          const lastSeenAt = lastSeen?.last_seen_at || '1970-01-01'
+
+          const { count } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_deleted', false)
+            .gt('created_at', lastSeenAt)
+
+          setUnreadCommunaute(count ?? 0)
         }
       }
 
@@ -406,7 +427,12 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 <a href="/communaute" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  Communauté
+                  <span style={{ flex: 1 }}>Communauté</span>
+                  {unreadCommunaute > 0 && (
+                    <span style={{ backgroundColor: '#dc2626', color: 'white', borderRadius: '10px', padding: '2px 7px', fontSize: '11px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>
+                      {unreadCommunaute > 99 ? '99+' : unreadCommunaute}
+                    </span>
+                  )}
                 </a>
 
                 {isAdmin && (
