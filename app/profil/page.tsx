@@ -2348,7 +2348,7 @@ export default function ProfilPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '8px' }}>
             {[
               { value: 'aucune', label: 'Pas de préférence — je suis disponible pour les deux types de tâches' },
-              { value: 'terrain', label: 'Soutien aux opérations de la RIUSC' },
+              { value: 'terrain', label: 'Soutien aux opérations sur le terrain' },
               { value: 'sinistres', label: 'Soutien aux personnes sinistrées et aux populations vulnérables' },
             ].map(option => (
               <label
@@ -2435,7 +2435,7 @@ export default function ProfilPage() {
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: '#f9fafb', border: '1px solid transparent' }}>
               <input type="checkbox" checked={dossier.confidentialite} onChange={e => updateDossier('confidentialite', e.target.checked)}
                 style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
-              <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je consens à ce que mes informations soient utilisées pour coordonner les opérations de recherche et sauvetage</span>
+              <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je consens à ce que mes informations soient utilisées pour coordonner les opérations de la RIUSC</span>
             </label>
           </div>
         </Section>
