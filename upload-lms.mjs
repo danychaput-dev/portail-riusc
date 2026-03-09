@@ -7,7 +7,7 @@ const SUPABASE_URL = 'https://jtzwkmcfarxptpcoaxxl.supabase.co'
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0endrbWNmYXJ4cHRwY29heHhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTQ3MjIyMywiZXhwIjoyMDg1MDQ4MjIzfQ.jG28BvbLke_gg6egI3jvUi0fmOc-Of-w4orI1viHgg4'
 
 // 📁 Chemin vers le dossier content du ZIP (avec / et pas \)
-const LOCAL_CONTENT_PATH = 'C:/Users/dany_/Downloads/Import/content'
+const LOCAL_CONTENT_PATH = 'C:/Users/dany_/Downloads/Import/'
 
 const BUCKET = 'lms-modules'
 const TARGET_FOLDER = 'portail-riusc-premiers-pas'

@@ -110,26 +110,7 @@ export default function FormationsEnLignePage() {
     }))
   }, [reserviste, progressions])
 
-  // Tracking : détecter complétion via onLoad de l'iFrame
-  // Rise navigue effectivement vers goodbye.html quand le cours est terminé
-  // ce qui déclenche un nouvel événement onLoad qu'on peut intercepter
-  const handleIframeLoad = useCallback(() => {
-    if (!moduleActif) return
-
-    try {
-      const href = iframeRef.current?.contentWindow?.location?.href || ''
-      if (href.includes('goodbye')) {
-        marquerCompletion(moduleActif)
-      } else {
-        marquerDebut(moduleActif)
-      }
-    } catch {
-      // Si on ne peut pas lire l'URL, on marque juste le début
-      marquerDebut(moduleActif)
-    }
-  }, [moduleActif, marquerDebut])
-
-  const marquerCompletion = async (mod: Module, score?: number | null) => {
+  const marquerCompletion = useCallback(async (mod: Module, score?: number | null) => {
     if (!reserviste) return
     const prog = progressions[mod.id]
     if (prog?.statut === 'complété') return
@@ -159,7 +140,22 @@ export default function FormationsEnLignePage() {
         nb_tentatives: prev[mod.id]?.nb_tentatives || 1,
       }
     }))
-  }
+  }, [reserviste, progressions])
+
+  const handleIframeLoad = useCallback(() => {
+    if (!moduleActif) return
+
+    try {
+      const href = iframeRef.current?.contentWindow?.location?.href || ''
+      if (href.includes('goodbye')) {
+        marquerCompletion(moduleActif)
+      } else {
+        marquerDebut(moduleActif)
+      }
+    } catch {
+      marquerDebut(moduleActif)
+    }
+  }, [moduleActif, marquerDebut, marquerCompletion])
 
   const ouvrirModule = (mod: Module) => {
     debutRef.current = false
@@ -232,10 +228,18 @@ export default function FormationsEnLignePage() {
           </button>
         </div>
 
-        {/* iFrame */}
+        {/* iFrame xAPI */}
         <iframe
           ref={iframeRef}
-          src={`/api/lms/${moduleActif.bucket_path}/index.html`}
+          src={(() => {
+            const endpoint = encodeURIComponent('https://lrs.aqbrs.ca/xapi/')
+            const auth = encodeURIComponent('Basic ' + btoa('riusc:RiuscLrs2026!'))
+            const actor = encodeURIComponent(JSON.stringify({
+              name: `${reserviste?.prenom || ''} ${reserviste?.nom || ''}`.trim(),
+              mbox: `mailto:${user?.email || ''}`,
+            }))
+            return `/api/lms/${moduleActif.bucket_path}/scormdriver/indexAPI.html?endpoint=${endpoint}&auth=${auth}&actor=${actor}`
+          })()}
           style={{ flex: 1, border: 'none', width: '100%' }}
           onLoad={() => handleIframeLoad()}
           title={moduleActif.titre}
