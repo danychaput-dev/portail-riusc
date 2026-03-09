@@ -4,25 +4,12 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 
 const ADMINS = ['dany.chaput@aqbrs.ca', 'est.lapointe@gmail.com']
 
+const REDIRECT_EXTENSIONS = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.woff', '.woff2', '.ttf', '.ico', '.mp4', '.webm', '.mp3', '.pdf']
+
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
-  '.js':   'application/javascript',
-  '.css':  'text/css',
   '.json': 'application/json',
-  '.png':  'image/png',
-  '.jpg':  'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif':  'image/gif',
-  '.svg':  'image/svg+xml',
-  '.woff': 'font/woff',
-  '.woff2':'font/woff2',
-  '.ttf':  'font/ttf',
-  '.ico':  'image/x-icon',
-}
-
-function getMimeType(filePath: string): string {
-  const ext = Object.keys(MIME_TYPES).find(e => filePath.endsWith(e))
-  return ext ? MIME_TYPES[ext] : 'application/octet-stream'
+  '.xml':  'application/xml',
 }
 
 function getAdminClient() {
@@ -32,6 +19,28 @@ function getAdminClient() {
   )
 }
 
+async function checkAccess(user: { id: string; email?: string | null }, modulePath: string): Promise<boolean> {
+  if (ADMINS.includes(user.email || '')) return true
+
+  const supabaseAdmin = getAdminClient()
+
+  const { data: reserviste } = await supabaseAdmin
+    .from('reservistes')
+    .select('groupe')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!reserviste) return false
+
+  const { data: lmsModule } = await supabaseAdmin
+    .from('lms_modules')
+    .select('actif, groupes')
+    .eq('bucket_path', modulePath)
+    .single()
+
+  return !!(lmsModule?.actif && lmsModule?.groupes?.includes(reserviste.groupe))
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
@@ -39,45 +48,33 @@ export async function GET(
   const { path } = await params
 
   try {
-    // 1. Auth via le client serveur qui lit les cookies correctement
     const supabase = await createServerClient()
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-    if (!user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-    }
-
-    // 2. Vérifier l'accès au module
-    const isAdmin = ADMINS.includes(user.email || '')
-
-    if (!isAdmin) {
-      const supabaseAdmin = getAdminClient()
-      const { data: reserviste } = await supabaseAdmin
-        .from('reservistes')
-        .select('groupe, benevole_id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!reserviste) {
-        return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
-      }
-
-      const modulePath = path[0]
-      const { data: lmsModule } = await supabaseAdmin
-        .from('lms_modules')
-        .select('actif, groupes')
-        .eq('bucket_path', modulePath)
-        .single()
-
-      if (!lmsModule?.actif || !lmsModule?.groupes?.includes(reserviste.groupe)) {
-        return NextResponse.json({ error: 'Module non disponible' }, { status: 403 })
-      }
-    }
-
-    // 3. Télécharger le fichier depuis Storage avec service_role
+    const modulePath = path[0]
     const filePath = path.join('/')
+    const ext = filePath.includes('.') ? '.' + filePath.split('.').pop() : ''
+
+    const hasAccess = await checkAccess(user, modulePath)
+    if (!hasAccess) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+
     const supabaseAdmin = getAdminClient()
 
+    // Assets lourds → signed URL redirect (beaucoup plus rapide)
+    if (REDIRECT_EXTENSIONS.includes(ext)) {
+      const { data, error } = await supabaseAdmin.storage
+        .from('lms-modules')
+        .createSignedUrl(filePath, 3600)
+
+      if (error || !data?.signedUrl) {
+        return NextResponse.json({ error: 'Fichier non trouvé' }, { status: 404 })
+      }
+
+      return NextResponse.redirect(data.signedUrl, { status: 302 })
+    }
+
+    // HTML/JSON/XML → proxy direct
     const { data, error } = await supabaseAdmin.storage
       .from('lms-modules')
       .download(filePath)
@@ -86,9 +83,8 @@ export async function GET(
       return NextResponse.json({ error: 'Fichier non trouvé' }, { status: 404 })
     }
 
-    // 4. Retourner avec le bon MIME type
     const buffer = await data.arrayBuffer()
-    const mimeType = getMimeType(filePath)
+    const mimeType = MIME_TYPES[ext] || 'application/octet-stream'
 
     return new NextResponse(buffer, {
       status: 200,
