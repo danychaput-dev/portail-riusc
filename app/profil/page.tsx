@@ -2348,7 +2348,7 @@ export default function ProfilPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '8px' }}>
             {[
               { value: 'aucune', label: 'Pas de préférence — je suis disponible pour les deux types de tâches' },
-              { value: 'terrain', label: 'Soutien aux opérations sur le terrain' },
+              { value: 'terrain', label: 'Soutien aux opérations de la RIUSC' },
               { value: 'sinistres', label: 'Soutien aux personnes sinistrées et aux populations vulnérables' },
             ].map(option => (
               <label
