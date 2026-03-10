@@ -25,25 +25,8 @@ function getAdminClient() {
 }
 
 async function checkAccess(user: { id: string; email?: string | null }, modulePath: string): Promise<boolean> {
-  if (ADMINS.includes(user.email || '')) return true
-
-  const supabaseAdmin = getAdminClient()
-
-  const { data: reserviste } = await supabaseAdmin
-    .from('reservistes')
-    .select('groupe')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!reserviste) return false
-
-  const { data: lmsModule } = await supabaseAdmin
-    .from('lms_modules')
-    .select('actif, groupes')
-    .eq('bucket_path', modulePath)
-    .single()
-
-  return !!(lmsModule?.actif && lmsModule?.groupes?.includes(reserviste.groupe))
+  // Accès ouvert à tous les utilisateurs authentifiés
+  return true
 }
 
 export async function GET(
