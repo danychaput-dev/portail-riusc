@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
-const ADMINS = ['dany.chaput@aqbrs.ca', 'est.lapointe@gmail.com']
+const ADMINS = ['dany.chaput@aqbrs.ca', 'est.lapointe@gmail.com', 'chantal.roberge@croixrouge.ca']
 
 const REDIRECT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.mp4', '.webm', '.mp3', '.pdf']
 
