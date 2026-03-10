@@ -143,6 +143,7 @@ export default function InscriptionPage() {
   const [conditionsMedicales, setConditionsMedicales] = useState('')
   const [consentementPhoto, setConsentementPhoto] = useState(false)
   const [sessionCapacities, setSessionCapacities] = useState<Record<string, { inscrits: number; capacite: number; attente: number; attente_max: number; places_restantes: number; statut: string }>>({})
+  const [loadingCapacities, setLoadingCapacities] = useState(true)
   // ────────────────────────────────────────────────────────────────────────────
 
   const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
@@ -260,6 +261,7 @@ export default function InscriptionPage() {
         }
       })
       .catch(e => console.error('Erreur capacité camps:', e))
+      .finally(() => setLoadingCapacities(false))
   }, [campId])
 
   // NOTE: useEffect de pré-sélection retiré car fusionné ci-dessus
@@ -910,14 +912,20 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
                               <span style={{ fontWeight: '600', color: isDisabled ? '#9ca3af' : '#111827' }}>{session.nom}</span>
-                              {isComplet && (
-                                <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Complet</span>
-                              )}
-                              {isAttente && (
-                                <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
-                              )}
-                              {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
-                                <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
+                              {loadingCapacities ? (
+                                <span style={{ backgroundColor: '#f3f4f6', color: '#9ca3af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>...</span>
+                              ) : (
+                                <>
+                                  {isComplet && (
+                                    <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Complet</span>
+                                  )}
+                                  {isAttente && (
+                                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
+                                  )}
+                                  {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
+                                    <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
+                                  )}
+                                </>
                               )}
                             </div>
                             <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
