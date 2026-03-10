@@ -34,6 +34,9 @@ export default function FormationsEnLignePage() {
   const [loading, setLoading] = useState(true)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const debutRef = useRef<boolean>(false)
+  const [iframeLoading, setIframeLoading] = useState(false)
+  const [loadProgress, setLoadProgress] = useState(0)
+  const progressRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Charger l'utilisateur et les données
   useEffect(() => {
@@ -159,12 +162,26 @@ export default function FormationsEnLignePage() {
 
   const ouvrirModule = (mod: Module) => {
     debutRef.current = false
+    setIframeLoading(true)
+    setLoadProgress(0)
     setModuleActif(mod)
+
+    // Progression simulée
+    if (progressRef.current) clearInterval(progressRef.current)
+    progressRef.current = setInterval(() => {
+      setLoadProgress(p => {
+        if (p >= 90) { clearInterval(progressRef.current!); return 90 }
+        return p + 1.5
+      })
+    }, 120)
   }
 
   const fermerModule = () => {
     setModuleActif(null)
     debutRef.current = false
+    setIframeLoading(false)
+    setLoadProgress(0)
+    if (progressRef.current) clearInterval(progressRef.current)
   }
 
   const getStatutBadge = (moduleId: string) => {
@@ -229,24 +246,63 @@ export default function FormationsEnLignePage() {
         </div>
 
         {/* iFrame xAPI */}
-        <iframe
-          ref={iframeRef}
-          src={(() => {
-            const endpoint = encodeURIComponent('https://lrs.aqbrs.ca/xapi/')
-            const auth = encodeURIComponent('Basic ' + btoa('riusc:RiuscLrs2026!'))
-            const actorObj = {
-              name: `${reserviste?.prenom || ''} ${reserviste?.nom || ''}`.trim(),
-              mbox: `mailto:${user?.email || ''}`,
-              objectType: 'Agent',
-            }
-            const actor = encodeURIComponent(JSON.stringify(actorObj))
-            return `/api/lms/${moduleActif.bucket_path}/scormdriver/indexAPI.html?endpoint=${endpoint}&auth=${auth}&actor=${actor}`
-          })()}
-          style={{ flex: 1, border: 'none', width: '100%' }}
-          onLoad={() => handleIframeLoad()}
-          title={moduleActif.titre}
-          allow="fullscreen"
-        />
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          {iframeLoading && (
+            <div style={{
+              position: 'absolute', inset: 0, background: '#f5f7fa',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10, gap: 20
+            }}>
+              <div style={{
+                width: 52, height: 52,
+                border: '4px solid #e2e8f0',
+                borderTop: '4px solid #1e3a5f',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite'
+              }} />
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ color: '#1e3a5f', fontSize: 17, fontWeight: 600, margin: '0 0 6px' }}>
+                  Chargement de la formation...
+                </p>
+                <p style={{ color: '#9ca3af', fontSize: 14, margin: 0 }}>
+                  {moduleActif.titre}
+                </p>
+              </div>
+              <div style={{ width: 260, height: 6, background: '#e2e8f0', borderRadius: 99 }}>
+                <div style={{
+                  width: `${loadProgress}%`, height: '100%',
+                  background: '#1e3a5f', borderRadius: 99,
+                  transition: 'width 0.12s linear'
+                }} />
+              </div>
+              <p style={{ color: '#9ca3af', fontSize: 12, margin: 0 }}>{Math.round(loadProgress)}%</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+          <iframe
+            ref={iframeRef}
+            src={(() => {
+              const endpoint = encodeURIComponent('https://lrs.aqbrs.ca/xapi/')
+              const auth = encodeURIComponent('Basic ' + btoa('riusc:RiuscLrs2026!'))
+              const actorObj = {
+                name: `${reserviste?.prenom || ''} ${reserviste?.nom || ''}`.trim(),
+                mbox: `mailto:${user?.email || ''}`,
+                objectType: 'Agent',
+              }
+              const actor = encodeURIComponent(JSON.stringify(actorObj))
+              return `/api/lms/${moduleActif.bucket_path}/scormdriver/indexAPI.html?endpoint=${endpoint}&auth=${auth}&actor=${actor}`
+            })()}
+            style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+            onLoad={() => {
+              if (progressRef.current) clearInterval(progressRef.current)
+              setLoadProgress(100)
+              setTimeout(() => setIframeLoading(false), 300)
+              handleIframeLoad()
+            }}
+            title={moduleActif.titre}
+            allow="fullscreen"
+          />
+        </div>
       </div>
     )
   }
