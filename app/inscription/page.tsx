@@ -39,30 +39,6 @@ function cleanPhoneForSave(phone: string): string {
   return digits
 }
 
-function titleCaseFr(name: string): string {
-  const exceptions = new Set(['de', 'du', 'des', 'le', 'la', 'les', 'van', 'von'])
-  return name
-    .split(' ')
-    .map((part, i) => {
-      if (part === '') return part
-      // Gérer les noms avec tiret (ex: Marie-Ève)
-      if (part.includes('-')) {
-        return part.split('-').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join('-')
-      }
-      // Gérer les apostrophes (ex: d'Artagnan)
-      if (part.includes("'")) {
-        return part.split("'").map((p, j) => j === 0 ? p.toLowerCase() : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join("'")
-      }
-      // Particules en minuscule sauf en début de nom
-      if (i !== 0 && exceptions.has(part.toLowerCase())) {
-        return part.toLowerCase()
-      }
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()
-    })
-    .join(' ')
-    .trim()
-}
-
 const GROUPES_RS = [
   'District 1: Équipe de RS La Grande-Ourse',
   'District 1: EBRES du KRTB',
@@ -290,10 +266,6 @@ export default function InscriptionPage() {
 
   const handlePhoneBlur = () => {
     setFormData(prev => ({ ...prev, telephone: formatPhoneDisplay(prev.telephone) }))
-  }
-
-  const handleNameBlur = (field: 'prenom' | 'nom') => () => {
-    setFormData(prev => ({ ...prev, [field]: titleCaseFr(prev[field]) }))
   }
 
   const toggleOrg = (id: string) => {
@@ -682,12 +654,12 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
               <div>
                 <label style={labelStyle}>Prénom {requiredStar}</label>
-                <input type="text" value={formData.prenom} onChange={(e) => handleInputChange('prenom', e.target.value)} onBlur={handleNameBlur('prenom')} style={fieldErrors.prenom ? inputErrorStyle : inputStyle} placeholder="Votre prénom" />
+                <input type="text" value={formData.prenom} onChange={(e) => handleInputChange('prenom', e.target.value)} style={fieldErrors.prenom ? inputErrorStyle : inputStyle} placeholder="Votre prénom" />
                 {fieldErrors.prenom && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.prenom}</p>}
               </div>
               <div>
                 <label style={labelStyle}>Nom de famille {requiredStar}</label>
-                <input type="text" value={formData.nom} onChange={(e) => handleInputChange('nom', e.target.value)} onBlur={handleNameBlur('nom')} style={fieldErrors.nom ? inputErrorStyle : inputStyle} placeholder="Votre nom de famille" />
+                <input type="text" value={formData.nom} onChange={(e) => handleInputChange('nom', e.target.value)} style={fieldErrors.nom ? inputErrorStyle : inputStyle} placeholder="Votre nom de famille" />
                 {fieldErrors.nom && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.nom}</p>}
               </div>
               <div>
