@@ -176,12 +176,25 @@ export default function FormationsEnLignePage() {
     }, 120)
   }
 
-  const fermerModule = () => {
+  const fermerModule = async () => {
     setModuleActif(null)
     debutRef.current = false
     setIframeLoading(false)
     setLoadProgress(0)
     if (progressRef.current) clearInterval(progressRef.current)
+
+    // Rafraîchir les progressions après fermeture
+    if (reserviste) {
+      const { data: progs } = await supabase
+        .from('lms_progression')
+        .select('*')
+        .eq('benevole_id', reserviste.benevole_id)
+      if (progs) {
+        const map: Record<string, Progression> = {}
+        progs.forEach(p => { map[p.module_id] = p })
+        setProgressions(map)
+      }
+    }
   }
 
   const getStatutBadge = (moduleId: string) => {
