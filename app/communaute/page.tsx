@@ -1005,7 +1005,7 @@ export default function CommunautePage() {
 
                   <textarea ref={textareaRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyDown={handleKeyDown}
                     placeholder={replyTo ? `Répondre à ${replyTo.auteur_nom}...` : `Écrire dans #${currentCanal?.label}...`} rows={1}
-                    style={{ flex: 1, padding: isMobile ? '10px 12px' : '10px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, outline: 'none', transition: 'border-color 0.2s', minHeight: '40px', maxHeight: '120px', boxSizing: 'border-box' }}
+                    style={{ flex: 1, padding: isMobile ? '10px 12px' : '10px 16px', borderRadius: '12px', border: '1px solid #d1d5db', fontSize: '14px', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, outline: 'none', transition: 'border-color 0.2s', minHeight: '40px', maxHeight: '120px', boxSizing: 'border-box', color: '#111827', backgroundColor: '#ffffff' }}
                     onFocus={(e) => (e.target.style.borderColor = '#1e3a5f')}
                     onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
                   />
