@@ -448,25 +448,6 @@ export default function HomePage() {
               setMobilisationActuelle(mob)
               setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
             }
-
-            // Messages non lus — utilise le vrai user_id du réserviste
-            const realUserId = fullReserviste?.user_id
-            if (realUserId) {
-              const { data: lastSeen } = await supabase
-                .from('community_last_seen')
-                .select('last_seen_at')
-                .eq('user_id', realUserId)
-                .maybeSingle()
-
-              const since = lastSeen?.last_seen_at || '2000-01-01'
-              const { count } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('is_deleted', false)
-                .gt('created_at', since)
-
-              if (count) setUnreadCount(count)
-            }
             
             logPageVisit('/')
             
@@ -1064,7 +1045,7 @@ export default function HomePage() {
           </h2>
           <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.6', opacity: 0.9 }}>
             Votre espace unique où vous trouverez toutes les informations pertinentes pour votre rôle
-            au sein de la Réserve d&apos;intervenants d&apos;urgence en sécurité civile. Consultez vos documents,
+            au sein de la Réserve d&apos;intervention d&apos;urgence en sécurité civile. Consultez vos documents,
             gérez vos inscriptions et restez informé des prochains événements.
           </p>
         </div>
@@ -1093,7 +1074,7 @@ export default function HomePage() {
                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                    <a href="https://campusnotredamedefoy.centrerisc.com/Web/MyCatalog/ViewP?pid=94b7f%2bJXTOIEwqbEfBzzBw%3d%3d&id=fkpM7dqJ0YA0hLjtTwfqvg%3d%3d" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                    <a href="https://formation.centrerisc.com/go/formation/cours/AKA1E0D36C322A9E75AAKA/inscription" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
                       🎓 Accéder à la formation
                     </a>
                     <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
