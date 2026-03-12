@@ -2,539 +2,401 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef, useCallback } from 'react'
-import ImageCropper from '@/app/components/ImageCropper'
-import PortailHeader from '@/app/components/PortailHeader'
+import { useEffect, useState, useRef } from 'react'
+import Image from 'next/image'
+import GuidedTour from './components/GuidedTour'
 import { useAuth } from '@/utils/useAuth'
-import ImpersonateBanner from '@/app/components/ImpersonateBanner'
-import { logPageVisit } from '@/utils/logEvent'
-import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
+import ImpersonateBanner from './components/ImpersonateBanner'
+import PortailHeader from './components/PortailHeader'
+import { logEvent, logPageVisit } from '@/utils/logEvent'
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
-const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
+interface DeploiementActif {
+  id: string;
+  deploiement_id: string;
+  nom_deploiement: string;
+  nom_sinistre?: string;
+  nom_demande?: string;
+  organisme?: string;
+  date_debut: string;
+  date_fin: string | null;
+  lieu?: string;
+  statut: string;
+  type_incident?: string;
+}
 interface Reserviste {
-  id: number
-  benevole_id: string
-  prenom: string
-  nom: string
-  email: string
-  telephone?: string
-  telephone_secondaire?: string
-  date_naissance?: string
-  adresse?: string
-  ville?: string
-  region?: string
-  latitude?: number | null
-  longitude?: number | null
-  contact_urgence_nom?: string
-  contact_urgence_telephone?: string
-  contact_urgence_lien?: string
-  contact_urgence_courriel?: string
-  groupe?: string
-  photo_url?: string
-  consentement_antecedents?: boolean
+  benevole_id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone?: string;
+  photo_url?: string;
+  groupe?: string;
+  consent_photos?: boolean;
+  allergies_alimentaires?: string;
+  allergies_autres?: string;
 }
 
-interface Organisation {
-  id: string
-  nom: string
+interface CampInfo {
+  nom: string;
+  dates: string;
+  site: string;
+  location: string;
 }
 
-interface Langue {
-  id: string
-  nom: string
+interface CampStatus {
+  is_certified: boolean;
+  has_inscription: boolean;
+  session_id: string | null;
+  camp: CampInfo | null;
+  lien_inscription: string | null;
 }
 
-interface MapboxFeature {
-  place_name: string
-  center: [number, number]
-  context?: Array<{
-    id: string
-    text: string
-  }>
+interface SessionCamp {
+  session_id: string;
+  nom: string;
+  dates: string;
+  site: string;
+  location: string;
 }
 
-interface DossierData {
-  prenom: string
-  nom: string
-  email: string
-  date_naissance: string
-  grandeur_bottes: string
-  profession: string
-  j_ai_18_ans: boolean
-  allergies_alimentaires: string
-  allergies_autres: string
-  problemes_sante: string
-  groupe_sanguin: string
-  competence_rs: number[]
-  certificat_premiers_soins: number[]
-  date_expiration_certificat: string
-  vehicule_tout_terrain: number[]
-  navire_marin: number[]
-  permis_conduire: number[]
-  disponible_covoiturage: number[]
-  satp_drone: number[]
-  equipe_canine: number[]
-  competences_securite: number[]
-  competences_sauvetage: number[]
-  certification_csi: number[]
-  communication: number[]
-  cartographie_sig: number[]
-  operation_urgence: number[]
-  experience_urgence_detail: string
-  autres_competences: string
-  commentaire: string
-  confidentialite: boolean
-  consentement_antecedents: boolean
-  preference_tache: string
-  preference_tache_commentaire: string
+interface SelectionStatus {
+  statut: 'Sélectionné' | 'Non sélectionné' | 'En attente' | null;
+  deploiement: {
+    nom: string;
+    lieu: string;
+    date_depart: string;
+    heure_rassemblement: string;
+    point_rassemblement: string;
+    duree: string;
+    consignes: string[];
+  } | null;
 }
 
-// ─── OPTIONS ─────────────────────────────────────────────────────────────────
-
-const GROUPES_SANGUIN = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Inconnu']
-
-const GROUPE_SANGUIN_MAP: Record<string, number> = {
-  'A+': 1,
-  'B+': 2,
-  'A-': 3,
-  'A−': 3,
-  'B-': 4,
-  'B−': 4,
-  'AB+': 5,
-  'AB-': 6,
-  'AB−': 6,
-  'O+': 7,
-  'O-': 8,
-  'O−': 8,
+interface MobilisationVague {
+  mobilisation_item_id: string
+  vague_id: string
+  deploiement_nom: string
+  tache: string
+  ville: string
+  date_debut: string
+  date_fin: string | null
+  horaire: string | null
+  statut_confirmation: string
 }
 
-const GROUPE_SANGUIN_REVERSE: Record<number, string> = {
-  1: 'A+',
-  2: 'B+',
-  3: 'A-',
-  4: 'B-',
-  5: 'AB+',
-  6: 'AB-',
-  7: 'O+',
-  8: 'O-',
+interface CertificatFile {
+  id: string;
+  name: string;
+  url?: string;
 }
 
-const LANGUES_EPINGLEES = ['Anglais', 'Français']
-
-const OPTIONS: Record<string, { id: number; label: string }[]> = {
-  competence_rs: [
-    { id: 1, label: 'Niveau 1 - Équipier' },
-    { id: 2, label: "Niveau 2 - Chef d'équipe" },
-    { id: 3, label: 'Niveau 3 - Responsable des opérations' },
-  ],
-  certificat_premiers_soins: [
-    { id: 1, label: 'a) RCR/DEA (4-6h) certificat' },
-    { id: 2, label: 'b) Premiers soins standard (8-16h)' },
-    { id: 3, label: 'c) Secourisme en milieu de travail (16h)' },
-    { id: 4, label: 'd) Secourisme en milieu éloigné (20-40h)' },
-    { id: 5, label: 'e) Premier répondant (80-120h)' },
-  ],
-  vehicule_tout_terrain: [
-    { id: 1, label: 'VTT' },
-    { id: 2, label: 'Motoneige' },
-    { id: 3, label: 'Argo' },
-    { id: 4, label: 'Côte à côte' },
-  ],
-  navire_marin: [
-    { id: 1, label: "Permis d'embarcation de plaisance" },
-  ],
-  permis_conduire: [
-    { id: 1, label: 'Classe 5 Voiture (classe G Ontario)' },
-    { id: 2, label: 'Classe 4b Autobus (4-14 passagers)' },
-    { id: 3, label: 'Classe 2 Autobus (24+ passagers)' },
-    { id: 4, label: 'Classe 1 Ensemble de véhicules routiers' },
-    { id: 5, label: "Classe 4a Véhicule d'urgence" },
-    { id: 6, label: 'Classe 3 Camions' },
-    { id: 7, label: 'Classe 6 Motocyclette' },
-  ],
-  disponible_covoiturage: [
-    { id: 1, label: 'Je peux transporter des gens' },
-  ],
-  satp_drone: [
-    { id: 4, label: 'Utilisation de drone (petit drone de moins de 250g)' },
-    { id: 5, label: 'Licence de pilote de drone (Transport Canada)' },
-  ],
-  equipe_canine: [
-    { id: 1, label: 'Ratissage' },
-    { id: 2, label: 'Pistage' },
-    { id: 3, label: 'Avalanche' },
-    { id: 4, label: 'Décombres' },
-  ],
-  competences_securite: [
-    { id: 1, label: 'Scies à chaînes' },
-    { id: 2, label: 'Contrôle de la circulation routière' },
-    { id: 3, label: 'Formateur certifié CNESST' },
-  ],
-  competences_sauvetage: [
-    { id: 1, label: 'Sauvetage sur corde' },
-    { id: 2, label: 'Sauvetage en eau vive' },
-    { id: 3, label: 'Sauvetage sur glace' },
-    { id: 4, label: 'Sauvetage en hauteur' },
-  ],
-  certification_csi: [
-    { id: 2, label: '100 - Introduction au Système de commandement des interventions' },
-    { id: 3, label: '200 - Système de commandement de base en cas d\'incident' },
-    { id: 4, label: '300 - Fonctions de supervision et planification des incidents complexes' },
-    { id: 5, label: '400 - Commandement et gestion des incidents complexes et de grande envergure' },
-  ],
-  communication: [
-    { id: 2, label: 'Radio amateur' },
-  ],
-  cartographie_sig: [
-    { id: 1, label: 'Lecture de cartes topographiques' },
-    { id: 2, label: 'Utilisation GPS' },
-    { id: 3, label: 'SIG (Système d\'information géographique)' },
-  ],
-  operation_urgence: [
-    { id: 3, label: 'J\'ai déjà été déployé dans un contexte d\'urgence' },
-  ],
-}
-
-// ─── Conversion labels ↔ IDs (Supabase stocke les labels, UI utilise les IDs) ─
-function labelsToIds(field: string, labels: string[] | null): number[] {
-  if (!labels || labels.length === 0) return []
-  const opts = OPTIONS[field]
-  if (!opts) return []
-  return labels.map(label => {
-    // Match exact
-    const exact = opts.find(o => o.label === label)
-    if (exact) return exact.id
-    // Match si l'ancien label contenait " / English" — comparer la partie française (insensible à la casse)
-    const frPart = label.split(' / ')[0].trim().toLowerCase()
-    const partial = opts.find(o => o.label.toLowerCase() === frPart || o.label.toLowerCase().startsWith(frPart))
-    return partial ? partial.id : null
-  }).filter((id): id is number => id !== null)
-}
-
-function idsToLabels(field: string, ids: number[]): string[] {
-  if (!ids || ids.length === 0) return []
-  const opts = OPTIONS[field]
-  if (!opts) return []
-  return ids.map(id => {
-    const opt = opts.find(o => o.id === id)
-    return opt ? opt.label : null
-  }).filter((label): label is string => label !== null)
-}
-
-// ─── Fonctions utilitaires ──────────────────────────────────────────────────
-
-function formatPhoneDisplay(phone: string | null | undefined): string {
-  if (!phone) return ''
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-  if (digits.length === 11 && digits[0] === '1') {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  return phone
-}
-
-function cleanPhoneForSave(phone: string): string {
-  return phone.replace(/\D/g, '')
-}
-
-function isValidNorthAmericanPhone(phone: string): boolean {
-  if (!phone || phone.trim() === '') return true // vide = OK (champ optionnel)
-  const digits = phone.replace(/\D/g, '')
-  // 10 chiffres (4185551234) ou 11 commençant par 1 (14185551234)
-  if (digits.length === 10) return true
-  if (digits.length === 11 && digits[0] === '1') return true
-  return false
-}
-
-function isOlderThan18(dateNaissance: string): boolean {
-  if (!dateNaissance) return true
-  const birthDate = new Date(dateNaissance)
-  const today = new Date()
-  const age = today.getFullYear() - birthDate.getFullYear()
-  const monthDiff = today.getMonth() - birthDate.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    return age - 1 >= 18
-  }
-  return age >= 18
-}
-
-// ─── Composants UI ───────────────────────────────────────────────────────────
-
-const Section = ({ title, icon, description, confidential, children }: {
-  title: string
-  icon?: string
-  description?: string
-  confidential?: boolean
-  children: React.ReactNode
-}) => (
-  <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', border: '1px solid #e5e7eb' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: description ? '8px' : '20px' }}>
-      {icon && <span style={{ fontSize: '24px' }}>{icon}</span>}
-      <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1e3a5f', margin: 0 }}>{title}</h2>
-      {confidential && (
-        <span style={{ fontSize: '12px', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '4px 10px', borderRadius: '12px', fontWeight: '500' }}>
-          🔒 Confidentiel
-        </span>
-      )}
-    </div>
-    {description && (
-      <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '0', marginBottom: '20px', lineHeight: '1.5' }}>
-        {description}
-      </p>
-    )}
-    {children}
-  </div>
-)
-
-const TextInput = ({ label, value, onChange, disabled, placeholder, type = 'text', inputRef }: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  disabled?: boolean
-  placeholder?: string
-  type?: string
-  inputRef?: React.RefObject<HTMLInputElement>
-}) => (
-  <div style={{ marginBottom: '16px' }}>
-    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-      {label}
-    </label>
-    <input
-      ref={inputRef}
-      type={type}
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      disabled={disabled}
-      placeholder={placeholder}
-      style={{
-        width: '100%',
-        padding: '10px 12px',
-        border: '1px solid #d1d5db',
-        borderRadius: '8px',
-        fontSize: '14px',
-        color: disabled ? '#9ca3af' : '#111827',
-        backgroundColor: disabled ? '#f9fafb' : 'white',
-        boxSizing: 'border-box',
-      }}
-    />
-  </div>
-)
-
-const TextArea = ({ label, value, onChange, placeholder, rows = 3 }: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder?: string
-  rows?: number
-}) => (
-  <div style={{ marginBottom: '16px' }}>
-    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-      {label}
-    </label>
-    <textarea
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      style={{
-        width: '100%',
-        padding: '10px 12px',
-        border: '1px solid #d1d5db',
-        borderRadius: '8px',
-        fontSize: '14px',
-        color: '#111827',
-        backgroundColor: 'white',
-        resize: 'vertical',
-        fontFamily: 'inherit',
-        boxSizing: 'border-box',
-      }}
-    />
-  </div>
-)
-
-const Checkbox = ({ label, checked, onChange }: {
-  label: string
-  checked: boolean
-  onChange: (checked: boolean) => void
-}) => (
-  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#374151', marginBottom: '12px' }}>
-    <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
-      style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-    {label}
-  </label>
-)
-
-const CERT_REQUIRED_LABELS = new Set([
-  "Permis d'embarcation de plaisance",
-  "Scies à chaînes",
-  "Contrôle de la circulation routière",
-  "Formateur certifié CNESST",
-  "Radio amateur",
-  "Licence de pilote de drone (Transport Canada)",
-])
-
-const CheckboxGroup = ({ label, options, selected, onChange }: {
-  label: string
-  options: { id: number; label: string }[]
-  selected: number[]
-  onChange: (selected: number[]) => void
-}) => (
-  <div style={{ marginBottom: '20px' }}>
-    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px' }}>
-      {label}
-    </label>
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {options.map(opt => (
-        <label key={opt.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#374151' }}>
-          <input
-            type="checkbox"
-            checked={selected.includes(opt.id)}
-            onChange={e => {
-              if (e.target.checked) {
-                onChange([...selected, opt.id])
-              } else {
-                onChange(selected.filter(id => id !== opt.id))
-              }
-            }}
-            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-          />
-          {opt.label}
-          {CERT_REQUIRED_LABELS.has(opt.label) && (
-            <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>(certificat requis)</span>
-          )}
-        </label>
-      ))}
-    </div>
-  </div>
-)
-
-// ─── Composant principal ────────────────────────────────────────────────────
-
-export default function ProfilPage() {
-  const router = useRouter()
-  const supabase = createClient()
-
-  // Hook d'authentification avec support emprunt
-  const { user: authUser, loading: authLoading } = useAuth()
-
-  // États généraux
+export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
+  const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([])
+  const [ciblages, setCiblages] = useState<string[]>([])
+  const [selectionStatus, setSelectionStatus] = useState<SelectionStatus | null>(null)
+  const [loadingSelection, setLoadingSelection] = useState(true)
+  const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
+  const [loadingCamp, setLoadingCamp] = useState(true)
+  const [cancellingInscription, setCancellingInscription] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [testNotifLoading, setTestNotifLoading] = useState(false)
-  const [testNotifResult, setTestNotifResult] = useState<'success' | 'error' | null>(null)
-  const [showDemoTestModal, setShowDemoTestModal] = useState(false)
-  const [demoTestEmail, setDemoTestEmail] = useState('')
-  const [demoTestTel, setDemoTestTel] = useState('')
-  const [formationDialog, setFormationDialog] = useState<{ show: boolean; removedLabels: string[]; addedLabels: string[]; pendingSave: (() => Promise<void>) | null }>({ show: false, removedLabels: [], addedLabels: [], pendingSave: null })
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  // États pour le dossier
-  const [dossier, setDossier] = useState<DossierData>({
-    prenom: '',
-    nom: '',
-    email: '',
-    date_naissance: '',
-    grandeur_bottes: '',
-    profession: '',
-    j_ai_18_ans: false,
-    allergies_alimentaires: '',
-    allergies_autres: '',
-    problemes_sante: '',
-    groupe_sanguin: '',
-    competence_rs: [],
-    certificat_premiers_soins: [],
-    date_expiration_certificat: '',
-    vehicule_tout_terrain: [],
-    navire_marin: [],
-    permis_conduire: [],
-    disponible_covoiturage: [],
-    satp_drone: [],
-    equipe_canine: [],
-    competences_securite: [],
-    competences_sauvetage: [],
-    certification_csi: [],
-    communication: [],
-    cartographie_sig: [],
-    operation_urgence: [],
-    experience_urgence_detail: '',
-    autres_competences: '',
-    commentaire: '',
-    confidentialite: false,
-    consentement_antecedents: false,
-    preference_tache: 'aucune',
-    preference_tache_commentaire: '',
+  
+  const [certificats, setCertificats] = useState<CertificatFile[]>([])
+  const [loadingCertificats, setLoadingCertificats] = useState(true)
+  const [hasSinitier, setHasSinitier] = useState(true) // true par défaut pour ne pas flasher
+  const [uploadingCertificat, setUploadingCertificat] = useState(false)
+  const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  const certificatInputRef = useRef<HTMLInputElement>(null)
+  
+  const [mobilisationActuelle, setMobilisationActuelle] = useState<MobilisationVague | null>(null)
+  const [confirmingMobilisation, setConfirmingMobilisation] = useState(false)
+  const [mobilisationConfirmee, setMobilisationConfirmee] = useState(false)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  
+  const [showCampModal, setShowCampModal] = useState(false)
+  const [sessionsDisponibles, setSessionsDisponibles] = useState<SessionCamp[]>([])
+  const [loadingSessions, setLoadingSessions] = useState(false)
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('')
+  const [allergiesAlimentaires, setAllergiesAlimentaires] = useState<string>('')
+  const [autresAllergies, setAutresAllergies] = useState<string>('')
+  const [conditionsMedicales, setConditionsMedicales] = useState<string>('')
+  const [consentementPhoto, setConsentementPhoto] = useState<boolean>(false)
+  const [loadingDossier, setLoadingDossier] = useState<boolean>(false)
+  const [inscriptionLoading, setInscriptionLoading] = useState(false)
+  const [inscriptionError, setInscriptionError] = useState<string | null>(null)
+  const [inscriptionSuccess, setInscriptionSuccess] = useState(false)
+  const [sessionCapacities, setSessionCapacities] = useState<Record<string, { inscrits: number; capacite: number; attente: number; attente_max: number; places_restantes: number; statut: string }>>({})
+  
+  const [showTour, setShowTour] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isDemoMode, setIsDemoMode] = useState(false)
+  const [showFormationBanner, setShowFormationBanner] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('formation_banner_dismissed') !== '1'
   })
-  const [originalDossier, setOriginalDossier] = useState<DossierData>(dossier)
+  const [demoGroupe, setDemoGroupe] = useState<'Intérêt' | 'Approuvé'>('Intérêt')
+  const router = useRouter()
 
-  // États pour les champs Profil (Supabase)
-  const [profilData, setProfilData] = useState({
-    telephone: '',
-    telephone_secondaire: '',
-    adresse: '',
-    ville: '',
-    region: '',
-    latitude: null as number | null,
-    longitude: null as number | null,
-    contact_urgence_nom: '',
-    contact_urgence_telephone: '',
-    contact_urgence_lien: '',
-    contact_urgence_courriel: '',
-  })
-  const [originalProfilData, setOriginalProfilData] = useState(profilData)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('tour=1')) {
+      window.history.replaceState({}, '', '/')
+      setTimeout(() => window.dispatchEvent(new Event('restart-guided-tour')), 800)
+    }
+  }, [])
+  const supabase = createClient()
+  
+  const { user: authUser, loading: authLoading } = useAuth()
 
-  // États pour organisations et langues
-  const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
-  const [myOrgIds, setMyOrgIds] = useState<string[]>([])
-  const [newOrgIds, setNewOrgIds] = useState<string[]>([])
-  const [newOrgName, setNewOrgName] = useState('')
-  const [showNewOrgInput, setShowNewOrgInput] = useState(false)
-  const [removedOrgIds, setRemovedOrgIds] = useState<string[]>([])
+  const isApproved = reserviste?.groupe === 'Approuvé'
 
-  const [allLangues, setAllLangues] = useState<Langue[]>([])
-  const [myLangueIds, setMyLangueIds] = useState<string[]>([])
-  const [newLangueIds, setNewLangueIds] = useState<string[]>([])
-  const [newLangueName, setNewLangueName] = useState('')
-  const [showNewLangueInput, setShowNewLangueInput] = useState(false)
-  const [removedLangueIds, setRemovedLangueIds] = useState<string[]>([])
+  // ========== DONNÉES DÉMO ==========
+  const DEMO_RESERVISTE_INTERET: Reserviste = {
+    benevole_id: 'DEMO-001',
+    prenom: 'Marie-Ève',
+    nom: 'Tremblay',
+    email: 'marie-eve.tremblay@example.com',
+    telephone: '4185551234',
+    groupe: 'Intérêt',
+  }
 
-  // États pour autocomplete
-  const [addressSuggestions, setAddressSuggestions] = useState<MapboxFeature[]>([])
-  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false)
-  const [isLoadingAddress, setIsLoadingAddress] = useState(false)
-  const addressInputRef = useRef<HTMLInputElement>(null)
-  const addressDropdownRef = useRef<HTMLDivElement>(null)
+  const DEMO_RESERVISTE_APPROUVE: Reserviste = {
+    ...DEMO_RESERVISTE_INTERET,
+    groupe: 'Approuvé',
+  }
 
-  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string }>>([])
-  const [showVilleSuggestions, setShowVilleSuggestions] = useState(false)
-  const [isLoadingVille, setIsLoadingVille] = useState(false)
-  const villeInputRef = useRef<HTMLInputElement>(null)
-  const villeDropdownRef = useRef<HTMLDivElement>(null)
-  const villeDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const DEMO_DEPLOIEMENTS: DeploiementActif[] = [
+    {
+      id: 'demo-dep-1',
+      deploiement_id: 'demo-dep-1',
+      nom_deploiement: 'Inondations printanières - Gatineau',
+      nom_sinistre: 'Inondations printanières 2026',
+      organisme: 'Ville de Gatineau',
+      date_debut: '2026-03-15',
+      date_fin: null,
+      lieu: 'Gatineau, secteur Hull',
+      statut: 'actif',
+      type_incident: 'Inondation',
+    },
+  ]
 
-  // État pour la photo
-  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const DEMO_CAMP_STATUS: CampStatus = {
+    is_certified: false,
+    has_inscription: false,
+    session_id: null,
+    camp: null,
+    lien_inscription: null,
+  }
 
-  // Détecter les changements
-  const hasChanges = JSON.stringify(dossier) !== JSON.stringify(originalDossier)
-  const profilHasChanges = JSON.stringify(profilData) !== JSON.stringify(originalProfilData)
-  const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== '' || removedOrgIds.length > 0
-  const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== '' || removedLangueIds.length > 0
+  const DEMO_CAMP_STATUS_INSCRIT: CampStatus = {
+    is_certified: true,
+    has_inscription: false,
+    session_id: null,
+    camp: null,
+    lien_inscription: null,
+  }
 
-  // ─── Chargement initial ──────────────────────────────────────────────────
+  const DEMO_CERTIFICATS: CertificatFile[] = [
+    {
+      id: 'demo-cert-1',
+      name: 'Certificat_Sinitier_Tremblay_Marie-Eve.pdf',
+      url: '#',
+    },
+  ]
 
- useEffect(() => {
-    const loadData = async () => {
-      // Attendre que l'auth soit chargée
-      if (authLoading) return
+  const DEMO_SELECTION_APPROUVE: SelectionStatus = {
+    statut: null,
+    deploiement: null,
+  }
+
+  // Fonction pour appliquer le mode démo selon le groupe
+  const applyDemoData = (groupe: 'Intérêt' | 'Approuvé') => {
+    const isApprouveDemo = groupe === 'Approuvé'
+    const demoRes = isApprouveDemo ? DEMO_RESERVISTE_APPROUVE : DEMO_RESERVISTE_INTERET
+    
+    setUser({ id: 'demo_user', email: demoRes.email })
+    setReserviste(demoRes)
+    
+    if (isApprouveDemo) {
+      setHasSinitier(true)
+      setCertificats(DEMO_CERTIFICATS)
+      setDeploiementsActifs(DEMO_DEPLOIEMENTS)
+      setCiblages(['demo-dep-1'])
+      setCampStatus(DEMO_CAMP_STATUS_INSCRIT)
+      setSelectionStatus(DEMO_SELECTION_APPROUVE)
+    } else {
+      setHasSinitier(false)
+      setCertificats([])
+      setDeploiementsActifs([])
+      setCiblages([])
+      setCampStatus(DEMO_CAMP_STATUS)
+      setSelectionStatus(null)
+    }
+    
+    setLoadingCamp(false)
+    setLoadingSelection(false)
+    setLoadingCertificats(false)
+    setUnreadCount(isApprouveDemo ? 3 : 0)
+    setLoading(false)
+  }
+
+  // Toggle du mode démo
+  const handleDemoToggle = () => {
+    const newGroupe = demoGroupe === 'Intérêt' ? 'Approuvé' : 'Intérêt'
+    setDemoGroupe(newGroupe)
+    localStorage.setItem('demo_groupe', newGroupe)
+    applyDemoData(newGroupe)
+    // Forcer la visite guidée au changement de mode
+    localStorage.removeItem('riusc-tour-new')
+    localStorage.removeItem('riusc-tour-approved')
+    setTimeout(() => setShowTour(true), 600)
+  }
+
+  const [demoToast, setDemoToast] = useState<string | null>(null)
+  
+  // Intercepter la navigation en mode démo (seulement mode Intérêt)
+  const handleDemoNavClick = (e: React.MouseEvent, pageName: string) => {
+    if (isDemoMode && demoGroupe === 'Intérêt') {
+      e.preventDefault()
+      setDemoToast(`📌 La page « ${pageName} » est disponible en mode Approuvé. Basculez avec le bouton en bas à droite.`)
+      setTimeout(() => setDemoToast(null), 4000)
+    }
+    // En mode Approuvé → navigation normale
+  }
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Détecter les paramètres URL pour ouvrir automatiquement la modal d'inscription au camp
+  useEffect(() => {
+    if (typeof window !== 'undefined' && reserviste) {
+      const params = new URLSearchParams(window.location.search)
+      const shouldOpenModal = params.get('openCampModal')
+      const campParam = params.get('camp')
       
+      if (shouldOpenModal === 'true' && campParam) {
+        // Attendre un peu que les données soient chargées
+        setTimeout(() => {
+          openCampModal()
+        }, 500)
+        
+        // Nettoyer l'URL pour éviter de réouvrir la modal à chaque refresh
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+    }
+  }, [reserviste])
+
+  const loadCertificats = async (benevoleId: string) => {
+    setLoadingCertificats(true)
+    try {
+      const response = await fetch(
+        `https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${benevoleId}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.files) {
+          setCertificats(data.files)
+        }
+      }
+    } catch (error) {
+      console.error('Erreur fetch certificats:', error)
+    }
+    setLoadingCertificats(false)
+  }
+
+  const checkSinitier = async (benevoleId: string) => {
+    try {
+      const { data } = await supabase
+        .rpc('get_formations_by_benevole_id', { target_benevole_id: benevoleId })
+      setHasSinitier(!!data && data.some((f: any) => f.nom_formation === "S'initier à la sécurité civile"))
+    } catch (error) {
+      console.error('Erreur check S\'initier:', error)
+    }
+  }
+
+  const handleCertificatUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !reserviste) return
+
+    // 🎯 Mode démo : simuler l'upload
+    if (isDemoMode) {
+      setCertificatMessage({ type: 'success', text: '✅ Mode démo — Certificat simulé avec succès !' })
+      setTimeout(() => {
+        setHasSinitier(true)
+        setCertificats([{ id: 'demo-cert-1', name: file.name, url: '#' }])
+        setCertificatMessage(null)
+      }, 2000)
+      return
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg']
+    if (!allowedTypes.includes(file.type)) {
+      setCertificatMessage({ type: 'error', text: 'Format accepté : PDF, JPG ou PNG' })
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setCertificatMessage({ type: 'error', text: 'Le fichier ne doit pas dépasser 10 Mo' })
+      return
+    }
+
+    setUploadingCertificat(true)
+    setCertificatMessage(null)
+
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          const base64Data = result.split(',')[1]
+          resolve(base64Data)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          file_name: file.name,
+          file_base64: base64,
+          groupe: reserviste.groupe || null,
+          nom_complet: `${reserviste.nom} ${reserviste.prenom}`
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
+        await loadCertificats(reserviste.benevole_id)
+        setHasSinitier(true)
+      } else {
+        setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" })
+      }
+    } catch (error) {
+      console.error('Erreur upload certificat:', error)
+      setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" })
+    }
+
+    setUploadingCertificat(false)
+    if (certificatInputRef.current) {
+      certificatInputRef.current.value = ''
+    }
+  }
+
+  useEffect(() => {
+    const loadData = async () => {
       // 🔧 SUPPORT MODE DEBUG
       if (typeof window !== 'undefined') {
         const debugMode = localStorage.getItem('debug_mode')
@@ -542,1998 +404,1186 @@ export default function ProfilPage() {
           const debugUser = localStorage.getItem('debug_user')
           if (debugUser) {
             const userData = JSON.parse(debugUser)
-            console.log('🔧 Mode debug profil - Utilisateur:', userData.email)
+            console.log('🔧 Mode debug actif - Utilisateur:', userData.email)
             
-            // Charger le profil complet depuis Supabase (RPC = SECURITY DEFINER)
+            setUser({ id: `debug_${userData.benevole_id}`, email: userData.email })
+            
+            // Charger le profil complet depuis Supabase (RPC = SECURITY DEFINER, pas besoin de session)
             const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: userData.benevole_id })
-            const fullData = rpcData?.[0] || userData
+            const fullReserviste = rpcData?.[0] || userData
+            setReserviste(fullReserviste)
             
-            setUser({ id: `debug_${fullData.benevole_id}`, email: fullData.email })
-            setReserviste(fullData)
-            
-            setProfilData({
-              telephone: formatPhoneDisplay(fullData.telephone || ''),
-              telephone_secondaire: formatPhoneDisplay(fullData.telephone_secondaire || ''),
-              adresse: fullData.adresse || '',
-              ville: fullData.ville || '',
-              region: fullData.region || '',
-              latitude: fullData.latitude || null,
-              longitude: fullData.longitude || null,
-              contact_urgence_nom: fullData.contact_urgence_nom || '',
-              contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
-              contact_urgence_lien: fullData.contact_urgence_lien || '',
-              contact_urgence_courriel: fullData.contact_urgence_courriel || '',
-            })
+            // Charger tout en parallèle
+            const bid = userData.benevole_id
+            const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
+              fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              loadCertificats(bid),
+              supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
+              checkSinitier(bid),
+              fetch(`https://n8n.aqbrs.ca/webhook/mobilisation-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null)
+            ])
 
-            setOriginalProfilData({
-              telephone: formatPhoneDisplay(fullData.telephone || ''),
-              telephone_secondaire: formatPhoneDisplay(fullData.telephone_secondaire || ''),
-              adresse: fullData.adresse || '',
-              ville: fullData.ville || '',
-              region: fullData.region || '',
-              latitude: fullData.latitude || null,
-              longitude: fullData.longitude || null,
-              contact_urgence_nom: fullData.contact_urgence_nom || '',
-              contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
-              contact_urgence_lien: fullData.contact_urgence_lien || '',
-              contact_urgence_courriel: fullData.contact_urgence_courriel || '',
-            })
-
-            // Charger dossier depuis Supabase
-            const d = fullData
-            const loaded: DossierData = {
-              prenom: d.prenom || '',
-              nom: d.nom || '',
-              email: d.email || '',
-              date_naissance: d.date_naissance || '',
-              grandeur_bottes: d.grandeur_bottes || '',
-              profession: d.profession || '',
-              j_ai_18_ans: d.j_ai_18_ans || false,
-              allergies_alimentaires: d.allergies_alimentaires || '',
-              allergies_autres: d.allergies_autres || '',
-              problemes_sante: d.problemes_sante || '',
-              groupe_sanguin: d.groupe_sanguin || '',
-              competence_rs: labelsToIds('competence_rs', d.competence_rs),
-              certificat_premiers_soins: labelsToIds('certificat_premiers_soins', d.certificat_premiers_soins),
-              date_expiration_certificat: d.date_expiration_certificat || '',
-              vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
-              navire_marin: labelsToIds('navire_marin', d.navire_marin),
-              permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
-              disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
-              satp_drone: labelsToIds('satp_drone', d.satp_drone),
-              equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
-              competences_securite: labelsToIds('competences_securite', d.competences_securite),
-              competences_sauvetage: labelsToIds('competences_sauvetage', d.competences_sauvetage),
-              certification_csi: labelsToIds('certification_csi', d.certification_csi),
-              communication: labelsToIds('communication', d.communication),
-              cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
-              operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
-              experience_urgence_detail: d.experience_urgence_detail || '',
-              autres_competences: d.autres_competences || '',
-              commentaire: d.commentaire || '',
-              confidentialite: d.confidentialite || false,
-              consentement_antecedents: d.consentement_antecedents || false,
-              preference_tache: d.preference_tache || 'aucune',
-              preference_tache_commentaire: d.preference_tache_commentaire || '',
+            // Camp status
+            if (campResult.status === 'fulfilled' && campResult.value) {
+              setCampStatus(campResult.value)
             }
-            setDossier(loaded)
-            setOriginalDossier(loaded)
+            setLoadingCamp(false)
 
-            // Charger organisations et langues
-            const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
-            setAllOrgs(orgsData || [])
-            const { data: languesData } = await supabase.from('langues').select('id, nom').order('nom')
-            setAllLangues(languesData || [])
+            // Selection status
+            if (selectionResult.status === 'fulfilled' && selectionResult.value?.statut) {
+              setSelectionStatus(selectionResult.value)
+            } else {
+              setSelectionStatus(null)
+            }
+            setLoadingSelection(false)
 
-            logPageVisit('/profil')
+            // Ciblages + deploiements
+            if (ciblagesResult.status === 'fulfilled') {
+              const ciblagesData = ciblagesResult.value?.data
+              if (ciblagesData && ciblagesData.length > 0) {
+                const deployIds = ciblagesData.map((c: any) => c.deploiement_id)
+                setCiblages(deployIds)
+                const { data: deploiements } = await supabase
+                  .from('deploiements_actifs')
+                  .select('*')
+                  .in('deploiement_id', deployIds)
+                  .order('date_debut', { ascending: true })
+                if (deploiements) setDeploiementsActifs(deploiements)
+              }
+            }
+
+            // Mobilisation
+            if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as unknown as MobilisationVague)?.vague_id) {
+              const mob = mobilisationResult.value as unknown as MobilisationVague
+              setMobilisationActuelle(mob)
+              setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
+            }
+            
+            logPageVisit('/')
+            
             setLoading(false)
             return
           }
         }
-      }
 
-      // 🎯 MODE DÉMO — prioritaire sur authUser
-      if (isDemoActive()) {
-          const groupe = getDemoGroupe()
-          const demoRes = { ...DEMO_RESERVISTE, groupe } as any
-          setUser(DEMO_USER)
-          setReserviste(demoRes)
-          setProfilData({
-            telephone: '(418) 555-1234',
-            telephone_secondaire: '',
-            adresse: demoRes.adresse || '',
-            ville: demoRes.ville || '',
-            region: demoRes.region || '',
-            latitude: null,
-            longitude: null,
-            contact_urgence_nom: demoRes.contact_urgence_nom || '',
-            contact_urgence_telephone: '(418) 555-9876',
-            contact_urgence_lien: 'Conjoint',
-            contact_urgence_courriel: 'jean.tremblay@example.com',
-          })
-          setOriginalProfilData({
-            telephone: '(418) 555-1234',
-            telephone_secondaire: '',
-            adresse: demoRes.adresse || '',
-            ville: demoRes.ville || '',
-            region: demoRes.region || '',
-            latitude: null,
-            longitude: null,
-            contact_urgence_nom: demoRes.contact_urgence_nom || '',
-            contact_urgence_telephone: '(418) 555-9876',
-            contact_urgence_lien: 'Conjoint',
-            contact_urgence_courriel: 'jean.tremblay@example.com',
-          })
-          setDossier({
-            prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
-            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
-            allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
-            competence_rs: [1], certificat_premiers_soins: [], date_expiration_certificat: '',
-            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [1], disponible_covoiturage: [],
-            satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
-            certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
-            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
-            preference_tache: 'aucune', preference_tache_commentaire: '',
-          })
-          setOriginalDossier({
-            prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
-            date_naissance: demoRes.date_naissance || '', grandeur_bottes: '10', profession: 'Technicienne en environnement', j_ai_18_ans: true,
-            allergies_alimentaires: demoRes.allergies_alimentaires || '', allergies_autres: '', problemes_sante: '', groupe_sanguin: 'O+',
-            competence_rs: [1], certificat_premiers_soins: [], date_expiration_certificat: '',
-            vehicule_tout_terrain: [], navire_marin: [], permis_conduire: [1], disponible_covoiturage: [],
-            satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
-            certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
-            experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
-            preference_tache: 'aucune', preference_tache_commentaire: '',
-          })
-          logPageVisit('/profil')
-          // Charger organisations et langues fictives pour démo
-          setAllLangues([
-            { id: 'demo-lang-fr', nom: 'Français' },
-            { id: 'demo-lang-en', nom: 'Anglais' },
-            { id: 'demo-lang-es', nom: 'Espagnol' },
-          ])
-          setMyLangueIds(['demo-lang-fr', 'demo-lang-en'])
-          setAllOrgs([
-            { id: 'demo-org-aqbrs', nom: 'AQBRS' },
-            { id: 'demo-org-cr', nom: 'Croix-Rouge canadienne' },
-          ])
-          setMyOrgIds(['demo-org-aqbrs'])
-          setLoading(false)
+        // 🎯 MODE DÉMO
+        const demoMode = localStorage.getItem('demo_mode')
+        if (demoMode === 'true') {
+          console.log('🎯 Mode démo actif')
+          setIsDemoMode(true)
+          const savedGroupe = (localStorage.getItem('demo_groupe') || 'Intérêt') as 'Intérêt' | 'Approuvé'
+          setDemoGroupe(savedGroupe)
+          applyDemoData(savedGroupe)
+          // Forcer la visite guidée en mode démo
+          localStorage.removeItem('riusc-tour-new')
+          localStorage.removeItem('riusc-tour-approved')
+          setTimeout(() => setShowTour(true), 600)
+          logPageVisit('/')
           return
+        }
       }
 
+  // Attendre le chargement de l'auth
+      if (authLoading) {
+        return  // Le loading de la page reste true pendant que l'auth charge
+      }
       if (!authUser) {
         router.push('/login')
         return
       }
 
+      // Gérer les deux cas : auth normale ou emprunt
+      let user = authUser
       let reservisteData = null
 
-      // CAS 1 : Emprunt d'identité
+      // CAS 1 : Emprunt d'identité actif (via fonction sécurisée)
       if ('isImpersonated' in authUser && authUser.isImpersonated) {
-        setUser(authUser)
-        const { data } = await supabase
-          .from('reservistes')
-          .select('*')
-          .eq('benevole_id', authUser.benevole_id)
-          .single()
-        reservisteData = data
+        const { data: rpcData } = await supabase
+          .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
+        
+        if (rpcData?.[0]) {
+          reservisteData = rpcData[0]
+        }
       } else {
-        // CAS 2 : Auth normale
+        // CAS 2 : Auth normale - utiliser la logique existante
         setUser(authUser)
-
-        if ('email' in authUser && authUser.email) {
-          const { data, error } = await supabase
+      
+        // 1. D'abord chercher par user_id (le plus fiable)
+        if ('id' in authUser) {
+          const { data: dataByUserId } = await supabase
             .from('reservistes')
-            .select('*')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+            .eq('user_id', authUser.id)
+            .single()
+          
+          if (dataByUserId) {
+            reservisteData = dataByUserId
+          }
+        }
+        
+        // 2. Sinon chercher par email
+        if (!reservisteData && 'email' in authUser && authUser.email) {
+          const { data } = await supabase
+            .from('reservistes')
+           .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
             .ilike('email', authUser.email)
             .single()
-          if (error) console.error('❌ Erreur fetch par email:', error)
-          reservisteData = data
+          
+          // Si trouvé, mettre à jour le user_id pour la prochaine fois
+          if (data && 'id' in authUser) {
+            await supabase
+              .from('reservistes')
+              .update({ user_id: authUser.id })
+              .eq('benevole_id', data.benevole_id)
+            reservisteData = data
+          }
         }
-
+        
+        // 3. Sinon chercher par téléphone
         if (!reservisteData && 'phone' in authUser && authUser.phone) {
           const phoneDigits = authUser.phone.replace(/\D/g, '')
           const { data } = await supabase
             .from('reservistes')
-            .select('*')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
             .eq('telephone', phoneDigits)
             .single()
-
-          if (!data) {
-            const phoneWithout1 = phoneDigits.startsWith('1') ? phoneDigits.slice(1) : phoneDigits
+          
+          if (!data && phoneDigits.startsWith('1')) {
+            const phoneWithout1 = phoneDigits.slice(1)
             const { data: data2 } = await supabase
               .from('reservistes')
-              .select('*')
+              .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
               .eq('telephone', phoneWithout1)
               .single()
-            reservisteData = data2
-          } else {
+            
+            if (data2 && 'id' in authUser) {
+              await supabase
+                .from('reservistes')
+                .update({ user_id: authUser.id })
+                .eq('benevole_id', data2.benevole_id)
+              reservisteData = data2
+            }
+          } else if (data && 'id' in authUser) {
+            await supabase
+              .from('reservistes')
+              .update({ user_id: authUser.id })
+              .eq('benevole_id', data.benevole_id)
             reservisteData = data
           }
         }
-      }
-
-      if (!reservisteData) {
-        setLoading(false)
-        return
-      }
-
-      setReserviste(reservisteData)
-
-      // Charger profilData depuis Supabase
-      setProfilData({
-        telephone: formatPhoneDisplay(reservisteData.telephone),
-        telephone_secondaire: formatPhoneDisplay(reservisteData.telephone_secondaire),
-        adresse: reservisteData.adresse || '',
-        ville: reservisteData.ville || '',
-        region: reservisteData.region || '',
-        latitude: reservisteData.latitude || null,
-        longitude: reservisteData.longitude || null,
-        contact_urgence_nom: reservisteData.contact_urgence_nom || '',
-        contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
-        contact_urgence_lien: reservisteData.contact_urgence_lien || '',
-        contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
-      })
-
-      setOriginalProfilData({
-        telephone: formatPhoneDisplay(reservisteData.telephone),
-        telephone_secondaire: formatPhoneDisplay(reservisteData.telephone_secondaire),
-        adresse: reservisteData.adresse || '',
-        ville: reservisteData.ville || '',
-        region: reservisteData.region || '',
-        latitude: reservisteData.latitude || null,
-        longitude: reservisteData.longitude || null,
-        contact_urgence_nom: reservisteData.contact_urgence_nom || '',
-        contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
-        contact_urgence_lien: reservisteData.contact_urgence_lien || '',
-        contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
-      })
-
-      // Charger organisations
-      const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
-      setAllOrgs(orgsData || [])
+      } // Fin du else (auth normale)
       
-      const { data: myOrgsData } = await supabase
-        .from('reserviste_organisations')
-        .select('organisation_id')
-        .eq('benevole_id', reservisteData.benevole_id)
-      const linkedOrgIds = (myOrgsData || []).map(r => r.organisation_id)
-      setMyOrgIds(linkedOrgIds)
+      if (reservisteData) {
+        setReserviste(reservisteData)
+        
+        // Charger tout en parallèle
+        const bid = reservisteData.benevole_id
+        const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
+          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          loadCertificats(bid),
+          supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
+          checkSinitier(bid),
+          fetch(`https://n8n.aqbrs.ca/webhook/mobilisation-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null)
+        ])
 
-      // Charger langues
-      const { data: languesData } = await supabase.from('langues').select('id, nom').order('nom')
-      setAllLangues(languesData || [])
+        // Camp status
+        if (campResult.status === 'fulfilled' && campResult.value) {
+          setCampStatus(campResult.value)
+        }
+        setLoadingCamp(false)
 
-      const { data: myLanguesData } = await supabase
-        .from('reserviste_langues')
-        .select('langue_id')
-        .eq('benevole_id', reservisteData.benevole_id)
-      setMyLangueIds((myLanguesData || []).map(r => r.langue_id))
+        // Selection status
+        if (selectionResult.status === 'fulfilled' && selectionResult.value?.statut) {
+          setSelectionStatus(selectionResult.value)
+        } else {
+          setSelectionStatus(null)
+        }
+        setLoadingSelection(false)
 
-      // Charger dossier depuis Supabase (déjà dans reservisteData via select *)
-      const d = reservisteData
-      const loaded: DossierData = {
-        prenom: d.prenom || '',
-        nom: d.nom || '',
-        email: d.email || '',
-        date_naissance: d.date_naissance || '',
-        grandeur_bottes: d.grandeur_bottes || '',
-        profession: d.profession || '',
-        j_ai_18_ans: d.j_ai_18_ans || false,
-        allergies_alimentaires: d.allergies_alimentaires || '',
-        allergies_autres: d.allergies_autres || '',
-        problemes_sante: d.problemes_sante || '',
-        groupe_sanguin: d.groupe_sanguin || '',
-        competence_rs: labelsToIds('competence_rs', d.competence_rs),
-        certificat_premiers_soins: labelsToIds('certificat_premiers_soins', d.certificat_premiers_soins),
-        date_expiration_certificat: d.date_expiration_certificat || '',
-        vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
-        navire_marin: labelsToIds('navire_marin', d.navire_marin),
-        permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
-        disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
-        satp_drone: labelsToIds('satp_drone', d.satp_drone),
-        equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
-        competences_securite: labelsToIds('competences_securite', d.competences_securite),
-        competences_sauvetage: labelsToIds('competences_sauvetage', d.competences_sauvetage),
-        certification_csi: labelsToIds('certification_csi', d.certification_csi),
-        communication: labelsToIds('communication', d.communication),
-        cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
-        operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
-        experience_urgence_detail: d.experience_urgence_detail || '',
-        autres_competences: d.autres_competences || '',
-        commentaire: d.commentaire || '',
-        confidentialite: d.confidentialite || false,
-        consentement_antecedents: d.consentement_antecedents || false,
-        preference_tache: d.preference_tache || 'aucune',
-        preference_tache_commentaire: d.preference_tache_commentaire || '',
+        // Ciblages + deploiements
+        if (ciblagesResult.status === 'fulfilled') {
+          const ciblagesData = ciblagesResult.value?.data
+          if (ciblagesData && ciblagesData.length > 0) {
+            const deployIds = ciblagesData.map((c: any) => c.deploiement_id)
+            setCiblages(deployIds)
+            const { data: deploiements } = await supabase
+              .from('deploiements_actifs')
+              .select('*')
+              .in('deploiement_id', deployIds)
+              .order('date_debut', { ascending: true })
+            if (deploiements) setDeploiementsActifs(deploiements)
+          }
+        }
+
+        // Mobilisation
+        if (mobilisationResult.status === 'fulfilled' && (mobilisationResult.value as unknown as MobilisationVague)?.vague_id) {
+          const mob = mobilisationResult.value as unknown as MobilisationVague
+          setMobilisationActuelle(mob)
+          setMobilisationConfirmee(mob.statut_confirmation === 'Confirmé')
+        }
       }
-      setDossier(loaded)
-      setOriginalDossier(loaded)
+      
+      // Vérifier les messages non lus (seulement pour auth normale, pas pour emprunt)
+      if ('id' in user && user.id) {
+        const { data: lastSeen } = await supabase
+          .from('community_last_seen')
+          .select('last_seen_at')
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-      // Backfill AQBRS si compétence RS remplie
-      if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
-        await supabase.from('reserviste_organisations').insert({
-          benevole_id: reservisteData.benevole_id,
-          organisation_id: AQBRS_ORG_ID
-        })
-        setMyOrgIds(prev => [...prev, AQBRS_ORG_ID])
+        const since = lastSeen?.last_seen_at || '2000-01-01'
+        const { count } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true })
+          .gt('created_at', since)
+
+        if (count) setUnreadCount(count)
       }
 
-      logPageVisit('/profil')
+      logPageVisit('/')
+
       setLoading(false)
     }
     loadData()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading])
+   }, [authUser, authLoading])
 
-  // ─── Autocomplete Adresse ────────────────────────────────────────────────
+  const handleSignOut = async () => {
+    // Logger le logout AVANT de détruire la session
+    await logEvent({ eventType: 'logout' })
 
-  const searchAddress = useCallback(async (query: string) => {
-    if (query.length < 3) {
-      setAddressSuggestions([])
+    // 🔧 Nettoyer mode debug
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('debug_mode')
+      localStorage.removeItem('debug_user')
+      localStorage.removeItem('debug_email')
+      // 🎯 Nettoyer mode démo
+      localStorage.removeItem('demo_mode')
+      localStorage.removeItem('demo_groupe')
+    }
+    
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
+  const openCampModal = async () => {
+    setShowCampModal(true)
+    setLoadingSessions(true)
+    setInscriptionError(null)
+    setInscriptionSuccess(false)
+    setSelectedSessionId('')
+
+    // 🎯 Mode démo : données fictives pour les sessions
+    if (isDemoMode) {
+      setAllergiesAlimentaires('')
+      setAutresAllergies('')
+      setConditionsMedicales('')
+      setConsentementPhoto(false)
+      setLoadingDossier(false)
+      setSessionsDisponibles([
+        { session_id: 'demo-s1', nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' },
+        { session_id: 'demo-s2', nom: 'Cohorte 9 - Camp de qualification', dates: '24-25 mai 2026', site: 'Base de plein air de Val-Cartier', location: 'Shannon, Québec' },
+      ])
+      setSessionCapacities({
+        'demo-s1': { inscrits: 18, capacite: 25, attente: 0, attente_max: 5, places_restantes: 7, statut: 'ouvert' },
+        'demo-s2': { inscrits: 24, capacite: 25, attente: 2, attente_max: 5, places_restantes: 1, statut: 'ouvert' },
+      })
+      setLoadingSessions(false)
+      return
+    }
+    
+    // Charger les données du dossier depuis Monday/n8n
+    if (reserviste?.benevole_id) {
+      setLoadingDossier(true)
+      try {
+        const dossierResponse = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`)
+        if (dossierResponse.ok) {
+          const dossierData = await dossierResponse.json()
+          if (dossierData.success && dossierData.dossier) {
+            setAllergiesAlimentaires(dossierData.dossier.allergies_alimentaires || '')
+            setAutresAllergies(dossierData.dossier.allergies_autres || '')
+            setConditionsMedicales(dossierData.dossier.problemes_sante || '')
+          }
+        }
+      } catch (error) {
+        console.error('Erreur chargement dossier:', error)
+      }
+      setLoadingDossier(false)
+    }
+    
+    setConsentementPhoto(reserviste?.consent_photos || false)
+
+    // Charger les sessions et capacités
+    try {
+      const [sessionsResp, capacityResp] = await Promise.allSettled([
+        fetch('https://n8n.aqbrs.ca/webhook/sessions-camps'),
+        fetch('https://n8n.aqbrs.ca/webhook/camp-capacity')
+      ])
+      
+      if (sessionsResp.status === 'fulfilled' && sessionsResp.value.ok) {
+        const data = await sessionsResp.value.json()
+        if (data.success && data.sessions) setSessionsDisponibles(data.sessions)
+      }
+      
+      if (capacityResp.status === 'fulfilled' && capacityResp.value.ok) {
+        const capData = await capacityResp.value.json()
+        if (capData.success && capData.sessions) setSessionCapacities(capData.sessions)
+      }
+    } catch (error) {
+      console.error('Erreur fetch sessions:', error)
+      setInscriptionError('Impossible de charger les camps disponibles')
+    }
+
+    setLoadingSessions(false)
+  }
+
+  const closeCampModal = () => {
+    setShowCampModal(false)
+    setSelectedSessionId('')
+    setInscriptionError(null)
+    setInscriptionSuccess(false)
+  }
+
+  const handleSubmitInscription = async () => {
+    if (!reserviste || !selectedSessionId) {
+      setInscriptionError('Veuillez sélectionner un camp')
       return
     }
 
-    setIsLoadingAddress(true)
+    // 🎯 Mode démo : simuler l'inscription
+    if (isDemoMode) {
+      setInscriptionLoading(true)
+      setTimeout(() => {
+        setInscriptionSuccess(true)
+        setInscriptionLoading(false)
+        const selectedSession = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
+        setTimeout(() => {
+          closeCampModal()
+          if (selectedSession) {
+            setCampStatus({
+              is_certified: false,
+              has_inscription: true,
+              session_id: selectedSessionId,
+              camp: { nom: selectedSession.nom, dates: selectedSession.dates, site: selectedSession.site, location: selectedSession.location },
+              lien_inscription: null,
+            })
+          }
+        }, 2000)
+      }, 1000)
+      return
+    }
+    
+    setInscriptionLoading(true)
+    setInscriptionError(null)
+    
+    try {
+      // Sauvegarder les allergies dans le dossier en parallèle
+      fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          dossier: {
+            allergies_alimentaires: allergiesAlimentaires || '',
+            allergies_autres: autresAllergies || '',
+            problemes_sante: conditionsMedicales || ''
+          }
+        })
+      }).catch(e => console.error('Erreur update dossier allergies:', e))
+
+      const capInfo = sessionCapacities[selectedSessionId]
+      const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
+      
+      const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          session_id: selectedSessionId,
+          presence: 'confirme',
+          statut: inscriptionStatut,
+          courriel: reserviste.email,
+          telephone: reserviste.telephone || null,
+          prenom_nom: `${reserviste.prenom} ${reserviste.nom}`,
+          allergies_alimentaires: allergiesAlimentaires || null,
+          autres_allergies: autresAllergies || null,
+          conditions_medicales: conditionsMedicales || null,
+          consentement_photo: consentementPhoto
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setInscriptionSuccess(true)
+        // Persister dans Supabase ET mettre à jour le state local (pour cancel + reopen)
+        const updates = {
+          consent_photos: consentementPhoto,
+          allergies_alimentaires: allergiesAlimentaires || undefined,
+          allergies_autres: autresAllergies || undefined
+        }
+        supabase.from('reservistes').update(updates).eq('benevole_id', reserviste.benevole_id)
+          .then(() => { setReserviste(prev => prev ? { ...prev, ...updates } : prev) })
+        setTimeout(() => {
+          closeCampModal()
+          window.location.reload()
+        }, 2000)
+      } else {
+        setInscriptionError(data.error || "Erreur lors de l'inscription")
+      }
+    } catch (error) {
+      console.error('Erreur inscription:', error)
+      setInscriptionError('Erreur de connexion. Veuillez réessayer.')
+    }
+    
+    setInscriptionLoading(false)
+  }
+
+  const handleCancelInscription = async () => {
+    if (!reserviste || !confirm("Êtes-vous sûr de vouloir annuler votre inscription au camp ?")) {
+      return
+    }
+
+    // 🎯 Mode démo : simuler l'annulation
+    if (isDemoMode) {
+      setCampStatus(DEMO_CAMP_STATUS)
+      return
+    }
+    
+    setCancellingInscription(true)
+    
     try {
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?` +
-        `access_token=${MAPBOX_TOKEN}&country=ca&language=fr&types=address&limit=5`
+        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
+        { method: 'POST' }
       )
-      const data = await response.json()
-      setAddressSuggestions(data.features || [])
-      setShowAddressSuggestions(true)
+      
+      if (response.ok) {
+        window.location.reload()
+      } else {
+        alert("Erreur lors de l'annulation. Veuillez réessayer.")
+      }
     } catch (error) {
-      console.error('Erreur recherche adresse:', error)
+      console.error('Erreur annulation:', error)
+      alert("Erreur lors de l'annulation. Veuillez réessayer.")
     }
-    setIsLoadingAddress(false)
-  }, [])
-
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const handleAddressChange = (value: string) => {
-    setProfilData(prev => ({ ...prev, adresse: value, latitude: null, longitude: null }))
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
-
-    debounceRef.current = setTimeout(() => {
-      searchAddress(value)
-    }, 300)
+    
+    setCancellingInscription(false)
   }
 
-  const selectAddress = (feature: MapboxFeature) => {
-    const [lng, lat] = feature.center
-
-    let ville = ''
-    if (feature.context) {
-      const placeContext = feature.context.find(c => c.id.startsWith('place'))
-      if (placeContext) {
-        ville = placeContext.text
-      }
-    }
-
-    setProfilData(prev => ({
-      ...prev,
-      adresse: feature.place_name,
-      latitude: lat,
-      longitude: lng,
-      ville: ville || prev.ville
-    }))
-    setShowAddressSuggestions(false)
-    setAddressSuggestions([])
-
-    if (ville) {
-      lookupRegionFromVille(ville)
-    }
+  function genererLienDisponibilite(deploiementId: string): string {
+    if (!reserviste) return '#';
+    return `/disponibilites/soumettre?deploiement=${deploiementId}`;
   }
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (addressDropdownRef.current && !addressDropdownRef.current.contains(event.target as Node) &&
-          addressInputRef.current && !addressInputRef.current.contains(event.target as Node)) {
-        setShowAddressSuggestions(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // ─── Autocomplete Ville ──────────────────────────────────────────────────
-
-  const searchVille = async (query: string) => {
-    if (query.length < 2) {
-      setVilleSuggestions([])
-      return
-    }
-    setIsLoadingVille(true)
-    try {
-      const { data, error } = await supabase
-        .from('municipalites_qc')
-        .select('municipalite, region_administrative, mrc')
-        .ilike('municipalite', `${query}%`)
-        .order('municipalite')
-        .limit(8)
-      if (!error && data) {
-        setVilleSuggestions(data)
-        setShowVilleSuggestions(true)
-      }
-    } catch (e) {
-      console.error('Erreur recherche ville:', e)
-    }
-    setIsLoadingVille(false)
+  function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+    return date.toLocaleDateString('fr-CA', options);
   }
 
-  const handleVilleChange = (value: string) => {
-    setProfilData(prev => ({ ...prev, ville: value, region: '' }))
-    if (villeDebounceRef.current) clearTimeout(villeDebounceRef.current)
-    villeDebounceRef.current = setTimeout(() => {
-      searchVille(value)
-    }, 250)
-  }
-
-  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string }) => {
-    setProfilData(prev => ({
-      ...prev,
-      ville: suggestion.municipalite,
-      region: suggestion.region_administrative
-    }))
-    setShowVilleSuggestions(false)
-    setVilleSuggestions([])
-  }
-
-  const lookupRegionFromVille = async (ville: string) => {
-    if (!ville) return
-    const { data } = await supabase
-      .from('municipalites_qc')
-      .select('region_administrative')
-      .ilike('municipalite', ville)
-      .limit(1)
-      .single()
-    if (data) {
-      setProfilData(prev => ({ ...prev, region: data.region_administrative }))
-    }
-  }
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (villeDropdownRef.current && !villeDropdownRef.current.contains(event.target as Node) &&
-          villeInputRef.current && !villeInputRef.current.contains(event.target as Node)) {
-        setShowVilleSuggestions(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
-
-  // ─── Photo ───────────────────────────────────────────────────────────────
-
-  const handleCroppedPhoto = async (croppedBlob: Blob) => {
-    if (!reserviste) return
-    if (isDemoActive()) { setSaveMessage({ type: 'success', text: 'Mode démonstration — la photo ne peut pas être modifiée.' }); return }
-
-    setUploadingPhoto(true)
-    setSaveMessage(null)
-
-    try {
-      const fileName = `${reserviste.benevole_id}-${Date.now()}.jpg`
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, croppedBlob, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        })
-
-      if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
-      const { error: updateError } = await supabase
-        .from('reservistes')
-        .update({ photo_url: publicUrl })
-        .eq('id', reserviste.id)
-
-      if (updateError) throw updateError
-
-      setReserviste(prev => prev ? { ...prev, photo_url: publicUrl } : null)
-      setSaveMessage({ type: 'success', text: 'Photo mise à jour avec succès' })
-    } catch (error) {
-      console.error('Erreur upload photo:', error)
-      setSaveMessage({ type: 'error', text: "Erreur lors de l'upload de la photo" })
-      throw error
-    } finally {
-      setUploadingPhoto(false)
-    }
-  }
-
-  const getInitials = () => {
+  function getInitials(): string {
     if (reserviste) {
       return `${reserviste.prenom.charAt(0)}${reserviste.nom.charAt(0)}`.toUpperCase()
     }
     return user?.email?.charAt(0).toUpperCase() || 'U'
   }
 
-  // ─── Modification des données ────────────────────────────────────────────
-
-  const updateDossier = (field: keyof DossierData, value: any) => {
-    setDossier(prev => ({ ...prev, [field]: value }))
-  }
-
-  const handlePhoneBlur = (field: 'telephone' | 'telephone_secondaire' | 'contact_urgence_telephone') => {
-    setProfilData(prev => ({
-      ...prev,
-      [field]: formatPhoneDisplay(prev[field])
-    }))
-  }
-
-  // ─── Test notification ────────────────────────────────────────────────────
-
-  const handleTestNotification = async () => {
-    if (isDemoActive()) {
-      setDemoTestEmail('')
-      setDemoTestTel('')
-      setTestNotifResult(null)
-      setShowDemoTestModal(true)
-      return
-    }
-    await sendTestNotification(
-      dossier.prenom || reserviste?.prenom || '',
-      dossier.nom || reserviste?.nom || '',
-      user?.email || reserviste?.email || '',
-      profilData.telephone || reserviste?.telephone || '',
-    )
-  }
-
-  const sendTestNotification = async (prenom: string, nom: string, email: string, telephone: string) => {
-    setTestNotifLoading(true)
-    setTestNotifResult(null)
-    try {
-      const res = await fetch('https://n8n.aqbrs.ca/webhook/test-notification-reserviste', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prenom, nom, email, telephone }),
-      })
-      setTestNotifResult(res.ok ? 'success' : 'error')
-    } catch {
-      setTestNotifResult('error')
-    } finally {
-      setTestNotifLoading(false)
-    }
-  }
-
-  // ─── Sauvegarde ──────────────────────────────────────────────────────────
-
-  const handleSave = async () => {
-    if (!reserviste) return
-    if (isDemoActive()) { setSaveMessage({ type: 'success', text: 'Mode démonstration — les modifications ne sont pas enregistrées.' }); return }
-    setSaving(true)
-    setSaveMessage(null)
-
-    try {
-      // 0. Détecter et appliquer un changement d'email
-      const emailChanged = dossier.email && dossier.email !== originalDossier.email
-      if (emailChanged && user?.id) {
-        const emailRes = await fetch('/api/email-update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: user.id,
-            new_email: dossier.email,
-            benevole_id: reserviste.benevole_id,
-          })
-        })
-        if (!emailRes.ok) {
-          const errData = await emailRes.json()
-          setSaveMessage({ type: 'error', text: `Erreur lors du changement d'email : ${errData.error || 'Erreur inconnue'}` })
-          setSaving(false)
-          return
-        }
-        // Mettre à jour l'email dans originalDossier pour éviter re-trigger
-        setOriginalDossier(prev => ({ ...prev, email: dossier.email }))
-      }
-
-      // 1. Sauvegarder les champs Profil dans Supabase
-      if (profilHasChanges) {
-        const { error: updateError } = await supabase
-          .from('reservistes')
-          .update({
-            telephone: cleanPhoneForSave(profilData.telephone),
-            telephone_secondaire: cleanPhoneForSave(profilData.telephone_secondaire),
-            adresse: profilData.adresse,
-            ville: profilData.ville,
-            region: profilData.region,
-            latitude: profilData.latitude,
-            longitude: profilData.longitude,
-            contact_urgence_nom: profilData.contact_urgence_nom,
-            contact_urgence_telephone: cleanPhoneForSave(profilData.contact_urgence_telephone),
-            contact_urgence_lien: profilData.contact_urgence_lien,
-            contact_urgence_courriel: profilData.contact_urgence_courriel,
-          })
-          .eq('id', reserviste.id)
-
-        if (updateError) {
-          console.error('Erreur update Supabase:', updateError)
-          setSaveMessage({ type: 'error', text: 'Erreur lors de la sauvegarde des informations de contact' })
-          setSaving(false)
-          return
-        }
-
-        // Sync vers Monday via webhook
-        await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            prenom: dossier.prenom,
-            nom: dossier.nom,
-            email: dossier.email,
-            telephone: cleanPhoneForSave(profilData.telephone),
-            telephone_secondaire: cleanPhoneForSave(profilData.telephone_secondaire),
-            date_naissance: dossier.date_naissance,
-            adresse: profilData.adresse,
-            ville: profilData.ville,
-            region: profilData.region,
-            latitude: profilData.latitude,
-            longitude: profilData.longitude,
-            contact_urgence_nom: profilData.contact_urgence_nom,
-            contact_urgence_telephone: cleanPhoneForSave(profilData.contact_urgence_telephone),
-            contact_urgence_lien: profilData.contact_urgence_lien,
-            contact_urgence_courriel: profilData.contact_urgence_courriel,
-          })
-        })
-
-        setOriginalProfilData({ ...profilData })
-      }
-
-      // 2. Sauvegarder le dossier dans Supabase
-      if (hasChanges) {
-        const { error: dossierError } = await supabase
-          .from('reservistes')
-          .update({
-            grandeur_bottes: dossier.grandeur_bottes || null,
-            profession: dossier.profession || null,
-            j_ai_18_ans: dossier.j_ai_18_ans,
-            allergies_alimentaires: dossier.allergies_alimentaires || null,
-            allergies_autres: dossier.allergies_autres || null,
-            problemes_sante: dossier.problemes_sante || null,
-            groupe_sanguin: dossier.groupe_sanguin || null,
-            competence_rs: idsToLabels('competence_rs', dossier.competence_rs),
-            certificat_premiers_soins: idsToLabels('certificat_premiers_soins', dossier.certificat_premiers_soins),
-            date_expiration_certificat: dossier.date_expiration_certificat || null,
-            vehicule_tout_terrain: idsToLabels('vehicule_tout_terrain', dossier.vehicule_tout_terrain),
-            navire_marin: idsToLabels('navire_marin', dossier.navire_marin),
-            permis_conduire: idsToLabels('permis_conduire', dossier.permis_conduire),
-            disponible_covoiturage: idsToLabels('disponible_covoiturage', dossier.disponible_covoiturage),
-            satp_drone: idsToLabels('satp_drone', dossier.satp_drone),
-            equipe_canine: idsToLabels('equipe_canine', dossier.equipe_canine),
-            competences_securite: idsToLabels('competences_securite', dossier.competences_securite),
-            competences_sauvetage: idsToLabels('competences_sauvetage', dossier.competences_sauvetage),
-            certification_csi: idsToLabels('certification_csi', dossier.certification_csi),
-            communication: idsToLabels('communication', dossier.communication),
-            cartographie_sig: idsToLabels('cartographie_sig', dossier.cartographie_sig),
-            operation_urgence: idsToLabels('operation_urgence', dossier.operation_urgence),
-            experience_urgence_detail: dossier.experience_urgence_detail || null,
-            autres_competences: dossier.autres_competences || null,
-            commentaire: dossier.commentaire || null,
-            confidentialite: dossier.confidentialite,
-            consentement_antecedents: dossier.consentement_antecedents,
-            preference_tache: dossier.preference_tache || 'aucune',
-            preference_tache_commentaire: dossier.preference_tache_commentaire || null,
-          })
-          .eq('id', reserviste.id)
-
-        if (dossierError) {
-          console.error('Erreur update dossier Supabase:', dossierError)
-          setSaveMessage({ type: 'error', text: 'Erreur lors de la sauvegarde du dossier' })
-          setSaving(false)
-          return
-        }
-
-        // Fire-and-forget sync vers Monday
-        fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            dossier: {
-              prenom: dossier.prenom,
-              nom: dossier.nom,
-              email: dossier.email,
-              date_naissance: dossier.date_naissance,
-              grandeur_bottes: dossier.grandeur_bottes,
-              profession: dossier.profession,
-              j_ai_18_ans: dossier.j_ai_18_ans,
-              allergies_alimentaires: dossier.allergies_alimentaires,
-              allergies_autres: dossier.allergies_autres,
-              problemes_sante: dossier.problemes_sante,
-              groupe_sanguin: dossier.groupe_sanguin && GROUPE_SANGUIN_MAP[dossier.groupe_sanguin] ? [GROUPE_SANGUIN_MAP[dossier.groupe_sanguin]] : [],
-              competence_rs: dossier.competence_rs,
-              certificat_premiers_soins: dossier.certificat_premiers_soins,
-              date_expiration_certificat: dossier.date_expiration_certificat,
-              vehicule_tout_terrain: dossier.vehicule_tout_terrain,
-              navire_marin: dossier.navire_marin,
-              permis_conduire: dossier.permis_conduire,
-              disponible_covoiturage: dossier.disponible_covoiturage,
-              satp_drone: dossier.satp_drone,
-              equipe_canine: dossier.equipe_canine,
-              competences_securite: dossier.competences_securite,
-              competences_sauvetage: dossier.competences_sauvetage,
-              certification_csi: dossier.certification_csi,
-              communication: dossier.communication,
-              cartographie_sig: dossier.cartographie_sig,
-              operation_urgence: dossier.operation_urgence,
-              experience_urgence_detail: dossier.experience_urgence_detail,
-              autres_competences: dossier.autres_competences,
-              commentaire: dossier.commentaire,
-              confidentialite: dossier.confidentialite,
-              consentement_antecedents: dossier.consentement_antecedents,
-            }
-          })
-        }).catch(() => {}) // fire-and-forget
-
-        setOriginalDossier({ ...dossier })
-
-        // 2b. Gérer formations liées aux compétences du profil
-        const FORMATION_TRIGGERS: { field: string; labels: string[] }[] = [
-          { field: 'certification_csi', labels: OPTIONS.certification_csi.map(o => o.label) },
-          { field: 'certificat_premiers_soins', labels: OPTIONS.certificat_premiers_soins.map(o => o.label) },
-          { field: 'navire_marin', labels: ["Permis d'embarcation de plaisance"] },
-          { field: 'competences_securite', labels: ['Scies à chaînes', 'Contrôle de la circulation routière', 'Formateur certifié CNESST'] },
-          { field: 'communication', labels: ['Radio amateur'] },
-          { field: 'satp_drone', labels: ['Licence de pilote de drone (Transport Canada)'] },
-        ]
-
-        const addedFormations: { field: string; label: string }[] = []
-        const removedFormations: { field: string; label: string; formationId: string }[] = []
-
-        for (const trigger of FORMATION_TRIGGERS) {
-          const oldIds: number[] = (originalDossier as any)[trigger.field] || []
-          const newIds: number[] = (dossier as any)[trigger.field] || []
-          const opts = (OPTIONS as any)[trigger.field] || []
-          const oldLabels = oldIds.map((id: number) => opts.find((o: any) => o.id === id)?.label).filter(Boolean) as string[]
-          const newLabels = newIds.map((id: number) => opts.find((o: any) => o.id === id)?.label).filter(Boolean) as string[]
-          const oldTriggered = oldLabels.filter(l => trigger.labels.includes(l))
-          const newTriggered = newLabels.filter(l => trigger.labels.includes(l))
-
-          for (const label of newTriggered) {
-            if (!oldTriggered.includes(label)) addedFormations.push({ field: trigger.field, label })
-          }
-          for (const label of oldTriggered) {
-            if (!newTriggered.includes(label)) {
-              const { data: existing } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).eq('source', 'portail').maybeSingle()
-              if (existing) removedFormations.push({ field: trigger.field, label, formationId: existing.id })
-            }
-          }
-        }
-
-        // Créer les nouvelles formations silencieusement
-        for (const { field, label } of addedFormations) {
-          const { data: exists } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).maybeSingle()
-          if (!exists) {
-            await supabase.from('formations_benevoles').insert({
-              benevole_id: reserviste.benevole_id,
-              nom_complet: dossier.nom + ' ' + dossier.prenom,
-              nom_formation: label,
-              resultat: 'En attente',
-              role: 'Participant',
-              source: 'portail',
-              certificat_requis: true,
-              competence_profil_champ: field,
-              competence_profil_label: label,
-            })
-          }
-        }
-
-        // Si des formations existantes doivent être retirées → demander confirmation
-        if (removedFormations.length > 0) {
-          setSaving(false)
-          setFormationDialog({
-            show: true,
-            removedLabels: removedFormations.map(r => r.label),
-            addedLabels: addedFormations.map(a => a.label),
-            pendingSave: async () => {
-              for (const { formationId } of removedFormations) {
-                await supabase.from('formations_benevoles').delete().eq('id', formationId)
-              }
-              setSaveMessage({ type: 'success', text: 'Modifications enregistrées avec succès!' })
-            }
-          })
-          return
-        }
-      }
-
-      // 3. Organisations
-      if (orgHasChanges) {
-        // Supprimer les organisations retirées
-        if (removedOrgIds.length > 0) {
-          await supabase
-            .from('reserviste_organisations')
-            .delete()
-            .eq('benevole_id', reserviste.benevole_id)
-            .in('organisation_id', removedOrgIds)
-        }
-
-        let orgIdsToAdd = [...newOrgIds]
-        if (newOrgName.trim()) {
-          const { data: createdOrg, error: createError } = await supabase
-            .from('organisations').insert({ nom: newOrgName.trim(), created_by: reserviste.benevole_id }).select('id').single()
-          if (createError) {
-            const { data: existingOrg } = await supabase.from('organisations').select('id').ilike('nom', newOrgName.trim()).single()
-            if (existingOrg) orgIdsToAdd.push(existingOrg.id)
-          } else if (createdOrg) {
-            orgIdsToAdd.push(createdOrg.id)
-          }
-        }
-        const uniqueOrgs = orgIdsToAdd.filter(id => !myOrgIds.includes(id))
-        if (uniqueOrgs.length > 0) {
-          await supabase.from('reserviste_organisations').insert(
-            uniqueOrgs.map(organisation_id => ({ benevole_id: reserviste.benevole_id, organisation_id }))
-          )
-        }
-        const { data: refreshedOrgs } = await supabase.from('organisations').select('id, nom').order('nom')
-        setAllOrgs(refreshedOrgs || [])
-        setMyOrgIds(prev => [...prev.filter(id => !removedOrgIds.includes(id)), ...uniqueOrgs])
-        setNewOrgIds([])
-        setNewOrgName('')
-        setShowNewOrgInput(false)
-        setRemovedOrgIds([])
-      }
-
-      // 4. Langues
-      if (langueHasChanges) {
-        // Supprimer les langues retirées
-        if (removedLangueIds.length > 0) {
-          await supabase
-            .from('reserviste_langues')
-            .delete()
-            .eq('benevole_id', reserviste.benevole_id)
-            .in('langue_id', removedLangueIds)
-        }
-
-        let langueIdsToAdd = [...newLangueIds]
-        if (newLangueName.trim()) {
-          const { data: createdLangue, error: createError } = await supabase
-            .from('langues').insert({ nom: newLangueName.trim() }).select('id').single()
-          if (createError) {
-            const { data: existingLangue } = await supabase.from('langues').select('id').ilike('nom', newLangueName.trim()).single()
-            if (existingLangue) langueIdsToAdd.push(existingLangue.id)
-          } else if (createdLangue) {
-            langueIdsToAdd.push(createdLangue.id)
-          }
-        }
-        const uniqueLangues = langueIdsToAdd.filter(id => !myLangueIds.includes(id))
-        if (uniqueLangues.length > 0) {
-          await supabase.from('reserviste_langues').insert(
-            uniqueLangues.map(langue_id => ({ benevole_id: reserviste.benevole_id, langue_id }))
-          )
-        }
-        const { data: refreshedLangues } = await supabase.from('langues').select('id, nom').order('nom')
-        setAllLangues(refreshedLangues || [])
-        setMyLangueIds(prev => [...prev.filter(id => !removedLangueIds.includes(id)), ...uniqueLangues])
-        setNewLangueIds([])
-        setNewLangueName('')
-        setShowNewLangueInput(false)
-        setRemovedLangueIds([])
-      }
-
-      setSaveMessage({ type: 'success', text: 'Profil sauvegardé avec succès !' })
-    } catch (error) {
-      console.error('Erreur sauvegarde:', error)
-      setSaveMessage({ type: 'error', text: 'Erreur de connexion' })
-    }
-    setSaving(false)
-  }
-
-  // ─── Rendu ───────────────────────────────────────────────────────────────
-
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#1e3a5f', fontSize: '16px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>
         Chargement...
       </div>
     )
   }
 
-  const showConfirm18 = !isOlderThan18(dossier.date_naissance)
-  const canSave = (hasChanges || profilHasChanges || orgHasChanges || langueHasChanges) && isValidNorthAmericanPhone(profilData.telephone)
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-
-      {/* Modal test notification — Mode démo */}
-      {showDemoTestModal && (
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', paddingTop: isDemoMode ? '36px' : 0 }}>
+      <style>{`@media (max-width: 640px) { .hide-mobile { display: none !important; } }`}</style>
+      {showCampModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '440px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>📨</div>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '20px', fontWeight: '700' }}>Tester les notifications</h3>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
-                Entrez votre vrai numéro et courriel pour recevoir un exemple d&apos;avis de mobilisation RIUSC.
-              </p>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>Courriel</label>
-                <input
-                  type="email"
-                  value={demoTestEmail}
-                  onChange={e => setDemoTestEmail(e.target.value)}
-                  placeholder="votre@courriel.com"
-                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const, color: '#111827', backgroundColor: 'white' }}
-                />
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '32px', maxWidth: '550px', width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            {inscriptionSuccess ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ width: '64px', height: '64px', backgroundColor: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <svg width="32" height="32" fill="none" stroke="#059669" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h3 style={{ color: '#065f46', margin: '0 0 10px 0', fontSize: '20px' }}>{campStatus?.has_inscription ? 'Modification confirmée' : 'Inscription confirmée'}</h3>
+                <p style={{ color: '#4b5563', margin: 0 }}>Vous recevrez une confirmation par {reserviste?.telephone ? 'SMS' : 'courriel'}.</p>
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#374151' }}>Téléphone (pour SMS)</label>
-                <input
-                  type="tel"
-                  value={demoTestTel}
-                  onChange={e => setDemoTestTel(e.target.value)}
-                  placeholder="(555) 123-4567"
-                  style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const, color: '#111827', backgroundColor: 'white' }}
-                />
-              </div>
-            </div>
-            {testNotifResult === 'success' && (
-              <div style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>
-                ✅ SMS et courriel envoyés — vérifiez vos appareils !
-              </div>
+            ) : (
+              <>
+                <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '22px', fontWeight: '600' }}>{campStatus?.has_inscription ? 'Modifier mon inscription' : 'Inscription au camp de qualification'}</h3>
+                <p style={{ color: '#6b7280', margin: '0 0 24px 0', fontSize: '14px' }}>{campStatus?.has_inscription ? 'Sélectionnez un autre camp si vous souhaitez modifier votre inscription.' : 'Sélectionnez le camp auquel vous souhaitez participer.'}</p>
+                <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '8px', marginBottom: '20px', borderLeft: '4px solid #1e3a5f' }}>
+                  <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vos informations</p>
+                  <p style={{ margin: '4px 0', color: '#374151', fontSize: '14px' }}>{reserviste?.prenom} {reserviste?.nom}</p>
+                  <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>{reserviste?.email}</p>
+                  {reserviste?.telephone && <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>{reserviste.telephone}</p>}
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Sélectionnez un camp de qualification</label>
+                  {loadingSessions ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>Chargement des camps disponibles...</div>
+                  ) : sessionsDisponibles.filter(s => s.session_id !== campStatus?.session_id).length === 0 ? (
+                    <div style={{ padding: '24px', textAlign: 'center', color: '#92400e', backgroundColor: '#fef3c7', borderRadius: '8px' }}>Aucun autre camp disponible pour le moment.</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {sessionsDisponibles.filter(session => session.session_id !== campStatus?.session_id).sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => {
+                        const cap = sessionCapacities[session.session_id]
+                        const isComplet = cap?.statut === 'complet'
+                        const isAttente = cap?.statut === 'liste_attente'
+                        const isDisabled = isComplet
+                        
+                        return (
+                        <label key={session.session_id} style={{ display: 'block', padding: '16px', border: isDisabled ? '1px solid #e5e7eb' : selectedSessionId === session.session_id ? '2px solid #1e3a5f' : '1px solid #e5e7eb', borderRadius: '8px', cursor: isDisabled ? 'not-allowed' : 'pointer', backgroundColor: isDisabled ? '#f9fafb' : selectedSessionId === session.session_id ? '#f0f4f8' : 'white', opacity: isDisabled ? 0.6 : 1, transition: 'all 0.2s' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                            <input type="radio" name="session" value={session.session_id} checked={selectedSessionId === session.session_id} onChange={(e) => !isDisabled && setSelectedSessionId(e.target.value)} disabled={isDisabled} style={{ marginTop: '4px' }} />
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                <span style={{ fontWeight: '600', color: isDisabled ? '#9ca3af' : '#111827' }}>{session.nom}</span>
+                                {isComplet && (
+                                  <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Complet</span>
+                                )}
+                                {isAttente && (
+                                  <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
+                                )}
+                                {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
+                                  <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
+                                {session.dates && <div>{session.dates}</div>}
+                                {session.site && <div>{session.site}</div>}
+                                {session.location && <div style={{ color: '#9ca3af' }}>{session.location}</div>}
+                              </div>
+                            </div>
+                          </div>
+                        </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                {inscriptionError && <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{inscriptionError}</div>}
+
+                {/* Avertissement liste d'attente */}
+                {selectedSessionId && sessionCapacities[selectedSessionId]?.statut === 'liste_attente' && (
+                  <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '14px 16px', marginBottom: '16px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>⏳</span>
+                    <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
+                      <strong>Ce camp est complet.</strong> Votre inscription sera placée sur la liste d&apos;attente. Vous serez contacté si une place se libère.
+                    </div>
+                  </div>
+                )}
+
+                {/* Allergies alimentaires */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Allergies alimentaires</label>
+                  <textarea
+                    value={allergiesAlimentaires}
+                    onChange={(e) => setAllergiesAlimentaires(e.target.value)}
+                    placeholder="Ex: Noix, arachides, fruits de mer..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', color: '#374151', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Autres allergies */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Autres allergies</label>
+                  <textarea
+                    value={autresAllergies}
+                    onChange={(e) => setAutresAllergies(e.target.value)}
+                    placeholder="Ex: Latex, pollen, médicaments..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', color: '#374151', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Conditions médicales */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Problèmes de santé ou conditions médicales</label>
+                  <textarea
+                    value={conditionsMedicales}
+                    onChange={(e) => setConditionsMedicales(e.target.value)}
+                    placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
+                    rows={3}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', color: '#374151', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                {/* Consentement photo */}
+                <div style={{ marginBottom: '20px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={consentementPhoto}
+                      onChange={(e) => setConsentementPhoto(e.target.checked)}
+                      style={{ marginTop: '3px', width: '16px', height: '16px', flexShrink: 0, accentColor: '#1e3a5f' }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                      Je comprends que des photos ou vidéos peuvent être prises lors des activités de formation,
+                      d&apos;entraînement ou de déploiement et j&apos;autorise l&apos;AQBRS / RIUSC à utiliser les images captées par leurs
+                      représentants à des fins de communication. <span style={{ color: '#dc2626' }}>*</span>
+                    </span>
+                  </label>
+                </div>
+
+                <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : sessionCapacities[selectedSessionId]?.statut === 'liste_attente' ? '#d97706' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
+                    {inscriptionLoading ? 'Traitement...' : sessionCapacities[selectedSessionId]?.statut === 'liste_attente' ? "S'inscrire sur la liste d'attente" : campStatus?.has_inscription ? 'Confirmer la modification' : "Confirmer mon inscription"}
+                  </button>
+                </div>
+              </>
             )}
-            {testNotifResult === 'error' && (
-              <div style={{ backgroundColor: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', marginBottom: '16px' }}>
-                ❌ Erreur lors de l&apos;envoi. Vérifiez le numéro de téléphone.
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => { setShowDemoTestModal(false); setTestNotifResult(null) }}
-                style={{ padding: '10px 20px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', fontWeight: '500' }}
-              >Fermer</button>
-              <button
-                type="button"
-                disabled={testNotifLoading || (!demoTestEmail && !demoTestTel)}
-                onClick={() => sendTestNotification('Marie', 'Tremblay', demoTestEmail, demoTestTel)}
-                style={{
-                  padding: '10px 20px', fontSize: '14px', fontWeight: '600', border: 'none', borderRadius: '6px',
-                  cursor: (testNotifLoading || (!demoTestEmail && !demoTestTel)) ? 'not-allowed' : 'pointer',
-                  backgroundColor: (testNotifLoading || (!demoTestEmail && !demoTestTel)) ? '#9ca3af' : '#059669',
-                  color: 'white',
-                }}
-              >
-                {testNotifLoading ? '⏳ Envoi...' : '📨 Envoyer le test'}
+          </div>
+        </div>
+      )}
+
+      <PortailHeader subtitle="Réserve d'Intervention d'Urgence" />
+
+      {showFormationBanner && (
+        <div style={{ backgroundColor: '#1e3a5f', borderBottom: '3px solid #ffd166', padding: '12px 24px' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '20px' }}>🎓</span>
+              <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: '500' }}>
+                <strong style={{ color: '#ffd166' }}>Nouveau !</strong> Les formations en ligne sont maintenant disponibles sur le portail.
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+              <a href="/formations-en-ligne" style={{ backgroundColor: '#ffd166', color: '#1e3a5f', textDecoration: 'none', fontSize: '13px', fontWeight: '700', padding: '7px 16px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                Découvrir →
+              </a>
+              <button onClick={() => { setShowFormationBanner(false); localStorage.setItem('formation_banner_dismissed', '1') }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '20px', lineHeight: '1', padding: '0 4px' }}>
+                ×
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <PortailHeader subtitle="Mon profil" />
-
-      <ImpersonateBanner />
-
-
-      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
-        <div style={{ marginBottom: '24px' }}>
-          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
+        <div data-tour="welcome" style={{ backgroundColor: '#1e3a5f', padding: '28px 32px', borderRadius: '12px', marginBottom: '28px', color: 'white', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, width: '200px', height: '100%', background: 'linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.05) 100%)', pointerEvents: 'none' }} />
+          <h2 style={{ margin: '0 0 10px 0', fontSize: '24px', fontWeight: '700' }}>
+            Bienvenue sur la plateforme du réserviste{reserviste ? `, ${reserviste.prenom}` : ''} !
+          </h2>
+          <p style={{ margin: 0, fontSize: '15px', lineHeight: '1.6', opacity: 0.9 }}>
+            Votre espace unique où vous trouverez toutes les informations pertinentes pour votre rôle
+            au sein de la Réserve d&apos;intervention d&apos;urgence en sécurité civile. Consultez vos documents,
+            gérez vos inscriptions et restez informé des prochains événements.
+          </p>
         </div>
 
-        {/* ── 1. Identité & Photo ── */}
-        <Section title="Identité" icon="👤">
-          {/* Photo de profil */}
-          <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <ImageCropper
-              currentPhotoUrl={reserviste?.photo_url}
-              initials={getInitials()}
-              size={100}
-              uploading={uploadingPhoto}
-              onCropComplete={handleCroppedPhoto}
-            />
-            <div>
-              <p style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Cliquez sur la photo pour la modifier
-              </p>
-              <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-                {uploadingPhoto ? 'Téléversement en cours...' : 'Vous pourrez recadrer et zoomer l\'image. Format JPG ou PNG, max 10 Mo.'}
-              </p>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
-            <TextInput
-              label="Prénom"
-              value={dossier.prenom}
-              onChange={v => updateDossier('prenom', v)}
-            />
-            <TextInput
-              label="Nom de famille"
-              value={dossier.nom}
-              onChange={v => updateDossier('nom', v)}
-            />
-          </div>
-
-          <TextInput
-            label="Courriel"
-            value={dossier.email}
-            onChange={v => updateDossier('email', v)}
-            type="email"
-          />
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
-            <div>
-              <TextInput
-                label="Téléphone principal"
-                value={profilData.telephone}
-                onChange={v => setProfilData(prev => ({ ...prev, telephone: v }))}
-                placeholder="(555) 123-4567"
-              />
-              {profilData.telephone && !isValidNorthAmericanPhone(profilData.telephone) && (
-                <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
-                  ⚠ Numéro invalide — entrez un numéro canadien à 10 chiffres
-                </div>
-              )}
-            </div>
-            <TextInput
-              label="Téléphone secondaire"
-              value={profilData.telephone_secondaire}
-              onChange={v => setProfilData(prev => ({ ...prev, telephone_secondaire: v }))}
-              placeholder="(555) 987-6543"
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <button
-              type="button"
-              onClick={handleTestNotification}
-              disabled={testNotifLoading || (!profilData.telephone && !reserviste?.telephone)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '8px 14px', fontSize: '13px', fontWeight: '500',
-                backgroundColor: testNotifLoading ? '#e5e7eb' : '#f59e0b',
-                color: testNotifLoading ? '#9ca3af' : '#ffffff',
-                border: 'none', borderRadius: '6px',
-                cursor: (testNotifLoading || (!profilData.telephone && !reserviste?.telephone)) ? 'not-allowed' : 'pointer',
-                opacity: (!profilData.telephone && !reserviste?.telephone) ? 0.5 : 1,
-                transition: 'background-color 0.2s',
-              }}
-            >
-              {testNotifLoading ? '⏳ Envoi...' : '📨 Tester SMS et courriel'}
-            </button>
-            <span style={{ marginLeft: '10px', fontSize: '12px', color: '#9ca3af' }}>
-              Simule un vrai avis de mobilisation à votre numéro et courriel
-            </span>
-            {testNotifResult === 'success' && (
-              <div style={{ marginTop: '6px', fontSize: '13px', color: '#059669' }}>
-                ✅ SMS et courriel de test envoyés avec succès !
-              </div>
-            )}
-            {testNotifResult === 'error' && (
-              <div style={{ marginTop: '6px', fontSize: '13px', color: '#dc2626' }}>
-                ❌ Erreur lors de l&apos;envoi. Vérifiez votre numéro de téléphone.
-              </div>
-            )}
-          </div>
-
-          <TextInput
-            label="Date de naissance"
-            value={dossier.date_naissance}
-            onChange={v => updateDossier('date_naissance', v)}
-            type="date"
-          />
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
-            <TextInput
-              label="Profession / Métier"
-              value={dossier.profession}
-              onChange={v => updateDossier('profession', v)}
-              placeholder="Ex: Infirmière, Électricien, Enseignant..."
-            />
-            <TextInput
-              label="Grandeur de bottes"
-              value={dossier.grandeur_bottes}
-              onChange={v => updateDossier('grandeur_bottes', v)}
-              placeholder="Ex: 10"
-            />
-          </div>
-
-          {showConfirm18 && (
-            <Checkbox
-              label="Je confirme avoir 18 ans ou plus"
-              checked={dossier.j_ai_18_ans}
-              onChange={v => updateDossier('j_ai_18_ans', v)}
-            />
-          )}
-        </Section>
-
-        {/* ── 2. Adresse ── */}
-        <Section title="Adresse" icon="📍">
-          <div style={{ position: 'relative', marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Adresse complète
-            </label>
-            <input
-              ref={addressInputRef}
-              type="text"
-              value={profilData.adresse}
-              onChange={e => handleAddressChange(e.target.value)}
-              placeholder="123 Rue Principale, Montréal, QC"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                color: '#111827',
-                backgroundColor: 'white',
-                boxSizing: 'border-box',
-              }}
-            />
-            {showAddressSuggestions && addressSuggestions.length > 0 && (
-              <div
-                ref={addressDropdownRef}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  marginTop: '4px',
-                  maxHeight: '240px',
-                  overflowY: 'auto',
-                  zIndex: 1000,
-                }}
-              >
-                {addressSuggestions.map((suggestion, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => selectAddress(suggestion)}
-                    style={{
-                      padding: '10px 12px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      borderBottom: idx < addressSuggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-                  >
-                    {suggestion.place_name}
+        {!hasSinitier && !loadingCertificats && (
+          <div style={{ backgroundColor: 'white', border: '2px solid #f59e0b', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
+            <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>
+              Formation et certificats
+            </h3>
+            
+            <div data-tour="certificats" style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span style={{ fontSize: '24px' }}>⚠️</span>
+                <div>
+                  <p style={{ margin: '0 0 12px 0', fontWeight: '600', color: '#92400e', fontSize: '15px' }}>
+                    Formation obligatoire requise
+                  </p>
+                  <p style={{ margin: '0 0 16px 0', color: '#78350f', fontSize: '14px', lineHeight: '1.6' }}>
+                    Pour compléter votre inscription à la RIUSC, vous devez suivre la formation
+                    <strong> « S&apos;initier à la sécurité civile »</strong> sur la plateforme du Centre RISC,
+                    puis nous soumettre votre certificat de réussite.
+                  </p>
+                  <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Durée :</strong> environ 1 h 45</p>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#6b7280' }}><strong>Contenu :</strong> 5 modules à suivre à votre rythme</p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}><strong>Délai :</strong> 30 jours après votre inscription</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
-            <div style={{ position: 'relative', marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Ville
-              </label>
-              <input
-                ref={villeInputRef}
-                type="text"
-                value={profilData.ville}
-                onChange={e => handleVilleChange(e.target.value)}
-                placeholder="Montréal"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#111827',
-                  backgroundColor: 'white',
-                  boxSizing: 'border-box',
-                }}
-              />
-              {showVilleSuggestions && villeSuggestions.length > 0 && (
-                <div
-                  ref={villeDropdownRef}
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    marginTop: '4px',
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    zIndex: 1000,
-                  }}
-                >
-                  {villeSuggestions.map((suggestion, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => selectVille(suggestion)}
-                      style={{
-                        padding: '10px 12px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        borderBottom: idx < villeSuggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = 'white'}
-                    >
-                      <div style={{ fontWeight: '500', color: '#111827' }}>{suggestion.municipalite}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{suggestion.region_administrative}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <TextInput
-              label="Région"
-              value={profilData.region}
-              onChange={v => setProfilData(prev => ({ ...prev, region: v }))}
-              placeholder="Montréal"
-            />
-          </div>
-
-        </Section>
-
-        {/* ── 3. Contact d'urgence ── */}
-        <Section title="Contact d'urgence" icon="🚨">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <TextInput
-              label="Nom du contact"
-              value={profilData.contact_urgence_nom}
-              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_nom: v }))}
-              placeholder="Ex: Jean Tremblay"
-            />
-            <TextInput
-              label="Lien avec la personne"
-              value={profilData.contact_urgence_lien}
-              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_lien: v }))}
-              placeholder="Ex: Conjoint, Parent, Ami(e)"
-            />
-            <TextInput
-              label="Téléphone du contact"
-              value={profilData.contact_urgence_telephone}
-              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_telephone: v }))}
-              placeholder="(555) 123-4567"
-            />
-            <TextInput
-              label="Courriel du contact"
-              value={profilData.contact_urgence_courriel}
-              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_courriel: v }))}
-              placeholder="Ex: jean.tremblay@example.com"
-            />
-          </div>
-        </Section>
-
-        {/* ── 4. Santé ── */}
-        <Section
-          title="Santé"
-          icon="🏥"
-          description="Informations médicales de base pour assurer votre sécurité et celle de votre équipe lors des déploiements."
-          confidential
-        >
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Groupe sanguin
-            </label>
-            <select
-              value={dossier.groupe_sanguin}
-              onChange={e => updateDossier('groupe_sanguin', e.target.value)}
-              style={{
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                color: '#111827',
-                backgroundColor: 'white',
-                minWidth: '160px',
-              }}
-            >
-              <option value="">— Sélectionner —</option>
-              {GROUPES_SANGUIN.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-
-          <TextArea
-            label="Allergies alimentaires"
-            value={dossier.allergies_alimentaires}
-            onChange={v => updateDossier('allergies_alimentaires', v)}
-            placeholder="Ex: Noix, arachides, fruits de mer..."
-          />
-          <TextArea
-            label="Autres allergies"
-            value={dossier.allergies_autres}
-            onChange={v => updateDossier('allergies_autres', v)}
-            placeholder="Ex: Latex, pollen, médicaments..."
-          />
-          <TextArea
-            label="Problèmes de santé ou conditions médicales"
-            value={dossier.problemes_sante}
-            onChange={v => updateDossier('problemes_sante', v)}
-            placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
-          />
-        </Section>
-
-        {/* ── 6. Premiers soins ── */}
-        <Section title="Certifications premiers soins" icon="🩹">
-          <CheckboxGroup
-            label="Certificats détenus"
-            options={OPTIONS.certificat_premiers_soins}
-            selected={dossier.certificat_premiers_soins}
-            onChange={v => updateDossier('certificat_premiers_soins', v)}
-          />
-          <TextInput
-            label="Date d'expiration du certificat"
-            value={dossier.date_expiration_certificat}
-            onChange={v => updateDossier('date_expiration_certificat', v)}
-            type="date"
-          />
-        </Section>
-
-        {/* ── 7. Permis et conduite ── */}
-        <Section title="Permis de conduite et navigation" icon="🚗">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-            <div>
-              <CheckboxGroup
-                label="Habileté à conduire"
-                options={OPTIONS.vehicule_tout_terrain}
-                selected={dossier.vehicule_tout_terrain}
-                onChange={v => updateDossier('vehicule_tout_terrain', v)}
-              />
-              <CheckboxGroup
-                label="Permis de navigation"
-                options={OPTIONS.navire_marin}
-                selected={dossier.navire_marin}
-                onChange={v => updateDossier('navire_marin', v)}
-              />
-            </div>
-            <div>
-              <CheckboxGroup
-                label="Permis de conduire"
-                options={OPTIONS.permis_conduire}
-                selected={dossier.permis_conduire}
-                onChange={v => updateDossier('permis_conduire', v)}
-              />
-            </div>
-          </div>
-        </Section>
-
-        {/* ── 8. Compétences spécialisées ── */}
-        <Section title="Compétences spécialisées" icon="🎓">
-          <CheckboxGroup
-            label="Drone"
-            options={OPTIONS.satp_drone}
-            selected={dossier.satp_drone}
-            onChange={v => updateDossier('satp_drone', v)}
-          />
-          <CheckboxGroup
-            label="Compétences sécurité"
-            options={OPTIONS.competences_securite}
-            selected={dossier.competences_securite}
-            onChange={v => updateDossier('competences_securite', v)}
-          />
-          <CheckboxGroup
-            label="Compétences sauvetage"
-            options={OPTIONS.competences_sauvetage}
-            selected={dossier.competences_sauvetage}
-            onChange={v => updateDossier('competences_sauvetage', v)}
-          />
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Certification en système de commandement d&apos;intervention <span style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic', fontWeight: '400' }}>(certificat requis)</span>
-            </label>
-            <select
-              value={dossier.certification_csi.length > 0 ? dossier.certification_csi[0] : ''}
-              onChange={e => updateDossier('certification_csi', e.target.value ? [Number(e.target.value)] : [])}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                fontSize: '14px',
-                color: '#374151',
-                backgroundColor: 'white',
-              }}
-            >
-              <option value="">— Aucune certification —</option>
-              {OPTIONS.certification_csi.map(opt => (
-                <option key={opt.id} value={opt.id}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-          <CheckboxGroup
-            label="Communication"
-            options={OPTIONS.communication}
-            selected={dossier.communication}
-            onChange={v => updateDossier('communication', v)}
-          />
-          <CheckboxGroup
-            label="Cartographie / SIG"
-            options={OPTIONS.cartographie_sig}
-            selected={dossier.cartographie_sig}
-            onChange={v => updateDossier('cartographie_sig', v)}
-          />
-          <CheckboxGroup
-            label="Expérience en situation d'urgence"
-            options={OPTIONS.operation_urgence}
-            selected={dossier.operation_urgence}
-            onChange={v => updateDossier('operation_urgence', v)}
-          />
-          {dossier.operation_urgence.length > 0 && (
-            <TextInput
-              label="Précisez votre expérience"
-              value={dossier.experience_urgence_detail}
-              onChange={v => updateDossier('experience_urgence_detail', v)}
-              placeholder="Ex: Déployé lors des inondations 2019, opération Lac-Mégantic..."
-            />
-          )}
-          <TextArea
-            label="Autres compétences"
-            value={dossier.autres_competences}
-            onChange={v => updateDossier('autres_competences', v)}
-            placeholder="Décrivez toute autre compétence pertinente..."
-            rows={4}
-          />
-        </Section>
-
-        {/* ── 9. Organisations et Langues ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
-          <Section title="Organisations" icon="🏢">
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Organisations dont vous faites partie
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-                {allOrgs.filter(org => myOrgIds.includes(org.id) && !removedOrgIds.includes(org.id)).map(org => (
-                  <span key={org.id} style={{
-                    backgroundColor: '#e0f2fe',
-                    color: '#0369a1',
-                    padding: '6px 12px',
-                    borderRadius: '16px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}>
-                    {org.nom}
-                    <button
-                      onClick={() => setRemovedOrgIds(prev => [...prev, org.id])}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#0369a1',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        padding: '0',
-                        lineHeight: '1',
-                      }}
-                      title="Retirer"
-                    >×</button>
-                  </span>
-                ))}
-              </div>
-
-              <div style={{ marginTop: '12px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                  Ajouter une organisation
-                </label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <select
-                    value=""
-                    onChange={e => {
-                      if (e.target.value) {
-                        setNewOrgIds(prev => [...prev, e.target.value])
-                      }
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      color: '#374151',
-                      backgroundColor: 'white',
-                      minWidth: '200px',
-                      flex: '1',
-                    }}
-                  >
-                    <option value="">— Sélectionner —</option>
-                    {allOrgs
-                      .filter(org => (!myOrgIds.includes(org.id) || removedOrgIds.includes(org.id)) && !newOrgIds.includes(org.id))
-                      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
-                      .map(org => (
-                        <option key={org.id} value={org.id}>{org.nom}</option>
-                      ))
-                    }
-                  </select>
-                  {!showNewOrgInput && (
-                    <button
-                      onClick={() => setShowNewOrgInput(true)}
-                      style={{
-                        backgroundColor: 'white',
-                        border: '1px dashed #d1d5db',
-                        color: '#6b7280',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      + Autre
-                    </button>
-                  )}
-                </div>
-
-                {newOrgIds.length > 0 && (
-                  <div style={{ marginTop: '12px' }}>
-                    <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>À ajouter lors de la sauvegarde:</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {newOrgIds.map(orgId => {
-                        const org = allOrgs.find(o => o.id === orgId)
-                        return org ? (
-                          <span key={orgId} style={{
-                            backgroundColor: '#fef3c7',
-                            color: '#92400e',
-                            padding: '6px 12px',
-                            borderRadius: '16px',
-                            fontSize: '13px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}>
-                            {org.nom}
-                            <button
-                              onClick={() => setNewOrgIds(prev => prev.filter(id => id !== orgId))}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: '1' }}
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ) : null
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {showNewOrgInput && (
-                  <div style={{ marginTop: '12px' }}>
-                    <input
-                      type="text"
-                      value={newOrgName}
-                      onChange={e => setNewOrgName(e.target.value)}
-                      placeholder="Nom de la nouvelle organisation"
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        marginBottom: '8px',
-                        color: '#111827',
-                        backgroundColor: 'white',
-                      }}
-                    />
-                    <button
-                      onClick={() => setShowNewOrgInput(false)}
-                      style={{
-                        backgroundColor: '#f3f4f6',
-                        border: 'none',
-                        color: '#374151',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Section>
-
-          {/* ── 10. Langues ── */}
-          <Section title="Langues" icon="🌐">
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Langues parlées
-            </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {allLangues.filter(langue => myLangueIds.includes(langue.id) && !removedLangueIds.includes(langue.id)).map(langue => (
-                <span key={langue.id} style={{
-                  backgroundColor: '#e0f2fe',
-                  color: '#0369a1',
-                  padding: '6px 12px',
-                  borderRadius: '16px',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                }}>
-                  {langue.nom}
-                  <button
-                    onClick={() => setRemovedLangueIds(prev => [...prev, langue.id])}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#0369a1',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      padding: '0',
-                      lineHeight: '1',
-                    }}
-                    title="Retirer"
-                  >×</button>
-                </span>
-              ))}
-            </div>
-
-            <div style={{ marginTop: '12px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Ajouter une langue
-              </label>
-
-              {/* Langues épinglées */}
-              <div style={{ marginBottom: '12px' }}>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>Langues courantes:</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {LANGUES_EPINGLEES.map(nomLangue => {
-                    const langue = allLangues.find(l => l.nom === nomLangue)
-                    if (!langue || (myLangueIds.includes(langue.id) && !removedLangueIds.includes(langue.id)) || newLangueIds.includes(langue.id)) return null
-                    return (
-                      <button
-                        key={langue.id}
-                        onClick={() => setNewLangueIds(prev => [...prev, langue.id])}
-                        style={{
-                          backgroundColor: 'white',
-                          border: '1px solid #d1d5db',
-                          color: '#374151',
-                          padding: '6px 12px',
-                          borderRadius: '16px',
-                          fontSize: '13px',
-                          cursor: 'pointer',
-                          fontWeight: '500',
-                        }}
-                      >
-                        + {langue.nom}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Autres langues — dropdown */}
-              <div>
-                <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>Autres langues:</p>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <select
-                    value=""
-                    onChange={e => {
-                      if (e.target.value) {
-                        setNewLangueIds(prev => [...prev, e.target.value])
-                      }
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      color: '#374151',
-                      backgroundColor: 'white',
-                      minWidth: '200px',
-                    }}
-                  >
-                    <option value="">— Sélectionner une langue —</option>
-                    {allLangues
-                      .filter(langue => !LANGUES_EPINGLEES.includes(langue.nom) && (!myLangueIds.includes(langue.id) || removedLangueIds.includes(langue.id)) && !newLangueIds.includes(langue.id))
-                      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
-                      .map(langue => (
-                        <option key={langue.id} value={langue.id}>{langue.nom}</option>
-                      ))
-                    }
-                  </select>
-                  {!showNewLangueInput && (
-                    <button
-                      onClick={() => setShowNewLangueInput(true)}
-                      style={{
-                        backgroundColor: 'white',
-                        border: '1px dashed #d1d5db',
-                        color: '#6b7280',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      + Autre
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {newLangueIds.length > 0 && (
-                <div style={{ marginTop: '12px' }}>
-                  <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>À ajouter lors de la sauvegarde:</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {newLangueIds.map(langueId => {
-                      const langue = allLangues.find(l => l.id === langueId)
-                      return langue ? (
-                        <span key={langueId} style={{
-                          backgroundColor: '#fef3c7',
-                          color: '#92400e',
-                          padding: '6px 12px',
-                          borderRadius: '16px',
-                          fontSize: '13px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                        }}>
-                          {langue.nom}
-                          <button
-                            onClick={() => setNewLangueIds(prev => prev.filter(id => id !== langueId))}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', lineHeight: '1' }}
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ) : null
-                    })}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+                    <a href="https://campusnotredamedefoy.centrerisc.com/Web/MyCatalog/ViewP?pid=94b7f%2bJXTOIEwqbEfBzzBw%3d%3d&id=fkpM7dqJ0YA0hLjtTwfqvg%3d%3d" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                      🎓 Accéder à la formation
+                    </a>
+                    <a href="https://rsestrie-my.sharepoint.com/:v:/g/personal/dany_chaput_rsestrie_org/EcWyUX-i-DNPnQI7RmYgdiIBkORhzpF_1NimfhVb5kQyHw" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                      📺 Tutoriel vidéo
+                    </a>
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
 
-              {showNewLangueInput && (
-                <div style={{ marginTop: '12px' }}>
-                  <input
-                    type="text"
-                    value={newLangueName}
-                    onChange={e => setNewLangueName(e.target.value)}
-                    placeholder="Nom de la langue"
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: '#111827',
-                      backgroundColor: 'white',
-                    }}
-                  />
-                  <button
-                    onClick={() => setShowNewLangueInput(false)}
-                    style={{
-                      backgroundColor: '#f3f4f6',
-                      border: 'none',
-                      color: '#374151',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Annuler
-                  </button>
+            <div style={{ marginBottom: '0' }}>
+              <input ref={certificatInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleCertificatUpload} style={{ display: 'none' }} />
+              <button onClick={() => certificatInputRef.current?.click()} disabled={uploadingCertificat} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: '#059669', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer', opacity: uploadingCertificat ? 0.7 : 1 }}>
+                {uploadingCertificat ? '⏳ Envoi en cours...' : '📤 Soumettre mon certificat'}
+              </button>
+              <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>Formats acceptés : PDF, JPG, PNG (max 10 Mo)</p>
+              {certificatMessage && (
+                <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: '8px', backgroundColor: certificatMessage.type === 'success' ? '#d1fae5' : '#fef2f2', color: certificatMessage.type === 'success' ? '#065f46' : '#dc2626', fontSize: '14px' }}>
+                  {certificatMessage.text}
                 </div>
               )}
             </div>
           </div>
-        </Section>
-        </div>
-
-        {/* ── Compétences RS (visible seulement si AQBRS sélectionné) ── */}
-        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
-        <Section title="Compétences en recherche et sauvetage" icon="🔍">
-          <CheckboxGroup
-            label="Niveau de compétence"
-            options={OPTIONS.competence_rs}
-            selected={dossier.competence_rs}
-            onChange={v => updateDossier('competence_rs', v)}
-          />
-        </Section>
         )}
 
-        {/* ── Préférence de tâches ── */}
-        <Section
-          title="Préférence de tâches en déploiement"
-          icon="🎯"
-          description="Lors d'un déploiement, les besoins évoluent d'une journée à l'autre. Nous prendrons votre préférence en compte dans la mesure du possible, mais nous ne pouvons garantir que votre affectation y correspondra toujours."
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '8px' }}>
-            {[
-              { value: 'aucune', label: 'Pas de préférence — je suis disponible pour les deux types de tâches' },
-              { value: 'terrain', label: 'Soutien aux opérations sur le terrain' },
-              { value: 'sinistres', label: 'Soutien aux personnes sinistrées et aux populations vulnérables' },
-            ].map(option => (
-              <label
-                key={option.value}
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  cursor: 'pointer',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  border: `2px solid ${dossier.preference_tache === option.value ? '#1e3a5f' : '#e5e7eb'}`,
-                  backgroundColor: dossier.preference_tache === option.value ? '#f0f4fa' : 'white',
-                  transition: 'all 0.15s',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="preference_tache"
-                  value={option.value}
-                  checked={dossier.preference_tache === option.value}
-                  onChange={() => {
-                    updateDossier('preference_tache', option.value)
-                    if (option.value !== 'sinistres') {
-                      updateDossier('preference_tache_commentaire', '')
-                    }
-                  }}
-                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }}
-                />
-                <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{option.label}</span>
-              </label>
-            ))}
-          </div>
-
-          {dossier.preference_tache === 'sinistres' && (
-            <div style={{ marginTop: '16px', padding: '16px', backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                Avez-vous une contrainte physique, médicale ou personnelle qui limite votre capacité à effectuer des tâches physiques exigeantes ?
-              </label>
-              <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px 0', lineHeight: '1.5' }}>
-                Ex: transport de matériel lourd, travail en terrain difficile. Cette information nous aidera à vous affecter de façon appropriée. Laissez vide si aucune contrainte.
-              </p>
-              <textarea
-                value={dossier.preference_tache_commentaire}
-                onChange={e => updateDossier('preference_tache_commentaire', e.target.value)}
-                placeholder="Décrivez votre contrainte si applicable..."
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#111827',
-                  backgroundColor: 'white',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                  boxSizing: 'border-box',
-                }}
-              />
+        {/* Encadré sélection pour vague de déploiement - DÉPLACÉ EN HAUT */}
+        {/* Encadré sélection pour vague de déploiement */}
+        {!loadingSelection && selectionStatus && selectionStatus.statut && (
+          <div style={{ 
+            backgroundColor: 'white', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)', 
+            marginBottom: '24px', 
+            border: selectionStatus.statut === 'Sélectionné' ? '2px solid #10b981' : selectionStatus.statut === 'En attente' ? '2px solid #f59e0b' : '1px solid #e5e7eb'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
+                Statut de sélection
+              </h3>
+              <span style={{ 
+                backgroundColor: selectionStatus.statut === 'Sélectionné' ? '#d1fae5' : selectionStatus.statut === 'En attente' ? '#fef3c7' : '#fee2e2', 
+                color: selectionStatus.statut === 'Sélectionné' ? '#065f46' : selectionStatus.statut === 'En attente' ? '#92400e' : '#991b1b', 
+                padding: '6px 14px', 
+                borderRadius: '20px', 
+                fontSize: '13px', 
+                fontWeight: '600' 
+              }}>
+                {selectionStatus.statut === 'Sélectionné' ? '✅ Sélectionné' : selectionStatus.statut === 'En attente' ? '⏳ En attente' : '❌ Non sélectionné'}
+              </span>
             </div>
-          )}
-        </Section>
 
-        {/* ── 11. Commentaires ── */}
-        <Section title="Commentaires" icon="💬">
-          <TextArea
-            label="Informations additionnelles"
-            value={dossier.commentaire}
-            onChange={v => updateDossier('commentaire', v)}
-            placeholder="Toute information pertinente que vous souhaitez partager..."
-            rows={5}
-          />
-        </Section>
-
-        {/* ── 12. Confidentialité ── */}
-        <Section title="Consentement" icon="✅">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: '#f9fafb', border: '1px solid transparent' }}>
-              <input type="checkbox" checked={dossier.consentement_antecedents} onChange={e => updateDossier('consentement_antecedents', e.target.checked)}
-                style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
-              <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>J&apos;autorise l&apos;AQBRS à procéder à la vérification de mes antécédents judiciaires dans le cadre de mon processus d&apos;adhésion à la Réserve d&apos;Intervention d&apos;Urgence en Sécurité Civile.</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '12px', borderRadius: '8px', backgroundColor: '#f9fafb', border: '1px solid transparent' }}>
-              <input type="checkbox" checked={dossier.confidentialite} onChange={e => updateDossier('confidentialite', e.target.checked)}
-                style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#1e3a5f', flexShrink: 0 }} />
-              <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>Je consens à ce que mes informations soient utilisées pour coordonner les opérations de la RIUSC</span>
-            </label>
-          </div>
-        </Section>
-
-        {/* ── Bouton de sauvegarde ── */}
-        <div style={{
-          position: 'fixed',
-          bottom: user && 'isImpersonated' in user && user.isImpersonated ? 56 : 0,
-          left: 0,
-          right: 0,
-          backgroundColor: 'white',
-          borderTop: '1px solid #e5e7eb',
-          padding: '16px 24px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '12px',
-          zIndex: 100,
-        }}>
-          {saveMessage && (
-            <div style={{
-              padding: '10px 16px',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: '500',
-              backgroundColor: saveMessage.type === 'success' ? '#d1fae5' : '#fef2f2',
-              color: saveMessage.type === 'success' ? '#065f46' : '#dc2626',
-              border: '1px solid ' + (saveMessage.type === 'success' ? '#6ee7b7' : '#fca5a5'),
-              marginBottom: '8px',
-              textAlign: 'center' as const,
-              width: '100%',
-              maxWidth: '400px',
-            }}>
-              {saveMessage.text}
-            </div>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={!canSave || saving || formationDialog.show}
-            style={{
-              backgroundColor: canSave && !saving ? '#1e3a5f' : '#d1d5db',
-              color: 'white',
-              padding: '12px 32px',
-              borderRadius: '8px',
-              border: 'none',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: canSave && !saving ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s',
-            }}
-          >
-            {saving ? 'Sauvegarde en cours...' : 'Sauvegarder les modifications'}
-          </button>
-
-          {/* Dialog confirmation modification formations */}
-          {formationDialog.show && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', maxWidth: '480px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-                <div style={{ fontSize: '18px', fontWeight: '700', color: '#1e3a5f', marginBottom: '16px' }}>Modifier vos formations</div>
-                <div style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6', marginBottom: '8px' }}>
-                  {formationDialog.removedLabels.length > 0 && (
-                    <div style={{ marginBottom: '12px' }}>
-                      <p style={{ marginBottom: '4px', fontWeight: '600' }}>Formations qui seront retirées :</p>
-                      {formationDialog.removedLabels.map((label, i) => (
-                        <p key={i} style={{ margin: '2px 0', paddingLeft: '12px' }}>• {label}</p>
-                      ))}
-                    </div>
-                  )}
-                  {formationDialog.addedLabels.length > 0 && (
-                    <div>
-                      <p style={{ marginBottom: '4px', fontWeight: '600' }}>Formations ajoutées :</p>
-                      {formationDialog.addedLabels.map((label, i) => (
-                        <p key={i} style={{ margin: '2px 0', paddingLeft: '12px' }}>• {label}</p>
-                      ))}
-                    </div>
-                  )}
+            {selectionStatus.statut === 'Sélectionné' && selectionStatus.deploiement ? (
+              <div>
+                <div style={{ backgroundColor: '#ecfdf5', padding: '20px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #a7f3d0' }}>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#065f46', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '20px' }}>🚨</span>
+                    {selectionStatus.deploiement.nom}
+                  </div>
+                  <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: '#047857' }}>
+                    <div><strong>📍 Lieu :</strong> {selectionStatus.deploiement.lieu}</div>
+                    <div><strong>📅 Date de départ :</strong> {selectionStatus.deploiement.date_depart}</div>
+                    <div><strong>⏰ Rassemblement :</strong> {selectionStatus.deploiement.heure_rassemblement}</div>
+                    <div><strong>📍 Point de rassemblement :</strong> {selectionStatus.deploiement.point_rassemblement}</div>
+                    <div><strong>⏱️ Durée estimée :</strong> {selectionStatus.deploiement.duree}</div>
+                  </div>
                 </div>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>Êtes-vous sûr de vouloir continuer ?</p>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => { setFormationDialog({ show: false, removedLabels: [], addedLabels: [], pendingSave: null }); setSaveMessage({ type: 'error', text: 'Modification annulée' }) }}
-                    style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
-                  >Annuler</button>
-                  <button
-                    onClick={async () => { if (formationDialog.pendingSave) { await formationDialog.pendingSave() } setFormationDialog({ show: false, removedLabels: [], addedLabels: [], pendingSave: null }) }}
-                    style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#dc2626', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}
-                  >Oui, modifier</button>
+
+                <div style={{ backgroundColor: '#fffbeb', padding: '16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fcd34d' }}>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>⚠️</span>
+                    Consignes importantes
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '20px', color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>
+                    {selectionStatus.deploiement.consignes.map((consigne, idx) => (
+                      <li key={idx} style={{ marginBottom: '6px' }}>{consigne}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '4px' }}>
+                  <a 
+                    href="/informations" 
+                    style={{ 
+                      padding: '12px 24px', 
+                      backgroundColor: '#1e3a5f', 
+                      color: 'white', 
+                      borderRadius: '8px', 
+                      textDecoration: 'none', 
+                      fontSize: '14px', 
+                      fontWeight: '600',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    🎒 Voir la liste du matériel à apporter
+                  </a>
                 </div>
               </div>
+            ) : selectionStatus.statut === 'En attente' ? (
+              <div style={{ padding: '30px 20px', backgroundColor: '#fffbeb', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div>
+                <p style={{ color: '#92400e', margin: '0 0 8px 0', fontWeight: '600', fontSize: '15px' }}>
+                  Sélection en cours
+                </p>
+                <p style={{ color: '#78350f', margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
+                  Ton profil est en cours d&apos;évaluation pour la prochaine vague de déploiement. 
+                  Tu seras notifié dès qu&apos;une décision sera prise. Reste disponible !
+                </p>
+              </div>
+            ) : (
+              <div style={{ padding: '30px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>📋</div>
+                <p style={{ color: '#374151', margin: '0 0 8px 0', fontWeight: '600', fontSize: '15px' }}>
+                  Vague de déploiement complète
+                </p>
+                <p style={{ color: '#6b7280', margin: '0 0 16px 0', fontSize: '14px', lineHeight: '1.6' }}>
+                  La vague de déploiement actuelle est complète. D&apos;autres vagues suivront dans les prochains jours.
+                </p>
+                <p style={{ color: '#1e3a5f', margin: 0, fontSize: '14px', lineHeight: '1.6', fontWeight: '500' }}>
+                  ✅ Assure-toi que tes disponibilités sont à jour pour être considéré dans les prochaines vagues.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isApproved && !loadingCertificats && (
+        <div data-tour="deploiements" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: mobilisationActuelle ? '2px solid #059669' : deploiementsActifs.length > 0 ? '2px solid #f59e0b' : '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>
+              {mobilisationActuelle ? 'Mobilisation en cours' : deploiementsActifs.length > 0 ? 'Sollicitation de déploiement' : 'Déploiements'}
+            </h3>
+            {mobilisationActuelle && (
+              <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>
+                🚨 Mobilisé
+              </span>
+            )}
+            {!mobilisationActuelle && deploiementsActifs.length > 0 && (
+              <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>
+                {deploiementsActifs.length} actif{deploiementsActifs.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          {mobilisationActuelle ? (
+            // === ÉTAT MOBILISÉ ===
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <span style={{ fontSize: '24px' }}>🚨</span>
+                  <div>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: '#065f46' }}>
+                      {mobilisationActuelle.vague_id} — {mobilisationActuelle.tache}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#047857' }}>📍 {mobilisationActuelle.ville}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: '#047857' }}>
+                  <div>
+                    <strong>📅 Départ :</strong>{' '}
+                    {mobilisationActuelle.date_debut}
+                    {mobilisationActuelle.date_fin ? ` au ${mobilisationActuelle.date_fin}` : ''}
+                  </div>
+                  {mobilisationActuelle.horaire && (
+                    <div><strong>🕐 Horaire :</strong> {mobilisationActuelle.horaire}</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '16px' }}>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#92400e', fontSize: '14px' }}>⚠️ Action requise</p>
+                <p style={{ margin: 0, color: '#78350f', fontSize: '13px', lineHeight: '1.6' }}>
+                  Veuillez prendre connaissance de votre assignation et confirmer que vous avez bien lu et compris les directives.
+                  Si vous avez des questions, utilisez le chat communautaire.
+                </p>
+              </div>
+
+              {mobilisationConfirmee ? (
+                <div style={{ backgroundColor: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px', padding: '16px', textAlign: 'center' }}>
+                  <span style={{ fontSize: '20px' }}>✅</span>
+                  <p style={{ margin: '8px 0 0 0', fontWeight: '600', color: '#065f46', fontSize: '14px' }}>
+                    Assignation confirmée — merci !
+                  </p>
+                </div>
+              ) : (
+                <button
+                  onClick={async () => {
+                    setConfirmingMobilisation(true)
+                    try {
+                      await fetch('https://n8n.aqbrs.ca/webhook/confirmer-mobilisation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          mobilisation_item_id: mobilisationActuelle.mobilisation_item_id,
+                          benevole_id: reserviste?.benevole_id
+                        })
+                      })
+                      setMobilisationConfirmee(true)
+                    } catch (e) {
+                      console.error('Erreur confirmation:', e)
+                    }
+                    setConfirmingMobilisation(false)
+                  }}
+                  disabled={confirmingMobilisation}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    backgroundColor: confirmingMobilisation ? '#9ca3af' : '#059669',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    cursor: confirmingMobilisation ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseOver={(e) => { if (!confirmingMobilisation) e.currentTarget.style.backgroundColor = '#047857' }}
+                  onMouseOut={(e) => { if (!confirmingMobilisation) e.currentTarget.style.backgroundColor = '#059669' }}
+                >
+                  {confirmingMobilisation ? 'Confirmation en cours...' : '✅ J\'ai lu et compris mes directives de déploiement'}
+                </button>
+              )}
+            </div>
+          ) : deploiementsActifs.length > 0 ? (
+            // === ÉTAT CIBLAGE (disponibilités) ===
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {Object.entries(
+                deploiementsActifs.reduce((groups: Record<string, DeploiementActif[]>, dep) => {
+                  const key = dep.nom_sinistre || dep.nom_deploiement;
+                  if (!groups[key]) groups[key] = [];
+                  groups[key].push(dep);
+                  return groups;
+                }, {})
+              ).map(([sinistre, deps]) => (
+                <div key={sinistre} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
+                  <div style={{ padding: '16px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '20px' }}>🔥</span>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>{sinistre}</div>
+                        {deps[0].type_incident && <div style={{ fontSize: '13px', color: '#6b7280' }}>{deps[0].type_incident}</div>}
+                      </div>
+                    </div>
+                  </div>
+                  {deps[0].date_debut && (
+                    <div style={{ padding: '10px 20px', fontSize: '13px', color: '#6b7280', borderBottom: '1px solid #f3f4f6' }}>
+                      📅 {formatDate(deps[0].date_debut)}{deps[0].date_fin && ` — ${formatDate(deps[0].date_fin)}`}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    {deps.map((dep, idx) => (
+                      <div key={dep.id} style={{ padding: '14px 20px', borderBottom: idx < deps.length - 1 ? '1px solid #f3f4f6' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ flex: 1, minWidth: '200px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '2px' }}>{dep.nom_deploiement}</div>
+                          {dep.lieu && <div style={{ fontSize: '13px', color: '#6b7280' }}>📍 {dep.lieu}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', backgroundColor: '#f9fafb', textAlign: 'center' }}>
+                    <a href={genererLienDisponibilite(deps[0].deploiement_id)} onClick={(e) => handleDemoNavClick(e, 'Soumettre mes disponibilités')} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: '600', transition: 'background-color 0.2s', display: 'inline-block' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                      Soumettre mes disponibilités
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            // === AUCUN APPEL ===
+            <div style={{ padding: '40px 20px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
+              <p style={{ color: '#374151', margin: '0 0 8px 0', fontWeight: '500', fontSize: '15px' }}>Aucun appel en cours pour le moment</p>
+              <p style={{ color: '#9ca3af', margin: 0, fontSize: '14px' }}>Lorsqu&apos;un déploiement nécessitera votre profil, vous en serez informé ici.</p>
             </div>
           )}
+        </div>
+        )}
+
+        {!loadingCamp && campStatus && !campStatus.is_certified && (
+          <div data-tour="camp" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', border: campStatus.has_inscription ? '1px solid #10b981' : '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+              <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '18px', fontWeight: '600' }}>Camp de qualification</h3>
+              {campStatus.has_inscription && <span style={{ backgroundColor: '#d1fae5', color: '#065f46', padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: '600' }}>Inscrit</span>}
+            </div>
+            {campStatus.has_inscription && campStatus.camp ? (
+              <div>
+                <div style={{ backgroundColor: '#f9fafb', padding: '20px', borderRadius: '8px', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>{campStatus.camp.nom}</div>
+                  <div style={{ display: 'grid', gap: '6px', fontSize: '14px', color: '#4b5563' }}>
+                    {campStatus.camp.dates && <div><strong>Dates :</strong> {campStatus.camp.dates}</div>}
+                    {campStatus.camp.site && <div><strong>Site :</strong> {campStatus.camp.site}</div>}
+                    {campStatus.camp.location && <div style={{ color: '#6b7280' }}>{campStatus.camp.location}</div>}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button onClick={openCampModal} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1e3a5f'; e.currentTarget.style.color = 'white' }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#1e3a5f' }}>
+                    Modifier mon inscription
+                  </button>
+                  <button onClick={handleCancelInscription} disabled={cancellingInscription} style={{ padding: '10px 20px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', fontWeight: '500', cursor: cancellingInscription ? 'not-allowed' : 'pointer', opacity: cancellingInscription ? 0.7 : 1 }} onMouseOver={(e) => { if (!cancellingInscription) { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444' } }} onMouseOut={(e) => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280' }}>
+                    {cancellingInscription ? 'Annulation...' : 'Je ne suis plus disponible'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>Pour devenir réserviste certifié, vous devez compléter un camp de qualification pratique.</p>
+                <button onClick={openCampModal} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2d4a6f'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}>
+                  S&apos;inscrire à un camp de qualification
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+          {isApproved && ciblages.length > 0 && (
+          <a href="/disponibilites" data-tour="disponibilites" style={{ textDecoration: 'none' }} onClick={(e) => handleDemoNavClick(e, 'Mes Disponibilités')}>
+            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📅</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Mes Disponibilités</h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Gérez vos disponibilités pour les déploiements</p>
+            </div>
+          </a>
+          )}
+
+          <a href="/formation" data-tour="formation" style={{ textDecoration: 'none' }} onClick={(e) => handleDemoNavClick(e, 'Formation et parcours')}>
+            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>🎓</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Formation et parcours</h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Formation, certificats et camp de qualification</p>
+            </div>
+          </a>
+
+          <a href="/informations" data-tour="informations" style={{ textDecoration: 'none' }} onClick={(e) => handleDemoNavClick(e, 'Informations pratiques')}>
+            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Informations pratiques</h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Documents, ressources et références utiles</p>
+            </div>
+          </a>
+
+          <a href="/communaute" data-tour="communaute" style={{ textDecoration: 'none', position: 'relative' }} onClick={(e) => handleDemoNavClick(e, 'Communauté')}>
+            <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', transition: 'all 0.2s', cursor: 'pointer', border: '1px solid transparent' }} onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = '#1e3a5f' }} onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.borderColor = 'transparent' }}>
+              <div style={{ fontSize: '32px', marginBottom: '12px', position: 'relative', display: 'inline-block' }}>
+                💬
+                {unreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: '-4px', right: '-12px', backgroundColor: '#dc2626', color: 'white', fontSize: '11px', fontWeight: '700', borderRadius: '10px', padding: '2px 6px', minWidth: '20px', textAlign: 'center' }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </div>
+              <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Communauté</h3>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Échangez avec les réservistes</p>
+            </div>
+          </a>
         </div>
       </main>
 
-      <ImpersonateBanner position="bottom" />
+      <GuidedTour
+        isApproved={isApproved}
+        hasCertificat={certificats.length > 0}
+        hasDeploiements={deploiementsActifs.length > 0}
+        hasCiblages={ciblages.length > 0}
+        forceStart={showTour}
+        onTourEnd={() => setShowTour(false)}
+      />
+
+      <ImpersonateBanner />
+
+      {/* 🎯 DEMO MODE - Bandeau informatif */}
+      {isDemoMode && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: '#7c3aed',
+          color: 'white',
+          padding: '8px 16px',
+          fontSize: '13px',
+          fontWeight: '500',
+          textAlign: 'center',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+        }}>
+          <span>🎯 Mode démonstration — Données fictives</span>
+          <span style={{ opacity: 0.7 }}>|</span>
+          <span>Profil actuel : <strong>{demoGroupe === 'Intérêt' ? 'Nouveau réserviste (Intérêt)' : 'Réserviste approuvé'}</strong></span>
+        </div>
+      )}
+
+      {/* 🎯 DEMO MODE - Bouton flottant pour basculer */}
+      {isDemoMode && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 9998,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '10px',
+        }}>
+          <button
+            onClick={handleDemoToggle}
+            style={{
+              padding: '14px 24px',
+              backgroundColor: demoGroupe === 'Intérêt' ? '#059669' : '#f59e0b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+              transition: 'all 0.3s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+            onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.05)' }}
+            onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)' }}
+          >
+            {demoGroupe === 'Intérêt' ? (
+              <>🔄 Voir en mode Approuvé</>
+            ) : (
+              <>🔄 Voir en mode Intérêt</>
+            )}
+          </button>
+          <button
+            onClick={handleSignOut}
+            style={{
+              padding: '10px 18px',
+              backgroundColor: 'white',
+              color: '#6b7280',
+              border: '1px solid #d1d5db',
+              borderRadius: '50px',
+              fontSize: '13px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            Quitter la démo
+          </button>
+        </div>
+      )}
+
+      {/* 🎯 DEMO Toast */}
+      {demoToast && (
+        <div style={{
+          position: 'fixed',
+          top: isDemoMode ? '48px' : '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#1e3a5f',
+          color: 'white',
+          padding: '14px 24px',
+          borderRadius: '10px',
+          fontSize: '14px',
+          fontWeight: '500',
+          zIndex: 10000,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+          maxWidth: '500px',
+          textAlign: 'center',
+          animation: 'fadeIn 0.3s ease-out',
+        }}>
+          {demoToast}
+        </div>
+      )}
+
+      <footer style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '24px', textAlign: 'center', marginTop: '60px' }}>
+        <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>© 2026 AQBRS - Association québécoise des bénévoles en recherche et sauvetage</p>
+      </footer>
     </div>
   )
 }
