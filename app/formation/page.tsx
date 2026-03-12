@@ -981,9 +981,32 @@ function FormationContent() {
                         {isInitier && certificats.length > 0 && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             {certificats.map((cert) => (
-                              <a key={cert.id} href={cert.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
-                                📄 {cert.name}
-                              </a>
+                              <div key={cert.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
+                                  📄 {cert.name}
+                                </a>
+                                {confirmSupprimerCertId === f.id ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                                    <span style={{ color: '#6b7280' }}>Retirer ?</span>
+                                    <button onClick={() => supprimerCertificat(f.id)} disabled={suppressionEnCours}
+                                      style={{ padding: '2px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>
+                                      {suppressionEnCours ? '...' : 'Oui'}
+                                    </button>
+                                    <button onClick={() => setConfirmSupprimerCertId(null)}
+                                      style={{ padding: '2px 8px', backgroundColor: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
+                                      Non
+                                    </button>
+                                  </span>
+                                ) : (
+                                  <button onClick={() => setConfirmSupprimerCertId(f.id)}
+                                    title="Retirer le certificat"
+                                    style={{ padding: '4px 6px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.5, lineHeight: 1 }}
+                                    onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                                    onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}>
+                                    🗑️
+                                  </button>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
