@@ -13,7 +13,7 @@ interface Reserviste {
   benevole_id: string;
   prenom: string;
   nom: string;
-  email: string;
+  email: string;a
   photo_url?: string;
 }
 
@@ -656,7 +656,7 @@ export default function CommunautePage() {
               </div>
             )}
 
-            {messages.map((msg, idx) => {
+            {messages.filter(msg => !msg.is_deleted).map((msg, idx) => {
               const showHeader = shouldShowHeader(msg, idx);
               const isMe = reserviste?.benevole_id === msg.benevole_id;
               const replyParent = getReplyParent(msg);
