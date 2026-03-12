@@ -490,6 +490,34 @@ function FormationContent() {
   const [uploadingForFormationNom, setUploadingForFormationNom] = useState<string | null>(null);
   const [uploadedFormationIds, setUploadedFormationIds] = useState<Set<string>>(new Set());
   const formationCertInputRef = useRef<HTMLInputElement>(null);
+  const [confirmSupprimerCertId, setConfirmSupprimerCertId] = useState<string | null>(null);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
+
+  const supprimerCertificat = async (formationId: string) => {
+    if (!reserviste) return;
+    setSuppressionEnCours(true);
+    try {
+      const formation = formations.find(f => f.id === formationId);
+      if (formation?.fichiers?.[0]) {
+        // Supprimer du storage si c'est un fichier portail
+        const storageKey = `${reserviste.benevole_id}/${formationId}`;
+        const { data: files } = await supabase.storage.from('certificats').list(reserviste.benevole_id);
+        const toDelete = files?.find(f => f.name.startsWith(formationId));
+        if (toDelete) {
+          await supabase.storage.from('certificats').remove([`${reserviste.benevole_id}/${toDelete.name}`]);
+        }
+      }
+      // Mettre à jour la DB
+      await supabase.from('formations_benevoles').update({ certificat_url: null }).eq('id', formationId);
+      // Mettre à jour l'état local
+      setFormations(prev => prev.map(f => f.id === formationId ? { ...f, has_fichier: false, fichiers: [] } : f));
+      setUploadedFormationIds(prev => { const s = new Set(prev); s.delete(formationId); return s; });
+    } catch (e) {
+      console.error('Erreur suppression certificat:', e);
+    }
+    setSuppressionEnCours(false);
+    setConfirmSupprimerCertId(null);
+  };
 
   const handleFormationCertUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -991,15 +1019,38 @@ function FormationContent() {
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             {f.fichiers && f.fichiers.length > 0 ? (
                               f.fichiers.map((fichier, fi) => (
-                                fichier.url ? (
-                                  <a key={fi} href={fichier.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500', cursor: 'pointer' }}>
-                                    📄 {fichier.name}
-                                  </a>
-                                ) : (
-                                  <span key={fi} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
-                                    ✅ {fichier.name}
-                                  </span>
-                                )
+                                <div key={fi} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  {fichier.url ? (
+                                    <a href={fichier.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500', cursor: 'pointer' }}>
+                                      📄 {fichier.name}
+                                    </a>
+                                  ) : (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                                      ✅ {fichier.name}
+                                    </span>
+                                  )}
+                                  {confirmSupprimerCertId === f.id ? (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                                      <span style={{ color: '#6b7280' }}>Retirer ?</span>
+                                      <button onClick={() => supprimerCertificat(f.id)} disabled={suppressionEnCours}
+                                        style={{ padding: '2px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>
+                                        {suppressionEnCours ? '...' : 'Oui'}
+                                      </button>
+                                      <button onClick={() => setConfirmSupprimerCertId(null)}
+                                        style={{ padding: '2px 8px', backgroundColor: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
+                                        Non
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <button onClick={() => setConfirmSupprimerCertId(f.id)}
+                                      title="Retirer le certificat"
+                                      style={{ padding: '4px 6px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.5, lineHeight: 1 }}
+                                      onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                                      onMouseOut={(e) => e.currentTarget.style.opacity = '0.5'}>
+                                      🗑️
+                                    </button>
+                                  )}
+                                </div>
                               ))
                             ) : (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
