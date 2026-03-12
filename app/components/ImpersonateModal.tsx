@@ -158,7 +158,9 @@ export default function ImpersonateModal({ onClose, onImpersonate }: Impersonate
                 border: '2px solid #e5e7eb',
                 borderRadius: '8px',
                 fontSize: '15px',
-                outline: 'none'
+                outline: 'none',
+                color: '#111827',
+                backgroundColor: '#ffffff'
               }}
               onFocus={(e) => e.currentTarget.style.borderColor = '#1e3a5f'}
               onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
