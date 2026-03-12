@@ -136,10 +136,6 @@ export default function HomePage() {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('formation_banner_dismissed') !== '1'
   })
-  const [showFormationBanner, setShowFormationBanner] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return localStorage.getItem('formation_banner_dismissed') !== '1'
-  })
   const [demoGroupe, setDemoGroupe] = useState<'Intérêt' | 'Approuvé'>('Intérêt')
   const router = useRouter()
 
@@ -1051,28 +1047,6 @@ export default function HomePage() {
       )}
 
       <PortailHeader subtitle="Réserve d'Intervention d'Urgence" />
-
-      {showFormationBanner && (
-        <div style={{ backgroundColor: '#1e3a5f', borderBottom: '3px solid #ffd166', padding: '12px 24px' }}>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '20px' }}>🎓</span>
-              <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: '500' }}>
-                <strong style={{ color: '#ffd166' }}>Nouveau !</strong> Les formations en ligne sont maintenant disponibles sur le portail.
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-              <a href="/formations-en-ligne" style={{ backgroundColor: '#ffd166', color: '#1e3a5f', textDecoration: 'none', fontSize: '13px', fontWeight: '700', padding: '7px 16px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
-                Découvrir →
-              </a>
-              <button onClick={() => { setShowFormationBanner(false); localStorage.setItem('formation_banner_dismissed', '1') }}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: '20px', lineHeight: '1', padding: '0 4px' }}>
-                ×
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showFormationBanner && (
         <div style={{ backgroundColor: '#1e3a5f', borderBottom: '3px solid #ffd166', padding: '12px 24px' }}>
