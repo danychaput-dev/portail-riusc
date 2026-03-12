@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 import GuidedTour from './components/GuidedTour'
@@ -138,6 +138,14 @@ export default function HomePage() {
   })
   const [demoGroupe, setDemoGroupe] = useState<'Intérêt' | 'Approuvé'>('Intérêt')
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('tour') === '1') {
+      window.history.replaceState({}, '', '/')
+      setTimeout(() => window.dispatchEvent(new Event('restart-guided-tour')), 800)
+    }
+  }, [searchParams])
   const supabase = createClient()
   
   const { user: authUser, loading: authLoading } = useAuth()

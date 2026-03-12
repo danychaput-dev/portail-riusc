@@ -466,7 +466,11 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 <button
                   onClick={() => {
                     setShowUserMenu(false)
-                    window.dispatchEvent(new Event('restart-guided-tour'))
+                    if (window.location.pathname !== '/') {
+                      window.location.href = '/?tour=1'
+                    } else {
+                      window.dispatchEvent(new Event('restart-guided-tour'))
+                    }
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
