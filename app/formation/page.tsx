@@ -97,7 +97,6 @@ function FormationContent() {
   const [loading, setLoading] = useState(true);
 
   const [certificats, setCertificats] = useState<CertificatFile[]>([]);
-  const [lmsInitierComplete, setLmsInitierComplete] = useState(false);
   const [loadingCertificats, setLoadingCertificats] = useState(true);
   const [uploadingCertificat, setUploadingCertificat] = useState(false);
   const [certificatMessage, setCertificatMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -184,12 +183,11 @@ function FormationContent() {
           if (userData.benevole_id) {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
-            const [certResult, campResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
+            const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
-              supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
-              supabase.from('lms_progression').select('statut, module_id').eq('benevole_id', bid)
+              supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
 
             // Certificats
@@ -209,12 +207,6 @@ function FormationContent() {
               setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
             }
             setLoadingFormations(false);
-
-            // LMS progression — S'initier
-            if (lmsResult.status === 'fulfilled' && lmsResult.value?.data) {
-              const lmsData = lmsResult.value.data;
-              setLmsInitierComplete(lmsData.some((p: any) => p.statut === 'complété'));
-            }
 
             // Documents officiels + signed URLs
             if (docsResult.status === 'fulfilled') {
@@ -311,12 +303,11 @@ function FormationContent() {
       if (reservisteData.benevole_id) {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
-        const [certResult, campResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
+        const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
-          supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
-          supabase.from('lms_progression').select('statut, module_id').eq('benevole_id', bid)
+          supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
 
         // Certificats
@@ -336,13 +327,6 @@ function FormationContent() {
           setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
         }
         setLoadingFormations(false);
-
-        // LMS progression — S'initier
-        if (lmsResult.status === 'fulfilled' && lmsResult.value?.data) {
-          const lmsData = lmsResult.value.data;
-          const hasCompleted = lmsData.some((p: any) => p.statut === 'complété');
-          setLmsInitierComplete(hasCompleted);
-        }
 
         // Documents officiels + signed URLs
         if (docsResult.status === 'fulfilled') {
@@ -592,7 +576,7 @@ function FormationContent() {
           })
         });
         const data = await response.json();
-        if (data.success) {
+        if (data.success || data === 1 || data === '1' || response.ok) {
           setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
           if (uploadingForFormationId) {
             setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
@@ -994,24 +978,6 @@ function FormationContent() {
                         )}
 
                         {/* Documents liés — S'initier : certificats du webhook */}
-                        {isInitier && lmsInitierComplete && certificats.length === 0 && (
-                          <div style={{ marginTop: '8px' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', fontSize: '12px', color: '#1e40af', fontWeight: '500' }}>
-                              🎓 Formation complétée via le portail
-                            </span>
-                          </div>
-                        )}
-                        {isInitier && certificats.length === 0 && (
-                          <div style={{ marginTop: '8px' }}>
-                            <button
-                              onClick={() => { setUploadingForFormationId(f.id); setUploadingForFormationNom(f.catalogue || f.nom); formationCertInputRef.current?.click(); }}
-                              disabled={uploadingCertificat}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', color: '#dc2626', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer' }}
-                            >
-                              {uploadingCertificat && uploadingForFormationId === f.id ? '⏳ Envoi...' : '📤 Ajouter un certificat'}
-                            </button>
-                          </div>
-                        )}
                         {isInitier && certificats.length > 0 && (
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             {certificats.map((cert) => (
