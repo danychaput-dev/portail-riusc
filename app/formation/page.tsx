@@ -936,7 +936,7 @@ function FormationContent() {
                     const isCohorte = cat.includes('cohorte');
                     const certDoc = isCohorte ? documentsOfficiels.find(d => d.type_document === 'certificat') : null;
                     const lettreDoc = isCohorte ? documentsOfficiels.find(d => d.type_document === 'lettre') : null;
-                    const hasCert = uploadedFormationIds.has(f.id) || f.has_fichier || (isInitier ? certificats.length > 0 : isCohorte ? !!certDoc : false);
+                    const hasCert = uploadedFormationIds.has(f.id) || f.has_fichier || (isInitier ? (certificats.length > 0 || uploadedFormationIds.has(f.id)) : isCohorte ? !!certDoc : false);
 
                     return (
                   <div key={f.id} style={{ padding: '16px 24px', borderBottom: index < formations.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
@@ -1008,6 +1008,19 @@ function FormationContent() {
                                 )}
                               </div>
                             ))}
+                          </div>
+                        )}
+
+                        {/* Bouton upload S'initier si pas de certificat */}
+                        {isInitier && certificats.length === 0 && !uploadedFormationIds.has(f.id) && !f.has_fichier && (
+                          <div style={{ marginTop: '8px' }}>
+                            <button
+                              onClick={() => { setUploadingForFormationId(f.id); setUploadingForFormationNom(f.catalogue || f.nom); formationCertInputRef.current?.click(); }}
+                              disabled={uploadingCertificat}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', color: '#dc2626', fontWeight: '500', cursor: uploadingCertificat ? 'not-allowed' : 'pointer' }}
+                            >
+                              {uploadingCertificat && uploadingForFormationId === f.id ? '⏳ Envoi...' : '📤 Ajouter un certificat'}
+                            </button>
                           </div>
                         )}
 
