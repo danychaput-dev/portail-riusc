@@ -528,7 +528,7 @@ function FormationContent() {
 
   const handleFormationCertUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !reserviste) return;
+    if (!file || !reserviste || !reserviste.benevole_id) return;
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) { setCertificatMessage({ type: 'error', text: 'Format accepté : PDF, JPG ou PNG' }); return; }
     if (file.size > 10 * 1024 * 1024) { setCertificatMessage({ type: 'error', text: 'Le fichier ne doit pas dépasser 10 Mo' }); return; }
