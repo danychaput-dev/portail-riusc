@@ -509,6 +509,12 @@ function FormationContent() {
       }
       // Mettre à jour la DB
       await supabase.from('formations_benevoles').update({ certificat_url: null }).eq('id', formationId);
+      // Synchroniser suppression avec Monday
+      await fetch('https://n8n.aqbrs.ca/webhook/riusc-supprimer-certificat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ formation_id: formationId, benevole_id: reserviste.benevole_id })
+      }).catch(e => console.error('Erreur sync Monday suppression:', e));
       // Mettre à jour l'état local
       setFormations(prev => prev.map(f => f.id === formationId ? { ...f, has_fichier: false, fichiers: [] } : f));
       setUploadedFormationIds(prev => { const s = new Set(prev); s.delete(formationId); return s; });
@@ -576,8 +582,9 @@ function FormationContent() {
             formation_nom: uploadingForFormationNom || null
           })
         });
-        const data = await response.json();
-        if (data.success || data === 1 || data === '1' || response.ok) {
+        let data: any = null;
+        try { data = await response.json(); } catch { data = null; }
+        if (response.ok || data?.success || data === 1 || data === '1') {
           setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
           if (uploadingForFormationId) {
             setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
