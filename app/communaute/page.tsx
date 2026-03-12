@@ -13,7 +13,7 @@ interface Reserviste {
   benevole_id: string;
   prenom: string;
   nom: string;
-  email: string;a
+  email: string;
   photo_url?: string;
 }
 
