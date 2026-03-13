@@ -464,6 +464,12 @@ function FormationContent() {
     return cat.includes('initier') || cat.includes("s'initier");
   });
 
+  // Statut Découvrir et utiliser le portail RIUSC
+  const hasDecouvrirPortail = formations.some(f => {
+    const cat = (f.catalogue || f.nom || '').toLowerCase();
+    return cat.includes('découvrir') && cat.includes('portail');
+  });
+
   // Description camp selon statut
   const campDescription = campStatus?.is_certified
     ? 'Complété'
@@ -474,6 +480,7 @@ function FormationContent() {
   const steps = [
     { id: 'profil', label: 'Compléter mon profil', done: isProfilComplet, href: '/profil', onClick: null as (() => void) | null, emoji: '👤', description: isProfilComplet ? 'Profil complété' : 'Vérifiez et complétez vos informations personnelles' },
     { id: 'sinitier', label: "S'initier à la sécurité civile", done: hasSinitier, href: null, onClick: null as (() => void) | null, emoji: '🎓', description: hasSinitier ? 'Formation complétée' : 'Formation en ligne obligatoire (environ 1 h 45)' },
+    { id: 'decouvrir_portail', label: 'Découvrir et utiliser le portail RIUSC', done: hasDecouvrirPortail, href: '/formation', onClick: null as (() => void) | null, emoji: '💻', description: hasDecouvrirPortail ? 'Formation complétée' : 'Formation en ligne sur le portail RIUSC' },
     { id: 'camp', label: 'Camp de qualification', done: campStatus?.is_certified || false, href: null, onClick: (!campStatus?.is_certified ? openCampModal : null) as (() => void) | null, emoji: '🏕️', description: campDescription },
     { id: 'antecedents', label: 'Antécédents judiciaires', done: antecedentsDone, href: null, onClick: null as (() => void) | null, emoji: '🔍', description: antecedentsDescription },
   ];
