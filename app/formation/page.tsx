@@ -974,7 +974,7 @@ function FormationContent() {
                                 {f.role}
                               </span>
                             )}
-                            {f.resultat && f.resultat === 'En attente' && f.certificat_requis ? (
+                            {f.resultat && f.resultat === 'En attente' && f.certificat_requis && !hasCert ? (
                               <button onClick={() => { if (editingDatesForId === f.id) { setEditingDatesForId(null); } else { setEditingDatesForId(f.id); } }} style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '20px', fontSize: '11px', fontWeight: '600', border: '1px solid #fca5a5', cursor: 'pointer' }}>⚠️ Certificat manquant</button>
                             ) : f.resultat ? (
                               <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: f.resultat === 'Réussi' ? '#ecfdf5' : '#fef3c7', color: f.resultat === 'Réussi' ? '#065f46' : '#92400e', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>
