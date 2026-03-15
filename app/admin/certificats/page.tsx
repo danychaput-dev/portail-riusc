@@ -14,6 +14,7 @@ interface CertificatEnAttente {
   email: string
   signedUrl?: string
   dateInput?: string
+  dateExpiration?: string
   statut?: 'idle' | 'saving' | 'saved' | 'error'
 }
 
@@ -74,6 +75,7 @@ export default function AdminCertificatsPage() {
             email: res?.email || '',
             signedUrl,
             dateInput: '',
+            dateExpiration: '',
             statut: 'idle' as const,
           }
         }))
@@ -88,6 +90,10 @@ export default function AdminCertificatsPage() {
     setCertificats(prev => prev.map(c => c.id === id ? { ...c, dateInput: value } : c))
   }
 
+  const handleDateExpirationChange = (id: string, value: string) => {
+    setCertificats(prev => prev.map(c => c.id === id ? { ...c, dateExpiration: value } : c))
+  }
+
   const handleApprouver = async (id: string) => {
     const cert = certificats.find(c => c.id === id)
     if (!cert?.dateInput) return
@@ -96,7 +102,11 @@ export default function AdminCertificatsPage() {
 
     const { error } = await supabase
       .from('formations_benevoles')
-      .update({ resultat: 'Réussi', date_reussite: cert.dateInput })
+      .update({
+        resultat: 'Réussi',
+        date_reussite: cert.dateInput,
+        ...(cert.dateExpiration ? { date_expiration: cert.dateExpiration } : {}),
+      })
       .eq('id', id)
 
     if (error) {
@@ -215,39 +225,52 @@ export default function AdminCertificatsPage() {
                 {/* Saisie date — visible si sélectionné et pas encore approuvé */}
                 {selectedId === cert.id && cert.statut !== 'saved' && (
                   <div
-                    style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '8px', alignItems: 'center' }}
+                    style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: '8px' }}
                     onClick={e => e.stopPropagation()}
                   >
-                    <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
-                        DATE DE RÉUSSITE
-                      </label>
-                      <input
-                        type="date"
-                        value={cert.dateInput || ''}
-                        onChange={e => handleDateChange(cert.id, e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                      />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
+                          DATE DE RÉUSSITE *
+                        </label>
+                        <input
+                          type="date"
+                          value={cert.dateInput || ''}
+                          onChange={e => handleDateChange(cert.id, e.target.value)}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>
+                          DATE D'EXPIRATION <span style={{ color: '#9ca3af', fontWeight: '400' }}>(optionnel)</span>
+                        </label>
+                        <input
+                          type="date"
+                          value={cert.dateExpiration || ''}
+                          onChange={e => handleDateExpirationChange(cert.id, e.target.value)}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleApprouver(cert.id)}
+                        disabled={!cert.dateInput || cert.statut === 'saving'}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb',
+                          color: cert.dateInput ? 'white' : '#9ca3af',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: cert.dateInput ? 'pointer' : 'not-allowed',
+                          whiteSpace: 'nowrap',
+                          transition: 'background-color 0.2s',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleApprouver(cert.id)}
-                      disabled={!cert.dateInput || cert.statut === 'saving'}
-                      style={{
-                        marginTop: '18px',
-                        padding: '8px 16px',
-                        backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb',
-                        color: cert.dateInput ? 'white' : '#9ca3af',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: cert.dateInput ? 'pointer' : 'not-allowed',
-                        whiteSpace: 'nowrap',
-                        transition: 'background-color 0.2s',
-                      }}
-                    >
-                      {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
-                    </button>
                   </div>
                 )}
 
