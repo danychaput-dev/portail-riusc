@@ -120,6 +120,7 @@ function FormationContent() {
 
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
+  const [lmsPortailProgression, setLmsPortailProgression] = useState<{ statut: string; date_completion: string | null } | null>(null);
 
   // Helper: mapper les formations avec signed URLs pour les certificats Supabase Storage
   const mapFormationsWithSignedUrls = async (rawFormations: any[]) => {
@@ -183,11 +184,12 @@ function FormationContent() {
           if (userData.benevole_id) {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
-            const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+            const [certResult, campResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
               fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
-              supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
+              supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
+              supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
             ]);
 
             // Certificats
@@ -223,6 +225,11 @@ function FormationContent() {
                 await Promise.allSettled(urlPromises);
                 setDocumentUrls(urls);
               }
+            }
+
+            // LMS progression portail
+            if (lmsResult.status === 'fulfilled' && lmsResult.value?.data) {
+              setLmsPortailProgression(lmsResult.value.data);
             }
           } else {
             setLoadingCertificats(false); setLoadingCamp(false); setLoadingFormations(false);
@@ -303,11 +310,12 @@ function FormationContent() {
       if (reservisteData.benevole_id) {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
-        const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+        const [certResult, campResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
           fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
-          supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
+          supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
+          supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
         ]);
 
         // Certificats
@@ -343,6 +351,11 @@ function FormationContent() {
             await Promise.allSettled(urlPromises);
             setDocumentUrls(urls);
           }
+        }
+
+        // LMS progression portail
+        if (lmsResult.status === 'fulfilled' && lmsResult.value?.data) {
+          setLmsPortailProgression(lmsResult.value.data);
         }
       } else {
         setLoadingCertificats(false);
@@ -465,7 +478,7 @@ function FormationContent() {
   });
 
   // Statut Découvrir et utiliser le portail RIUSC
-  const hasDecouvrirPortail = formations.some(f => {
+  const hasDecouvrirPortail = lmsPortailProgression?.statut === 'complété' || formations.some(f => {
     const cat = (f.catalogue || f.nom || '').toLowerCase();
     return cat.includes('découvrir') && cat.includes('portail');
   });
@@ -928,7 +941,7 @@ function FormationContent() {
         )}
 
         {/* SECTION : Mes formations complétées */}
-        {!loadingFormations && formations.length > 0 && (
+        {!loadingFormations && (formations.length > 0 || lmsPortailProgression?.statut === 'complété') && (
           <>
             <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
               <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>MES FORMATIONS</span>
@@ -937,7 +950,7 @@ function FormationContent() {
             <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '16px' }}>
               <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
                 <div style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Formations complétées</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{formations.length} formation{formations.length > 1 ? 's' : ''} au dossier</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>{formations.length + (lmsPortailProgression?.statut === 'complété' ? 1 : 0)} formation{(formations.length + (lmsPortailProgression?.statut === 'complété' ? 1 : 0)) > 1 ? 's' : ''} au dossier</div>
               </div>
 
               <div style={{ padding: '0' }}>
@@ -1170,13 +1183,39 @@ function FormationContent() {
                   </div>
                     );
                   })}
+
+                {/* Entrée LMS — Découvrir et utiliser le portail RIUSC */}
+                {lmsPortailProgression?.statut === 'complété' && (
+                  <div style={{ padding: '16px 24px', borderTop: formations.length > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                        💻
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>Découvrir et utiliser le portail RIUSC</div>
+                          {lmsPortailProgression.date_completion && (
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {new Date(lmsPortailProgression.date_completion).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </span>
+                          )}
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#ecfdf5', color: '#065f46', borderRadius: '20px', fontSize: '11px', fontWeight: '600' }}>Réussi</span>
+                            <span style={{ display: 'inline-block', padding: '2px 10px', backgroundColor: '#eff6ff', color: '#1e40af', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }}>Formation en ligne</span>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#9ca3af' }}>Portail RIUSC — Premiers pas pour les nouveaux réservistes</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </>
         )}
 
         {/* État vide — aucune formation au dossier */}
-        {!loadingFormations && formations.length === 0 && (
+        {!loadingFormations && formations.length === 0 && !lmsPortailProgression && (
           <>
             <div style={{ margin: '32px 0 24px 0', borderTop: '1px solid #e5e7eb', position: 'relative' }}>
               <span style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#f5f7fa', padding: '0 16px', fontSize: '13px', color: '#9ca3af', fontWeight: '600' }}>MES FORMATIONS</span>
