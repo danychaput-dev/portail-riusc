@@ -435,7 +435,7 @@ export default function AdminCertificatsPage() {
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>EXPIRATION <span style={{ fontWeight: '400' }}>(opt.)</span></label>
                               <input type="date" value={s.dateExpiration} onChange={e => updMonday(item.monday_item_id, 'dateExpiration', e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none' }} />
                             </div>
-                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention || s.status === 'saving'} style={{ padding: '6px 12px', backgroundColor: s.dateObtention ? '#059669' : '#e5e7eb', color: s.dateObtention ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: s.dateObtention ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention} style={{ padding: '6px 12px', backgroundColor: s.dateObtention ? '#059669' : '#e5e7eb', color: s.dateObtention ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: s.dateObtention ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
                               ✅ Approuver
                             </button>
                           </div>
