@@ -336,7 +336,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '6px' }}>Aide et support</div>
                   <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px 0', lineHeight: '1.5' }}>Un problème avec le portail ? Écrivez-nous :</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px' }}>
-                    <span style={{ fontSize: '13px', color: '#111827', flex: 1, fontFamily: 'monospace' }}>support@aqbrs.ca</span>
+                    <span style={{ fontSize: '13px', color: '#111827', flex: 1, fontFamily: 'monospace' }}>support@riusc.ca</span>
                     <button
                       onClick={() => { navigator.clipboard.writeText('support@riusc.ca'); setSupportCopied(true); setTimeout(() => setSupportCopied(false), 2000) }}
                       style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: supportCopied ? '#d1fae5' : '#1e3a5f', color: supportCopied ? '#065f46' : 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
