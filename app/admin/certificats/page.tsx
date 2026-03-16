@@ -230,7 +230,7 @@ export default function AdminCertificatsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id').eq('user_id', user.id).single()
-      if (!reserviste || reserviste.benevole_id !== '8738174928') { router.push('/'); return }
+      if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
       const { data } = await supabase
         .from('formations_benevoles')
         .select('id, benevole_id, nom_complet, nom_formation, certificat_url')
