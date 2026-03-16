@@ -338,14 +338,14 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px' }}>
                     <span style={{ fontSize: '13px', color: '#111827', flex: 1, fontFamily: 'monospace' }}>support@aqbrs.ca</span>
                     <button
-                      onClick={() => { navigator.clipboard.writeText('support@aqbrs.ca'); setSupportCopied(true); setTimeout(() => setSupportCopied(false), 2000) }}
+                      onClick={() => { navigator.clipboard.writeText('support@riusc.ca'); setSupportCopied(true); setTimeout(() => setSupportCopied(false), 2000) }}
                       style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: supportCopied ? '#d1fae5' : '#1e3a5f', color: supportCopied ? '#065f46' : 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
                     >
                       {supportCopied ? '✓ Copié' : 'Copier'}
                     </button>
                   </div>
                   <a
-                    href="mailto:support@aqbrs.ca?subject=Aide%20-%20Portail%20RIUSC"
+                    href="mailto:support@riusc.ca?subject=Aide%20-%20Portail%20RIUSC"
                     style={{ display: 'block', marginTop: '10px', textAlign: 'center', fontSize: '13px', color: '#2563eb', textDecoration: 'none', padding: '7px', borderRadius: '6px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff' }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
