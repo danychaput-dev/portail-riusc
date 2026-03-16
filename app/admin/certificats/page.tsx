@@ -216,12 +216,7 @@ export default function AdminCertificatsPage() {
   const [filterNom, setFilterNom] = useState('')
   const [savedCount, setSavedCount] = useState(0)
   const [activeTab, setActiveTab] = useState<'portail' | 'monday'>('portail')
-  const [mondayItems, setMondayItems] = useState<MondayItem[]>(() =>
-    MONDAY_RAW.map(item => ({
-      ...item,
-      mState: { status: 'idle', formation: FORMATIONS[0], dateObtention: '', dateExpiration: '' },
-    }))
-  )
+  const [mondayItems, setMondayItems] = useState<MondayItem[]>([])
   const [mondaySelectedId, setMondaySelectedId] = useState<number | null>(null)
   const [mondayFilter, setMondayFilter] = useState('')
 
@@ -231,6 +226,20 @@ export default function AdminCertificatsPage() {
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id').eq('user_id', user.id).single()
       if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
+
+      // Vérifier lesquels des 101 Monday sont déjà dans formations_benevoles
+      const mondayIds = MONDAY_RAW.map(i => i.monday_item_id)
+      const { data: existingMonday } = await supabase
+        .from('formations_benevoles')
+        .select('monday_item_id')
+        .in('monday_item_id', mondayIds)
+      const alreadyDone = new Set((existingMonday || []).map(r => r.monday_item_id))
+      setMondayItems(
+        MONDAY_RAW
+          .filter(item => !alreadyDone.has(item.monday_item_id))
+          .map(item => ({ ...item, mState: { status: 'idle', formation: FORMATIONS[0], dateObtention: '', dateExpiration: '' } }))
+      )
+
       const { data } = await supabase
         .from('formations_benevoles')
         .select('id, benevole_id, nom_complet, nom_formation, certificat_url')
