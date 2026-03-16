@@ -462,16 +462,34 @@ export default function AdminCertificatsPage() {
                         </div>
                       )}
                     </div>
-                    <div style={{ height: 'calc(100vh - 320px)' }}>
-                      {mondaySelected.files[0]?.url ? (
-                        isImage(mondaySelected.files[0].url)
-                          ? <img src={mondaySelected.files[0].url} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '16px', boxSizing: 'border-box' }} />
-                          : <iframe src={mondaySelected.files[0].url} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat" />
-                      ) : (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#9ca3af' }}>
-                          {mondaySelected.files.map((f, i) => <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '8px', color: '#2563eb', fontSize: '13px' }}>↗ Ouvrir {f.name}</a>)}
-                        </div>
-                      )}
+                    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#6b7280' }}>
+                        Les fichiers Monday s'ouvrent dans un nouvel onglet :
+                      </p>
+                      {mondaySelected.files.map((f, i) => (
+                        <a
+                          key={i}
+                          href={f.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            padding: '14px 16px', backgroundColor: '#f0f4ff',
+                            border: '1px solid #c7d2fe', borderRadius: '8px',
+                            textDecoration: 'none', color: '#1e40af',
+                            fontSize: '13px', fontWeight: '500',
+                            transition: 'background-color 0.15s',
+                          }}
+                        >
+                          <span style={{ fontSize: '20px' }}>
+                            {isImage(f.url) ? '🖼️' : '📄'}
+                          </span>
+                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {f.name}
+                          </span>
+                          <span style={{ flexShrink: 0, fontSize: '12px', color: '#6366f1' }}>↗ Ouvrir</span>
+                        </a>
+                      ))}
                     </div>
                   </>
                 )}
