@@ -435,6 +435,8 @@ export default function ProfilPage() {
   const [demoTestTel, setDemoTestTel] = useState('')
   const [formationDialog, setFormationDialog] = useState<{ show: boolean; removedLabels: string[]; addedLabels: string[]; pendingSave: (() => Promise<void>) | null }>({ show: false, removedLabels: [], addedLabels: [], pendingSave: null })
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [emailConfirm, setEmailConfirm] = useState('')
+  const [emailConfirmError, setEmailConfirmError] = useState('')
 
   // États pour le dossier
   const [dossier, setDossier] = useState<DossierData>({
@@ -1111,6 +1113,22 @@ export default function ProfilPage() {
   const handleSave = async () => {
     if (!reserviste) return
     if (isDemoActive()) { setSaveMessage({ type: 'success', text: 'Mode démonstration — les modifications ne sont pas enregistrées.' }); return }
+
+    // Valider la confirmation d'email si l'email a changé
+    const emailChanged = dossier.email && dossier.email !== originalDossier.email
+    if (emailChanged) {
+      if (!emailConfirm.trim()) {
+        setEmailConfirmError('Veuillez confirmer le nouveau courriel')
+        setSaveMessage({ type: 'error', text: 'Veuillez confirmer le nouveau courriel avant de sauvegarder.' })
+        return
+      }
+      if (dossier.email.toLowerCase().trim() !== emailConfirm.toLowerCase().trim()) {
+        setEmailConfirmError('Les courriels ne correspondent pas')
+        setSaveMessage({ type: 'error', text: 'Les courriels ne correspondent pas.' })
+        return
+      }
+    }
+
     setSaving(true)
     setSaveMessage(null)
 
@@ -1559,9 +1577,27 @@ export default function ProfilPage() {
           <TextInput
             label="Courriel"
             value={dossier.email}
-            onChange={v => updateDossier('email', v)}
+            onChange={v => { updateDossier('email', v); setEmailConfirm(''); setEmailConfirmError('') }}
             type="email"
           />
+          {dossier.email !== originalDossier.email && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                Confirmer le nouveau courriel
+              </label>
+              <input
+                type="email"
+                value={emailConfirm}
+                onChange={e => { setEmailConfirm(e.target.value); setEmailConfirmError('') }}
+                onPaste={e => e.preventDefault()}
+                placeholder="Répétez le nouveau courriel"
+                autoComplete="off"
+                style={{ width: '100%', padding: '10px 12px', fontSize: '14px', border: emailConfirmError ? '1px solid #dc2626' : '1px solid #d1d5db', borderRadius: '6px', boxSizing: 'border-box' as const, backgroundColor: emailConfirmError ? '#fef2f2' : 'white' }}
+              />
+              {emailConfirmError && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{emailConfirmError}</p>}
+              <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>Le courriel sera mis à jour lors de la sauvegarde</p>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
             <div>

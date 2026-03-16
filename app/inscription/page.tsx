@@ -73,6 +73,7 @@ export default function InscriptionPage() {
   const [step, setStep] = useState<'form' | 'success'>('form')
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [emailConfirm, setEmailConfirm] = useState('')
   const [campInscrit, setCampInscrit] = useState(false)
   const [nomCampInscrit, setNomCampInscrit] = useState('')
   const [isListeAttente, setIsListeAttente] = useState(false)
@@ -390,6 +391,11 @@ export default function InscriptionPage() {
     if (!formData.prenom.trim()) errors.prenom = 'Le prénom est requis'
     if (!formData.nom.trim()) errors.nom = 'Le nom est requis'
     if (!formData.email.trim() || !formData.email.includes('@')) errors.email = 'Courriel invalide'
+    if (!emailConfirm.trim()) {
+      errors.emailConfirm = 'Veuillez confirmer votre courriel'
+    } else if (formData.email.toLowerCase().trim() !== emailConfirm.toLowerCase().trim()) {
+      errors.emailConfirm = 'Les courriels ne correspondent pas'
+    }
     const phoneDigits = cleanPhoneForSave(formData.telephone)
     if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
     if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise"
@@ -664,8 +670,21 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
               </div>
               <div>
                 <label style={labelStyle}>Courriel {requiredStar}</label>
-                <input type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} style={fieldErrors.email ? inputErrorStyle : inputStyle} placeholder="votre.nom@example.com" />
+                <input type="email" value={formData.email} onChange={(e) => { handleInputChange('email', e.target.value); if (fieldErrors.emailConfirm) setFieldErrors(prev => ({ ...prev, emailConfirm: '' })) }} style={fieldErrors.email ? inputErrorStyle : inputStyle} placeholder="votre.nom@example.com" autoComplete="email" />
                 {fieldErrors.email && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.email}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Confirmer le courriel {requiredStar}</label>
+                <input
+                  type="email"
+                  value={emailConfirm}
+                  onChange={(e) => { setEmailConfirm(e.target.value); if (fieldErrors.emailConfirm) setFieldErrors(prev => ({ ...prev, emailConfirm: '' })) }}
+                  onPaste={(e) => e.preventDefault()}
+                  style={fieldErrors.emailConfirm ? inputErrorStyle : inputStyle}
+                  placeholder="Répétez votre courriel"
+                  autoComplete="off"
+                />
+                {fieldErrors.emailConfirm && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.emailConfirm}</p>}
               </div>
               <div>
                 <label style={labelStyle}>Téléphone mobile {requiredStar}</label>
