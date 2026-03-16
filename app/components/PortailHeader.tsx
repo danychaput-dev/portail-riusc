@@ -195,13 +195,13 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         // Une seule requête Supabase pour tout — remplace les 2 webhooks n8n Monday
         const { data: formations } = await supabase
           .from('formations_benevoles')
-          .select('resultat, initiation_sc_completee, source, nom_formation')
+          .select('resultat, source, nom_formation')
           .eq('benevole_id', res.benevole_id)
           .eq('resultat', 'Réussi')
 
         if (formations) {
-          // S'initier = initiation_sc_completee = true et résultat Réussi
-          const hasCert = formations.some(f => f.initiation_sc_completee === true)
+          // S'initier = même logique que page formation — cherche par nom_formation
+          const hasCert = formations.some(f => (f.nom_formation || '').toLowerCase().includes('initier'))
           setHasCertificats(hasCert)
 
           // Camp réussi = source monday + nom_formation contient "camp"
