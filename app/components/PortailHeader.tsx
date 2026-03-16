@@ -52,6 +52,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showImpersonateModal, setShowImpersonateModal] = useState(false)
   const [showStatusTooltip, setShowStatusTooltip] = useState(false)
+  const [showSupportTooltip, setShowSupportTooltip] = useState(false)
+  const [supportCopied, setSupportCopied] = useState(false)
   const [unreadCommunaute, setUnreadCommunaute] = useState(0)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
@@ -315,6 +317,45 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>{subtitle}</p>
             </div>
           </a>
+
+          {/* Bouton support */}
+          <div style={{ position: 'relative', marginLeft: 'auto', marginRight: '16px' }}>
+            <button
+              onClick={() => setShowSupportTooltip(v => !v)}
+              title="Aide et support"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid #d1d5db', backgroundColor: showSupportTooltip ? '#f3f4f6' : 'white', cursor: 'pointer', color: '#6b7280', fontSize: '15px', fontWeight: '700', transition: 'all 0.15s' }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = showSupportTooltip ? '#f3f4f6' : 'white'}
+            >
+              ?
+            </button>
+            {showSupportTooltip && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 150 }} onClick={() => setShowSupportTooltip(false)} />
+                <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', padding: '16px', minWidth: '260px', zIndex: 200 }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '6px' }}>Aide et support</div>
+                  <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px 0', lineHeight: '1.5' }}>Un problème avec le portail ? Écrivez-nous :</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '8px 10px' }}>
+                    <span style={{ fontSize: '13px', color: '#111827', flex: 1, fontFamily: 'monospace' }}>support@aqbrs.ca</span>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText('support@aqbrs.ca'); setSupportCopied(true); setTimeout(() => setSupportCopied(false), 2000) }}
+                      style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: supportCopied ? '#d1fae5' : '#1e3a5f', color: supportCopied ? '#065f46' : 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
+                    >
+                      {supportCopied ? '✓ Copié' : 'Copier'}
+                    </button>
+                  </div>
+                  <a
+                    href="mailto:support@aqbrs.ca?subject=Aide%20-%20Portail%20RIUSC"
+                    style={{ display: 'block', marginTop: '10px', textAlign: 'center', fontSize: '13px', color: '#2563eb', textDecoration: 'none', padding: '7px', borderRadius: '6px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff' }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                  >
+                    ✉️ Ouvrir dans mon client courriel
+                  </a>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Menu utilisateur */}
           <div ref={userMenuRef} data-tour="menu" style={{ position: 'relative' }}>
