@@ -2534,16 +2534,16 @@ export default function ProfilPage() {
           )}
           <button
             onClick={handleSave}
-            disabled={!canSave || saving || formationDialog.show}
+            disabled={(!canSave && !saveMessage?.type) || saving || formationDialog.show}
             style={{
-              backgroundColor: canSave && !saving ? '#1e3a5f' : '#d1d5db',
+              backgroundColor: (canSave || saveMessage?.type) && !saving ? '#1e3a5f' : '#d1d5db',
               color: 'white',
               padding: '12px 32px',
               borderRadius: '8px',
               border: 'none',
               fontSize: '15px',
               fontWeight: '600',
-              cursor: canSave && !saving ? 'pointer' : 'not-allowed',
+              cursor: (canSave || saveMessage?.type) && !saving ? 'pointer' : 'not-allowed',
               transition: 'all 0.2s',
             }}
           >
