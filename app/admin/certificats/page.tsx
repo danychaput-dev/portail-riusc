@@ -302,7 +302,7 @@ export default function AdminCertificatsPage() {
       const fileUrl = item.files[0]?.url
       if (!fileUrl) throw new Error('Aucun fichier associé')
 
-      const proxyRes = await fetch(`/api/monday-proxy?url=${encodeURIComponent(fileUrl)}`)
+      const proxyRes = await fetch(fileUrl, { credentials: 'include' })
       if (!proxyRes.ok) throw new Error(`Erreur téléchargement: ${proxyRes.status}`)
 
       const blob = await proxyRes.blob()
@@ -539,14 +539,37 @@ export default function AdminCertificatsPage() {
                         ))}
                       </div>
                     )}
-                    <div style={{ height: 'calc(100vh - 340px)' }}>
-                      {(() => {
-                        const f = mondaySelected.files[mondayViewFileIdx ?? 0]
-                        if (!f) return null
-                        return isImage(f.url)
-                          ? <img src={`/api/monday-proxy?url=${encodeURIComponent(f.url)}`} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px', boxSizing: 'border-box' }} />
-                          : <iframe src={`/api/monday-proxy?url=${encodeURIComponent(f.url)}`} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat PDF" />
-                      })()}
+                    <div style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#6b7280' }}>
+                        Les fichiers Monday ne peuvent pas s'afficher directement ici — ouvre-les dans un nouvel onglet :
+                      </p>
+                      {mondaySelected.files.map((f, i) => (
+                        <a
+                          key={i}
+                          href={f.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '14px',
+                            padding: '18px 20px',
+                            backgroundColor: '#f8faff',
+                            border: '2px solid #c7d2fe',
+                            borderRadius: '10px',
+                            textDecoration: 'none',
+                            color: '#1e40af',
+                            transition: 'all 0.15s',
+                          }}
+                          onMouseOver={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#e0e7ff'; (e.currentTarget as HTMLAnchorElement).style.borderColor = '#818cf8' }}
+                          onMouseOut={e => { (e.currentTarget as HTMLAnchorElement).style.backgroundColor = '#f8faff'; (e.currentTarget as HTMLAnchorElement).style.borderColor = '#c7d2fe' }}
+                        >
+                          <span style={{ fontSize: '32px', flexShrink: 0 }}>{isImage(f.url) ? '🖼️' : '📄'}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: '600', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{isImage(f.url) ? 'Image' : 'PDF'} · Cliquer pour ouvrir</div>
+                          </div>
+                          <span style={{ flexShrink: 0, fontSize: '20px' }}>↗</span>
+                        </a>
+                      ))}
                     </div>
                   </>
                 )}
