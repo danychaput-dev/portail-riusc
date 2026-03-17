@@ -222,7 +222,6 @@ export default function AdminCertificatsPage() {
   const [mondayViewFileIdx, setMondayViewFileIdx] = useState(0)
   const [mondayFilter, setMondayFilter] = useState('')
   const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
-  const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
 
   useEffect(() => {
     const loadData = async () => {
@@ -230,7 +229,6 @@ export default function AdminCertificatsPage() {
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id').eq('user_id', user.id).single()
       if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
-      setAdminBenevoleId(reserviste.benevole_id)
       setAdminBenevoleId(reserviste.benevole_id)
 
       // Vérifier lesquels des 101 Monday sont déjà dans formations_benevoles
