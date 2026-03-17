@@ -218,6 +218,7 @@ export default function AdminCertificatsPage() {
   const [activeTab, setActiveTab] = useState<'portail' | 'monday'>('portail')
   const [mondayItems, setMondayItems] = useState<MondayItem[]>([])
   const [mondaySelectedId, setMondaySelectedId] = useState<number | null>(null)
+  const [mondayViewFileIdx, setMondayViewFileIdx] = useState(0)
   const [mondayFilter, setMondayFilter] = useState('')
 
   useEffect(() => {
@@ -410,7 +411,7 @@ export default function AdminCertificatsPage() {
                   const s = item.mState
                   const isSel = mondaySelectedId === item.monday_item_id
                   return (
-                    <div key={item.monday_item_id} onClick={() => setMondaySelectedId(item.monday_item_id)} style={{ backgroundColor: 'white', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', border: isSel ? '2px solid #1e3a5f' : s.status === 'saved' ? '2px solid #059669' : s.status === 'error' ? '2px solid #dc2626' : '1px solid #e5e7eb', opacity: s.status === 'saved' ? 0.55 : 1, transition: 'all 0.15s' }}>
+                    <div key={item.monday_item_id} onClick={() => { setMondaySelectedId(item.monday_item_id); setMondayViewFileIdx(0) }} style={{ backgroundColor: 'white', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', border: isSel ? '2px solid #1e3a5f' : s.status === 'saved' ? '2px solid #059669' : s.status === 'error' ? '2px solid #dc2626' : '1px solid #e5e7eb', opacity: s.status === 'saved' ? 0.55 : 1, transition: 'all 0.15s' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                           <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '600', color: '#1d4ed8', flexShrink: 0 }}>{initials(item.nom)}</div>
@@ -462,43 +463,35 @@ export default function AdminCertificatsPage() {
                   <div style={{ padding: '80px 20px', textAlign: 'center', color: '#9ca3af' }}><div style={{ fontSize: '56px', marginBottom: '16px' }}>📄</div><p style={{ margin: 0, fontSize: '15px', fontWeight: '500' }}>Sélectionnez un réserviste</p><p style={{ margin: '8px 0 0', fontSize: '13px' }}>Le certificat s'affichera ici</p></div>
                 ) : (
                   <>
-                    <div style={{ padding: '14px 18px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb' }}>
-                      <div style={{ fontWeight: '700', color: '#1e3a5f', fontSize: '14px' }}>{mondaySelected.nom}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{mondaySelected.email}</div>
-                      {mondaySelected.files.length > 1 && (
-                        <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-                          {mondaySelected.files.map((f, i) => <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', padding: '3px 8px', backgroundColor: '#e0e7ff', color: '#3730a3', borderRadius: '4px', textDecoration: 'none' }}>↗ {f.name.length > 30 ? f.name.slice(0, 28) + '...' : f.name}</a>)}
-                        </div>
-                      )}
+                    <div style={{ padding: '14px 18px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', color: '#1e3a5f', fontSize: '14px' }}>{mondaySelected.nom}</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{mondaySelected.email}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        {mondaySelected.files.map((f, i) => (
+                          <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" style={{ padding: '5px 10px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '11px', fontWeight: '500', whiteSpace: 'nowrap' }}>↗ {mondaySelected.files.length > 1 ? f.name.slice(0, 20) + (f.name.length > 20 ? '…' : '') : 'Ouvrir'}</a>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#6b7280' }}>
-                        Les fichiers Monday s'ouvrent dans un nouvel onglet :
-                      </p>
-                      {mondaySelected.files.map((f, i) => (
-                        <a
-                          key={i}
-                          href={f.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '10px',
-                            padding: '14px 16px', backgroundColor: '#f0f4ff',
-                            border: '1px solid #c7d2fe', borderRadius: '8px',
-                            textDecoration: 'none', color: '#1e40af',
-                            fontSize: '13px', fontWeight: '500',
-                            transition: 'background-color 0.15s',
-                          }}
-                        >
-                          <span style={{ fontSize: '20px' }}>
-                            {isImage(f.url) ? '🖼️' : '📄'}
-                          </span>
-                          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {f.name}
-                          </span>
-                          <span style={{ flexShrink: 0, fontSize: '12px', color: '#6366f1' }}>↗ Ouvrir</span>
-                        </a>
-                      ))}
+                    {/* Sélecteur de fichier si plusieurs */}
+                    {mondaySelected.files.length > 1 && (
+                      <div style={{ padding: '8px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {mondaySelected.files.map((f, i) => (
+                          <button key={i} onClick={() => setMondayViewFileIdx(i)} style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: mondayViewFileIdx === i ? '#1e3a5f' : '#f3f4f6', color: mondayViewFileIdx === i ? 'white' : '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: mondayViewFileIdx === i ? '600' : '400' }}>
+                            {isImage(f.url) ? '🖼️' : '📄'} Fichier {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ height: 'calc(100vh - 340px)' }}>
+                      {(() => {
+                        const f = mondaySelected.files[mondayViewFileIdx ?? 0]
+                        if (!f) return null
+                        return isImage(f.url)
+                          ? <img src={f.url} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px', boxSizing: 'border-box' }} />
+                          : <iframe src={f.url} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat PDF" />
+                      })()}
                     </div>
                   </>
                 )}
