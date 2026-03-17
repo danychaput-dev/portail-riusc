@@ -248,6 +248,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
         console.error('PortailHeader load error:', err)
         setLoadingStatus(false)
       })
+  }, [authUser, authLoading, reservisteOverride])
 
   const handleSignOut = async () => {
     // Nettoyer le mode debug si actif
