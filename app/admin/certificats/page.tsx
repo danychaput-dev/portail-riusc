@@ -222,7 +222,6 @@ export default function AdminCertificatsPage() {
   const [mondayViewFileIdx, setMondayViewFileIdx] = useState(0)
   const [mondayFilter, setMondayFilter] = useState('')
   const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
-  const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
 
   useEffect(() => {
     const loadData = async () => {
@@ -230,7 +229,6 @@ export default function AdminCertificatsPage() {
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id').eq('user_id', user.id).single()
       if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
-      setAdminBenevoleId(reserviste.benevole_id)
       setAdminBenevoleId(reserviste.benevole_id)
 
       // Vérifier lesquels des 101 Monday sont déjà dans formations_benevoles
@@ -301,7 +299,7 @@ export default function AdminCertificatsPage() {
       const benevoleId = res.benevole_id
 
       // 2. Upload fichier local dans Supabase Storage
-      const file = item.mState.uploadedFile
+      const file = item.mState.uploadedFile!
       const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
       const storagePath = `${benevoleId}/${item.mState.formation.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`
       const { error: uploadError } = await supabase.storage
