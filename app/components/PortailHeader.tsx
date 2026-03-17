@@ -205,9 +205,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           setHasCertificats(hasCert)
 
           // Camp réussi = source monday + nom_formation contient "camp"
-          const campReussi = formations.some(f =>
-            f.source === 'monday' && f.nom_formation?.toLowerCase().includes('camp')
-          )
+         const campReussi = formations.some(f =>
+  f.nom_formation?.toLowerCase().includes('camp') && f.resultat === 'Réussi'
+)
           setCampStatus({ is_certified: campReussi })
         }
 
