@@ -85,6 +85,7 @@ export default function InscriptionPage() {
     telephone: '',
     adresse: '',
     ville: '',
+    code_postal: '',
     region: '',
     latitude: null as number | null,
     longitude: null as number | null,
@@ -399,6 +400,9 @@ export default function InscriptionPage() {
     const phoneDigits = cleanPhoneForSave(formData.telephone)
     if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
     if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise"
+    const codePostalRegex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i
+    if (!formData.code_postal.trim()) errors.code_postal = 'Le code postal est obligatoire'
+    else if (!codePostalRegex.test(formData.code_postal.trim())) errors.code_postal = 'Format invalide (ex: J1H 1A1)'
     if (!formData.region) errors.region = 'La région est requise — sélectionnez votre ville'
     // Accepte "Aucune" comme option valide, ou au moins une organisation doit être sélectionnée
     if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner au moins une option'
@@ -433,7 +437,7 @@ export default function InscriptionPage() {
         body: JSON.stringify({
           prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean,
           telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse,
-          ville: formData.ville, region: formData.region, latitude: formData.latitude,
+          ville: formData.ville, code_postal: formData.code_postal.trim().toUpperCase(), region: formData.region, latitude: formData.latitude,
           longitude: formData.longitude,
           groupe_rs: formData.groupe_rs.length > 0 ? formData.groupe_rs.join(', ') : '',
           groupe: 'Nouveaux', commentaire: formData.commentaire, camp_id: campId || null
@@ -726,6 +730,22 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                     ))}
                   </div>
                 )}
+              </div>
+              <div>
+                <label style={labelStyle}>Code postal {requiredStar}</label>
+                <input
+                  type="text"
+                  value={formData.code_postal}
+                  onChange={(e) => {
+                    const val = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '').slice(0, 7)
+                    setFormData(prev => ({ ...prev, code_postal: val }))
+                    if (fieldErrors.code_postal) setFieldErrors(prev => ({ ...prev, code_postal: '' }))
+                  }}
+                  placeholder="Ex: J1H 1A1"
+                  maxLength={7}
+                  style={fieldErrors.code_postal ? { ...inputErrorStyle, textTransform: 'uppercase' } : { ...inputStyle, textTransform: 'uppercase' }}
+                />
+                {fieldErrors.code_postal && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.code_postal}</p>}
               </div>
               <div>
                 <label style={labelStyle}>Région administrative {requiredStar}</label>

@@ -482,6 +482,7 @@ export default function ProfilPage() {
     telephone_secondaire: '',
     adresse: '',
     ville: '',
+    code_postal: '',
     region: '',
     latitude: null as number | null,
     longitude: null as number | null,
@@ -558,6 +559,7 @@ export default function ProfilPage() {
               telephone_secondaire: formatPhoneDisplay(fullData.telephone_secondaire || ''),
               adresse: fullData.adresse || '',
               ville: fullData.ville || '',
+              code_postal: fullData.code_postal || '',
               region: fullData.region || '',
               latitude: fullData.latitude || null,
               longitude: fullData.longitude || null,
@@ -572,6 +574,7 @@ export default function ProfilPage() {
               telephone_secondaire: formatPhoneDisplay(fullData.telephone_secondaire || ''),
               adresse: fullData.adresse || '',
               ville: fullData.ville || '',
+              code_postal: fullData.code_postal || '',
               region: fullData.region || '',
               latitude: fullData.latitude || null,
               longitude: fullData.longitude || null,
@@ -645,6 +648,7 @@ export default function ProfilPage() {
             telephone_secondaire: '',
             adresse: demoRes.adresse || '',
             ville: demoRes.ville || '',
+            code_postal: demoRes.code_postal || '',
             region: demoRes.region || '',
             latitude: null,
             longitude: null,
@@ -658,6 +662,7 @@ export default function ProfilPage() {
             telephone_secondaire: '',
             adresse: demoRes.adresse || '',
             ville: demoRes.ville || '',
+            code_postal: demoRes.code_postal || '',
             region: demoRes.region || '',
             latitude: null,
             longitude: null,
@@ -770,6 +775,7 @@ export default function ProfilPage() {
         telephone_secondaire: formatPhoneDisplay(reservisteData.telephone_secondaire),
         adresse: reservisteData.adresse || '',
         ville: reservisteData.ville || '',
+        code_postal: reservisteData.code_postal || '',
         region: reservisteData.region || '',
         latitude: reservisteData.latitude || null,
         longitude: reservisteData.longitude || null,
@@ -784,6 +790,7 @@ export default function ProfilPage() {
         telephone_secondaire: formatPhoneDisplay(reservisteData.telephone_secondaire),
         adresse: reservisteData.adresse || '',
         ville: reservisteData.ville || '',
+        code_postal: reservisteData.code_postal || '',
         region: reservisteData.region || '',
         latitude: reservisteData.latitude || null,
         longitude: reservisteData.longitude || null,
@@ -1192,7 +1199,8 @@ export default function ProfilPage() {
             telephone: cleanPhoneForSave(profilData.telephone),
             telephone_secondaire: cleanPhoneForSave(profilData.telephone_secondaire),
             date_naissance: dossier.date_naissance,
-            adresse: profilData.adresse,
+            adresse: [profilData.adresse, profilData.code_postal].filter(Boolean).join(', '),
+            code_postal: profilData.code_postal,
             ville: profilData.ville,
             region: profilData.region,
             latitude: profilData.latitude,
@@ -1806,6 +1814,12 @@ export default function ProfilPage() {
               )}
             </div>
 
+            <TextInput
+              label="Code postal *"
+              value={profilData.code_postal}
+              onChange={v => setProfilData(prev => ({ ...prev, code_postal: v.toUpperCase().replace(/[^A-Z0-9\s]/g, '').slice(0, 7) }))}
+              placeholder="Ex: J1H 1A1"
+            />
             <TextInput
               label="Région"
               value={profilData.region}

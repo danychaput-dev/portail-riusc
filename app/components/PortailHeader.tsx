@@ -19,6 +19,7 @@ interface Reserviste {
   groupe?: string
   date_naissance?: string
   adresse?: string
+  code_postal?: string   
   ville?: string
   region?: string
   contact_urgence_nom?: string
@@ -61,7 +62,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const { user: authUser, loading: authLoading } = useAuth()
 
   // Champs nécessaires pour vérifier la complétude du profil + header
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, code_postal, ville, region, contact_urgence_nom, contact_urgence_telephone'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -205,9 +206,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           setHasCertificats(hasCert)
 
           // Camp réussi = source monday + nom_formation contient "camp"
-         const campReussi = formations.some(f =>
-  f.nom_formation?.toLowerCase().includes('camp') && f.resultat === 'Réussi'
-)
+          const campReussi = formations.some(f => f.nom_formation?.toLowerCase().includes('camp') && f.resultat === 'Réussi')
           setCampStatus({ is_certified: campReussi })
         }
 
@@ -287,12 +286,13 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   // ========================================================
   // LOGIQUE DÉPLOYABLE — même 3 conditions que page Formation
   // ========================================================
+  // APRÈS — ajouter code_postal :
   const isProfilComplet = !!(
-    reserviste &&
-    reserviste.prenom && reserviste.nom && reserviste.email && reserviste.telephone &&
-    reserviste.date_naissance && reserviste.adresse && reserviste.ville && reserviste.region &&
-    reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
-  )
+  reserviste &&
+  reserviste.prenom && reserviste.nom && reserviste.email && reserviste.telephone &&
+  reserviste.date_naissance && reserviste.adresse && reserviste.code_postal && reserviste.ville && reserviste.region &&
+  reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
+ )
 
   const isDeployable = isProfilComplet && hasCertificats && (campStatus?.is_certified === true)
 
