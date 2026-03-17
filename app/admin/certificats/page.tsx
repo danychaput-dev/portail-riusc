@@ -282,14 +282,69 @@ export default function AdminCertificatsPage() {
     setMondayItems(prev => prev.map(i => i.monday_item_id === id ? { ...i, mState: { ...i.mState, [field]: val } } : i))
   const handleApprouverMonday = async (item: MondayItem) => {
     if (!item.mState.dateObtention) return
-    setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id ? { ...i, mState: { ...i.mState, status: 'saving' } } : i))
-    const { error } = await supabase.from('formations_benevoles').insert({
-      monday_item_id: item.monday_item_id, nom_complet: item.nom, nom_formation: item.mState.formation,
-      date_reussite: item.mState.dateObtention, date_expiration: item.mState.dateExpiration || null,
-      certificat_url: item.files[0]?.url || null, initiation_sc_completee: true,
-      resultat: 'Réussi', etat_validite: 'valide', source: 'admin_monday_review',
-    })
-    setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id ? { ...i, mState: { ...i.mState, status: error ? 'error' : 'saved', error: error?.message } } : i))
+    setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+      ? { ...i, mState: { ...i.mState, status: 'saving' } } : i))
+
+    try {
+      // 1. Trouver le benevole_id par email
+      const { data: res } = await supabase
+        .from('reservistes')
+        .select('benevole_id')
+        .ilike('email', item.email)
+        .single()
+
+      if (!res?.benevole_id) {
+        throw new Error(`Réserviste introuvable pour ${item.email}`)
+      }
+      const benevoleId = res.benevole_id
+
+      // 2. Télécharger le fichier Monday via le proxy
+      const fileUrl = item.files[0]?.url
+      if (!fileUrl) throw new Error('Aucun fichier associé')
+
+      const proxyRes = await fetch(`/api/monday-proxy?url=${encodeURIComponent(fileUrl)}`)
+      if (!proxyRes.ok) throw new Error(`Erreur téléchargement: ${proxyRes.status}`)
+
+      const blob = await proxyRes.blob()
+      const contentType = proxyRes.headers.get('content-type') || blob.type || 'application/pdf'
+      const ext = contentType.includes('pdf') ? 'pdf'
+        : contentType.includes('png') ? 'png'
+        : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
+        : 'pdf'
+      const fileName = `${item.mState.formation.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`
+      const storagePath = `${benevoleId}/${fileName}`
+
+      // 3. Upload dans Supabase Storage bucket 'certificats'
+      const { error: uploadError } = await supabase.storage
+        .from('certificats')
+        .upload(storagePath, blob, { contentType, upsert: true })
+
+      if (uploadError) throw new Error(`Upload Storage: ${uploadError.message}`)
+
+      // 4. Insérer dans formations_benevoles
+      const { error: insertError } = await supabase.from('formations_benevoles').insert({
+        benevole_id: benevoleId,
+        monday_item_id: item.monday_item_id,
+        nom_complet: item.nom,
+        nom_formation: item.mState.formation,
+        date_reussite: item.mState.dateObtention,
+        date_expiration: item.mState.dateExpiration || null,
+        certificat_url: `storage:${storagePath}`,
+        initiation_sc_completee: item.mState.formation.toLowerCase().includes('initier') || item.mState.formation.toLowerCase().includes('sécurité civile') || item.mState.formation.toLowerCase().includes('securite civile'),
+        resultat: 'Réussi',
+        etat_validite: 'valide',
+        source: 'admin_monday_review',
+      })
+
+      if (insertError) throw new Error(`Insert formations: ${insertError.message}`)
+
+      setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+        ? { ...i, mState: { ...i.mState, status: 'saved' } } : i))
+
+    } catch (err: any) {
+      setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+        ? { ...i, mState: { ...i.mState, status: 'error', error: err.message } } : i))
+    }
   }
   const skipMonday = (id: number) => setMondayItems(prev => prev.map(i => i.monday_item_id === id ? { ...i, mState: { ...i.mState, status: 'skipped' } } : i))
   const undoMonday = (id: number) => setMondayItems(prev => prev.map(i => i.monday_item_id === id ? { ...i, mState: { ...i.mState, status: 'idle', error: undefined } } : i))
@@ -489,8 +544,8 @@ export default function AdminCertificatsPage() {
                         const f = mondaySelected.files[mondayViewFileIdx ?? 0]
                         if (!f) return null
                         return isImage(f.url)
-                          ? <img src={f.url} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px', boxSizing: 'border-box' }} />
-                          : <iframe src={f.url} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat PDF" />
+                          ? <img src={`/api/monday-proxy?url=${encodeURIComponent(f.url)}`} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px', boxSizing: 'border-box' }} />
+                          : <iframe src={`/api/monday-proxy?url=${encodeURIComponent(f.url)}`} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat PDF" />
                       })()}
                     </div>
                   </>
