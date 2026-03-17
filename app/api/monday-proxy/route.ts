@@ -1,46 +1,61 @@
-// app/api/admin/approuver-formation/route.ts
+// app/api/monday-proxy/route.ts
+// Proxy pour afficher les fichiers Monday.com dans un iframe sans X-Frame-Options
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export async function GET(request: NextRequest) {
+  const url = request.nextUrl.searchParams.get('url')
 
-const ADMIN_IDS = ['8738174928', '18239132668']
+  if (!url) {
+    return new NextResponse('URL manquante', { status: 400 })
+  }
 
-export async function POST(request: NextRequest) {
+  // Valider que l'URL vient de Monday.com uniquement
+  let parsed: URL
   try {
-    const body = await request.json()
-    const {
-      benevole_id, monday_item_id, nom_complet, nom_formation,
-      date_reussite, date_expiration, certificat_url,
-      initiation_sc_completee, admin_benevole_id
-    } = body
+    parsed = new URL(url)
+  } catch {
+    return new NextResponse('URL invalide', { status: 400 })
+  }
 
-    // Vérifier que c'est bien un admin
-    if (!ADMIN_IDS.includes(admin_benevole_id)) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
-    }
+  if (!parsed.hostname.endsWith('monday.com')) {
+    return new NextResponse('Source non autorisée', { status: 403 })
+  }
 
-    const { error } = await supabaseAdmin.from('formations_benevoles').insert({
-      benevole_id,
-      monday_item_id,
-      nom_complet,
-      nom_formation,
-      date_reussite,
-      date_expiration: date_expiration || null,
-      certificat_url,
-      initiation_sc_completee,
-      resultat: 'Réussi',
-      etat_validite: 'valide',
-      source: 'admin_monday_review',
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/pdf,image/*,*/*;q=0.9',
+        'Accept-Language': 'fr-CA,fr;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://aqbrs.monday.com/',
+        'Origin': 'https://aqbrs.monday.com',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+      },
     })
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!response.ok) {
+      return new NextResponse(`Erreur Monday: ${response.status}`, { status: response.status })
+    }
 
-    return NextResponse.json({ success: true })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const contentType = response.headers.get('content-type') || 'application/octet-stream'
+    const buffer = await response.arrayBuffer()
+
+    return new NextResponse(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        // Supprimer les headers qui bloquent l'embedding
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Content-Security-Policy': "frame-ancestors 'self'",
+        // Cache 1 heure
+        'Cache-Control': 'private, max-age=3600',
+      },
+    })
+  } catch (err) {
+    console.error('monday-proxy error:', err)
+    return new NextResponse('Erreur lors du fetch', { status: 500 })
   }
 }
