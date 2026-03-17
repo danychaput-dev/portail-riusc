@@ -512,7 +512,28 @@ export default function AdminCertificatsPage() {
                           <button onClick={() => skipMonday(item.monday_item_id)} style={{ marginTop: '5px', fontSize: '11px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Ignorer cette entrée</button>
                         </div>
                       )}
-                      {s.status === 'saved' && <button onClick={e => { e.stopPropagation(); undoMonday(item.monday_item_id) }} style={{ marginTop: '5px', fontSize: '11px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Annuler</button>}
+                      {s.status === 'saved' && (
+                        <div style={{ marginTop: '5px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <button
+                            onClick={e => { e.stopPropagation(); undoMonday(item.monday_item_id) }}
+                            style={{ fontSize: '11px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            Annuler
+                          </button>
+                          {item.files.length > 1 && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+                                  ? { ...i, mState: { ...i.mState, status: 'idle', error: undefined, uploadedFile: undefined, dateObtention: '', dateExpiration: '' } } : i))
+                              }}
+                              style={{ fontSize: '11px', color: '#059669', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: '600' }}
+                            >
+                              + Approuver un autre fichier
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
