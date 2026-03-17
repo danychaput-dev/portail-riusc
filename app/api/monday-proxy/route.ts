@@ -1,53 +1,46 @@
-// app/api/monday-proxy/route.ts
-// Proxy pour afficher les fichiers Monday.com dans un iframe sans X-Frame-Options
+// app/api/admin/approuver-formation/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url')
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  if (!url) {
-    return new NextResponse('URL manquante', { status: 400 })
-  }
+const ADMIN_IDS = ['8738174928', '18239132668']
 
-  // Valider que l'URL vient de Monday.com uniquement
-  let parsed: URL
+export async function POST(request: NextRequest) {
   try {
-    parsed = new URL(url)
-  } catch {
-    return new NextResponse('URL invalide', { status: 400 })
-  }
+    const body = await request.json()
+    const {
+      benevole_id, monday_item_id, nom_complet, nom_formation,
+      date_reussite, date_expiration, certificat_url,
+      initiation_sc_completee, admin_benevole_id
+    } = body
 
-  if (!parsed.hostname.endsWith('monday.com')) {
-    return new NextResponse('Source non autorisée', { status: 403 })
-  }
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; RIUSC-Portal/1.0)',
-      },
-    })
-
-    if (!response.ok) {
-      return new NextResponse(`Erreur Monday: ${response.status}`, { status: response.status })
+    // Vérifier que c'est bien un admin
+    if (!ADMIN_IDS.includes(admin_benevole_id)) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
-    const contentType = response.headers.get('content-type') || 'application/octet-stream'
-    const buffer = await response.arrayBuffer()
-
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        // Supprimer les headers qui bloquent l'embedding
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'",
-        // Cache 1 heure
-        'Cache-Control': 'private, max-age=3600',
-      },
+    const { error } = await supabaseAdmin.from('formations_benevoles').insert({
+      benevole_id,
+      monday_item_id,
+      nom_complet,
+      nom_formation,
+      date_reussite,
+      date_expiration: date_expiration || null,
+      certificat_url,
+      initiation_sc_completee,
+      resultat: 'Réussi',
+      etat_validite: 'valide',
+      source: 'admin_monday_review',
     })
-  } catch (err) {
-    console.error('monday-proxy error:', err)
-    return new NextResponse('Erreur lors du fetch', { status: 500 })
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
