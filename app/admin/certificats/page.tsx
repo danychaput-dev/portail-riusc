@@ -29,6 +29,7 @@ interface MondayItem {
     dateObtention: string
     dateExpiration: string
     error?: string
+    uploadedFile?: File
   }
 }
 
@@ -282,6 +283,12 @@ export default function AdminCertificatsPage() {
     setMondayItems(prev => prev.map(i => i.monday_item_id === id ? { ...i, mState: { ...i.mState, [field]: val } } : i))
   const handleApprouverMonday = async (item: MondayItem) => {
     if (!item.mState.dateObtention) return
+    if (!item.mState.uploadedFile) {
+      setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+        ? { ...i, mState: { ...i.mState, status: 'error', error: 'Veuillez sélectionner le fichier certificat à uploader' } } : i))
+      return
+    }
+
     setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
       ? { ...i, mState: { ...i.mState, status: 'saving' } } : i))
 
@@ -293,35 +300,22 @@ export default function AdminCertificatsPage() {
         .ilike('email', item.email)
         .single()
 
-      if (!res?.benevole_id) {
-        throw new Error(`Réserviste introuvable pour ${item.email}`)
-      }
+      if (!res?.benevole_id) throw new Error(`Réserviste introuvable pour ${item.email}`)
       const benevoleId = res.benevole_id
 
-      // 2. Télécharger le fichier Monday via le proxy
-      const fileUrl = item.files[0]?.url
-      if (!fileUrl) throw new Error('Aucun fichier associé')
-
-      const proxyRes = await fetch(fileUrl, { credentials: 'include' })
-      if (!proxyRes.ok) throw new Error(`Erreur téléchargement: ${proxyRes.status}`)
-
-      const blob = await proxyRes.blob()
-      const contentType = proxyRes.headers.get('content-type') || blob.type || 'application/pdf'
-      const ext = contentType.includes('pdf') ? 'pdf'
-        : contentType.includes('png') ? 'png'
-        : contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
-        : 'pdf'
+      // 2. Upload du fichier dans Supabase Storage bucket 'certificats'
+      const file = item.mState.uploadedFile
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
       const fileName = `${item.mState.formation.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`
       const storagePath = `${benevoleId}/${fileName}`
 
-      // 3. Upload dans Supabase Storage bucket 'certificats'
       const { error: uploadError } = await supabase.storage
         .from('certificats')
-        .upload(storagePath, blob, { contentType, upsert: true })
+        .upload(storagePath, file, { contentType: file.type || 'application/pdf', upsert: true })
 
       if (uploadError) throw new Error(`Upload Storage: ${uploadError.message}`)
 
-      // 4. Insérer dans formations_benevoles
+      // 3. Insérer dans formations_benevoles
       const { error: insertError } = await supabase.from('formations_benevoles').insert({
         benevole_id: benevoleId,
         monday_item_id: item.monday_item_id,
@@ -330,7 +324,9 @@ export default function AdminCertificatsPage() {
         date_reussite: item.mState.dateObtention,
         date_expiration: item.mState.dateExpiration || null,
         certificat_url: `storage:${storagePath}`,
-        initiation_sc_completee: item.mState.formation.toLowerCase().includes('initier') || item.mState.formation.toLowerCase().includes('sécurité civile') || item.mState.formation.toLowerCase().includes('securite civile'),
+        initiation_sc_completee: item.mState.formation.toLowerCase().includes('initier')
+          || item.mState.formation.toLowerCase().includes('sécurité civile')
+          || item.mState.formation.toLowerCase().includes('securite civile'),
         resultat: 'Réussi',
         etat_validite: 'valide',
         source: 'admin_monday_review',
@@ -491,6 +487,24 @@ export default function AdminCertificatsPage() {
                               {FORMATIONS.map(f => <option key={f} value={f}>{f}</option>)}
                             </select>
                           </div>
+                          <div style={{ marginBottom: '8px' }}>
+                            <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>
+                              FICHIER CERTIFICAT * <span style={{ color: '#9ca3af', fontWeight: '400' }}>(télécharger depuis Monday puis sélectionner)</span>
+                            </label>
+                            <input
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              onChange={e => {
+                                const file = e.target.files?.[0]
+                                if (file) setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+                                  ? { ...i, mState: { ...i.mState, uploadedFile: file, error: undefined } } : i))
+                              }}
+                              style={{ width: '100%', padding: '5px 0', fontSize: '11px', color: '#374151' }}
+                            />
+                            {s.uploadedFile && (
+                              <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#059669' }}>✓ {s.uploadedFile.name}</p>
+                            )}
+                          </div>
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
                             <div style={{ flex: 1 }}>
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>DATE RÉUSSITE *</label>
@@ -500,7 +514,7 @@ export default function AdminCertificatsPage() {
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>EXPIRATION <span style={{ fontWeight: '400' }}>(opt.)</span></label>
                               <input type="date" value={s.dateExpiration} onChange={e => updMonday(item.monday_item_id, 'dateExpiration', e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none' }} />
                             </div>
-                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention} style={{ padding: '6px 12px', backgroundColor: s.dateObtention ? '#059669' : '#e5e7eb', color: s.dateObtention ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: s.dateObtention ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention || !s.uploadedFile} style={{ padding: '6px 12px', backgroundColor: (s.dateObtention && s.uploadedFile) ? '#059669' : '#e5e7eb', color: (s.dateObtention && s.uploadedFile) ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: (s.dateObtention && s.uploadedFile) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
                               ✅ Approuver
                             </button>
                           </div>
