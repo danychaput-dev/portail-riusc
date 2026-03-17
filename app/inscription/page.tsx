@@ -348,11 +348,22 @@ export default function InscriptionPage() {
   const selectAddress = (feature: MapboxFeature) => {
     const [lng, lat] = feature.center
     let ville = ''
+    let codePostal = ''
     if (feature.context) {
       const placeContext = feature.context.find(c => c.id.startsWith('place'))
       if (placeContext) ville = placeContext.text
+      const postcodeContext = feature.context.find(c => c.id.startsWith('postcode'))
+      if (postcodeContext) codePostal = postcodeContext.text.toUpperCase().replace(/\s/g, ' ').trim()
     }
-    setFormData(prev => ({ ...prev, adresse: feature.place_name, latitude: lat, longitude: lng, ville: ville || prev.ville }))
+    setFormData(prev => ({
+      ...prev,
+      adresse: feature.place_name,
+      latitude: lat,
+      longitude: lng,
+      ville: ville || prev.ville,
+      ...(codePostal ? { code_postal: codePostal } : {})
+    }))
+    if (codePostal && fieldErrors.code_postal) setFieldErrors(prev => ({ ...prev, code_postal: '' }))
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
     if (ville) lookupRegionFromVille(ville)

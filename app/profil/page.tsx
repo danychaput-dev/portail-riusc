@@ -917,11 +917,12 @@ export default function ProfilPage() {
     const [lng, lat] = feature.center
 
     let ville = ''
+    let codePostal = ''
     if (feature.context) {
       const placeContext = feature.context.find(c => c.id.startsWith('place'))
-      if (placeContext) {
-        ville = placeContext.text
-      }
+      if (placeContext) ville = placeContext.text
+      const postcodeContext = feature.context.find(c => c.id.startsWith('postcode'))
+      if (postcodeContext) codePostal = postcodeContext.text.toUpperCase().replace(/\s/g, ' ').trim()
     }
 
     setProfilData(prev => ({
@@ -929,7 +930,8 @@ export default function ProfilPage() {
       adresse: feature.place_name,
       latitude: lat,
       longitude: lng,
-      ville: ville || prev.ville
+      ville: ville || prev.ville,
+      ...(codePostal ? { code_postal: codePostal } : {})
     }))
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
@@ -1134,6 +1136,16 @@ export default function ProfilPage() {
         setSaveMessage({ type: 'error', text: 'Les courriels ne correspondent pas.' })
         return
       }
+    }
+
+    // Valider le code postal
+    const codePostalRegex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i
+    if (!profilData.code_postal.trim()) {
+      setSaveMessage({ type: 'error', text: 'Le code postal est obligatoire. Sélectionnez votre adresse dans la liste pour le remplir automatiquement.' })
+      return
+    } else if (!codePostalRegex.test(profilData.code_postal.trim())) {
+      setSaveMessage({ type: 'error', text: 'Le code postal est invalide. Format attendu : J1H 1A1' })
+      return
     }
 
     setSaving(true)
