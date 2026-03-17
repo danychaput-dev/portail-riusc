@@ -222,6 +222,7 @@ export default function AdminCertificatsPage() {
   const [mondayViewFileIdx, setMondayViewFileIdx] = useState(0)
   const [mondayFilter, setMondayFilter] = useState('')
   const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
+  const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
 
   useEffect(() => {
     const loadData = async () => {
@@ -229,6 +230,7 @@ export default function AdminCertificatsPage() {
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id').eq('user_id', user.id).single()
       if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
+      setAdminBenevoleId(reserviste.benevole_id)
       setAdminBenevoleId(reserviste.benevole_id)
 
       // Vérifier lesquels des 101 Monday sont déjà dans formations_benevoles
@@ -504,8 +506,8 @@ export default function AdminCertificatsPage() {
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>EXPIRATION <span style={{ fontWeight: '400' }}>(opt.)</span></label>
                               <input type="date" value={s.dateExpiration} onChange={e => updMonday(item.monday_item_id, 'dateExpiration', e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none' }} />
                             </div>
-                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention || !s.uploadedFile || s.status === 'saving'} style={{ padding: '6px 12px', backgroundColor: (s.dateObtention && s.uploadedFile) ? '#059669' : '#e5e7eb', color: (s.dateObtention && s.uploadedFile) ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: (s.dateObtention && s.uploadedFile) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {s.status === 'saving' ? '⏳' : '✅ Approuver'}
+                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention || !s.uploadedFile} style={{ padding: '6px 12px', backgroundColor: (s.dateObtention && s.uploadedFile) ? '#059669' : '#e5e7eb', color: (s.dateObtention && s.uploadedFile) ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: (s.dateObtention && s.uploadedFile) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              ✅ Approuver
                             </button>
                           </div>
                           {s.error && <p style={{ marginTop: '5px', fontSize: '11px', color: '#dc2626' }}>❌ {s.error}</p>}
