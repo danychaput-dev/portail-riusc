@@ -67,6 +67,7 @@ interface Deployment {
 interface Rotation {
   id: string
   monday_id?: string
+  identifiant?: string
   deployment_id: string
   numero: number
   date_debut: string
