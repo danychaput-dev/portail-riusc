@@ -517,23 +517,33 @@ function FormationContent() {
     setSuppressionEnCours(true);
     try {
       const formation = formations.find(f => f.id === formationId);
+
+      // Trouver le chemin Storage si applicable
+      let storagePath: string | undefined
       if (formation?.fichiers?.[0]) {
-        // Supprimer du storage si c'est un fichier portail
-        const storageKey = `${reserviste.benevole_id}/${formationId}`;
         const { data: files } = await supabase.storage.from('certificats').list(reserviste.benevole_id);
         const toDelete = files?.find(f => f.name.startsWith(formationId));
-        if (toDelete) {
-          await supabase.storage.from('certificats').remove([`${reserviste.benevole_id}/${toDelete.name}`]);
-        }
+        if (toDelete) storagePath = `${reserviste.benevole_id}/${toDelete.name}`
       }
-      // Mettre à jour la DB
-      await supabase.from('formations_benevoles').update({ certificat_url: null }).eq('id', formationId);
-      // Synchroniser suppression avec Monday
-      await fetch('https://n8n.aqbrs.ca/webhook/riusc-supprimer-certificat', {
+
+      // Supprimer via route API (bypass RLS)
+      await fetch('/api/formation/supprimer-certificat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formation_id: formationId,
+          benevole_id: reserviste.benevole_id,
+          storage_path: storagePath,
+        }),
+      })
+
+      // Synchroniser suppression avec Monday (best-effort)
+      fetch('https://n8n.aqbrs.ca/webhook/riusc-supprimer-certificat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ formation_id: formationId, benevole_id: reserviste.benevole_id })
-      }).catch(e => console.error('Erreur sync Monday suppression:', e));
+      }).catch(() => {})
+
       // Mettre à jour l'état local
       setFormations(prev => prev.map(f => f.id === formationId ? { ...f, has_fichier: false, fichiers: [] } : f));
       setUploadedFormationIds(prev => { const s = new Set(prev); s.delete(formationId); return s; });
