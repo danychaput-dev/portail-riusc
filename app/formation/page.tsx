@@ -527,7 +527,7 @@ function FormationContent() {
       }
 
       // Supprimer via route API (bypass RLS)
-      await fetch('/api/formation/supprimer-certificat', {
+      await fetch('/api/certificat/supprimer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
