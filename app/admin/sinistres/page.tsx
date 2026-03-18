@@ -35,6 +35,8 @@ interface Demande {
   priorite: string
   statut: string
   date_reception: string
+  organisme_detail?: string
+  type_mission_detail?: string
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -45,9 +47,7 @@ const TYPES_INCIDENT = [
   'Vérification de bien-être', 'Évacuation', 'Autre'
 ]
 
-const ORGANISMES = [
-  'SOPFEU', 'Croix-Rouge', 'MSP', 'Municipalité', 'SQ', 'CISSS', 'Autre'
-]
+const ORGANISMES = ['SOPFEU', 'Croix-Rouge', 'Municipalité', 'Autre']
 
 const TYPES_MISSION = [
   'Construction de digues', 'Gestion des débris', 'Centre de services aux sinistrés',
@@ -153,7 +153,7 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
 
 // ─── Formulaire demande ───────────────────────────────────────────────────────
 
-const DEMANDE_VIDE = { organisme: '', type_mission: '', description: '', lieu: '', nb_personnes_requis: '', date_debut: '', date_fin_estimee: '', priorite: 'Normale', statut: 'Nouvelle' }
+const DEMANDE_VIDE = { organisme: '', organisme_detail: '', type_mission: '', type_mission_detail: '', description: '', lieu: '', nb_personnes_requis: '', date_debut: '', date_fin_estimee: '', priorite: 'Normale', statut: 'Nouvelle' }
 
 function FormDemande({ initial, onSave, onCancel, saving }: {
   initial: typeof DEMANDE_VIDE
@@ -169,17 +169,26 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <div>
           <label style={labelStyle()}>ORGANISME *</label>
-          <select style={inputStyle(true)} value={form.organisme} onChange={e => set('organisme', e.target.value)}>
+          <select style={inputStyle(true)} value={form.organisme} onChange={e => { set('organisme', e.target.value); set('organisme_detail', ''); set('type_mission', ''); set('type_mission_detail', '') }}>
             <option value="">— Sélectionner —</option>
             {ORGANISMES.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
+          {form.organisme === 'Municipalité' && (
+            <input style={{ ...inputStyle(true), marginTop: '5px' }} value={form.organisme_detail} onChange={e => set('organisme_detail', e.target.value)} placeholder="Nom de la municipalité *" />
+          )}
+          {form.organisme === 'Autre' && (
+            <input style={{ ...inputStyle(true), marginTop: '5px' }} value={form.organisme_detail} onChange={e => set('organisme_detail', e.target.value)} placeholder="Préciser l'organisme *" />
+          )}
         </div>
         <div>
           <label style={labelStyle()}>TYPE DE MISSION</label>
-          <select style={inputStyle(true)} value={form.type_mission} onChange={e => set('type_mission', e.target.value)}>
+          <select style={inputStyle(true)} value={form.type_mission} onChange={e => { set('type_mission', e.target.value); set('type_mission_detail', '') }}>
             <option value="">— Sélectionner —</option>
-            {TYPES_MISSION.map(t => <option key={t} value={t}>{t}</option>)}
+            {getMissions(form.organisme).map(t => <option key={t} value={t}>{t}</option>)}
           </select>
+          {form.type_mission === 'Autre' && (
+            <input style={{ ...inputStyle(true), marginTop: '5px' }} value={form.type_mission_detail} onChange={e => set('type_mission_detail', e.target.value)} placeholder="Préciser la mission *" />
+          )}
         </div>
       </div>
       <div>
@@ -220,10 +229,20 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
       </div>
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
         <button onClick={onCancel} style={{ padding: '5px 12px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Annuler</button>
-        <button onClick={() => form.organisme && onSave(form)} disabled={saving || !form.organisme}
+        {(() => {
+            const needsDetail = form.organisme === 'Municipalité' || form.organisme === 'Autre'
+            const valid = form.organisme && (!needsDetail || form.organisme_detail)
+            return (
+              <button onClick={() => valid && onSave(form)} disabled={saving || !valid}
+                style={{ padding: '5px 12px', backgroundColor: valid ? '#1e3a5f' : '#e5e7eb', color: valid ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: valid ? 'pointer' : 'not-allowed' }}>
+                {saving ? '⏳' : '✓ Sauvegarder'}
+              </button>
+            )
+          })()}
+        {false && <button onClick={() => form.organisme && onSave(form)} disabled={saving || !form.organisme}
           style={{ padding: '5px 12px', backgroundColor: form.organisme ? '#1e3a5f' : '#e5e7eb', color: form.organisme ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: form.organisme ? 'pointer' : 'not-allowed' }}>
           {saving ? '⏳' : '✓ Sauvegarder'}
-        </button>
+        </button>}
       </div>
     </div>
   )
@@ -353,8 +372,8 @@ export default function AdminSinistresPage() {
     try {
       const payload = {
         sinistre_id: selectedId,
-        organisme: form.organisme,
-        type_mission: form.type_mission || null,
+        organisme: form.organisme === 'Municipalité' && form.organisme_detail ? `Municipalité — ${form.organisme_detail}` : form.organisme === 'Autre' && form.organisme_detail ? form.organisme_detail : form.organisme,
+        type_mission: form.type_mission === 'Autre' && form.type_mission_detail ? form.type_mission_detail : (form.type_mission || null),
         description: form.description || null,
         lieu: form.lieu || null,
         nb_personnes_requis: form.nb_personnes_requis ? parseInt(form.nb_personnes_requis) : null,
@@ -402,7 +421,9 @@ export default function AdminSinistresPage() {
 
   const initFormDemande = (d?: Demande): typeof DEMANDE_VIDE => d ? {
     organisme: d.organisme,
+    organisme_detail: d.organisme_detail || '',
     type_mission: d.type_mission || '',
+    type_mission_detail: d.type_mission_detail || '',
     description: d.description || '',
     lieu: d.lieu || '',
     nb_personnes_requis: d.nb_personnes_requis?.toString() || '',
