@@ -35,6 +35,7 @@ interface Demande {
   priorite: string
   statut: string
   date_reception: string
+  identifiant?: string
   organisme_detail?: string
   type_mission_detail?: string
   contact_nom?: string
@@ -114,6 +115,55 @@ const TYPES_MISSION_AUTRES = [
   'Autre',
 ]
 
+// ─── Helpers nommage automatique ─────────────────────────────────────────────
+
+function orgAbbr(organisme: string): string {
+  if (organisme.includes('SOPFEU')) return 'SP'
+  if (organisme.includes('Croix-Rouge')) return 'CR'
+  if (organisme.includes('Municipalité')) return 'MUN'
+  return 'AUT'
+}
+
+function dateCourtFr(dateStr?: string): string {
+  if (!dateStr) return ''
+  const mois = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc']
+  const d = new Date(dateStr + 'T00:00:00')
+  return `${d.getDate()} ${mois[d.getMonth()]}`
+}
+
+function slugCourt(s: string, max = 15): string {
+  return (s || '').trim().slice(0, max).trim()
+}
+
+function genNomSinistre(type: string, lieu: string, date: string): string {
+  const d = date || new Date().toISOString().slice(0, 10)
+  const t = slugCourt(type.replace(/\s+/g, '-'), 20)
+  const l = slugCourt(lieu.split(',')[0].trim().replace(/\s+/g, '-'), 20)
+  return [d, t, l].filter(Boolean).join('-')
+}
+
+function genNomDemande(organisme: string, date: string, mission: string): string {
+  const org = orgAbbr(organisme)
+  const d = dateCourtFr(date)
+  const m = slugCourt(mission, 12)
+  return [org, d, m].filter(Boolean).join('-')
+}
+
+function genNomDeployment(demandes: { organisme: string; type_mission?: string }[], lieu: string): string {
+  const orgs = [...new Set(demandes.map(d => orgAbbr(d.organisme)))].join('+')
+  const missions = [...new Set(demandes.map(d => slugCourt(d.type_mission || '', 10)))].filter(Boolean).join('/')
+  const l = slugCourt(lieu.split(',')[0].trim(), 25)
+  return [orgs, missions, l].filter(Boolean).join(' - ')
+}
+
+function genNomRotation(demandes: { organisme: string; type_mission?: string }[], date: string, nb?: string): string {
+  const orgs = [...new Set(demandes.map(d => orgAbbr(d.organisme)))].join('+')
+  const missions = [...new Set(demandes.map(d => slugCourt(d.type_mission || '', 8)))].filter(Boolean).join('/')
+  const d = dateCourtFr(date)
+  const n = nb ? `(${nb} pers)` : ''
+  return [orgs, missions, d, n].filter(Boolean).join(' - ')
+}
+
 function getMissions(organisme: string): string[] {
   if (organisme === 'SOPFEU') return TYPES_MISSION_SOPFEU
   if (organisme === 'Croix-Rouge') return TYPES_MISSION_CROIXROUGE
@@ -185,11 +235,32 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
   demandesDisponibles: { id: string; label: string }[]
 }) {
   const [form, setForm] = useState(initial)
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
-  const toggleDemande = (id: string) => setForm(f => ({
-    ...f,
-    demandes_ids: f.demandes_ids.includes(id) ? f.demandes_ids.filter(d => d !== id) : [...f.demandes_ids, id]
-  }))
+  const [nomManuel, setNomManuel] = useState(!!initial.nom)
+
+  const set = (k: string, v: string) => setForm(f => {
+    const updated = { ...f, [k]: v }
+    if (!nomManuel && k === 'lieu') {
+      const selectedDems = demandesDisponibles.filter(d => f.demandes_ids.includes(d.id))
+      updated.nom = genNomDeployment(
+        selectedDems.map(d => ({ organisme: d.label.split(' — ')[0], type_mission: d.label.split(' — ')[1] })),
+        v
+      )
+    }
+    return updated
+  })
+
+  const toggleDemande = (id: string) => setForm(f => {
+    const newIds = f.demandes_ids.includes(id) ? f.demandes_ids.filter(d => d !== id) : [...f.demandes_ids, id]
+    const updated = { ...f, demandes_ids: newIds }
+    if (!nomManuel) {
+      const selectedDems = demandesDisponibles.filter(d => newIds.includes(d.id))
+      updated.nom = genNomDeployment(
+        selectedDems.map(d => ({ organisme: d.label.split(' — ')[0], type_mission: d.label.split(' — ')[1] })),
+        f.lieu
+      )
+    }
+    return updated
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
@@ -212,7 +283,10 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
 
       <div>
         <label style={labelStyle()}>NOM DU DÉPLOIEMENT *</label>
-        <input style={inputStyle(true)} value={form.nom} onChange={e => set('nom', e.target.value)} placeholder="ex: DEP-073 - Soutien - Rue Principale" />
+        <input style={inputStyle(true)} value={form.nom}
+          onChange={e => { setNomManuel(true); set('nom', e.target.value) }}
+          placeholder="Auto-généré depuis organisme + mission + lieu" />
+        {!nomManuel && form.nom && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>✨ Généré automatiquement — modifiable</div>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <div>
@@ -279,12 +353,13 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
 
 const ROTATION_VIDE = { date_debut: '', date_fin: '', nb_personnes_requis: '', statut: 'Planifiée' }
 
-function FormRotation({ initial, onSave, onCancel, saving, numero }: {
+function FormRotation({ initial, onSave, onCancel, saving, numero, contextDemandes }: {
   initial: typeof ROTATION_VIDE
   onSave: (data: typeof ROTATION_VIDE) => void
   onCancel: () => void
   saving: boolean
   numero: number
+  contextDemandes?: { organisme: string; type_mission?: string }[]
 }) {
   const [form, setForm] = useState(initial)
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
@@ -292,7 +367,14 @@ function FormRotation({ initial, onSave, onCancel, saving, numero }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-      <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>ROTATION #{numero}</div>
+      <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>
+        ROTATION #{numero}
+        {contextDemandes && form.date_debut && (
+          <span style={{ marginLeft: '8px', color: '#d97706' }}>
+            → {genNomRotation(contextDemandes, form.date_debut, form.nb_personnes_requis)}
+          </span>
+        )}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
         <div>
           <label style={labelStyle()}>DATE DÉBUT *</label>
@@ -335,13 +417,29 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
   saving: boolean
 }) {
   const [form, setForm] = useState(initial)
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const [nomManuel, setNomManuel] = useState(!!initial.nom)
+
+  const set = (k: string, v: string) => setForm(f => {
+    const updated = { ...f, [k]: v }
+    // Auto-générer le nom si pas modifié manuellement
+    if (!nomManuel && (k === 'type_incident' || k === 'lieu' || k === 'date_debut')) {
+      updated.nom = genNomSinistre(
+        k === 'type_incident' ? v : f.type_incident,
+        k === 'lieu' ? v : f.lieu,
+        k === 'date_debut' ? v : f.date_debut,
+      )
+    }
+    return updated
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div>
         <label style={labelStyle()}>NOM DU SINISTRE *</label>
-        <input style={inputStyle()} value={form.nom} onChange={e => set('nom', e.target.value)} placeholder="ex: Inondation Gatineau — Belle Horizon" />
+        <input style={inputStyle()} value={form.nom}
+          onChange={e => { setNomManuel(true); set('nom', e.target.value) }}
+          placeholder="Auto-généré depuis type + lieu + date" />
+        {!nomManuel && form.nom && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>✨ Généré automatiquement — modifiable</div>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div>
@@ -788,10 +886,22 @@ export default function AdminSinistresPage() {
         nb_personnes_requis: form.nb_personnes_requis ? parseInt(form.nb_personnes_requis) : null,
         statut: form.statut,
       }
+      const rotationContext = {
+        deployment: {
+          context_org: (selectedDeployment?.demandes_ids || []).map(did => {
+            const d = sinistres.find(s => s.id === selectedId)?.demandes?.find(d => d.id === did)
+            return d ? orgAbbr(d.organisme) : ''
+          }).filter(Boolean).join('+'),
+          context_mission: (selectedDeployment?.demandes_ids || []).map(did => {
+            const d = sinistres.find(s => s.id === selectedId)?.demandes?.find(d => d.id === did)
+            return d?.type_mission?.slice(0, 8) || ''
+          }).filter(Boolean).join('/'),
+        }
+      }
       if (editRotation) {
         await apiCall('PUT', { table: 'vagues', id: editRotation.id, payload })
       } else {
-        await apiCall('POST', { table: 'vagues', payload })
+        await apiCall('POST', { table: 'vagues', payload, context: rotationContext })
       }
       await chargerRotations(selectedDeploymentId)
       setShowFormRotation(false)
@@ -1122,6 +1232,10 @@ export default function AdminSinistresPage() {
                           onCancel={() => { setShowFormRotation(false); setEditRotation(null) }}
                           saving={savingRotation}
                           numero={editRotation?.numero || rotations.length + 1}
+                          contextDemandes={(selectedDeployment?.demandes_ids || []).map(did => {
+                            const d = sinistres.find(s => s.id === selectedId)?.demandes?.find(d => d.id === did)
+                            return { organisme: d?.organisme || '', type_mission: d?.type_mission }
+                          })}
                         />
                       </div>
                     )}
@@ -1131,7 +1245,7 @@ export default function AdminSinistresPage() {
                       rotations.map(r => (
                         <div key={r.id} style={{ padding: '10px 16px', borderBottom: '1px solid #f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <span style={{ fontWeight: '700', fontSize: '12px', color: '#c2410c' }}>Rotation #{r.numero}</span>
+                            <span style={{ fontWeight: '700', fontSize: '12px', color: '#c2410c' }}>{r.identifiant || `Rotation #${r.numero}`}</span>
                             <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>📅 {r.date_debut} → {r.date_fin}</span>
                             {r.nb_personnes_requis && <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>👥 {r.nb_personnes_requis} pers.</span>}
                           </div>
