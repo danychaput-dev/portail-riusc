@@ -11,6 +11,7 @@ import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils
 
 interface Reserviste {
   benevole_id: string
+  role?: string
   prenom: string
   nom: string
   email: string
