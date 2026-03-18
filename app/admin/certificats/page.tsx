@@ -61,6 +61,16 @@ function initials(nom: string) {
   return (p[0]?.[0] ?? '') + (p[p.length - 1]?.[0] ?? '')
 }
 
+function formationsMatch(a: string, b: string): boolean {
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+  if (norm(a) === norm(b)) return true
+  const initierKeys = ['sinitier', 'initierlasecuritecivile', 'securitecivile', 'msp']
+  const aIsInitier = initierKeys.some(k => norm(a).includes(k))
+  const bIsInitier = initierKeys.some(k => norm(b).includes(k))
+  if (aIsInitier && bIsInitier) return true
+  return false
+}
+
 function detectFormation(files: { name: string; url: string }[]): string {
   const text = files.map(f => f.name + ' ' + f.url).join(' ').toLowerCase()
   if (/initier|msp|s-initier|sinitier|securite.civile|s%c3%a9curit|ssc/.test(text)) return "S'initier à la sécurité civile (MSP)"
@@ -327,17 +337,6 @@ export default function AdminCertificatsPage() {
       }
 
       // Étape 4 — filtrer les items où le réserviste a déjà la même formation
-      function formationsMatch(a: string, b: string): boolean {
-        const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
-        if (norm(a) === norm(b)) return true
-        // Variantes connues S'initier
-        const initierKeys = ['sinitier', 'initierlasecuritecivile', 'securitecivile', 'msp']
-        const aIsInitier = initierKeys.some(k => norm(a).includes(k))
-        const bIsInitier = initierKeys.some(k => norm(b).includes(k))
-        if (aIsInitier && bIsInitier) return true
-        return false
-      }
-
       const finalItems = remaining.filter(item => {
         const benevoleId = emailToBenevoleId.get(item.email.toLowerCase())
         if (!benevoleId) return true // pas trouvé → garder, on verra l'erreur à l'approbation
@@ -360,7 +359,25 @@ export default function AdminCertificatsPage() {
         .is('monday_item_id', null)
         .order('nom_complet')
       if (data) {
-        const enriched = await Promise.all(data.map(async (item) => {
+        // Vérifier les doublons — exclure si le réserviste a déjà la même formation approuvée
+        const portailBenevoleIds = [...new Set(data.map(d => d.benevole_id))]
+        const { data: approuveesPortail } = await supabase
+          .from('formations_benevoles')
+          .select('benevole_id, nom_formation')
+          .in('benevole_id', portailBenevoleIds)
+          .eq('resultat', 'Réussi')
+        const approuveesByBenevole = new Map<string, Set<string>>()
+        for (const f of approuveesPortail || []) {
+          if (!approuveesByBenevole.has(f.benevole_id)) approuveesByBenevole.set(f.benevole_id, new Set())
+          approuveesByBenevole.get(f.benevole_id)!.add(f.nom_formation.toLowerCase().trim())
+        }
+        const dataFiltered = data.filter(item => {
+          const existing = approuveesByBenevole.get(item.benevole_id)
+          if (!existing) return true
+          return ![...existing].some(f => formationsMatch(f, item.nom_formation))
+        })
+
+        const enriched = await Promise.all(dataFiltered.map(async (item) => {
           const { data: res } = await supabase.from('reservistes').select('email').eq('benevole_id', item.benevole_id).single()
           let signedUrl = ''
           if (item.certificat_url?.startsWith('storage:')) {
@@ -383,7 +400,7 @@ export default function AdminCertificatsPage() {
     const cert = certificats.find(c => c.id === id)
     if (!cert?.dateInput) return
     setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saving' } : c))
-    const { error } = await supabase.from('formations_benevoles').update({ resultat: 'Réussi', date_reussite: cert.dateInput, ...(cert.dateExpiration ? { date_expiration: cert.dateExpiration } : {}) }).eq('id', id)
+    const { error } = await supabase.from('formations_benevoles').update({ resultat: 'Réussi', etat_validite: 'À jour', date_reussite: cert.dateInput, ...(cert.dateExpiration ? { date_expiration: cert.dateExpiration } : {}) }).eq('id', id)
     if (error) { setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'error' } : c)) }
     else { setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saved' } : c)); setSavedCount(n => n + 1) }
   }
