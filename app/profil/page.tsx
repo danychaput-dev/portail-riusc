@@ -137,6 +137,9 @@ const OPTIONS: Record<string, { id: number; label: string }[]> = {
     { id: 3, label: 'c) Secourisme en milieu de travail (16h)' },
     { id: 4, label: 'd) Secourisme en milieu éloigné (20-40h)' },
     { id: 5, label: 'e) Premier répondant (80-120h)' },
+    { id: 6, label: 'f) Infirmière / Infirmier' },
+    { id: 7, label: 'g) Paramédic / Technicien ambulancier' },
+    { id: 8, label: 'h) Médecin' },
   ],
   vehicule_tout_terrain: [
     { id: 1, label: 'VTT' },
@@ -1352,14 +1355,20 @@ export default function ProfilPage() {
         for (const { field, label } of addedFormations) {
           const { data: exists } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).maybeSingle()
           if (!exists) {
+            const noCertLabels = [
+              'f) Infirmière / Infirmier',
+              'g) Paramédic / Technicien ambulancier',
+              'h) Médecin',
+            ]
             await supabase.from('formations_benevoles').insert({
               benevole_id: reserviste.benevole_id,
               nom_complet: dossier.nom + ' ' + dossier.prenom,
               nom_formation: label,
-              resultat: 'En attente',
+              resultat: noCertLabels.includes(label) ? 'Réussi' : 'En attente',
+              etat_validite: noCertLabels.includes(label) ? 'À jour' : null,
               role: 'Participant',
               source: 'portail',
-              certificat_requis: true,
+              certificat_requis: !noCertLabels.includes(label),
               competence_profil_champ: field,
               competence_profil_label: label,
             })
