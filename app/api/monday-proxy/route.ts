@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
     return new NextResponse('URL manquante', { status: 400 })
   }
 
-  // Valider que l'URL vient de Monday.com uniquement
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -24,6 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(url, {
       headers: {
+        'Authorization': `Bearer ${process.env.MONDAY_API_KEY}`,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/pdf,image/*,*/*;q=0.9',
         'Accept-Language': 'fr-CA,fr;q=0.9,en;q=0.8',
@@ -41,16 +41,20 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = response.headers.get('content-type') || 'application/octet-stream'
+
+    // Rejeter si Monday retourne du HTML (page de login ou erreur)
+    if (contentType.includes('text/html')) {
+      return new NextResponse('Fichier non accessible', { status: 403 })
+    }
+
     const buffer = await response.arrayBuffer()
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        // Supprimer les headers qui bloquent l'embedding
         'X-Frame-Options': 'SAMEORIGIN',
         'Content-Security-Policy': "frame-ancestors 'self'",
-        // Cache 1 heure
         'Cache-Control': 'private, max-age=3600',
       },
     })
