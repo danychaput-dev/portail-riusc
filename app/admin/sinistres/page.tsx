@@ -116,6 +116,16 @@ const TYPES_MISSION_AUTRES = [
   'Autre',
 ]
 
+// ─── Formatage téléphone ─────────────────────────────────────────────────────
+
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return `(${digits}`
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+}
+
 // ─── Helpers nommage automatique ─────────────────────────────────────────────
 
 function orgAbbr(organisme: string): string {
@@ -292,7 +302,15 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <div>
           <label style={labelStyle()}>STATUT</label>
-          <select style={inputStyle(true)} value={form.statut} onChange={e => set('statut', e.target.value)}>
+          <select style={inputStyle(true)} value={form.statut} onChange={e => {
+            const newStatut = e.target.value
+            setForm(f => ({
+              ...f,
+              statut: newStatut,
+              date_fin: (newStatut === 'Complété' || newStatut === 'Annulé') && !f.date_fin
+                ? new Date().toISOString().slice(0, 10) : f.date_fin
+            }))
+          }}>
             {STATUTS_DEPLOIEMENT.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
@@ -305,16 +323,16 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
         <label style={labelStyle()}>LIEU</label>
         <input style={inputStyle(true)} value={form.lieu} onChange={e => set('lieu', e.target.value)} placeholder="Adresse ou secteur spécifique" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+      <div>
+        <label style={labelStyle()}>DATE DÉBUT</label>
+        <input type="date" style={inputStyle(true)} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
+      </div>
+      {form.date_fin && (
         <div>
-          <label style={labelStyle()}>DATE DÉBUT</label>
-          <input type="date" style={inputStyle(true)} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle()}>DATE FIN <span style={{ fontWeight: 400 }}>(opt.)</span></label>
+          <label style={labelStyle()}>DATE FIN <span style={{ fontWeight: 400, color: '#059669' }}>(auto-remplie à la fermeture)</span></label>
           <input type="date" style={inputStyle(true)} value={form.date_fin} onChange={e => set('date_fin', e.target.value)} />
         </div>
-      </div>
+      )}
 
       {/* Logistique */}
       <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '2px' }}>
@@ -452,7 +470,14 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
         </div>
         <div>
           <label style={labelStyle()}>STATUT</label>
-          <select style={inputStyle()} value={form.statut} onChange={e => set('statut', e.target.value)}>
+          <select style={inputStyle()} value={form.statut} onChange={e => {
+            const newStatut = e.target.value
+            setForm(f => ({
+              ...f,
+              statut: newStatut,
+              date_fin: newStatut === 'Fermé' && !f.date_fin ? new Date().toISOString().slice(0, 10) : f.date_fin
+            }))
+          }}>
             {STATUTS_SINISTRE.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
@@ -461,16 +486,16 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
         <label style={labelStyle()}>LIEU</label>
         <input style={inputStyle()} value={form.lieu} onChange={e => set('lieu', e.target.value)} placeholder="ex: Gatineau, QC, Canada" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div>
+        <label style={labelStyle()}>DATE DÉBUT</label>
+        <input type="date" style={inputStyle()} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
+      </div>
+      {form.date_fin && (
         <div>
-          <label style={labelStyle()}>DATE DÉBUT</label>
-          <input type="date" style={inputStyle()} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle()}>DATE FIN <span style={{ fontWeight: 400 }}>(opt.)</span></label>
+          <label style={labelStyle()}>DATE FIN <span style={{ fontWeight: 400, color: '#059669' }}>(auto-remplie à la fermeture)</span></label>
           <input type="date" style={inputStyle()} value={form.date_fin} onChange={e => set('date_fin', e.target.value)} />
         </div>
-      </div>
+      )}
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
         <button onClick={onCancel} style={{ padding: '7px 16px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#374151' }}>Annuler</button>
         <button onClick={() => form.nom && onSave(form)} disabled={saving || !form.nom}
@@ -541,7 +566,7 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
           <div>
             <label style={labelStyle()}>TÉLÉPHONE</label>
-            <input style={inputStyle(true)} value={form.contact_telephone} onChange={e => set('contact_telephone', e.target.value)} placeholder="514-555-0000" />
+            <input style={inputStyle(true)} value={form.contact_telephone} onChange={e => set('contact_telephone', formatPhone(e.target.value))} placeholder="(514) 555-0000" />
           </div>
           <div>
             <label style={labelStyle()}>COURRIEL</label>
@@ -559,14 +584,10 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
           <input type="number" style={inputStyle(true)} value={form.nb_personnes_requis} onChange={e => set('nb_personnes_requis', e.target.value)} min="1" />
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
         <div>
           <label style={labelStyle()}>DATE DÉBUT</label>
           <input type="date" style={inputStyle(true)} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle()}>DATE FIN EST.</label>
-          <input type="date" style={inputStyle(true)} value={form.date_fin_estimee} onChange={e => set('date_fin_estimee', e.target.value)} />
         </div>
         <div>
           <label style={labelStyle()}>PRIORITÉ</label>
@@ -576,11 +597,25 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
         </div>
         <div>
           <label style={labelStyle()}>STATUT</label>
-          <select style={inputStyle(true)} value={form.statut} onChange={e => set('statut', e.target.value)}>
+          <select style={inputStyle(true)} value={form.statut} onChange={e => {
+            const newStatut = e.target.value
+            setForm(f => ({
+              ...f,
+              statut: newStatut,
+              date_fin_estimee: (newStatut === 'Complétée' || newStatut === 'Annulée') && !f.date_fin_estimee
+                ? new Date().toISOString().slice(0, 10) : f.date_fin_estimee
+            }))
+          }}>
             {STATUTS_DEMANDE.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       </div>
+      {form.date_fin_estimee && (
+        <div>
+          <label style={labelStyle()}>DATE FIN <span style={{ fontWeight: 400, color: '#059669' }}>(auto-remplie à la fermeture)</span></label>
+          <input type="date" style={inputStyle(true)} value={form.date_fin_estimee} onChange={e => set('date_fin_estimee', e.target.value)} />
+        </div>
+      )}
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', marginTop: '4px' }}>
         <button onClick={onCancel} style={{ padding: '5px 12px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Annuler</button>
         {(() => {
