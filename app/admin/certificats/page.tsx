@@ -296,17 +296,59 @@ export default function AdminCertificatsPage() {
       if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
       setAdminBenevoleId(reserviste.benevole_id)
 
-      // Vérifier lesquels des 101 Monday sont déjà dans formations_benevoles
+      // Étape 1 — filtrer par monday_item_id déjà traité
       const mondayIds = MONDAY_RAW.map(i => i.monday_item_id)
       const { data: existingMonday } = await supabase
         .from('formations_benevoles')
         .select('monday_item_id')
         .in('monday_item_id', mondayIds)
       const alreadyDone = new Set((existingMonday || []).map(r => r.monday_item_id))
+      const remaining = MONDAY_RAW.filter(item => !alreadyDone.has(item.monday_item_id))
+
+      // Étape 2 — résoudre les benevole_ids par email pour les items restants
+      const emails = remaining.map(i => i.email.toLowerCase())
+      const { data: reservistesFound } = await supabase
+        .from('reservistes')
+        .select('benevole_id, email')
+        .in('email', emails)
+      const emailToBenevoleId = new Map((reservistesFound || []).map(r => [r.email.toLowerCase(), r.benevole_id]))
+
+      // Étape 3 — vérifier si le réserviste a déjà une formation identique dans formations_benevoles
+      const benevoleIds = [...new Set([...emailToBenevoleId.values()])]
+      const { data: existingFormations } = await supabase
+        .from('formations_benevoles')
+        .select('benevole_id, nom_formation')
+        .in('benevole_id', benevoleIds)
+      // Map benevole_id → set de noms de formation normalisés
+      const formationsByBenevole = new Map<string, Set<string>>()
+      for (const f of existingFormations || []) {
+        if (!formationsByBenevole.has(f.benevole_id)) formationsByBenevole.set(f.benevole_id, new Set())
+        formationsByBenevole.get(f.benevole_id)!.add(f.nom_formation.toLowerCase().trim())
+      }
+
+      // Étape 4 — filtrer les items où le réserviste a déjà la même formation
+      function formationsMatch(a: string, b: string): boolean {
+        const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+        if (norm(a) === norm(b)) return true
+        // Variantes connues S'initier
+        const initierKeys = ['sinitier', 'initierlasecuritecivile', 'securitecivile', 'msp']
+        const aIsInitier = initierKeys.some(k => norm(a).includes(k))
+        const bIsInitier = initierKeys.some(k => norm(b).includes(k))
+        if (aIsInitier && bIsInitier) return true
+        return false
+      }
+
+      const finalItems = remaining.filter(item => {
+        const benevoleId = emailToBenevoleId.get(item.email.toLowerCase())
+        if (!benevoleId) return true // pas trouvé → garder, on verra l'erreur à l'approbation
+        const detectedFormation = detectFormation(item.files)
+        const existing = formationsByBenevole.get(benevoleId)
+        if (!existing) return true
+        return ![...existing].some(f => formationsMatch(f, detectedFormation))
+      })
+
       setMondayItems(
-        MONDAY_RAW
-          .filter(item => !alreadyDone.has(item.monday_item_id))
-          .map(item => ({ ...item, mState: { status: 'idle', formation: detectFormation(item.files), dateObtention: '', dateExpiration: '' } }))
+        finalItems.map(item => ({ ...item, mState: { status: 'idle', formation: detectFormation(item.files), dateObtention: '', dateExpiration: '' } }))
       )
 
       const { data } = await supabase
