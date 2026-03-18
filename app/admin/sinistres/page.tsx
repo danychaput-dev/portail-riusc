@@ -46,7 +46,7 @@ interface Demande {
 interface Deployment {
   id: string
   monday_id?: string
-  demande_id: string
+  demande_id?: string
   identifiant: string
   nom: string
   lieu?: string
@@ -54,8 +54,13 @@ interface Deployment {
   date_fin?: string
   nb_personnes_par_vague?: number
   statut: string
+  point_rassemblement?: string
+  transport?: string
+  hebergement?: string
+  notes_logistique?: string
   created_at: string
   rotations?: Rotation[]
+  demandes_ids?: string[]
 }
 
 interface Rotation {
@@ -169,24 +174,45 @@ function labelStyle(): React.CSSProperties {
 
 // ─── Formulaire déploiement ──────────────────────────────────────────────────
 
-const DEPLOYMENT_VIDE = { nom: '', lieu: '', date_debut: '', date_fin: '', nb_personnes_par_vague: '', statut: 'Planifié' }
+const DEPLOYMENT_VIDE = { nom: '', lieu: '', date_debut: '', date_fin: '', nb_personnes_par_vague: '', statut: 'Planifié', point_rassemblement: '', transport: '', hebergement: '', notes_logistique: '', demandes_ids: [] as string[] }
 
-function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant }: {
+function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, demandesDisponibles }: {
   initial: typeof DEPLOYMENT_VIDE
   onSave: (data: typeof DEPLOYMENT_VIDE) => void
   onCancel: () => void
   saving: boolean
   nextIdentifiant: string
+  demandesDisponibles: { id: string; label: string }[]
 }) {
   const [form, setForm] = useState(initial)
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const toggleDemande = (id: string) => setForm(f => ({
+    ...f,
+    demandes_ids: f.demandes_ids.includes(id) ? f.demandes_ids.filter(d => d !== id) : [...f.demandes_ids, id]
+  }))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
       <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>IDENTIFIANT AUTO : {nextIdentifiant}</div>
+
+      {/* Demandes liées */}
+      {demandesDisponibles.length > 1 && (
+        <div>
+          <label style={labelStyle()}>DEMANDES COUVERTES</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {demandesDisponibles.map(d => (
+              <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={form.demandes_ids.includes(d.id)} onChange={() => toggleDemande(d.id)} />
+                {d.label}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <label style={labelStyle()}>NOM DU DÉPLOIEMENT *</label>
-        <input style={inputStyle(true)} value={form.nom} onChange={e => set('nom', e.target.value)} placeholder="ex: DEP-073 - CR Soutien - Rue Principale" />
+        <input style={inputStyle(true)} value={form.nom} onChange={e => set('nom', e.target.value)} placeholder="ex: DEP-073 - Soutien - Rue Principale" />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <div>
@@ -214,6 +240,30 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant }: 
           <input type="date" style={inputStyle(true)} value={form.date_fin} onChange={e => set('date_fin', e.target.value)} />
         </div>
       </div>
+
+      {/* Logistique */}
+      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '2px' }}>
+        <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600', marginBottom: '6px' }}>LOGISTIQUE</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div>
+            <label style={labelStyle()}>POINT DE RASSEMBLEMENT</label>
+            <input style={inputStyle(true)} value={form.point_rassemblement} onChange={e => set('point_rassemblement', e.target.value)} placeholder="ex: Aréna Saint-Laurent" />
+          </div>
+          <div>
+            <label style={labelStyle()}>TRANSPORT</label>
+            <input style={inputStyle(true)} value={form.transport} onChange={e => set('transport', e.target.value)} placeholder="ex: Autobus — départ 6h00" />
+          </div>
+          <div>
+            <label style={labelStyle()}>HÉBERGEMENT</label>
+            <input style={inputStyle(true)} value={form.hebergement} onChange={e => set('hebergement', e.target.value)} placeholder="ex: École primaire Duplessis" />
+          </div>
+          <div>
+            <label style={labelStyle()}>NOTES</label>
+            <input style={inputStyle(true)} value={form.notes_logistique} onChange={e => set('notes_logistique', e.target.value)} placeholder="Informations complémentaires" />
+          </div>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={{ padding: '5px 12px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Annuler</button>
         <button onClick={() => form.nom && onSave(form)} disabled={saving || !form.nom}
@@ -528,9 +578,29 @@ export default function AdminSinistresPage() {
 
   // ─── Chargement déploiements et rotations ───────────────────────────────────
 
-  const chargerDeployments = async (demandeId: string) => {
-    const { data } = await supabase.from('deployments').select('*').eq('demande_id', demandeId).order('created_at')
-    setDeployments(data || [])
+  const chargerDeployments = async (sinisterId: string) => {
+    // Charger tous les déploiements du sinistre via les demandes liées
+    const sinistre = sinistres.find(s => s.id === sinisterId)
+    const demandeIds = (sinistre?.demandes || []).map(d => d.id)
+    if (!demandeIds.length) { setDeployments([]); return }
+
+    // Récupérer les deployment_ids via la table de jonction
+    const { data: jonction } = await supabase
+      .from('deployments_demandes')
+      .select('deployment_id')
+      .in('demande_id', demandeIds)
+    const depIds = [...new Set((jonction || []).map(j => j.deployment_id))]
+    if (!depIds.length) { setDeployments([]); setSelectedDeploymentId(null); setRotations([]); return }
+
+    // Charger les déploiements + leurs demandes liées
+    const { data: deps } = await supabase.from('deployments').select('*').in('id', depIds).order('created_at')
+    const { data: allJonction } = await supabase.from('deployments_demandes').select('*').in('deployment_id', depIds)
+
+    const enriched = (deps || []).map(dep => ({
+      ...dep,
+      demandes_ids: (allJonction || []).filter(j => j.deployment_id === dep.id).map(j => j.demande_id)
+    }))
+    setDeployments(enriched)
     setSelectedDeploymentId(null)
     setRotations([])
   }
@@ -654,14 +724,12 @@ export default function AdminSinistresPage() {
   // ─── CRUD Déploiements ───────────────────────────────────────────────────────
 
   const sauvegarderDeployment = async (form: typeof DEPLOYMENT_VIDE) => {
-    if (!selectedDemandeId) return
     setSavingDeployment(true)
     const selectedSinistre = sinistres.find(s => s.id === selectedId)
-    const selectedDemande = selectedSinistre?.demandes?.find(d => d.id === selectedDemandeId)
+    const firstDemande = selectedSinistre?.demandes?.find(d => form.demandes_ids.includes(d.id)) || selectedSinistre?.demandes?.[0]
     try {
       const identifiant = editDeployment?.identifiant || genererIdentifiant()
       const payload = {
-        demande_id: selectedDemandeId,
         identifiant,
         nom: form.nom,
         lieu: form.lieu || null,
@@ -669,16 +737,25 @@ export default function AdminSinistresPage() {
         date_fin: form.date_fin || null,
         nb_personnes_par_vague: form.nb_personnes_par_vague ? parseInt(form.nb_personnes_par_vague) : null,
         statut: form.statut,
+        point_rassemblement: form.point_rassemblement || null,
+        transport: form.transport || null,
+        hebergement: form.hebergement || null,
+        notes_logistique: form.notes_logistique || null,
       }
-      const context = { demande: selectedDemande, sinistre: selectedSinistre }
+      const context = { demande: firstDemande, sinistre: selectedSinistre }
+      let depId = editDeployment?.id
       if (editDeployment) {
         await apiCall('PUT', { table: 'deployments', id: editDeployment.id, payload, context })
-        showMsg('success', 'Déploiement mis à jour')
       } else {
         const { data } = await apiCall('POST', { table: 'deployments', payload, context })
+        depId = data.id
         setSelectedDeploymentId(data.id)
       }
-      await chargerDeployments(selectedDemandeId)
+      // Sync table de jonction deployments_demandes
+      if (depId) {
+        await apiCall('PUT', { table: 'deployments_demandes_sync', id: depId, payload: { demandes_ids: form.demandes_ids.length ? form.demandes_ids : (selectedDemandeId ? [selectedDemandeId] : []) }, context: {} })
+      }
+      await chargerDeployments(selectedId!)
       setShowFormDeployment(false)
       setEditDeployment(null)
       showMsg('success', editDeployment ? 'Déploiement mis à jour' : 'Déploiement créé')
@@ -745,7 +822,18 @@ export default function AdminSinistresPage() {
     date_fin: d.date_fin || '',
     nb_personnes_par_vague: d.nb_personnes_par_vague?.toString() || '',
     statut: d.statut,
-  } : DEPLOYMENT_VIDE
+    point_rassemblement: d.point_rassemblement || '',
+    transport: d.transport || '',
+    hebergement: d.hebergement || '',
+    notes_logistique: d.notes_logistique || '',
+    demandes_ids: d.demandes_ids || [],
+  } : { ...DEPLOYMENT_VIDE, demandes_ids: selectedDemandeId ? [selectedDemandeId] : [] }
+
+  // Demandes disponibles pour le sinistre sélectionné (pour les checkboxes)
+  const demandesDisponibles = (sinistres.find(s => s.id === selectedId)?.demandes || []).map(d => ({
+    id: d.id,
+    label: `${d.organisme}${d.type_mission ? ` — ${d.type_mission}` : ''}`
+  }))
 
   const initFormRotation = (r?: Rotation): typeof ROTATION_VIDE => r ? {
     date_debut: r.date_debut,
@@ -865,7 +953,7 @@ export default function AdminSinistresPage() {
               {sinistresFiltrés.map(s => (
                 <div
                   key={s.id}
-                  onClick={() => { setSelectedId(s.id); setShowFormDemande(false); setEditDemande(null) }}
+                  onClick={() => { setSelectedId(s.id); setShowFormDemande(false); setEditDemande(null); setSelectedDemandeId(null); setSelectedDeploymentId(null); setRotations([]); chargerDeployments(s.id) }}
                   style={{
                     backgroundColor: 'white', borderRadius: '10px',
                     border: `2px solid ${selectedId === s.id ? '#1e3a5f' : '#e5e7eb'}`,
@@ -943,7 +1031,7 @@ export default function AdminSinistresPage() {
                   ) : (
                     selected.demandes?.map(d => (
                       <div key={d.id}
-                        onClick={() => { setSelectedDemandeId(d.id === selectedDemandeId ? null : d.id); if (d.id !== selectedDemandeId) { chargerDeployments(d.id); setSelectedDeploymentId(null); setRotations([]) } }}
+                        onClick={() => { setSelectedDemandeId(d.id === selectedDemandeId ? null : d.id); if (d.id !== selectedDemandeId) { chargerDeployments(selectedId!); setSelectedDeploymentId(null); setRotations([]) } else { setSelectedDeploymentId(null); setRotations([]) } }}
                         style={{ padding: '10px 16px', borderBottom: '1px solid #f9fafb', cursor: 'pointer', backgroundColor: selectedDemandeId === d.id ? '#eff6ff' : 'white', borderLeft: selectedDemandeId === d.id ? '3px solid #2563eb' : '3px solid transparent', transition: 'background 0.1s' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                           <div>
@@ -969,11 +1057,11 @@ export default function AdminSinistresPage() {
                 </div>
 
                 {/* ── Déploiements (si demande sélectionnée) ── */}
-                {selectedDemandeId && (
+                {selectedId && (
                   <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '2px solid #ddd6fe', overflow: 'hidden' }}>
                     <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#faf5ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontWeight: '700', fontSize: '13px', color: '#7c3aed' }}>🚁 Déploiements ({deployments.length})</div>
-                      <button onClick={() => { setEditDeployment(null); setShowFormDeployment(true) }} style={{ padding: '4px 10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>+ Nouveau</button>
+                      <button onClick={() => { setEditDeployment(null); setShowFormDeployment(true); if (!deployments.length) chargerDeployments(selectedId!) }} style={{ padding: '4px 10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>+ Nouveau</button>
                     </div>
                     {showFormDeployment && (
                       <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
@@ -983,6 +1071,7 @@ export default function AdminSinistresPage() {
                           onCancel={() => { setShowFormDeployment(false); setEditDeployment(null) }}
                           saving={savingDeployment}
                           nextIdentifiant={genererIdentifiant()}
+                          demandesDisponibles={demandesDisponibles}
                         />
                       </div>
                     )}
@@ -1008,6 +1097,9 @@ export default function AdminSinistresPage() {
                             {dep.lieu && <span style={{ fontSize: '10px', color: '#6b7280' }}>📍 {dep.lieu}</span>}
                             {dep.date_debut && <span style={{ fontSize: '10px', color: '#6b7280' }}>📅 {dep.date_debut}{dep.date_fin ? ` → ${dep.date_fin}` : ''}</span>}
                             {dep.nb_personnes_par_vague && <span style={{ fontSize: '10px', color: '#6b7280' }}>👥 {dep.nb_personnes_par_vague}/rotation</span>}
+                            {dep.transport && <span style={{ fontSize: '10px', color: '#6b7280' }}>🚌 {dep.transport}</span>}
+                            {dep.point_rassemblement && <span style={{ fontSize: '10px', color: '#6b7280' }}>📌 {dep.point_rassemblement}</span>}
+                            {dep.demandes_ids && dep.demandes_ids.length > 1 && <span style={{ fontSize: '10px', color: '#7c3aed', fontWeight: '600' }}>🔗 {dep.demandes_ids.length} demandes</span>}
                           </div>
                         </div>
                       ))

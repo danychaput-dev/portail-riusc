@@ -31,6 +31,17 @@ async function syncDeploiementsActifs(deployment: any, demande: any, sinistre: a
   }, { onConflict: 'deploiement_id' })
 }
 
+async function syncDemandesJonction(deploymentId: string, demandesIds: string[]) {
+  // Supprimer les anciennes liaisons
+  await supabaseAdmin.from('deployments_demandes').delete().eq('deployment_id', deploymentId)
+  // Insérer les nouvelles
+  if (demandesIds.length > 0) {
+    await supabaseAdmin.from('deployments_demandes').insert(
+      demandesIds.map(did => ({ deployment_id: deploymentId, demande_id: did }))
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -41,7 +52,6 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabaseAdmin.from(table).insert(payload).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Sync deploiements_actifs quand on crée un déploiement
     if (table === 'deployments' && context) {
       await syncDeploiementsActifs(data, context.demande, context.sinistre)
     }
@@ -57,6 +67,13 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { table, id, payload, admin_benevole_id, context } = body
     if (!await verifierAcces(admin_benevole_id)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+
+    // Cas spécial : sync table de jonction deployments_demandes
+    if (table === 'deployments_demandes_sync') {
+      await syncDemandesJonction(id, payload.demandes_ids || [])
+      return NextResponse.json({ success: true })
+    }
+
     if (!ALLOWED_TABLES.includes(table)) return NextResponse.json({ error: 'Table invalide' }, { status: 400 })
 
     const { data, error } = await supabaseAdmin
