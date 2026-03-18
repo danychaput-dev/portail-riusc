@@ -43,6 +43,33 @@ interface Demande {
   contact_email?: string
 }
 
+interface Deployment {
+  id: string
+  monday_id?: string
+  demande_id: string
+  identifiant: string
+  nom: string
+  lieu?: string
+  date_debut?: string
+  date_fin?: string
+  nb_personnes_par_vague?: number
+  statut: string
+  created_at: string
+  rotations?: Rotation[]
+}
+
+interface Rotation {
+  id: string
+  monday_id?: string
+  deployment_id: string
+  numero: number
+  date_debut: string
+  date_fin: string
+  nb_personnes_requis?: number
+  statut: string
+  created_at: string
+}
+
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const TYPES_INCIDENT = [
@@ -97,15 +124,24 @@ const TYPES_MISSION = [
 const STATUTS_SINISTRE = ['Actif', 'En veille', 'Fermé']
 const STATUTS_DEMANDE = ['Nouvelle', 'En traitement', 'Complétée', 'Annulée']
 const PRIORITES = ['Urgente', 'Haute', 'Normale', 'Basse']
+const STATUTS_DEPLOIEMENT = ['Planifié', 'Demande disponibilités', 'En cours', 'Complété', 'Annulé']
+const STATUTS_ROTATION = ['Planifiée', 'Notifications envoyées', 'En cours', 'Complétée', 'Annulée']
 
 const STATUT_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  'Actif':        { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
-  'En veille':    { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
-  'Fermé':        { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
-  'Nouvelle':     { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb' },
-  'En traitement':{ bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
-  'Complétée':    { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
-  'Annulée':      { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
+  'Actif':                   { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+  'En veille':               { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
+  'Fermé':                   { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
+  'Nouvelle':                { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb' },
+  'En traitement':           { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
+  'Complétée':               { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+  'Annulée':                 { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
+  'Planifié':                { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed' },
+  'Demande disponibilités':  { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb' },
+  'En cours':                { bg: '#fff7ed', border: '#fed7aa', text: '#c2410c' },
+  'Complété':                { bg: '#f0fdf4', border: '#bbf7d0', text: '#166534' },
+  'Annulé':                  { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
+  'Planifiée':               { bg: '#f5f3ff', border: '#ddd6fe', text: '#7c3aed' },
+  'Notifications envoyées':  { bg: '#eff6ff', border: '#bfdbfe', text: '#2563eb' },
 }
 
 const PRIORITE_COLORS: Record<string, string> = {
@@ -129,6 +165,113 @@ function inputStyle(small = false): React.CSSProperties {
 
 function labelStyle(): React.CSSProperties {
   return { display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }
+}
+
+// ─── Formulaire déploiement ──────────────────────────────────────────────────
+
+const DEPLOYMENT_VIDE = { nom: '', lieu: '', date_debut: '', date_fin: '', nb_personnes_par_vague: '', statut: 'Planifié' }
+
+function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant }: {
+  initial: typeof DEPLOYMENT_VIDE
+  onSave: (data: typeof DEPLOYMENT_VIDE) => void
+  onCancel: () => void
+  saving: boolean
+  nextIdentifiant: string
+}) {
+  const [form, setForm] = useState(initial)
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+      <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>IDENTIFIANT AUTO : {nextIdentifiant}</div>
+      <div>
+        <label style={labelStyle()}>NOM DU DÉPLOIEMENT *</label>
+        <input style={inputStyle(true)} value={form.nom} onChange={e => set('nom', e.target.value)} placeholder="ex: DEP-073 - CR Soutien - Rue Principale" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div>
+          <label style={labelStyle()}>STATUT</label>
+          <select style={inputStyle(true)} value={form.statut} onChange={e => set('statut', e.target.value)}>
+            {STATUTS_DEPLOIEMENT.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle()}>NB PERSONNES / ROTATION</label>
+          <input type="number" style={inputStyle(true)} value={form.nb_personnes_par_vague} onChange={e => set('nb_personnes_par_vague', e.target.value)} min="1" />
+        </div>
+      </div>
+      <div>
+        <label style={labelStyle()}>LIEU</label>
+        <input style={inputStyle(true)} value={form.lieu} onChange={e => set('lieu', e.target.value)} placeholder="Adresse ou secteur spécifique" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <div>
+          <label style={labelStyle()}>DATE DÉBUT</label>
+          <input type="date" style={inputStyle(true)} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle()}>DATE FIN <span style={{ fontWeight: 400 }}>(opt.)</span></label>
+          <input type="date" style={inputStyle(true)} value={form.date_fin} onChange={e => set('date_fin', e.target.value)} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+        <button onClick={onCancel} style={{ padding: '5px 12px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Annuler</button>
+        <button onClick={() => form.nom && onSave(form)} disabled={saving || !form.nom}
+          style={{ padding: '5px 12px', backgroundColor: form.nom ? '#1e3a5f' : '#e5e7eb', color: form.nom ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: form.nom ? 'pointer' : 'not-allowed' }}>
+          {saving ? '⏳' : '✓ Sauvegarder'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Formulaire rotation ──────────────────────────────────────────────────────
+
+const ROTATION_VIDE = { date_debut: '', date_fin: '', nb_personnes_requis: '', statut: 'Planifiée' }
+
+function FormRotation({ initial, onSave, onCancel, saving, numero }: {
+  initial: typeof ROTATION_VIDE
+  onSave: (data: typeof ROTATION_VIDE) => void
+  onCancel: () => void
+  saving: boolean
+  numero: number
+}) {
+  const [form, setForm] = useState(initial)
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
+  const valid = form.date_debut && form.date_fin
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+      <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600' }}>ROTATION #{numero}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+        <div>
+          <label style={labelStyle()}>DATE DÉBUT *</label>
+          <input type="date" style={inputStyle(true)} value={form.date_debut} onChange={e => set('date_debut', e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle()}>DATE FIN *</label>
+          <input type="date" style={inputStyle(true)} value={form.date_fin} onChange={e => set('date_fin', e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle()}>NB PERSONNES</label>
+          <input type="number" style={inputStyle(true)} value={form.nb_personnes_requis} onChange={e => set('nb_personnes_requis', e.target.value)} min="1" />
+        </div>
+        <div>
+          <label style={labelStyle()}>STATUT</label>
+          <select style={inputStyle(true)} value={form.statut} onChange={e => set('statut', e.target.value)}>
+            {STATUTS_ROTATION.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+        <button onClick={onCancel} style={{ padding: '4px 10px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Annuler</button>
+        <button onClick={() => valid && onSave(form)} disabled={saving || !valid}
+          style={{ padding: '4px 10px', backgroundColor: valid ? '#1e3a5f' : '#e5e7eb', color: valid ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: valid ? 'pointer' : 'not-allowed' }}>
+          {saving ? '⏳' : '✓ Sauvegarder'}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 // ─── Formulaire sinistre ──────────────────────────────────────────────────────
@@ -330,8 +473,20 @@ export default function AdminSinistresPage() {
   const [showFormDemande, setShowFormDemande] = useState(false)
   const [editDemande, setEditDemande] = useState<Demande | null>(null)
   const [savingDemande, setSavingDemande] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState<{ type: 'sinistre' | 'demande'; id: string; nom: string } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<{ type: 'sinistre' | 'demande' | 'deploiement' | 'rotation'; id: string; nom: string } | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  // États déploiements et rotations
+  const [deployments, setDeployments] = useState<Deployment[]>([])
+  const [rotations, setRotations] = useState<Rotation[]>([])
+  const [selectedDemandeId, setSelectedDemandeId] = useState<string | null>(null)
+  const [selectedDeploymentId, setSelectedDeploymentId] = useState<string | null>(null)
+  const [showFormDeployment, setShowFormDeployment] = useState(false)
+  const [editDeployment, setEditDeployment] = useState<Deployment | null>(null)
+  const [savingDeployment, setSavingDeployment] = useState(false)
+  const [showFormRotation, setShowFormRotation] = useState(false)
+  const [editRotation, setEditRotation] = useState<Rotation | null>(null)
+  const [savingRotation, setSavingRotation] = useState(false)
 
   const showMsg = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text })
@@ -369,6 +524,25 @@ export default function AdminSinistresPage() {
       demandes: (demData || []).filter(d => d.sinistre_id === s.id)
     }))
     setSinistres(enriched)
+  }
+
+  // ─── Chargement déploiements et rotations ───────────────────────────────────
+
+  const chargerDeployments = async (demandeId: string) => {
+    const { data } = await supabase.from('deployments').select('*').eq('demande_id', demandeId).order('created_at')
+    setDeployments(data || [])
+    setSelectedDeploymentId(null)
+    setRotations([])
+  }
+
+  const chargerRotations = async (deploymentId: string) => {
+    const { data } = await supabase.from('vagues').select('*').eq('deployment_id', deploymentId).order('numero')
+    setRotations(data || [])
+  }
+
+  const genererIdentifiant = () => {
+    const ts = Date.now().toString().slice(-5)
+    return `DEP-${ts}`
   }
 
   // ─── API calls ────────────────────────────────────────────────────────────
@@ -476,6 +650,109 @@ export default function AdminSinistresPage() {
   }
 
   // ─── Dérivés ──────────────────────────────────────────────────────────────
+
+  // ─── CRUD Déploiements ───────────────────────────────────────────────────────
+
+  const sauvegarderDeployment = async (form: typeof DEPLOYMENT_VIDE) => {
+    if (!selectedDemandeId) return
+    setSavingDeployment(true)
+    const selectedSinistre = sinistres.find(s => s.id === selectedId)
+    const selectedDemande = selectedSinistre?.demandes?.find(d => d.id === selectedDemandeId)
+    try {
+      const identifiant = editDeployment?.identifiant || genererIdentifiant()
+      const payload = {
+        demande_id: selectedDemandeId,
+        identifiant,
+        nom: form.nom,
+        lieu: form.lieu || null,
+        date_debut: form.date_debut || null,
+        date_fin: form.date_fin || null,
+        nb_personnes_par_vague: form.nb_personnes_par_vague ? parseInt(form.nb_personnes_par_vague) : null,
+        statut: form.statut,
+      }
+      const context = { demande: selectedDemande, sinistre: selectedSinistre }
+      if (editDeployment) {
+        await apiCall('PUT', { table: 'deployments', id: editDeployment.id, payload, context })
+        showMsg('success', 'Déploiement mis à jour')
+      } else {
+        const { data } = await apiCall('POST', { table: 'deployments', payload, context })
+        setSelectedDeploymentId(data.id)
+      }
+      await chargerDeployments(selectedDemandeId)
+      setShowFormDeployment(false)
+      setEditDeployment(null)
+      showMsg('success', editDeployment ? 'Déploiement mis à jour' : 'Déploiement créé')
+    } catch (e: any) { showMsg('error', e.message) }
+    setSavingDeployment(false)
+  }
+
+  const supprimerDeployment = async (id: string) => {
+    try {
+      await apiCall('DELETE', { table: 'deployments', id })
+      setDeployments(prev => prev.filter(d => d.id !== id))
+      if (selectedDeploymentId === id) { setSelectedDeploymentId(null); setRotations([]) }
+      showMsg('success', 'Déploiement supprimé')
+    } catch (e: any) { showMsg('error', e.message) }
+    setConfirmDelete(null)
+  }
+
+  // ─── CRUD Rotations ───────────────────────────────────────────────────────
+
+  const sauvegarderRotation = async (form: typeof ROTATION_VIDE) => {
+    if (!selectedDeploymentId) return
+    setSavingRotation(true)
+    try {
+      const nextNumero = editRotation?.numero || (rotations.length + 1)
+      const payload = {
+        deployment_id: selectedDeploymentId,
+        numero: nextNumero,
+        date_debut: form.date_debut,
+        date_fin: form.date_fin,
+        nb_personnes_requis: form.nb_personnes_requis ? parseInt(form.nb_personnes_requis) : null,
+        statut: form.statut,
+      }
+      if (editRotation) {
+        await apiCall('PUT', { table: 'vagues', id: editRotation.id, payload })
+      } else {
+        await apiCall('POST', { table: 'vagues', payload })
+      }
+      await chargerRotations(selectedDeploymentId)
+      setShowFormRotation(false)
+      setEditRotation(null)
+      showMsg('success', editRotation ? 'Rotation mise à jour' : 'Rotation créée')
+    } catch (e: any) { showMsg('error', e.message) }
+    setSavingRotation(false)
+  }
+
+  const supprimerRotation = async (id: string) => {
+    try {
+      await apiCall('DELETE', { table: 'vagues', id })
+      setRotations(prev => prev.filter(r => r.id !== id))
+      showMsg('success', 'Rotation supprimée')
+    } catch (e: any) { showMsg('error', e.message) }
+    setConfirmDelete(null)
+  }
+
+  // ─── Dérivés ──────────────────────────────────────────────────────────────
+
+  const selectedDemande = sinistres.find(s => s.id === selectedId)?.demandes?.find(d => d.id === selectedDemandeId)
+  const selectedDeployment = deployments.find(d => d.id === selectedDeploymentId)
+
+  const initFormDeployment = (d?: Deployment): typeof DEPLOYMENT_VIDE => d ? {
+    nom: d.nom,
+    lieu: d.lieu || '',
+    date_debut: d.date_debut || '',
+    date_fin: d.date_fin || '',
+    nb_personnes_par_vague: d.nb_personnes_par_vague?.toString() || '',
+    statut: d.statut,
+  } : DEPLOYMENT_VIDE
+
+  const initFormRotation = (r?: Rotation): typeof ROTATION_VIDE => r ? {
+    date_debut: r.date_debut,
+    date_fin: r.date_fin,
+    nb_personnes_requis: r.nb_personnes_requis?.toString() || '',
+    statut: r.statut,
+  } : ROTATION_VIDE
 
   const sinistresFiltrés = sinistres.filter(s => {
     const matchStatut = filtreStatut === 'tous' || s.statut === filtreStatut
@@ -615,124 +892,168 @@ export default function AdminSinistresPage() {
             </div>
           </div>
 
-          {/* ── Colonne droite : détail ───────────────────────────────────── */}
-          <div>
+          {/* ── Colonne droite : drill-down ───────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {!selected ? (
               <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '80px 20px', textAlign: 'center', color: '#9ca3af' }}>
                 <div style={{ fontSize: '48px', marginBottom: '12px' }}>🚨</div>
                 <p style={{ margin: 0, fontSize: '14px', fontWeight: '500' }}>Sélectionnez un sinistre</p>
-                <p style={{ margin: '6px 0 0', fontSize: '12px' }}>Les détails et demandes s'afficheront ici</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <>
+                {/* Breadcrumb */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#6b7280', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: '600', color: '#1e3a5f' }}>{selected.nom}</span>
+                  {selectedDemande && <><span>›</span><span style={{ fontWeight: '600', color: '#2563eb', cursor: 'pointer' }} onClick={() => { setSelectedDeploymentId(null); setRotations([]) }}>{selectedDemande.organisme}{selectedDemande.type_mission ? ` — ${selectedDemande.type_mission}` : ''}</span></>}
+                  {selectedDeployment && <><span>›</span><span style={{ fontWeight: '600', color: '#7c3aed' }}>{selectedDeployment.identifiant}</span></>}
+                </div>
 
-                {/* Fiche sinistre */}
+                {/* ── Fiche sinistre ── */}
                 <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                  <div style={{ padding: '14px 18px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontWeight: '700', fontSize: '16px', color: '#1e3a5f' }}>{selected.nom}</div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                      <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e3a5f' }}>{selected.nom}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
+                        {selected.type_incident && `${selected.type_incident} · `}
+                        {selected.lieu && `${selected.lieu} · `}
                         Créé le {new Date(selected.created_at).toLocaleDateString('fr-CA')}
-                        {selected.monday_id && <span style={{ marginLeft: '8px', color: '#9ca3af' }}>Monday #{selected.monday_id}</span>}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                       <Badge label={selected.statut} />
-                      <button
-                        onClick={() => { setEditSinistre(selected); setShowFormSinistre(true); window.scrollTo(0, 0) }}
-                        style={{ padding: '5px 10px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
-                        ✏️ Modifier
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete({ type: 'sinistre', id: selected.id, nom: selected.nom })}
-                        style={{ padding: '5px 10px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
-                        🗑️
-                      </button>
+                      <button onClick={() => { setEditSinistre(selected); setShowFormSinistre(true); window.scrollTo(0, 0) }} style={{ padding: '4px 8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '5px', fontSize: '11px', cursor: 'pointer' }}>✏️</button>
+                      <button onClick={() => setConfirmDelete({ type: 'sinistre', id: selected.id, nom: selected.nom })} style={{ padding: '4px 8px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '5px', fontSize: '11px', cursor: 'pointer' }}>🗑️</button>
                     </div>
-                  </div>
-                  <div style={{ padding: '14px 18px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                    {selected.type_incident && <div><div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600', marginBottom: '2px' }}>TYPE</div><div style={{ fontSize: '13px', color: '#374151' }}>{selected.type_incident}</div></div>}
-                    {selected.lieu && <div><div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600', marginBottom: '2px' }}>LIEU</div><div style={{ fontSize: '13px', color: '#374151' }}>{selected.lieu}</div></div>}
-                    {selected.date_debut && <div><div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '600', marginBottom: '2px' }}>PÉRIODE</div><div style={{ fontSize: '13px', color: '#374151' }}>{selected.date_debut}{selected.date_fin ? ` → ${selected.date_fin}` : ''}</div></div>}
                   </div>
                 </div>
 
-                {/* Demandes */}
+                {/* ── Demandes ── */}
                 <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                  <div style={{ padding: '12px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: '700', fontSize: '14px', color: '#1e3a5f' }}>
-                      📋 Demandes d'aide ({selected.demandes?.length || 0})
-                    </div>
-                    <button
-                      onClick={() => { setEditDemande(null); setShowFormDemande(true) }}
-                      style={{ padding: '5px 12px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>
-                      + Nouvelle demande
-                    </button>
+                  <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontWeight: '700', fontSize: '13px', color: '#1e3a5f' }}>📋 Demandes ({selected.demandes?.length || 0})</div>
+                    <button onClick={() => { setEditDemande(null); setShowFormDemande(true) }} style={{ padding: '4px 10px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>+ Nouvelle</button>
                   </div>
-
-                  {/* Formulaire demande */}
                   {showFormDemande && (
-                    <div style={{ padding: '12px 18px', borderBottom: '1px solid #f3f4f6' }}>
-                      <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e3a5f', marginBottom: '8px' }}>
-                        {editDemande ? '✏️ Modifier la demande' : '➕ Nouvelle demande'}
-                      </div>
-                      <FormDemande
-                        initial={initFormDemande(editDemande || undefined)}
-                        onSave={sauvegarderDemande}
-                        onCancel={() => { setShowFormDemande(false); setEditDemande(null) }}
-                        saving={savingDemande}
-                      />
+                    <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                      <FormDemande initial={initFormDemande(editDemande || undefined)} onSave={sauvegarderDemande} onCancel={() => { setShowFormDemande(false); setEditDemande(null) }} saving={savingDemande} />
                     </div>
                   )}
-
-                  {/* Liste demandes */}
                   {(!selected.demandes || selected.demandes.length === 0) && !showFormDemande ? (
-                    <div style={{ padding: '30px 18px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
-                      Aucune demande — cliquez "+ Nouvelle demande" pour en ajouter une
-                    </div>
+                    <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>Aucune demande</div>
                   ) : (
-                    <div>
-                      {selected.demandes?.map(d => (
-                        <div key={d.id} style={{ padding: '12px 18px', borderBottom: '1px solid #f9fafb' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e3a5f' }}>{d.organisme}</span>
-                              {d.type_mission && <span style={{ fontSize: '12px', color: '#6b7280' }}>— {d.type_mission}</span>}
-                            </div>
-                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-                              <span style={{ fontSize: '11px', fontWeight: '700', color: PRIORITE_COLORS[d.priorite] }}>⚡ {d.priorite}</span>
-                              <Badge label={d.statut} />
-                              <button
-                                onClick={() => { setEditDemande(d); setShowFormDemande(true) }}
-                                style={{ padding: '3px 8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => setConfirmDelete({ type: 'demande', id: d.id, nom: `${d.organisme} — ${d.type_mission || d.statut}` })}
-                                style={{ padding: '3px 8px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
-                                🗑️
-                              </button>
-                            </div>
+                    selected.demandes?.map(d => (
+                      <div key={d.id}
+                        onClick={() => { setSelectedDemandeId(d.id === selectedDemandeId ? null : d.id); if (d.id !== selectedDemandeId) { chargerDeployments(d.id); setSelectedDeploymentId(null); setRotations([]) } }}
+                        style={{ padding: '10px 16px', borderBottom: '1px solid #f9fafb', cursor: 'pointer', backgroundColor: selectedDemandeId === d.id ? '#eff6ff' : 'white', borderLeft: selectedDemandeId === d.id ? '3px solid #2563eb' : '3px solid transparent', transition: 'background 0.1s' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                          <div>
+                            <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e3a5f' }}>{d.organisme}</span>
+                            {d.type_mission && <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '6px' }}>— {d.type_mission}</span>}
                           </div>
-                          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                            {d.nb_personnes_requis && <span style={{ fontSize: '11px', color: '#6b7280' }}>👥 {d.nb_personnes_requis} personnes</span>}
-                            {d.lieu && <span style={{ fontSize: '11px', color: '#6b7280' }}>📍 {d.lieu}</span>}
-                            {d.date_debut && <span style={{ fontSize: '11px', color: '#6b7280' }}>📅 {d.date_debut}{d.date_fin_estimee ? ` → ${d.date_fin_estimee}` : ''}</span>}
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: PRIORITE_COLORS[d.priorite] }}>⚡ {d.priorite}</span>
+                            <Badge label={d.statut} />
+                            <button onClick={e => { e.stopPropagation(); setEditDemande(d); setShowFormDemande(true) }} style={{ padding: '2px 6px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✏️</button>
+                            <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'demande', id: d.id, nom: `${d.organisme} — ${d.type_mission || d.statut}` }) }} style={{ padding: '2px 6px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>🗑️</button>
                           </div>
-                          {d.description && <div style={{ fontSize: '12px', color: '#374151', marginTop: '5px', lineHeight: '1.4' }}>{d.description}</div>}
-                          {(d.contact_nom || d.contact_telephone) && (
-                            <div style={{ marginTop: '5px', fontSize: '11px', color: '#6b7280', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                              {d.contact_nom && <span>👤 {d.contact_nom}{d.contact_titre ? ` — ${d.contact_titre}` : ''}</span>}
-                              {d.contact_telephone && <a href={`tel:${d.contact_telephone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>📞 {d.contact_telephone}</a>}
-                              {d.contact_email && <a href={`mailto:${d.contact_email}`} style={{ color: '#2563eb', textDecoration: 'none' }}>✉️ {d.contact_email}</a>}
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '3px', flexWrap: 'wrap' }}>
+                          {d.nb_personnes_requis && <span style={{ fontSize: '10px', color: '#6b7280' }}>👥 {d.nb_personnes_requis}</span>}
+                          {d.lieu && <span style={{ fontSize: '10px', color: '#6b7280' }}>📍 {d.lieu}</span>}
+                          {d.date_debut && <span style={{ fontSize: '10px', color: '#6b7280' }}>📅 {d.date_debut}{d.date_fin_estimee ? ` → ${d.date_fin_estimee}` : ''}</span>}
+                          {(d.contact_nom || d.contact_telephone) && <span style={{ fontSize: '10px', color: '#6b7280' }}>👤 {d.contact_nom}{d.contact_telephone ? ` · ${d.contact_telephone}` : ''}</span>}
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
-              </div>
+
+                {/* ── Déploiements (si demande sélectionnée) ── */}
+                {selectedDemandeId && (
+                  <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '2px solid #ddd6fe', overflow: 'hidden' }}>
+                    <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#faf5ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#7c3aed' }}>🚁 Déploiements ({deployments.length})</div>
+                      <button onClick={() => { setEditDeployment(null); setShowFormDeployment(true) }} style={{ padding: '4px 10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>+ Nouveau</button>
+                    </div>
+                    {showFormDeployment && (
+                      <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                        <FormDeployment
+                          initial={initFormDeployment(editDeployment || undefined)}
+                          onSave={sauvegarderDeployment}
+                          onCancel={() => { setShowFormDeployment(false); setEditDeployment(null) }}
+                          saving={savingDeployment}
+                          nextIdentifiant={genererIdentifiant()}
+                        />
+                      </div>
+                    )}
+                    {deployments.length === 0 && !showFormDeployment ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>Aucun déploiement — cliquez "+ Nouveau" pour en créer un</div>
+                    ) : (
+                      deployments.map(dep => (
+                        <div key={dep.id}
+                          onClick={() => { setSelectedDeploymentId(dep.id === selectedDeploymentId ? null : dep.id); if (dep.id !== selectedDeploymentId) chargerRotations(dep.id) }}
+                          style={{ padding: '10px 16px', borderBottom: '1px solid #f9fafb', cursor: 'pointer', backgroundColor: selectedDeploymentId === dep.id ? '#faf5ff' : 'white', borderLeft: selectedDeploymentId === dep.id ? '3px solid #7c3aed' : '3px solid transparent', transition: 'background 0.1s' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <div>
+                              <span style={{ fontWeight: '700', fontSize: '12px', color: '#7c3aed' }}>{dep.identifiant}</span>
+                              <span style={{ fontSize: '12px', color: '#374151', marginLeft: '6px' }}>{dep.nom}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <Badge label={dep.statut} />
+                              <button onClick={e => { e.stopPropagation(); setEditDeployment(dep); setShowFormDeployment(true) }} style={{ padding: '2px 6px', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✏️</button>
+                              <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'deploiement' as any, id: dep.id, nom: dep.nom }) }} style={{ padding: '2px 6px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>🗑️</button>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '3px', flexWrap: 'wrap' }}>
+                            {dep.lieu && <span style={{ fontSize: '10px', color: '#6b7280' }}>📍 {dep.lieu}</span>}
+                            {dep.date_debut && <span style={{ fontSize: '10px', color: '#6b7280' }}>📅 {dep.date_debut}{dep.date_fin ? ` → ${dep.date_fin}` : ''}</span>}
+                            {dep.nb_personnes_par_vague && <span style={{ fontSize: '10px', color: '#6b7280' }}>👥 {dep.nb_personnes_par_vague}/rotation</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* ── Rotations (si déploiement sélectionné) ── */}
+                {selectedDeploymentId && (
+                  <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '2px solid #fed7aa', overflow: 'hidden' }}>
+                    <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#fff7ed', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: '700', fontSize: '13px', color: '#c2410c' }}>🔄 Rotations ({rotations.length})</div>
+                      <button onClick={() => { setEditRotation(null); setShowFormRotation(true) }} style={{ padding: '4px 10px', backgroundColor: '#c2410c', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>+ Nouvelle</button>
+                    </div>
+                    {showFormRotation && (
+                      <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
+                        <FormRotation
+                          initial={initFormRotation(editRotation || undefined)}
+                          onSave={sauvegarderRotation}
+                          onCancel={() => { setShowFormRotation(false); setEditRotation(null) }}
+                          saving={savingRotation}
+                          numero={editRotation?.numero || rotations.length + 1}
+                        />
+                      </div>
+                    )}
+                    {rotations.length === 0 && !showFormRotation ? (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>Aucune rotation — les rotations seront proposées par l'agent IA</div>
+                    ) : (
+                      rotations.map(r => (
+                        <div key={r.id} style={{ padding: '10px 16px', borderBottom: '1px solid #f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontWeight: '700', fontSize: '12px', color: '#c2410c' }}>Rotation #{r.numero}</span>
+                            <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>📅 {r.date_debut} → {r.date_fin}</span>
+                            {r.nb_personnes_requis && <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>👥 {r.nb_personnes_requis} pers.</span>}
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            <Badge label={r.statut} />
+                            <button onClick={() => { setEditRotation(r); setShowFormRotation(true) }} style={{ padding: '2px 6px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', color: '#c2410c', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✏️</button>
+                            <button onClick={() => setConfirmDelete({ type: 'rotation' as any, id: r.id, nom: `Rotation #${r.numero}` })} style={{ padding: '2px 6px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>🗑️</button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -752,7 +1073,12 @@ export default function AdminSinistresPage() {
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                 <button onClick={() => setConfirmDelete(null)} style={{ padding: '8px 20px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Annuler</button>
                 <button
-                  onClick={() => confirmDelete.type === 'sinistre' ? supprimerSinistre(confirmDelete.id) : supprimerDemande(confirmDelete.id)}
+                  onClick={() => {
+                    if (confirmDelete.type === 'sinistre') supprimerSinistre(confirmDelete.id)
+                    else if (confirmDelete.type === 'demande') supprimerDemande(confirmDelete.id)
+                    else if (confirmDelete.type === 'deploiement') supprimerDeployment(confirmDelete.id)
+                    else if (confirmDelete.type === 'rotation') supprimerRotation(confirmDelete.id)
+                  }}
                   style={{ padding: '8px 20px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
                   Supprimer
                 </button>
