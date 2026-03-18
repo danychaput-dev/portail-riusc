@@ -1015,9 +1015,13 @@ function FormationContent() {
                                 {confirmSupprimerCertId === cert.id ? (
                                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
                                     <span style={{ color: '#6b7280' }}>Retirer ?</span>
-                                    <button onClick={() => supprimerCertificat(f.id, cert.id)} disabled={suppressionEnCours}
+                                    <button onClick={() => {
+                                      // Certificat Monday — retrait visuel seulement (pas de suppression Storage/DB)
+                                      setCertificats(prev => prev.filter(c => c.id !== cert.id));
+                                      setConfirmSupprimerCertId(null);
+                                    }} disabled={suppressionEnCours}
                                       style={{ padding: '2px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>
-                                      {suppressionEnCours ? '...' : 'Oui'}
+                                      Oui
                                     </button>
                                     <button onClick={() => setConfirmSupprimerCertId(null)}
                                       style={{ padding: '2px 8px', backgroundColor: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>
