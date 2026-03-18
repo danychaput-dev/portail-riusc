@@ -128,6 +128,22 @@ function formatPhone(value: string): string {
 
 // ─── Helpers nommage automatique ─────────────────────────────────────────────
 
+function previewDemande(organisme: string, date: string, mission: string): string {
+  if (!organisme) return '— remplir les champs —'
+  const org = orgAbbr(organisme)
+  const d = dateCourtFr(date)
+  const m = slugCourt(mission, 12)
+  return `DEM-### - ${[org, d, m].filter(Boolean).join('-')}`
+}
+
+function previewDeployment(demandes: { organisme: string; type_mission?: string }[], lieu: string): string {
+  if (!demandes.length) return '— sélectionner les demandes —'
+  const orgs = [...new Set(demandes.map(d => orgAbbr(d.organisme)))].join('+')
+  const missions = [...new Set(demandes.map(d => slugCourt(d.type_mission || '', 10)))].filter(Boolean).join('/')
+  const l = slugCourt(lieu.split(',')[0].trim(), 20)
+  return `DEP-### - ${[orgs, missions, l].filter(Boolean).join(' - ')}`
+}
+
 function orgAbbr(organisme: string): string {
   if (organisme.includes('SOPFEU')) return 'SP'
   if (organisme.includes('Croix-Rouge')) return 'CR'
@@ -246,32 +262,12 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
   demandesDisponibles: { id: string; label: string }[]
 }) {
   const [form, setForm] = useState(initial)
-  const [nomManuel, setNomManuel] = useState(!!initial.nom)
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
-  const set = (k: string, v: string) => setForm(f => {
-    const updated = { ...f, [k]: v }
-    if (!nomManuel && k === 'lieu') {
-      const selectedDems = demandesDisponibles.filter(d => f.demandes_ids.includes(d.id))
-      updated.nom = genNomDeployment(
-        selectedDems.map(d => ({ organisme: d.label.split(' — ')[0], type_mission: d.label.split(' — ')[1] })),
-        v
-      )
-    }
-    return updated
-  })
-
-  const toggleDemande = (id: string) => setForm(f => {
-    const newIds = f.demandes_ids.includes(id) ? f.demandes_ids.filter(d => d !== id) : [...f.demandes_ids, id]
-    const updated = { ...f, demandes_ids: newIds }
-    if (!nomManuel) {
-      const selectedDems = demandesDisponibles.filter(d => newIds.includes(d.id))
-      updated.nom = genNomDeployment(
-        selectedDems.map(d => ({ organisme: d.label.split(' — ')[0], type_mission: d.label.split(' — ')[1] })),
-        f.lieu
-      )
-    }
-    return updated
-  })
+  const toggleDemande = (id: string) => setForm(f => ({
+    ...f,
+    demandes_ids: f.demandes_ids.includes(id) ? f.demandes_ids.filter(d => d !== id) : [...f.demandes_ids, id]
+  }))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
@@ -293,11 +289,16 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
       )}
 
       <div>
-        <label style={labelStyle()}>NOM DU DÉPLOIEMENT *</label>
-        <input style={inputStyle(true)} value={form.nom}
-          onChange={e => { setNomManuel(true); set('nom', e.target.value) }}
-          placeholder="Auto-généré depuis organisme + mission + lieu" />
-        {!nomManuel && form.nom && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>✨ Généré automatiquement — modifiable</div>}
+        <label style={labelStyle()}>IDENTIFIANT <span style={{ fontWeight: 400, color: '#9ca3af' }}>(auto-généré)</span></label>
+        <div style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', backgroundColor: '#f3f4f6', color: '#6b7280', fontFamily: 'monospace' }}>
+          {previewDeployment(
+            demandesDisponibles.filter(d => form.demandes_ids.includes(d.id)).map(d => ({
+              organisme: d.label.split(' — ')[0],
+              type_mission: d.label.split(' — ')[1]
+            })),
+            form.lieu
+          )}
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <div>
@@ -454,11 +455,10 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       <div>
-        <label style={labelStyle()}>NOM DU SINISTRE *</label>
-        <input style={inputStyle()} value={form.nom}
-          onChange={e => { setNomManuel(true); set('nom', e.target.value) }}
-          placeholder="Auto-généré depuis type + lieu + date" />
-        {!nomManuel && form.nom && <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>✨ Généré automatiquement — modifiable</div>}
+        <label style={labelStyle()}>NOM DU SINISTRE <span style={{ fontWeight: 400, color: '#9ca3af' }}>(auto-généré)</span></label>
+        <div style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', backgroundColor: '#f9fafb', color: form.nom ? '#374151' : '#9ca3af', minHeight: '34px' }}>
+          {form.nom || 'Remplir type d'incident, lieu et date de début...'}
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div>
@@ -522,6 +522,12 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+      <div>
+        <label style={labelStyle()}>IDENTIFIANT <span style={{ fontWeight: 400, color: '#9ca3af' }}>(auto-généré)</span></label>
+        <div style={{ padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '12px', backgroundColor: '#f3f4f6', color: '#6b7280', fontFamily: 'monospace' }}>
+          {previewDemande(form.organisme, form.date_debut, form.type_mission)}
+        </div>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
         <div>
           <label style={labelStyle()}>ORGANISME *</label>
