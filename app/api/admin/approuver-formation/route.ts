@@ -9,6 +9,24 @@ const supabaseAdmin = createClient(
 
 const ADMIN_IDS = ['8738174928', '18239132668']
 
+async function moveToApprouve(itemId: string) {
+  const query = `
+    mutation {
+      move_item_to_group(item_id: ${itemId}, group_id: "new_group") {
+        id
+      }
+    }
+  `
+  await fetch('https://api.monday.com/v2', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: process.env.MONDAY_API_KEY!,
+    },
+    body: JSON.stringify({ query }),
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -33,11 +51,16 @@ export async function POST(request: NextRequest) {
       certificat_url,
       initiation_sc_completee,
       resultat: 'Réussi',
-      etat_validite: 'valide',
+      etat_validite: 'À jour',
       source: 'admin_monday_review',
     })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Déplacer l'item Monday vers le groupe "Approuvé" (best-effort, non bloquant)
+    if (monday_item_id) {
+      moveToApprouve(monday_item_id).catch(() => {})
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
