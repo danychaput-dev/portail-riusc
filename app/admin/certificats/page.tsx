@@ -400,9 +400,23 @@ export default function AdminCertificatsPage() {
     const cert = certificats.find(c => c.id === id)
     if (!cert?.dateInput) return
     setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saving' } : c))
-    const { error } = await supabase.from('formations_benevoles').update({ resultat: 'Réussi', etat_validite: 'À jour', date_reussite: cert.dateInput, ...(cert.dateExpiration ? { date_expiration: cert.dateExpiration } : {}) }).eq('id', id)
-    if (error) { setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'error' } : c)) }
-    else { setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saved' } : c)); setSavedCount(n => n + 1) }
+    try {
+      const res = await fetch('/api/admin/approuver-formation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          date_reussite: cert.dateInput,
+          date_expiration: cert.dateExpiration || null,
+          admin_benevole_id: adminBenevoleId,
+        }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saved' } : c))
+      setSavedCount(n => n + 1)
+    } catch {
+      setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'error' } : c))
+    }
   }
 
   const updMonday = (id: number, field: keyof MondayItem['mState'], val: string) =>
