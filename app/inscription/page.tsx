@@ -260,7 +260,10 @@ export default function InscriptionPage() {
   }, [])
 
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    const formatted = field === 'telephone' && typeof value === 'string'
+      ? formatPhoneDisplay(value)
+      : value
+    setFormData(prev => ({ ...prev, [field]: formatted }))
     if (fieldErrors[field]) {
       setFieldErrors(prev => ({ ...prev, [field]: '' }))
     }

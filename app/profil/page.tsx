@@ -1632,7 +1632,7 @@ export default function ProfilPage() {
               <TextInput
                 label="Téléphone principal"
                 value={profilData.telephone}
-                onChange={v => setProfilData(prev => ({ ...prev, telephone: v }))}
+                onChange={v => setProfilData(prev => ({ ...prev, telephone: formatPhoneDisplay(v) }))}
                 placeholder="(555) 123-4567"
               />
               {profilData.telephone && !isValidNorthAmericanPhone(profilData.telephone) && (
@@ -1644,7 +1644,7 @@ export default function ProfilPage() {
             <TextInput
               label="Téléphone secondaire"
               value={profilData.telephone_secondaire}
-              onChange={v => setProfilData(prev => ({ ...prev, telephone_secondaire: v }))}
+              onChange={v => setProfilData(prev => ({ ...prev, telephone_secondaire: formatPhoneDisplay(v) }))}
               placeholder="(555) 987-6543"
             />
           </div>
@@ -1869,7 +1869,7 @@ export default function ProfilPage() {
             <TextInput
               label="Téléphone du contact"
               value={profilData.contact_urgence_telephone}
-              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_telephone: v }))}
+              onChange={v => setProfilData(prev => ({ ...prev, contact_urgence_telephone: formatPhoneDisplay(v) }))}
               placeholder="(555) 123-4567"
             />
             <TextInput
