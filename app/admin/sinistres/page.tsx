@@ -37,6 +37,10 @@ interface Demande {
   date_reception: string
   organisme_detail?: string
   type_mission_detail?: string
+  contact_nom?: string
+  contact_titre?: string
+  contact_telephone?: string
+  contact_email?: string
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -188,7 +192,7 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
 
 // ─── Formulaire demande ───────────────────────────────────────────────────────
 
-const DEMANDE_VIDE = { organisme: '', organisme_detail: '', type_mission: '', type_mission_detail: '', description: '', lieu: '', nb_personnes_requis: '', date_debut: '', date_fin_estimee: '', priorite: 'Normale', statut: 'Nouvelle' }
+const DEMANDE_VIDE = { organisme: '', organisme_detail: '', type_mission: '', type_mission_detail: '', description: '', lieu: '', nb_personnes_requis: '', date_debut: '', date_fin_estimee: '', priorite: 'Normale', statut: 'Nouvelle', contact_nom: '', contact_titre: '', contact_telephone: '', contact_email: '' }
 
 function FormDemande({ initial, onSave, onCancel, saving }: {
   initial: typeof DEMANDE_VIDE
@@ -229,6 +233,29 @@ function FormDemande({ initial, onSave, onCancel, saving }: {
       <div>
         <label style={labelStyle()}>DESCRIPTION</label>
         <textarea style={{ ...inputStyle(true), resize: 'vertical', minHeight: '60px' }} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Détails de la demande..." />
+      </div>
+      <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '2px' }}>
+        <div style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '600', marginBottom: '6px' }}>PERSONNE CONTACT</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '6px' }}>
+          <div>
+            <label style={labelStyle()}>NOM</label>
+            <input style={inputStyle(true)} value={form.contact_nom} onChange={e => set('contact_nom', e.target.value)} placeholder="Nom complet" />
+          </div>
+          <div>
+            <label style={labelStyle()}>TITRE / FONCTION</label>
+            <input style={inputStyle(true)} value={form.contact_titre} onChange={e => set('contact_titre', e.target.value)} placeholder="ex: Directeur urgences" />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div>
+            <label style={labelStyle()}>TÉLÉPHONE</label>
+            <input style={inputStyle(true)} value={form.contact_telephone} onChange={e => set('contact_telephone', e.target.value)} placeholder="514-555-0000" />
+          </div>
+          <div>
+            <label style={labelStyle()}>COURRIEL</label>
+            <input style={inputStyle(true)} value={form.contact_email} onChange={e => set('contact_email', e.target.value)} placeholder="contact@organisme.ca" />
+          </div>
+        </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px' }}>
         <div>
@@ -416,6 +443,10 @@ export default function AdminSinistresPage() {
         date_fin_estimee: form.date_fin_estimee || null,
         priorite: form.priorite,
         statut: form.statut,
+        contact_nom: form.contact_nom || null,
+        contact_titre: form.contact_titre || null,
+        contact_telephone: form.contact_telephone || null,
+        contact_email: form.contact_email || null,
       }
       if (editDemande) {
         await apiCall('PUT', { table: 'demandes', id: editDemande.id, payload })
@@ -466,6 +497,10 @@ export default function AdminSinistresPage() {
     date_fin_estimee: d.date_fin_estimee || '',
     priorite: d.priorite,
     statut: d.statut,
+    contact_nom: d.contact_nom || '',
+    contact_titre: d.contact_titre || '',
+    contact_telephone: d.contact_telephone || '',
+    contact_email: d.contact_email || '',
   } : DEMANDE_VIDE
 
   const initFormSinistre = (s?: Sinistre): typeof SINISTRE_VIDE => s ? {
@@ -685,6 +720,13 @@ export default function AdminSinistresPage() {
                             {d.date_debut && <span style={{ fontSize: '11px', color: '#6b7280' }}>📅 {d.date_debut}{d.date_fin_estimee ? ` → ${d.date_fin_estimee}` : ''}</span>}
                           </div>
                           {d.description && <div style={{ fontSize: '12px', color: '#374151', marginTop: '5px', lineHeight: '1.4' }}>{d.description}</div>}
+                          {(d.contact_nom || d.contact_telephone) && (
+                            <div style={{ marginTop: '5px', fontSize: '11px', color: '#6b7280', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                              {d.contact_nom && <span>👤 {d.contact_nom}{d.contact_titre ? ` — ${d.contact_titre}` : ''}</span>}
+                              {d.contact_telephone && <a href={`tel:${d.contact_telephone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>📞 {d.contact_telephone}</a>}
+                              {d.contact_email && <a href={`mailto:${d.contact_email}`} style={{ color: '#2563eb', textDecoration: 'none' }}>✉️ {d.contact_email}</a>}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
