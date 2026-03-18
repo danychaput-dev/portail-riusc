@@ -64,7 +64,7 @@ export default function AdminDashboardPage() {
       icone: '🚨',
       href: '/admin/sinistres',
       couleur: '#dc2626',
-      statut: 'bientot',
+      statut: 'actif',
       badge: stats.sinistres_actifs || undefined,
     },
     {
