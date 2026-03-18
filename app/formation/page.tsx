@@ -537,7 +537,7 @@ function FormationContent() {
       // Mettre à jour l'état local
       setFormations(prev => prev.map(f => f.id === formationId ? { ...f, has_fichier: false, fichiers: [] } : f));
       setUploadedFormationIds(prev => { const s = new Set(prev); s.delete(formationId); return s; });
-      setCertificats(prev => certId ? prev.filter(c => c.id !== certId) : []);
+      if (certId) setCertificats(prev => prev.filter(c => c.id !== certId));
     } catch (e) {
       console.error('Erreur suppression certificat:', e);
     }
