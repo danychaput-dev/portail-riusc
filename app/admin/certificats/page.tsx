@@ -18,11 +18,19 @@ interface CertificatEnAttente {
   statut?: 'idle' | 'saving' | 'saved' | 'error'
 }
 
+interface DownloadedFile {
+  storagePath: string
+  signedUrl: string
+  name: string
+  file: File
+}
+
 interface MondayItem {
   monday_item_id: number
   nom: string
   email: string
   files: { name: string; url: string }[]
+  downloadedFiles?: DownloadedFile[]
   mState: {
     status: 'idle' | 'saving' | 'saved' | 'error' | 'skipped'
     formation: string
@@ -30,6 +38,8 @@ interface MondayItem {
     dateExpiration: string
     error?: string
     uploadedFile?: File
+    selectedStoragePath?: string
+    selectedSignedUrl?: string
   }
 }
 
@@ -49,6 +59,18 @@ const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp)/i.test(url)
 function initials(nom: string) {
   const p = nom.trim().split(' ')
   return (p[0]?.[0] ?? '') + (p[p.length - 1]?.[0] ?? '')
+}
+
+function detectFormation(files: { name: string; url: string }[]): string {
+  const text = files.map(f => f.name + ' ' + f.url).join(' ').toLowerCase()
+  if (/initier|msp|s-initier|sinitier|securite.civile|s%c3%a9curit|ssc/.test(text)) return "S'initier à la sécurité civile (MSP)"
+  if (/incendie/.test(text)) return 'Prévention incendie'
+  if (/radio.amateur/.test(text)) return 'Radio amateur'
+  if (/premiers.soins|rcr|secourisme/.test(text)) return 'Premiers soins / RCR'
+  if (/ics.?100|sci.?100/.test(text)) return 'Cours ICS/SCI 100'
+  if (/ics.?200|sci.?200/.test(text)) return 'Cours ICS/SCI 200'
+  if (/riusc/.test(text)) return 'Formation RIUSC'
+  return "S'initier à la sécurité civile (MSP)"
 }
 
 // 101 personnes avec certificats Monday sans entree dans formations_benevoles
@@ -222,6 +244,49 @@ export default function AdminCertificatsPage() {
   const [mondayViewFileIdx, setMondayViewFileIdx] = useState(0)
   const [mondayFilter, setMondayFilter] = useState('')
   const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
+  const [downloadProgress, setDownloadProgress] = useState<{ done: number; total: number; active: boolean }>({ done: 0, total: 0, active: false })
+
+  const downloadFirst50 = async () => {
+    const toDownload = mondayItems.filter(i => i.mState.status === 'idle' && !i.downloadedFiles).slice(0, 50)
+    if (!toDownload.length) return
+    setDownloadProgress({ done: 0, total: toDownload.length, active: true })
+    let done = 0
+    for (const item of toDownload) {
+      const downloaded: DownloadedFile[] = []
+      for (let idx = 0; idx < item.files.length; idx++) {
+        const f = item.files[idx]
+        try {
+          const proxyUrl = `/api/monday-proxy?url=${encodeURIComponent(f.url)}`
+          const res = await fetch(proxyUrl)
+          if (!res.ok) continue
+          const blob = await res.blob()
+          const ext = f.name.split('.').pop()?.toLowerCase() || 'pdf'
+          const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
+          const storagePath = `monday_temp/${item.monday_item_id}_${idx}_${safeName}`
+          const file = new File([blob], safeName, { type: blob.type || 'application/pdf' })
+          const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: true, contentType: file.type })
+          if (upErr) continue
+          const { data: signed } = await supabase.storage.from('certificats').createSignedUrl(storagePath, 3600 * 24)
+          if (!signed?.signedUrl) continue
+          downloaded.push({ storagePath, signedUrl: signed.signedUrl, name: f.name, file })
+        } catch {}
+      }
+      if (downloaded.length > 0) {
+        setMondayItems(prev => prev.map(i => {
+          if (i.monday_item_id !== item.monday_item_id) return i
+          const autoSelect = downloaded.length === 1 ? {
+            uploadedFile: downloaded[0].file,
+            selectedStoragePath: downloaded[0].storagePath,
+            selectedSignedUrl: downloaded[0].signedUrl,
+          } : {}
+          return { ...i, downloadedFiles: downloaded, mState: { ...i.mState, ...autoSelect } }
+        }))
+      }
+      done++
+      setDownloadProgress(p => ({ ...p, done }))
+    }
+    setDownloadProgress(p => ({ ...p, active: false }))
+  }
 
   useEffect(() => {
     const loadData = async () => {
@@ -241,7 +306,7 @@ export default function AdminCertificatsPage() {
       setMondayItems(
         MONDAY_RAW
           .filter(item => !alreadyDone.has(item.monday_item_id))
-          .map(item => ({ ...item, mState: { status: 'idle', formation: FORMATIONS[0], dateObtention: '', dateExpiration: '' } }))
+          .map(item => ({ ...item, mState: { status: 'idle', formation: detectFormation(item.files), dateObtention: '', dateExpiration: '' } }))
       )
 
       const { data } = await supabase
@@ -285,11 +350,6 @@ export default function AdminCertificatsPage() {
     setMondayItems(prev => prev.map(i => i.monday_item_id === id ? { ...i, mState: { ...i.mState, [field]: val } } : i))
   const handleApprouverMonday = async (item: MondayItem) => {
     if (!item.mState.dateObtention) return
-    if (!item.mState.uploadedFile) {
-      setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
-        ? { ...i, mState: { ...i.mState, status: 'error', error: 'Veuillez sélectionner le fichier certificat' } } : i))
-      return
-    }
     setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
       ? { ...i, mState: { ...i.mState, status: 'saving' } } : i))
     try {
@@ -298,14 +358,32 @@ export default function AdminCertificatsPage() {
       if (!res?.benevole_id) throw new Error(`Réserviste introuvable pour ${item.email}`)
       const benevoleId = res.benevole_id
 
-      // 2. Upload fichier local dans Supabase Storage
-      const file = item.mState.uploadedFile!
-      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
-      const storagePath = `${benevoleId}/${item.mState.formation.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.${ext}`
-      const { error: uploadError } = await supabase.storage
-        .from('certificats')
-        .upload(storagePath, file, { contentType: file.type || 'application/pdf', upsert: true })
-      if (uploadError) throw new Error(`Upload Storage: ${uploadError.message}`)
+      let certificatUrl = item.files[0]?.url || ''
+
+      // 2. Utiliser le fichier déjà téléchargé (pre-downloaded) OU upload manuel
+      if (item.mState.selectedStoragePath) {
+        // Déjà dans Storage via downloadFirst50 — déplacer vers dossier final
+        const src = item.mState.selectedStoragePath
+        const ext = src.split('.').pop()?.toLowerCase() || 'pdf'
+        const destPath = `${benevoleId}/${item.mState.formation.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${item.monday_item_id}.${ext}`
+        // Copier via re-upload du même blob (Storage ne supporte pas copy entre chemins)
+        const dlFile = item.downloadedFiles?.find(d => d.storagePath === src)
+        if (dlFile) {
+          await supabase.storage.from('certificats').upload(destPath, dlFile.file, { contentType: dlFile.file.type, upsert: true })
+          await supabase.storage.from('certificats').remove([src])
+        }
+        certificatUrl = `storage:${destPath}`
+      } else if (item.mState.uploadedFile) {
+        // Upload manuel
+        const file = item.mState.uploadedFile
+        const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+        const storagePath = `${benevoleId}/${item.mState.formation.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${item.monday_item_id}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('certificats')
+          .upload(storagePath, file, { contentType: file.type || 'application/pdf', upsert: true })
+        if (uploadError) throw new Error(`Upload Storage: ${uploadError.message}`)
+        certificatUrl = `storage:${storagePath}`
+      }
 
       // 3. Insert via route API (service_role — bypass RLS)
       const apiRes = await fetch('/api/admin/approuver-formation', {
@@ -318,7 +396,7 @@ export default function AdminCertificatsPage() {
           nom_formation: item.mState.formation,
           date_reussite: item.mState.dateObtention,
           date_expiration: item.mState.dateExpiration || null,
-          certificat_url: `storage:${storagePath}`,
+          certificat_url: certificatUrl,
           initiation_sc_completee: item.mState.formation.toLowerCase().includes('initier')
             || item.mState.formation.toLowerCase().includes('sécurité civile')
             || item.mState.formation.toLowerCase().includes('securite civile'),
@@ -444,8 +522,20 @@ export default function AdminCertificatsPage() {
         {activeTab === 'monday' && (
           <>
             <p style={{ color: '#6b7280', margin: '0 0 16px', fontSize: '14px' }}>Certificats dans Monday sans entrée dans <code>formations_benevoles</code> · {mondayPendingCount} en attente · {mondaySavedCount} approuvés cette session</p>
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <input type="text" placeholder="🔍 Filtrer par nom ou courriel..." value={mondayFilter} onChange={e => setMondayFilter(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '320px', outline: 'none' }} />
+              <button
+                onClick={downloadFirst50}
+                disabled={downloadProgress.active}
+                style={{ padding: '10px 16px', backgroundColor: downloadProgress.active ? '#e5e7eb' : '#1e3a5f', color: downloadProgress.active ? '#9ca3af' : 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: downloadProgress.active ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                {downloadProgress.active
+                  ? `⏳ Téléchargement ${downloadProgress.done}/${downloadProgress.total}...`
+                  : '⬇️ Télécharger les 50 premiers'}
+              </button>
+              {!downloadProgress.active && downloadProgress.total > 0 && (
+                <span style={{ fontSize: '12px', color: '#059669', fontWeight: '600' }}>✓ {downloadProgress.done}/{downloadProgress.total} téléchargés</span>
+              )}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: '20px', alignItems: 'start' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
@@ -480,20 +570,30 @@ export default function AdminCertificatsPage() {
                             </select>
                           </div>
                           <div style={{ marginBottom: '8px' }}>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>
-                              FICHIER * <span style={{ fontWeight: '400' }}>(télécharger depuis Monday puis sélectionner)</span>
-                            </label>
-                            <input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={e => {
-                                const file = e.target.files?.[0]
-                                if (file) setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
-                                  ? { ...i, mState: { ...i.mState, uploadedFile: file, error: undefined } } : i))
-                              }}
-                              style={{ width: '100%', fontSize: '11px', color: '#374151' }}
-                            />
-                            {s.uploadedFile && <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#059669' }}>✓ {s.uploadedFile.name}</p>}
+                            {s.selectedStoragePath ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                                <span style={{ fontSize: '13px' }}>✅</span>
+                                <span style={{ fontSize: '11px', color: '#166534', fontWeight: '600' }}>Fichier prêt (téléchargé automatiquement)</span>
+                                <button onClick={() => setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id ? { ...i, mState: { ...i.mState, selectedStoragePath: undefined, selectedSignedUrl: undefined, uploadedFile: undefined } } : i))} style={{ marginLeft: 'auto', fontSize: '10px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>changer</button>
+                              </div>
+                            ) : (
+                              <>
+                                <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>
+                                  FICHIER <span style={{ fontWeight: '400', color: '#9ca3af' }}>(optionnel — sinon l'URL Monday est conservée)</span>
+                                </label>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={e => {
+                                    const file = e.target.files?.[0]
+                                    if (file) setMondayItems(prev => prev.map(i => i.monday_item_id === item.monday_item_id
+                                      ? { ...i, mState: { ...i.mState, uploadedFile: file, error: undefined } } : i))
+                                  }}
+                                  style={{ width: '100%', fontSize: '11px', color: '#374151' }}
+                                />
+                                {s.uploadedFile && <p style={{ margin: '3px 0 0', fontSize: '11px', color: '#059669' }}>✓ {s.uploadedFile.name}</p>}
+                              </>
+                            )}
                           </div>
                           <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end' }}>
                             <div style={{ flex: 1 }}>
@@ -504,7 +604,7 @@ export default function AdminCertificatsPage() {
                               <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '3px', fontWeight: '600' }}>EXPIRATION <span style={{ fontWeight: '400' }}>(opt.)</span></label>
                               <input type="date" value={s.dateExpiration} onChange={e => updMonday(item.monday_item_id, 'dateExpiration', e.target.value)} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none' }} />
                             </div>
-                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention || !s.uploadedFile} style={{ padding: '6px 12px', backgroundColor: (s.dateObtention && s.uploadedFile) ? '#059669' : '#e5e7eb', color: (s.dateObtention && s.uploadedFile) ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: (s.dateObtention && s.uploadedFile) ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <button onClick={() => handleApprouverMonday(item)} disabled={!s.dateObtention} style={{ padding: '6px 12px', backgroundColor: s.dateObtention ? '#059669' : '#e5e7eb', color: s.dateObtention ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: s.dateObtention ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
                               ✅ Approuver
                             </button>
                           </div>
@@ -566,11 +666,18 @@ export default function AdminCertificatsPage() {
                     )}
                     <div style={{ height: 'calc(100vh - 340px)' }}>
                       {(() => {
-                        const f = mondaySelected.files[mondayViewFileIdx ?? 0]
+                        const idx = mondayViewFileIdx ?? 0
+                        const f = mondaySelected.files[idx]
                         if (!f) return null
-                        return isImage(f.url)
-                          ? <img src={`/api/monday-proxy?url=${encodeURIComponent(f.url)}`} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px', boxSizing: 'border-box' }} />
-                          : <iframe src={`/api/monday-proxy?url=${encodeURIComponent(f.url)}`} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat PDF" />
+                        // Utiliser signed URL Storage si déjà téléchargé, sinon proxy Monday
+                        const dlFile = mondaySelected.downloadedFiles?.[idx]
+                        const viewUrl = dlFile?.signedUrl
+                          ? dlFile.signedUrl
+                          : `/api/monday-proxy?url=${encodeURIComponent(f.url)}`
+                        const isImg = isImage(f.url)
+                        return isImg
+                          ? <img src={viewUrl} alt="Certificat" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '20px', boxSizing: 'border-box' }} />
+                          : <iframe src={viewUrl} style={{ width: '100%', height: '100%', border: 'none' }} title="Certificat PDF" />
                       })()}
                     </div>
                   </>
