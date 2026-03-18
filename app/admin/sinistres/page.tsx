@@ -457,7 +457,7 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
       <div>
         <label style={labelStyle()}>NOM DU SINISTRE <span style={{ fontWeight: 400, color: '#9ca3af' }}>(auto-généré)</span></label>
         <div style={{ padding: '7px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', fontSize: '13px', backgroundColor: '#f9fafb', color: form.nom ? '#374151' : '#9ca3af', minHeight: '34px' }}>
-          {form.nom || 'Remplir type d'incident, lieu et date de début...'}
+          {form.nom || "Remplir type d'incident, lieu et date de début..."}
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
