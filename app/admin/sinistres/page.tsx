@@ -49,6 +49,41 @@ const TYPES_INCIDENT = [
 
 const ORGANISMES = ['SOPFEU', 'Croix-Rouge', 'Municipalité', 'Autre']
 
+const TYPES_MISSION_SOPFEU = [
+  'Construction de digues',
+  'Gestion des débris',
+  'Logistique terrain',
+  'Support opérationnel',
+]
+
+const TYPES_MISSION_CROIXROUGE = [
+  "Centre de services aux sinistrés",
+  "Hébergement d'urgence",
+  'Distribution de ressources',
+  'Soutien psychosocial',
+  'Inscription et référencement',
+]
+
+const TYPES_MISSION_AUTRES = [
+  'Construction de digues',
+  'Gestion des débris',
+  "Centre de services aux sinistrés",
+  "Hébergement d'urgence",
+  'Distribution de ressources',
+  'Soutien psychosocial',
+  'Recherche et sauvetage',
+  'Vérification de bien-être',
+  'Logistique',
+  'Support opérationnel',
+  'Autre',
+]
+
+function getMissions(organisme: string): string[] {
+  if (organisme === 'SOPFEU') return TYPES_MISSION_SOPFEU
+  if (organisme === 'Croix-Rouge') return TYPES_MISSION_CROIXROUGE
+  return TYPES_MISSION_AUTRES
+}
+
 const TYPES_MISSION = [
   'Construction de digues', 'Gestion des débris', 'Centre de services aux sinistrés',
   'Hébergement d\'urgence', 'Distribution de ressources', 'Soutien psychosocial',
