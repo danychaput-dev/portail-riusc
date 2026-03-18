@@ -269,12 +269,18 @@ export default function AdminCertificatsPage() {
           const proxyUrl = `/api/monday-proxy?url=${encodeURIComponent(f.url)}`
           const res = await fetch(proxyUrl)
           if (!res.ok) continue
+          const contentType = res.headers.get('content-type') || ''
+          // Rejeter si le proxy retourne du HTML (page d'erreur Monday ou redirect)
+          if (contentType.includes('text/html')) continue
           const blob = await res.blob()
+          // Forcer le bon type selon l'extension si le blob type est générique
           const ext = f.name.split('.').pop()?.toLowerCase() || 'pdf'
+          const mimeMap: Record<string, string> = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }
+          const resolvedType = (blob.type && !blob.type.includes('octet-stream')) ? blob.type : (mimeMap[ext] || 'application/pdf')
           const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 60)
           const storagePath = `monday_temp/${item.monday_item_id}_${idx}_${safeName}`
-          const file = new File([blob], safeName, { type: blob.type || 'application/pdf' })
-          const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: true, contentType: file.type })
+          const file = new File([blob], safeName, { type: resolvedType })
+          const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: true, contentType: resolvedType })
           if (upErr) continue
           const { data: signed } = await supabase.storage.from('certificats').createSignedUrl(storagePath, 3600 * 24)
           if (!signed?.signedUrl) continue
@@ -302,8 +308,8 @@ export default function AdminCertificatsPage() {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: reserviste } = await supabase.from('reservistes').select('benevole_id').eq('user_id', user.id).single()
-      if (!reserviste || !['8738174928', '18239132668'].includes(reserviste.benevole_id)) { router.push('/'); return }
+      const { data: reserviste } = await supabase.from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
+      if (!reserviste || reserviste.role !== 'admin') { router.push('/'); return }
       setAdminBenevoleId(reserviste.benevole_id)
 
       // Étape 1 — filtrer par monday_item_id déjà traité

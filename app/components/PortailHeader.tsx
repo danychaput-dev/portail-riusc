@@ -37,7 +37,6 @@ interface PortailHeaderProps {
   reservisteOverride?: Reserviste | null
 }
 
-const ADMIN_BENEVOLE_IDS = ['8738174928', '18239132668'] // Dany + Esther peuvent emprunter
 
 export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOverride }: PortailHeaderProps) {
   const supabase = createClient()
@@ -62,7 +61,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const { user: authUser, loading: authLoading } = useAuth()
 
   // Champs nécessaires pour vérifier la complétude du profil + header
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
+  const selectFields = 'benevole_id, role, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -303,7 +302,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true].filter(Boolean).length
 
   // Vérifier si c'est un admin (peut emprunter des identités)
-  const isAdmin = reserviste?.benevole_id && ADMIN_BENEVOLE_IDS.includes(reserviste.benevole_id)
+  const isAdmin = reserviste?.role === 'admin' || reserviste?.role === 'coordonnateur'
 
   return (
     <>

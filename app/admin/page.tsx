@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 
-const ADMIN_IDS = ['8738174928', '18239132668']
 
 interface StatCount {
   sinistres_actifs: number
@@ -35,8 +34,8 @@ export default function AdminDashboardPage() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: res } = await supabase.from('reservistes').select('benevole_id, prenom, nom').eq('user_id', user.id).single()
-      if (!res || !ADMIN_IDS.includes(res.benevole_id)) { router.push('/'); return }
+      const { data: res } = await supabase.from('reservistes').select('benevole_id, role, prenom, nom').eq('user_id', user.id).single()
+      if (!res || res.role !== 'admin') { router.push('/'); return }
       setNomAdmin(res.prenom || '')
 
       // Charger les stats en parallèle
@@ -125,6 +124,14 @@ export default function AdminDashboardPage() {
       href: '/admin/communications',
       couleur: '#1e3a5f',
       statut: 'bientot',
+    },
+    {
+      titre: 'Utilisateurs & rôles',
+      description: 'Gérer les admins et coordonnateurs — ajouter ou retirer des accès',
+      icone: '🔐',
+      href: '/admin/utilisateurs',
+      couleur: '#4f46e5',
+      statut: 'actif',
     },
   ]
 

@@ -7,7 +7,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const ADMIN_IDS = ['8738174928', '18239132668']
+async function verifierAdmin(benevole_id: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('reservistes')
+    .select('role')
+    .eq('benevole_id', benevole_id)
+    .single()
+  return data?.role === 'admin'
+}
 
 async function moveToApprouve(itemId: string) {
   const query = `
@@ -27,7 +34,6 @@ async function moveToApprouve(itemId: string) {
   })
 }
 
-// Onglet Monday — INSERT nouvelle entrée
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
       initiation_sc_completee, admin_benevole_id
     } = body
 
-    if (!ADMIN_IDS.includes(admin_benevole_id)) {
+    if (!await verifierAdmin(admin_benevole_id)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
@@ -67,13 +73,12 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Onglet Portail — UPDATE entrée existante par id
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
     const { id, date_reussite, date_expiration, admin_benevole_id } = body
 
-    if (!ADMIN_IDS.includes(admin_benevole_id)) {
+    if (!await verifierAdmin(admin_benevole_id)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
