@@ -512,7 +512,7 @@ function FormationContent() {
   const [confirmSupprimerCertId, setConfirmSupprimerCertId] = useState<string | null>(null);
   const [suppressionEnCours, setSuppressionEnCours] = useState(false);
 
-  const supprimerCertificat = async (formationId: string) => {
+  const supprimerCertificat = async (formationId: string, certId?: string) => {
     if (!reserviste) return;
     setSuppressionEnCours(true);
     try {
@@ -537,7 +537,7 @@ function FormationContent() {
       // Mettre à jour l'état local
       setFormations(prev => prev.map(f => f.id === formationId ? { ...f, has_fichier: false, fichiers: [] } : f));
       setUploadedFormationIds(prev => { const s = new Set(prev); s.delete(formationId); return s; });
-      setCertificats([]);
+      setCertificats(prev => certId ? prev.filter(c => c.id !== certId) : []);
     } catch (e) {
       console.error('Erreur suppression certificat:', e);
     }
@@ -1012,10 +1012,10 @@ function FormationContent() {
                                 <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
                                   📄 {cert.name}
                                 </a>
-                                {confirmSupprimerCertId === f.id ? (
+                                {confirmSupprimerCertId === cert.id ? (
                                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
                                     <span style={{ color: '#6b7280' }}>Retirer ?</span>
-                                    <button onClick={() => supprimerCertificat(f.id)} disabled={suppressionEnCours}
+                                    <button onClick={() => supprimerCertificat(f.id, cert.id)} disabled={suppressionEnCours}
                                       style={{ padding: '2px 8px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>
                                       {suppressionEnCours ? '...' : 'Oui'}
                                     </button>
@@ -1025,7 +1025,7 @@ function FormationContent() {
                                     </button>
                                   </span>
                                 ) : (
-                                  <button onClick={() => setConfirmSupprimerCertId(f.id)}
+                                  <button onClick={() => setConfirmSupprimerCertId(cert.id)}
                                     title="Retirer le certificat"
                                     style={{ padding: '4px 6px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', fontSize: '14px', opacity: 0.5, lineHeight: 1 }}
                                     onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
