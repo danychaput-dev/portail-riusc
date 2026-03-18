@@ -974,7 +974,7 @@ function FormationContent() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {/* Ligne titre + badges — tout sur une ligne en desktop */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{f.catalogue}</div>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{stripPrefix(f.catalogue)}</div>
                           {f.date_reussite && (
                             <span style={{ fontSize: '12px', color: '#6b7280' }}>
                               {new Date(f.date_reussite + 'T12:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -1361,6 +1361,10 @@ function FormationContent() {
       </footer>
     </div>
   );
+}
+
+function stripPrefix(nom: string): string {
+  return nom.replace(/^[a-h]\)\s*/i, '').trim()
 }
 
 export default function FormationPage() {
