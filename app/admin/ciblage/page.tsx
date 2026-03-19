@@ -134,10 +134,18 @@ export default function CiblagePage() {
   // ── Computed ──────────────────────────────────────────────
   const referenceId = niveau === 'rotation' ? selectedVagueId : selectedDeploymentId
   const dateDeb = niveau === 'rotation' ? selectedVague?.date_debut : selectedDeployment?.date_debut
-  // date_fin optionnelle — fallback sur date_debut si pas encore définie
+  // date_fin optionnelle — fallback sur date_debut + 30 jours si pas encore définie
   const dateFin = niveau === 'rotation'
     ? (selectedVague?.date_fin || selectedVague?.date_debut)
-    : (selectedDeployment?.date_fin || selectedDeployment?.date_debut)
+    : (() => {
+        if (selectedDeployment?.date_fin) return selectedDeployment.date_fin
+        if (selectedDeployment?.date_debut) {
+          const d = new Date(selectedDeployment.date_debut + 'T00:00:00')
+          d.setDate(d.getDate() + 30)
+          return d.toISOString().slice(0, 10)
+        }
+        return undefined
+      })()
   const nbRequis = niveau === 'rotation'
     ? (selectedVague?.nb_personnes_requis    || 0)
     : (selectedDeployment?.nb_personnes_par_vague || 0)
@@ -290,7 +298,7 @@ export default function CiblagePage() {
     setLoadingAI(true)
     const contexte = niveau === 'rotation'
       ? `Rotation ${selectedVague?.identifiant} — ${selectedDeployment?.nom} (${formatDate(dateDeb)} au ${formatDate(dateFin)})`
-      : `Déploiement ${selectedDeployment?.identifiant} — ${selectedDeployment?.nom}`
+      : `Déploiement ${selectedDeployment?.identifiant} — ${selectedDeployment?.nom} — À partir du ${formatDate(dateDeb)}`
 
     const res = await fetch('/api/admin/ciblage', {
       method: 'POST',
@@ -343,7 +351,7 @@ export default function CiblagePage() {
 
   const estPret = niveau === 'deploiement'
     ? !!selectedDeploymentId && !!selectedDeployment?.date_debut
-    : !!selectedVagueId
+    : !!selectedVagueId && !!selectedVague?.date_debut
 
   // ── Rendu ─────────────────────────────────────────────────
   return (
@@ -627,7 +635,14 @@ export default function CiblagePage() {
                 </div>
 
                 <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Objectif : <strong>{ratioMin}–{ratioMax}</strong> ({nbRequis} requis × 3-4)</span>
+                  <span>
+                    Objectif : <strong>{ratioMin}–{ratioMax}</strong> ({nbRequis} requis × 3-4)
+                    {niveau === 'deploiement' && !selectedDeployment?.date_fin && (
+                      <span style={{ marginLeft: '8px', color: '#f59e0b', fontSize: '11px' }}>
+                        · Fenêtre estimée 30 jours
+                      </span>
+                    )}
+                  </span>
                   {dansLaFourchette && <span style={{ color: '#22c55e', fontWeight: '600' }}>✓ Fourchette atteinte</span>}
                   {notifEnvoyees && <span style={{ color: '#3b82f6', fontWeight: '600' }}>✓ Notifiés</span>}
                 </div>
