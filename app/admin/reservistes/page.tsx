@@ -213,7 +213,7 @@ export default function ReservistesPage() {
               >
                 <div style={{ padding: '11px 14px' }}>
                   <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>
-                    {r.prenom} {r.nom}
+                    {r.nom} {r.prenom}
                   </div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
