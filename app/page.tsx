@@ -513,7 +513,7 @@ export default function HomePage() {
         if ('id' in authUser) {
           const { data: dataByUserId } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, role, consent_photos, allergies_alimentaires, allergies_autres')
             .eq('user_id', authUser.id)
             .single()
           
@@ -526,7 +526,7 @@ export default function HomePage() {
         if (!reservisteData && 'email' in authUser && authUser.email) {
           const { data } = await supabase
             .from('reservistes')
-           .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+           .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, role, consent_photos, allergies_alimentaires, allergies_autres')
             .ilike('email', authUser.email)
             .single()
           
@@ -545,7 +545,7 @@ export default function HomePage() {
           const phoneDigits = authUser.phone.replace(/\D/g, '')
           const { data } = await supabase
             .from('reservistes')
-            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+            .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, role, consent_photos, allergies_alimentaires, allergies_autres')
             .eq('telephone', phoneDigits)
             .single()
           
@@ -553,7 +553,7 @@ export default function HomePage() {
             const phoneWithout1 = phoneDigits.slice(1)
             const { data: data2 } = await supabase
               .from('reservistes')
-              .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, consent_photos, allergies_alimentaires, allergies_autres')
+              .select('benevole_id, prenom, nom, email, telephone, photo_url, groupe, role, consent_photos, allergies_alimentaires, allergies_autres')
               .eq('telephone', phoneWithout1)
               .single()
             
@@ -576,6 +576,12 @@ export default function HomePage() {
       
       if (reservisteData) {
         setReserviste(reservisteData)
+
+        // Rediriger les adjoints vers l'annuaire
+        if (reservisteData.role === 'adjoint') {
+          router.push('/admin/reservistes')
+          return
+        }
         
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id
