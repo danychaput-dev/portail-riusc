@@ -39,6 +39,8 @@ export async function GET(req: NextRequest) {
   let query = supabaseAdmin
     .from('reservistes')
     .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at')
+    .not('nom', 'is', null)
+    .neq('nom', '')
     .order('nom')
 
   // Filtre groupe
