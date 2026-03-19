@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
       icone: '🎯',
       href: '/admin/ciblage',
       couleur: '#7c3aed',
-      statut: 'bientot',
+      statut: 'actif',
     },
     {
       titre: 'Validation certificats',
