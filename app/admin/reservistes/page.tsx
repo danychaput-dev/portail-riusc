@@ -46,7 +46,7 @@ export default function ReservistesPage() {
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(['Approuvé', 'Intérêt'])
   const [exporting,   setExporting]   = useState(false)
   const [authorized,  setAuthorized]  = useState(false)
-  const searchTimeout = useRef<NodeJS.Timeout>()
+  const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Auth
   useEffect(() => {
@@ -54,7 +54,7 @@ export default function ReservistesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-      if (!res || !['admin', 'coordonnateur'].includes(res.role)) { router.push('/'); return }
+      if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setAuthorized(true)
     }
     init()
