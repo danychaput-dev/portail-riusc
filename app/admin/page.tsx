@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: res } = await supabase.from('reservistes').select('benevole_id, role, prenom, nom').eq('user_id', user.id).single()
-      if (!res || res.role !== 'admin') { router.push('/'); return }
+      if (!res || !['admin', 'coordonnateur'].includes(res.role)) { router.push('/'); return }
       setNomAdmin(res.prenom || '')
 
       // Charger les stats en parallèle
@@ -99,7 +99,7 @@ export default function AdminDashboardPage() {
       icone: '👥',
       href: '/admin/reservistes',
       couleur: '#0891b2',
-      statut: 'bientot',
+      statut: 'actif',
     },
     {
       titre: 'Portail partenaires',
