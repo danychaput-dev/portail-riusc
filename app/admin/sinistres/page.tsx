@@ -264,6 +264,17 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
   const [form, setForm] = useState(initial)
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
+  // Auto-générer le nom depuis le preview identifiant
+  useEffect(() => {
+    const demandesSelectionnees = demandesDisponibles
+      .filter(d => form.demandes_ids.includes(d.id))
+      .map(d => ({ organisme: d.label.split(' — ')[0], type_mission: d.label.split(' — ')[1] }))
+    const preview = previewDeployment(demandesSelectionnees, form.lieu)
+    if (preview !== '— sélectionner les demandes —') {
+      setForm(f => ({ ...f, nom: preview }))
+    }
+  }, [form.demandes_ids, form.lieu])
+
   const toggleDemande = (id: string) => setForm(f => ({
     ...f,
     demandes_ids: f.demandes_ids.includes(id) ? f.demandes_ids.filter(d => d !== id) : [...f.demandes_ids, id]
@@ -360,7 +371,7 @@ function FormDeployment({ initial, onSave, onCancel, saving, nextIdentifiant, de
 
       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
         <button onClick={onCancel} style={{ padding: '5px 12px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Annuler</button>
-        <button onClick={() => form.nom && onSave(form)} disabled={saving || !form.nom}
+        <button onClick={() => (form.nom || form.date_debut) && onSave({ ...form, nom: form.nom || form.date_debut })} disabled={saving || (!form.nom && !form.date_debut)}
           style={{ padding: '5px 12px', backgroundColor: form.nom ? '#1e3a5f' : '#e5e7eb', color: form.nom ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: form.nom ? 'pointer' : 'not-allowed' }}>
           {saving ? '⏳' : '✓ Sauvegarder'}
         </button>
@@ -498,7 +509,7 @@ function FormSinistre({ initial, onSave, onCancel, saving }: {
       )}
       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
         <button onClick={onCancel} style={{ padding: '7px 16px', backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', color: '#374151' }}>Annuler</button>
-        <button onClick={() => form.nom && onSave(form)} disabled={saving || !form.nom}
+        <button onClick={() => (form.nom || form.date_debut) && onSave({ ...form, nom: form.nom || form.date_debut })} disabled={saving || (!form.nom && !form.date_debut)}
           style={{ padding: '7px 16px', backgroundColor: form.nom ? '#1e3a5f' : '#e5e7eb', color: form.nom ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: form.nom ? 'pointer' : 'not-allowed' }}>
           {saving ? '⏳ Sauvegarde...' : '✓ Sauvegarder'}
         </button>
