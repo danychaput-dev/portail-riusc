@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
@@ -45,9 +45,8 @@ export default function ReservistesPage() {
   const [recherche,   setRecherche]   = useState('')
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(['Approuvé', 'Intérêt'])
   const [exporting,   setExporting]   = useState(false)
+  const [sortAsc,      setSortAsc]      = useState(true)
   const [authorized,  setAuthorized]  = useState(false)
-  const searchTimeout = useRef<NodeJS.Timeout | undefined>(undefined)
-
   // Auth
   useEffect(() => {
     const init = async () => {
@@ -60,28 +59,25 @@ export default function ReservistesPage() {
     init()
   }, [])
 
-  const charger = useCallback(async (rech: string, groupes: string[]) => {
-    setLoading(true)
-    const params = new URLSearchParams()
-    if (rech) params.set('recherche', rech)
-    if (groupes.length > 0) params.set('groupes', groupes.join(','))
-    const res = await fetch(`/api/admin/reservistes?${params}`)
-    const json = await res.json()
-    setData(json.data || [])
-    setTotal(json.total || 0)
-    setLoading(false)
-  }, [])
-
+  // Charger à chaque changement de recherche ou groupes
   useEffect(() => {
     if (!authorized) return
-    charger(recherche, groupesFiltres)
-  }, [authorized, groupesFiltres])
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (recherche) params.set('recherche', recherche)
+      if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
+      const res = await fetch(`/api/admin/reservistes?${params}`)
+      const json = await res.json()
+      const sorted = (json.data || []).sort((a: any, b: any) => a.nom.localeCompare(b.nom, 'fr'))
+    setData(sorted)
+      setTotal(json.total || 0)
+      setLoading(false)
+    }, recherche ? 350 : 0)
+    return () => clearTimeout(timer)
+  }, [authorized, recherche, groupesFiltres])
 
-  const handleRecherche = (val: string) => {
-    setRecherche(val)
-    clearTimeout(searchTimeout.current)
-    searchTimeout.current = setTimeout(() => charger(val, groupesFiltres), 350)
-  }
+  const handleRecherche = (val: string) => setRecherche(val)
 
   const toggleGroupe = (g: string) => {
     setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
@@ -179,8 +175,16 @@ export default function ReservistesPage() {
           {/* En-tête tableau */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 100px', gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
             {['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Groupe'].map(h => (
-              <div key={h} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>
-                {h}
+              <div key={h} onClick={() => {
+                if (h !== 'Nom') return
+                const asc = !sortAsc
+                setSortAsc(asc)
+                setData(prev => [...prev].sort((a, b) => asc
+                  ? a.nom.localeCompare(b.nom, 'fr')
+                  : b.nom.localeCompare(a.nom, 'fr')
+                ))
+              }} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em', cursor: h === 'Nom' ? 'pointer' : 'default', userSelect: 'none' as const, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {h}{h === 'Nom' && <span style={{ color: '#94a3b8' }}>{sortAsc ? ' ↑' : ' ↓'}</span>}
               </div>
             ))}
           </div>
