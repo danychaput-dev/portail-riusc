@@ -135,17 +135,15 @@ export default function CiblagePage() {
   const referenceId = niveau === 'rotation' ? selectedVagueId : selectedDeploymentId
   const dateDeb = niveau === 'rotation' ? selectedVague?.date_debut : selectedDeployment?.date_debut
   // date_fin optionnelle — fallback sur date_debut + 30 jours si pas encore définie
+  const dateFinDeployment = selectedDeployment?.date_fin || (() => {
+    if (!selectedDeployment?.date_debut) return undefined
+    const d = new Date(selectedDeployment.date_debut + 'T00:00:00')
+    d.setDate(d.getDate() + 30)
+    return d.toISOString().slice(0, 10)
+  })()
   const dateFin = niveau === 'rotation'
     ? (selectedVague?.date_fin || selectedVague?.date_debut)
-    : (() => {
-        if (selectedDeployment?.date_fin) return selectedDeployment.date_fin
-        if (selectedDeployment?.date_debut) {
-          const d = new Date(selectedDeployment.date_debut + 'T00:00:00')
-          d.setDate(d.getDate() + 30)
-          return d.toISOString().slice(0, 10)
-        }
-        return undefined
-      })()
+    : dateFinDeployment
   const nbRequis = niveau === 'rotation'
     ? (selectedVague?.nb_personnes_requis    || 0)
     : (selectedDeployment?.nb_personnes_par_vague || 0)
