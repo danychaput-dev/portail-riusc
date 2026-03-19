@@ -134,7 +134,10 @@ export default function CiblagePage() {
   // ── Computed ──────────────────────────────────────────────
   const referenceId = niveau === 'rotation' ? selectedVagueId : selectedDeploymentId
   const dateDeb = niveau === 'rotation' ? selectedVague?.date_debut : selectedDeployment?.date_debut
-  const dateFin = niveau === 'rotation' ? selectedVague?.date_fin   : selectedDeployment?.date_fin
+  // date_fin optionnelle — fallback sur date_debut si pas encore définie
+  const dateFin = niveau === 'rotation'
+    ? (selectedVague?.date_fin || selectedVague?.date_debut)
+    : (selectedDeployment?.date_fin || selectedDeployment?.date_debut)
   const nbRequis = niveau === 'rotation'
     ? (selectedVague?.nb_personnes_requis    || 0)
     : (selectedDeployment?.nb_personnes_par_vague || 0)
