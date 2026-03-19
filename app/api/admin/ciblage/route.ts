@@ -133,13 +133,30 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('ciblages')
-      .select('id, benevole_id, niveau, reference_id, statut, ajoute_par_ia, created_at, reservistes(prenom, nom, telephone, region, ville, preference_tache)')
+      .select('id, benevole_id, niveau, reference_id, statut, ajoute_par_ia, created_at')
       .eq('reference_id', reference_id)
       .neq('statut', 'retire')
       .order('created_at')
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
+    if (!data || data.length === 0) return NextResponse.json([])
+
+    // Enrichir avec les infos réserviste
+    const benevoleIds = data.map((c: any) => c.benevole_id)
+    const { data: reservistes, error: errRes } = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, telephone, region, ville, preference_tache')
+      .in('benevole_id', benevoleIds)
+
+    if (errRes) return NextResponse.json({ error: errRes.message }, { status: 500 })
+
+    const resMap = Object.fromEntries((reservistes || []).map((r: any) => [r.benevole_id, r]))
+    const enriched = data.map((c: any) => ({
+      ...c,
+      reservistes: resMap[c.benevole_id] || { prenom: '?', nom: '?', telephone: '', region: '', ville: '', preference_tache: '' }
+    }))
+
+    return NextResponse.json(enriched)
   }
 
   return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })
@@ -169,7 +186,7 @@ export async function POST(req: NextRequest) {
         ajoute_par_ia: ajoute_par_ia || false,
         statut: 'cible'
       })
-      .select('id, benevole_id, niveau, reference_id, statut, ajoute_par_ia, reservistes(prenom, nom, telephone, region, ville, preference_tache)')
+      .select('id, benevole_id, niveau, reference_id, statut, ajoute_par_ia')
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })

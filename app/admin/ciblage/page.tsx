@@ -222,7 +222,9 @@ export default function CiblagePage() {
           .then(r => r.json())
       ])
       if (poolData.error) setErreur(poolData.error)
-      else { setPool(poolData || []); setCibles(ciblagesData || []) }
+      else setPool(Array.isArray(poolData) ? poolData : [])
+      if (ciblagesData.error) console.error('ciblages:', ciblagesData.error)
+      else setCibles(Array.isArray(ciblagesData) ? ciblagesData : [])
     } catch {
       setErreur('Erreur réseau')
     }
@@ -251,12 +253,13 @@ export default function CiblagePage() {
       })
     })
     const data = await res.json()
-    if (!data.error) {
+    const resData = await res.json()
+    if (!resData.error && resData.id) {
       setPool(prev => prev.map(c =>
         c.benevole_id === candidat.benevole_id ? { ...c, deja_cible: true } : c
       ))
       setCibles(prev => [...prev, {
-        id: data.id,
+        id: resData.id,
         benevole_id: candidat.benevole_id,
         niveau,
         reference_id: referenceId,
@@ -283,7 +286,8 @@ export default function CiblagePage() {
       body: JSON.stringify({ action: 'retirer', ciblage_id: cible.id })
     })
     const data = await res.json()
-    if (!data.error) {
+    const resData = data
+    if (!resData.error && resData.id) {
       setCibles(prev => prev.filter(c => c.id !== cible.id))
       setPool(prev => prev.map(c =>
         c.benevole_id === cible.benevole_id ? { ...c, deja_cible: false } : c
