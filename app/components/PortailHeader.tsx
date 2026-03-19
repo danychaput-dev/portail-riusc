@@ -304,6 +304,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
   // Vérifier si c'est un admin (peut emprunter des identités)
   const isAdmin = reserviste?.role === 'admin' || reserviste?.role === 'coordonnateur'
+  const isAdjoint = reserviste?.role === 'adjoint'
 
   return (
     <>
@@ -484,6 +485,16 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                     </span>
                   )}
                 </a>
+
+                {isAdjoint && (
+                  <>
+                    <a href="/admin/reservistes" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <span style={{ fontSize: '18px' }}>👥</span>
+                      Annuaire réservistes
+                    </a>
+                  </>
+                )}
 
                 {isAdmin && (
                   <>
