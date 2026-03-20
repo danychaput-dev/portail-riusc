@@ -255,6 +255,24 @@ function LoginContent() {
           telephone: verifyResult.data.user.phone || null,
           authMethod: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
         })
+
+        // ✅ Cookie benevole_id pour le middleware d'audit
+        const { data: res } = await supabase
+          .from('reservistes')
+          .select('benevole_id')
+          .eq('user_id', authUserId)
+          .single()
+        if (res?.benevole_id) {
+          document.cookie = `benevole_id=${res.benevole_id}; path=/; max-age=2592000; SameSite=Lax`
+        }
+
+        // ✅ Log connexion dans audit_connexions (fire & forget)
+        fetch('/api/audit/log-page', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: authUserId, benevole_id: res?.benevole_id || null, page: '__connexion__' }),
+        }).catch(() => {})
+
         router.push(campId ? `/formation?camp=${campId}` : '/')
       }
     } catch (err) {
