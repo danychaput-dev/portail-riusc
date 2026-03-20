@@ -29,6 +29,7 @@ interface AuditPageRow {
 
 interface Reserviste {
   id: number;
+  benevole_id: string | null;
   prenom: string | null;
   nom: string | null;
   email: string | null;
@@ -301,7 +302,7 @@ export default function StatsPage() {
 
       const [logsRes, resRes, auditRes, auditAllRes] = await Promise.all([
         supabase.from('auth_logs').select('*').gte('created_at', from).lte('created_at', to).order('created_at', { ascending: false }),
-        supabase.from('reservistes').select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
+        supabase.from('reservistes').select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
         supabase.from('audit_pages').select('*').gte('visite_a', from).lte('visite_a', to).order('visite_a', { ascending: false }),
         supabase.from('audit_pages').select('benevole_id').not('benevole_id', 'is', null),
       ]);
@@ -473,7 +474,7 @@ export default function StatsPage() {
     // Top utilisateurs actifs
     const userMap: Record<string, string> = {};
     reservistes.forEach(r => {
-      if (r.id && r.prenom && r.nom) userMap[String(r.id)] = `${r.prenom} ${r.nom}`;
+      if (r.prenom && r.nom) userMap[r.benevole_id || String(r.id)] = `${r.prenom} ${r.nom}`;
     });
     const userCounts: Record<string, number> = {};
     pages.forEach(p => {
@@ -487,7 +488,7 @@ export default function StatsPage() {
 
     // Réservistes jamais vus dans audit_pages
     const seenIds = new Set(auditPagesAll.map(p => p.benevole_id).filter(Boolean));
-    const neverConnected = reservistes.filter(r => r.user_id && !seenIds.has(String(r.id)));
+    const neverConnected = reservistes.filter(r => r.user_id && !seenIds.has(r.benevole_id || String(r.id)));
 
     return { totalPages: pages.length, connexions: connexions.length, uniqueUsers: uniqueUsers.size, pageRanking, activeUsers, neverConnected };
   }, [auditPages, auditPagesAll, excludeMe, currentUserId, reservistes]);
