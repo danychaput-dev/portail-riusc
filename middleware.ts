@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
     if (!EXCLUDED.some(e => pathname.startsWith(e))) {
       const benevole_id = request.cookies.get('benevole_id')?.value || null;
 
-      fetch(`${request.nextUrl.origin}/api/audit/page`, {
+      fetch(`${request.nextUrl.origin}/api/audit/log-page`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

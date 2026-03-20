@@ -26,6 +26,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }); // Toujours silencieux
   }
 }
