@@ -194,6 +194,7 @@ export default function StatsPage() {
   const [authorized, setAuthorized] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [auditPages, setAuditPages] = useState<AuditPageRow[]>([]);
+  const [auditPagesAll, setAuditPagesAll] = useState<{ benevole_id: string }[]>([]);
   const [reservistes, setReservistes] = useState<Reserviste[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [excludeMe, setExcludeMe] = useState(true);
@@ -298,27 +299,17 @@ export default function StatsPage() {
     (async () => {
       setLoading(true);
 
-      const [logsRes, resRes, auditRes] = await Promise.all([
-        supabase
-          .from('auth_logs')
-          .select('*')
-          .gte('created_at', from)
-          .lte('created_at', to)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('reservistes')
-          .select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
-        supabase
-          .from('audit_pages')
-          .select('*')
-          .gte('visite_a', from)
-          .lte('visite_a', to)
-          .order('visite_a', { ascending: false }),
+      const [logsRes, resRes, auditRes, auditAllRes] = await Promise.all([
+        supabase.from('auth_logs').select('*').gte('created_at', from).lte('created_at', to).order('created_at', { ascending: false }),
+        supabase.from('reservistes').select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
+        supabase.from('audit_pages').select('*').gte('visite_a', from).lte('visite_a', to).order('visite_a', { ascending: false }),
+        supabase.from('audit_pages').select('benevole_id').not('benevole_id', 'is', null),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
       if (resRes.data) setReservistes(resRes.data as Reserviste[]);
       if (auditRes.data) setAuditPages(auditRes.data as AuditPageRow[]);
+      if (auditAllRes.data) setAuditPagesAll(auditAllRes.data as { benevole_id: string }[]);
       setLoading(false);
     })();
   }, [authorized, from, to]);
@@ -495,11 +486,11 @@ export default function StatsPage() {
       .map(([bid, count]) => ({ name: userMap[bid] || bid, count }));
 
     // Réservistes jamais vus dans audit_pages
-    const seenIds = new Set(auditPages.map(p => p.benevole_id).filter(Boolean));
+    const seenIds = new Set(auditPagesAll.map(p => p.benevole_id).filter(Boolean));
     const neverConnected = reservistes.filter(r => r.user_id && !seenIds.has(String(r.id)));
 
     return { totalPages: pages.length, connexions: connexions.length, uniqueUsers: uniqueUsers.size, pageRanking, activeUsers, neverConnected };
-  }, [auditPages, excludeMe, currentUserId, reservistes]);
+  }, [auditPages, auditPagesAll, excludeMe, currentUserId, reservistes]);
 
   // ─── Render ───────────────────────────────────────────────────────
   if (!authorized) {
