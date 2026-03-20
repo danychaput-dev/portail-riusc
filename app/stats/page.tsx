@@ -300,17 +300,16 @@ export default function StatsPage() {
     (async () => {
       setLoading(true);
 
-      const [logsRes, resRes, auditRes, auditAllRes] = await Promise.all([
+      const [logsRes, resRes, auditRes] = await Promise.all([
         supabase.from('auth_logs').select('*').gte('created_at', from).lte('created_at', to).order('created_at', { ascending: false }),
         supabase.from('reservistes').select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
-        supabase.from('audit_pages').select('*').gte('visite_a', from).lte('visite_a', to).order('visite_a', { ascending: false }),
-        supabase.from('audit_pages').select('benevole_id').not('benevole_id', 'is', null),
+        fetch(`/api/audit/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`).then(r => r.json()),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
       if (resRes.data) setReservistes(resRes.data as Reserviste[]);
-      if (auditRes.data) setAuditPages(auditRes.data as AuditPageRow[]);
-      if (auditAllRes.data) setAuditPagesAll(auditAllRes.data as { benevole_id: string }[]);
+      if (auditRes.pages) setAuditPages(auditRes.pages as AuditPageRow[]);
+      if (auditRes.all) setAuditPagesAll(auditRes.all as { benevole_id: string }[]);
       setLoading(false);
     })();
   }, [authorized, from, to]);
