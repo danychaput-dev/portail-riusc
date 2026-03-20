@@ -8,24 +8,17 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { user_id } = await req.json();
-    if (!user_id) return NextResponse.json({ ok: true });
+    const { user_id, benevole_id, page } = await req.json();
+    if (!page) return NextResponse.json({ ok: true });
 
-    const { data: reserviste } = await supabase
-      .from('reservistes')
-      .select('benevole_id')
-      .eq('user_id', user_id)
-      .single();
-
-    await supabase.from('audit_connexions').insert({
-      user_id,
-      benevole_id: reserviste?.benevole_id || null,
-      ip_address: req.headers.get('x-forwarded-for') || null,
-      user_agent: req.headers.get('user-agent') || null
+    await supabase.from('audit_pages').insert({
+      user_id: user_id || null,
+      benevole_id: benevole_id || null,
+      page
     });
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ ok: true }); // Toujours silencieux
+    return NextResponse.json({ ok: true });
   }
 }
