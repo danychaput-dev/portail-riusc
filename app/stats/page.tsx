@@ -19,6 +19,14 @@ interface LogRow {
   page_visited: string | null;
 }
 
+interface AuditPageRow {
+  id: string;
+  user_id: string | null;
+  benevole_id: string | null;
+  page: string;
+  visite_a: string;
+}
+
 interface Reserviste {
   id: number;
   prenom: string | null;
@@ -185,6 +193,7 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
+  const [auditPages, setAuditPages] = useState<AuditPageRow[]>([]);
   const [reservistes, setReservistes] = useState<Reserviste[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [excludeMe, setExcludeMe] = useState(true);
@@ -289,7 +298,7 @@ export default function StatsPage() {
     (async () => {
       setLoading(true);
 
-      const [logsRes, resRes] = await Promise.all([
+      const [logsRes, resRes, auditRes] = await Promise.all([
         supabase
           .from('auth_logs')
           .select('*')
@@ -299,10 +308,17 @@ export default function StatsPage() {
         supabase
           .from('reservistes')
           .select('id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
+        supabase
+          .from('audit_pages')
+          .select('*')
+          .gte('visite_a', from)
+          .lte('visite_a', to)
+          .order('visite_a', { ascending: false }),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
       if (resRes.data) setReservistes(resRes.data as Reserviste[]);
+      if (auditRes.data) setAuditPages(auditRes.data as AuditPageRow[]);
       setLoading(false);
     })();
   }, [authorized, from, to]);
@@ -447,6 +463,43 @@ export default function StatsPage() {
 
     return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, activeUsers, authEvents, hourlyCounts };
   }, [filteredLogs, reservistes]);
+
+  // ─── Stats audit_pages ────────────────────────────────────────────
+  const auditStats = useMemo(() => {
+    const filtered = excludeMe && currentUserId
+      ? auditPages.filter(p => p.user_id !== currentUserId)
+      : auditPages;
+
+    const connexions = filtered.filter(p => p.page === '__connexion__');
+    const pages = filtered.filter(p => p.page !== '__connexion__');
+    const uniqueUsers = new Set(filtered.filter(p => p.benevole_id).map(p => p.benevole_id));
+
+    // Top pages
+    const pageCounts: Record<string, number> = {};
+    pages.forEach(p => { pageCounts[p.page] = (pageCounts[p.page] || 0) + 1; });
+    const pageRanking = Object.entries(pageCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+    // Top utilisateurs actifs
+    const userMap: Record<string, string> = {};
+    reservistes.forEach(r => {
+      if (r.id && r.prenom && r.nom) userMap[String(r.id)] = `${r.prenom} ${r.nom}`;
+    });
+    const userCounts: Record<string, number> = {};
+    pages.forEach(p => {
+      if (!p.benevole_id) return;
+      userCounts[p.benevole_id] = (userCounts[p.benevole_id] || 0) + 1;
+    });
+    const activeUsers = Object.entries(userCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([bid, count]) => ({ name: userMap[bid] || bid, count }));
+
+    // Réservistes jamais vus dans audit_pages
+    const seenIds = new Set(auditPages.map(p => p.benevole_id).filter(Boolean));
+    const neverConnected = reservistes.filter(r => r.user_id && !seenIds.has(String(r.id)));
+
+    return { totalPages: pages.length, connexions: connexions.length, uniqueUsers: uniqueUsers.size, pageRanking, activeUsers, neverConnected };
+  }, [auditPages, excludeMe, currentUserId, reservistes]);
 
   // ─── Render ───────────────────────────────────────────────────────
   if (!authorized) {
@@ -685,7 +738,72 @@ export default function StatsPage() {
             </div>
 
             {/* ═══════════════════════════════════════════════════════════
-                SECTION 2 — TRAFIC & CONNEXIONS (liée à la période)
+                SECTION 2 — ACTIVITÉ PORTAIL (audit_pages)
+            ═══════════════════════════════════════════════════════════ */}
+            <Divider label="📱 Activité portail" />
+
+            <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
+              <StatCard icon="📄" label="Pages vues" value={auditStats.totalPages} sub="utilisateurs connectés" />
+              <StatCard icon="🔑" label="Connexions" value={auditStats.connexions} color={GREEN} />
+              <StatCard icon="🧑" label="Visiteurs uniques" value={auditStats.uniqueUsers} color={PRIMARY_LIGHT} />
+              <StatCard icon="😴" label="Jamais connectés" value={auditStats.neverConnected.length} color={auditStats.neverConnected.length > 0 ? ORANGE : '#6b7280'} sub="avec un compte portail" />
+            </div>
+
+            <div className="print-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 24 }}>
+              <Section title="📄 Pages les plus visitées" accent={PRIMARY}>
+                {auditStats.pageRanking.length === 0
+                  ? <div style={{ color: '#9ca3af', fontSize: 14 }}>Aucune donnée pour cette période</div>
+                  : auditStats.pageRanking.map(([page, count]) => (
+                    <BarRow key={page} label={getPageLabel(page)} value={count} max={auditStats.pageRanking[0]?.[1] || 1} />
+                  ))
+                }
+              </Section>
+
+              <Section title="👥 Réservistes les plus actifs" accent={PRIMARY_LIGHT}>
+                {auditStats.activeUsers.length === 0
+                  ? <div style={{ color: '#9ca3af', fontSize: 14 }}>Aucune donnée pour cette période</div>
+                  : auditStats.activeUsers.map((u, i) => (
+                    <BarRow key={i} label={u.name.length > 22 ? u.name.slice(0, 20) + '…' : u.name} value={u.count} max={auditStats.activeUsers[0]?.count || 1} color={PRIMARY_LIGHT} />
+                  ))
+                }
+              </Section>
+            </div>
+
+            {/* Jamais connectés */}
+            {auditStats.neverConnected.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <Section title={`😴 Réservistes avec compte mais jamais vus (${auditStats.neverConnected.length})`} accent={ORANGE}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${GREY_BORDER}` }}>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Nom</th>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Groupe</th>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Région</th>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Courriel</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditStats.neverConnected.slice(0, 20).map((r) => (
+                          <tr key={r.id} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
+                            <td style={{ padding: '8px 12px', fontWeight: 500 }}>{r.prenom} {r.nom}</td>
+                            <td style={{ padding: '8px 12px', color: '#6b7280' }}>{r.groupe || '—'}</td>
+                            <td style={{ padding: '8px 12px', color: '#6b7280' }}>{r.region || '—'}</td>
+                            <td style={{ padding: '8px 12px', color: '#6b7280' }}>{r.email || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {auditStats.neverConnected.length > 20 && (
+                      <div style={{ fontSize: 12, color: '#9ca3af', padding: '8px 12px' }}>+ {auditStats.neverConnected.length - 20} autres</div>
+                    )}
+                  </div>
+                </Section>
+              </div>
+            )}
+
+            {/* ═══════════════════════════════════════════════════════════
+                SECTION 3 — TRAFIC & CONNEXIONS (liée à la période)
             ═══════════════════════════════════════════════════════════ */}
             <Divider label="📈 Trafic & connexions" />
 
