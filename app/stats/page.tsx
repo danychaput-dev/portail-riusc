@@ -388,7 +388,7 @@ export default function StatsPage() {
     const logs = filteredLogs;
     const pageVisits = logs.filter(l => l.event_type === 'page_visit');
     const authEvents = logs.filter(l => l.event_type !== 'page_visit');
-    const logins = logs.filter(l => l.event_type === 'login_sms');
+    const logins = logs.filter(l => l.event_type === 'login_sms' || l.event_type === 'login_email');
     const failed = logs.filter(l => l.event_type === 'login_failed');
     const anonymous = pageVisits.filter(l => !l.user_id);
     const authenticated = pageVisits.filter(l => !!l.user_id);
@@ -464,7 +464,7 @@ export default function StatsPage() {
 
     const connexions = filtered.filter(p => p.page === '__connexion__');
     const pages = filtered.filter(p => p.page !== '__connexion__');
-    const uniqueUsers = new Set(filtered.filter(p => p.benevole_id).map(p => p.benevole_id));
+    const uniqueUsers = new Set(filtered.filter(p => p.user_id || p.benevole_id).map(p => p.benevole_id || p.user_id));
 
     // Top pages
     const pageCounts: Record<string, number> = {};
@@ -474,17 +474,21 @@ export default function StatsPage() {
     // Top utilisateurs actifs
     const userMap: Record<string, string> = {};
     reservistes.forEach(r => {
-      if (r.prenom && r.nom) userMap[r.benevole_id || String(r.id)] = `${r.prenom} ${r.nom}`;
+      if (r.prenom && r.nom) {
+        userMap[r.benevole_id || String(r.id)] = `${r.prenom} ${r.nom}`;
+        if (r.user_id) userMap[r.user_id] = `${r.prenom} ${r.nom}`;
+      }
     });
     const userCounts: Record<string, number> = {};
     pages.forEach(p => {
-      if (!p.benevole_id) return;
-      userCounts[p.benevole_id] = (userCounts[p.benevole_id] || 0) + 1;
+      const key = p.benevole_id || p.user_id;
+      if (!key) return;
+      userCounts[key] = (userCounts[key] || 0) + 1;
     });
     const activeUsers = Object.entries(userCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([bid, count]) => ({ name: userMap[bid] || bid, count }));
+      .map(([key, count]) => ({ name: userMap[key] || key.slice(0, 8) + '…', count }));
 
     // Réservistes jamais vus dans audit_pages
     const seenIds = new Set(auditPagesAll.map(p => p.benevole_id).filter(Boolean));
@@ -975,10 +979,10 @@ export default function StatsPage() {
                                 borderRadius: 12,
                                 fontSize: 12,
                                 fontWeight: 600,
-                                background: e.event_type === 'login_sms' ? '#dcfce7' : '#fef2f2',
-                                color: e.event_type === 'login_sms' ? GREEN : RED,
+                                background: (e.event_type === 'login_sms' || e.event_type === 'login_email') ? '#dcfce7' : '#fef2f2',
+                                color: (e.event_type === 'login_sms' || e.event_type === 'login_email') ? GREEN : RED,
                               }}>
-                                {e.event_type === 'login_sms' ? '✓ Réussi' : '✗ Échoué'}
+                                {(e.event_type === 'login_sms' || e.event_type === 'login_email') ? '✓ Réussi' : '✗ Échoué'}
                               </span>
                             </td>
                             <td style={{ padding: '8px 12px', color: '#374151' }}>{e.email || e.telephone || '—'}</td>
