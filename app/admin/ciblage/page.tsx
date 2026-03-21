@@ -237,7 +237,7 @@ export default function CiblagePage() {
   useEffect(() => {
     if (!referenceId || !dateDeb || !dateFin) return
     chargerPool(referenceId, dateDeb, dateFin, niveau)
-  }, [referenceId, niveau])
+  }, [referenceId, niveau, dateDeb])
 
   // ── Actions ───────────────────────────────────────────────
   const ajouter = async (candidat: Candidat, parIA = false) => {
@@ -337,16 +337,28 @@ export default function CiblagePage() {
           <div>
             <label style={LS}>Niveau</label>
             <div style={{ display: 'flex', border: `1px solid ${C}`, borderRadius: '6px', overflow: 'hidden' }}>
-              {(['deploiement', 'rotation'] as const).map(n => (
-                <button key={n} onClick={() => { setNiveau(n); setPool([]); setCibles([]); setAiSuggestions([]) }} style={{
+              <button onClick={() => { setNiveau('deploiement'); setPool([]); setCibles([]); setAiSuggestions([]) }} style={{
+                padding: '7px 14px', fontSize: '13px', border: 'none', cursor: 'pointer',
+                backgroundColor: niveau === 'deploiement' ? C : 'white', color: niveau === 'deploiement' ? 'white' : C,
+                fontWeight: niveau === 'deploiement' ? '600' : '400'
+              }}>
+                Par déploiement
+              </button>
+              {!loadingVagues && vagues.length > 0 && (
+                <button onClick={() => { setNiveau('rotation'); setPool([]); setCibles([]); setAiSuggestions([]) }} style={{
                   padding: '7px 14px', fontSize: '13px', border: 'none', cursor: 'pointer',
-                  backgroundColor: niveau === n ? C : 'white', color: niveau === n ? 'white' : C,
-                  fontWeight: niveau === n ? '600' : '400'
+                  backgroundColor: niveau === 'rotation' ? C : 'white', color: niveau === 'rotation' ? 'white' : C,
+                  fontWeight: niveau === 'rotation' ? '600' : '400'
                 }}>
-                  {n === 'deploiement' ? 'Par déploiement' : 'Par rotation'}
+                  Par rotation
                 </button>
-              ))}
+              )}
             </div>
+            {!loadingVagues && vagues.length === 0 && (
+              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                Aucune rotation — créez-en une dans la gestion des sinistres pour activer ce mode
+              </div>
+            )}
           </div>
         )}
         {selectedDeploymentId && niveau === 'rotation' && (
@@ -370,7 +382,7 @@ export default function CiblagePage() {
 
             {/* Recherche */}
             <div style={carteStyle}>
-              <input type="text" placeholder="Rechercher..." value={recherche} onChange={e => setRecherche(e.target.value)}
+              <input type="text" placeholder="Filtrer par nom, ville, région..." value={recherche} onChange={e => setRecherche(e.target.value)}
                 style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' as const }} />
             </div>
 
