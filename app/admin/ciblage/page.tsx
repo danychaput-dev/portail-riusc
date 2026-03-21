@@ -144,7 +144,8 @@ export default function CiblagePage() {
   }))
 
   // Pool non ciblé
-  const poolNonCible = poolAvecDistance.filter(c => !c.deja_cible)
+  // Garantir que langues est toujours un tableau même si la route ne l'a pas enrichi
+  const poolNonCible = poolAvecDistance.map(c => ({ ...c, langues: c.langues || [] })).filter(c => !c.deja_cible)
 
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
@@ -154,7 +155,7 @@ export default function CiblagePage() {
       if (!hasAll) return false
     }
     if (filtreLangues.length > 0) {
-      const hasAll = filtreLangues.every(l => c.langues.includes(l))
+      const hasAll = filtreLangues.every(l => (c.langues || []).includes(l))
       if (!hasAll) return false
     }
     if (recherche) {
@@ -174,17 +175,21 @@ export default function CiblagePage() {
 
   const aiEnrichies = aiSuggestions
     .map(s => ({ ...s, candidat: poolAvecDistance.find(c => c.benevole_id === s.benevole_id) }))
+    .map(s => s.candidat ? { ...s, candidat: { ...s.candidat, langues: s.candidat.langues || [] } } : s)
     .filter(s => s.candidat && !s.candidat.deja_cible)
 
-  // ── Géocodage via route proxy (Nominatim côté serveur) ──────
+  // ── Géocodage Nominatim ───────────────────────────────────
   const geocoderLieu = useCallback(async (lieu: string) => {
     if (!lieu) return
     setGeocoding(true)
     try {
-      const res = await fetch(`/api/geocode?lieu=${encodeURIComponent(lieu)}`)
+      const q = encodeURIComponent(`${lieu}, Québec, Canada`)
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
+        headers: { 'Accept-Language': 'fr' }
+      })
       const data = await res.json()
-      if (data?.lat && data?.lon) {
-        setDepCoords({ lat: data.lat, lon: data.lon })
+      if (data?.[0]) {
+        setDepCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) })
       }
     } catch { /* silencieux */ }
     setGeocoding(false)
