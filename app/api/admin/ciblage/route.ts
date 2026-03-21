@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('deployments')
-      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin, lieu')
+      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin')
       .in('id', deploymentIds)
       .not('statut', 'in', '("Complété","Annulé")')
       .order('identifiant')
@@ -143,7 +143,22 @@ export async function GET(req: NextRequest) {
       if (nom) languesMap[bid].push(nom)
     }
 
-    const enriched = pool.map((c: any) => ({ ...c, langues: languesMap[c.benevole_id] || [] }))
+    // Récupérer date_expiration_certificat depuis reservistes
+    const { data: certData } = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id, date_expiration_certificat')
+      .in('benevole_id', benevoleIds)
+
+    const certMap: Record<string, string | null> = {}
+    for (const row of (certData || [])) {
+      certMap[row.benevole_id] = row.date_expiration_certificat || null
+    }
+
+    const enriched = pool.map((c: any) => ({
+      ...c,
+      langues: languesMap[c.benevole_id] || [],
+      date_expiration_certificat: certMap[c.benevole_id] ?? null
+    }))
     return NextResponse.json(enriched)
   }
 
@@ -178,17 +193,6 @@ export async function GET(req: NextRequest) {
     }))
 
     return NextResponse.json(enriched)
-  }
-
-  // --- Langues disponibles ---
-  if (action === 'langues') {
-    const { data, error } = await supabaseAdmin
-      .from('langues')
-      .select('id, nom')
-      .order('nom')
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
   }
 
   return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })

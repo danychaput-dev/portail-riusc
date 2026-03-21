@@ -16,6 +16,7 @@ interface Candidat {
   raison_alerte: string | null; deja_cible: boolean
   latitude: number | null; longitude: number | null
   competence_rs: string[]; certificat_premiers_soins: string[]
+  date_expiration_certificat: string | null
   vehicule_tout_terrain: string[]; navire_marin: string[]
   permis_conduire: string[]; satp_drone: string[]; equipe_canine: string[]
   competences_securite: string[]; competences_sauvetage: string[]
@@ -100,6 +101,8 @@ export default function CiblagePage() {
   const [filtreCompetences, setFiltreCompetences] = useState<string[]>([])
   const [filtreLangues,     setFiltreLangues]     = useState<string[]>([])
   const [recherche,         setRecherche]         = useState('')
+  const [filtreRS,          setFiltreRS]          = useState('')
+  const [filtrePS,          setFiltrePS]          = useState('')
 
   // Loading
   const [loadingSinistres,   setLoadingSinistres]   = useState(true)
@@ -150,8 +153,20 @@ export default function CiblagePage() {
   const poolFiltre = poolNonCible.filter(c => {
     if (filtrePreference && c.preference_tache !== filtrePreference && c.preference_tache !== 'aucune') return false
     if (filtreCompetences.length > 0) {
-      const hasAll = filtreCompetences.every(f => (c as any)[f]?.length > 0)
-      if (!hasAll) return false
+      for (const f of filtreCompetences) {
+        const vals: string[] = (c as any)[f] || []
+        if (vals.length === 0) return false
+        if (f === 'competence_rs' && filtreRS) {
+          if (!vals.some(v => v.includes(filtreRS))) return false
+        }
+        if (f === 'certificat_premiers_soins') {
+          // Vérifier date expiration si disponible
+          if (c.date_expiration_certificat && dateDeb) {
+            if (c.date_expiration_certificat < dateDeb) return false
+          }
+          if (filtrePS && !vals.some(v => v.startsWith(filtrePS))) return false
+        }
+      }
     }
     if (filtreLangues.length > 0) {
       const hasAll = filtreLangues.every(l => c.langues.includes(l))
@@ -165,8 +180,12 @@ export default function CiblagePage() {
     }
     return true
   }).sort((a, b) => {
-    if (trierDistance && a.distance_km !== undefined && b.distance_km !== undefined) {
-      return a.distance_km - b.distance_km
+    if (trierDistance) {
+      const aHas = a.distance_km !== undefined
+      const bHas = b.distance_km !== undefined
+      if (aHas && bHas) return a.distance_km! - b.distance_km!
+      if (aHas) return -1
+      if (bHas) return 1
     }
     if (a.deployable !== b.deployable) return a.deployable ? -1 : 1
     return `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`)
@@ -363,14 +382,14 @@ export default function CiblagePage() {
       {erreur && <div style={{ margin: '12px 24px', padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>⚠ {erreur}</div>}
 
       {estPret ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 360px', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 360px', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
 
           {/* ── COLONNE GAUCHE : Filtres ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
 
             {/* Recherche */}
             <div style={carteStyle}>
-              <input type="text" placeholder="Rechercher..." value={recherche} onChange={e => setRecherche(e.target.value)}
+              <input type="text" placeholder="Filtrer par nom, ville, région..." value={recherche} onChange={e => setRecherche(e.target.value)}
                 style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' as const }} />
             </div>
 
@@ -404,15 +423,60 @@ export default function CiblagePage() {
             <div style={carteStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.05em' }}>COMPÉTENCES</div>
-                {filtreCompetences.length > 0 && <button onClick={() => setFiltreCompetences([])} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Effacer</button>}
+                {(filtreCompetences.length > 0) && <button onClick={() => { setFiltreCompetences([]); setFiltreRS(''); setFiltrePS('') }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Effacer</button>}
               </div>
-              {COMPETENCES.map(c => (
-                <label key={c.field} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', marginBottom: '4px',
-                  color: filtreCompetences.includes(c.field) ? C : '#374151', fontWeight: filtreCompetences.includes(c.field) ? '600' : '400' }}>
-                  <input type="checkbox" checked={filtreCompetences.includes(c.field)} onChange={() => toggleComp(c.field)} />
-                  {c.label}
-                </label>
-              ))}
+              {COMPETENCES.map(comp => {
+                const actif = filtreCompetences.includes(comp.field)
+                return (
+                  <div key={comp.field} style={{ marginBottom: '6px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px',
+                      color: actif ? C : '#374151', fontWeight: actif ? '600' : '400' }}>
+                      <input type="checkbox" checked={actif} onChange={() => {
+                        toggleComp(comp.field)
+                        if (comp.field === 'competence_rs') setFiltreRS('')
+                        if (comp.field === 'certificat_premiers_soins') setFiltrePS('')
+                      }} />
+                      {comp.label}
+                    </label>
+                    {/* Sous-filtres Recherche & sauvetage */}
+                    {actif && comp.field === 'competence_rs' && (
+                      <div style={{ marginLeft: '20px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {[
+                          { val: '', label: 'Tous les niveaux' },
+                          { val: 'Niveau 1', label: 'Niveau 1 (Chercheur / Équipier)' },
+                          { val: 'Niveau 2', label: 'Niveau 2 — Chef d'équipe' },
+                          { val: 'Niveau 3', label: 'Niveau 3 — Gestionnaire / Responsable' },
+                        ].map(o => (
+                          <label key={o.val} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px',
+                            color: filtreRS === o.val ? C : '#64748b', fontWeight: filtreRS === o.val ? '600' : '400' }}>
+                            <input type="radio" name="filtreRS" checked={filtreRS === o.val} onChange={() => setFiltreRS(o.val)} />
+                            {o.label}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {/* Sous-filtres Premiers soins */}
+                    {actif && comp.field === 'certificat_premiers_soins' && (
+                      <div style={{ marginLeft: '20px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        {[
+                          { val: '', label: 'Tous les types' },
+                          { val: 'a)', label: 'RCR / DEA (4-6h)' },
+                          { val: 'b)', label: 'Premiers soins standard (8-16h)' },
+                          { val: 'c)', label: 'Secourisme milieu de travail (16h)' },
+                          { val: 'd)', label: 'Secourisme milieu éloigné (20-40h)' },
+                          { val: 'e)', label: 'Premier répondant (80-120h)' },
+                        ].map(o => (
+                          <label key={o.val} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px',
+                            color: filtrePS === o.val ? C : '#64748b', fontWeight: filtrePS === o.val ? '600' : '400' }}>
+                            <input type="radio" name="filtrePS" checked={filtrePS === o.val} onChange={() => setFiltrePS(o.val)} />
+                            {o.label}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
             {/* Langues */}
