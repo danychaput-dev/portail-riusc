@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('deployments')
-      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin, lieu')
+      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin')
       .in('id', deploymentIds)
       .not('statut', 'in', '("Complété","Annulé")')
       .order('identifiant')
@@ -123,7 +123,28 @@ export async function GET(req: NextRequest) {
     })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
+
+    const pool = data || []
+    if (pool.length === 0) return NextResponse.json([])
+
+    // Enrichir avec les langues depuis reserviste_langues
+    const benevoleIds = pool.map((c: any) => c.benevole_id)
+    const { data: languesData } = await supabaseAdmin
+      .from('reserviste_langues')
+      .select('benevole_id, langues(nom)')
+      .in('benevole_id', benevoleIds)
+
+    // Construire map benevole_id → langues[]
+    const languesMap: Record<string, string[]> = {}
+    for (const row of (languesData || [])) {
+      const bid = row.benevole_id
+      const nom = (row.langues as any)?.nom
+      if (!languesMap[bid]) languesMap[bid] = []
+      if (nom) languesMap[bid].push(nom)
+    }
+
+    const enriched = pool.map((c: any) => ({ ...c, langues: languesMap[c.benevole_id] || [] }))
+    return NextResponse.json(enriched)
   }
 
   // --- Ciblés actuels pour une référence ---
@@ -157,17 +178,6 @@ export async function GET(req: NextRequest) {
     }))
 
     return NextResponse.json(enriched)
-  }
-
-  // --- Langues disponibles ---
-  if (action === 'langues') {
-    const { data, error } = await supabaseAdmin
-      .from('langues')
-      .select('id, nom')
-      .order('nom')
-
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
   }
 
   return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })
