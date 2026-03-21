@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from('deployments')
-      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin')
+      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin, lieu')
       .in('id', deploymentIds)
       .not('statut', 'in', '("Complété","Annulé")')
       .order('identifiant')
@@ -157,6 +157,17 @@ export async function GET(req: NextRequest) {
     }))
 
     return NextResponse.json(enriched)
+  }
+
+  // --- Langues disponibles ---
+  if (action === 'langues') {
+    const { data, error } = await supabaseAdmin
+      .from('langues')
+      .select('id, nom')
+      .order('nom')
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data || [])
   }
 
   return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })
