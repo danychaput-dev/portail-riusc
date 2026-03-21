@@ -144,8 +144,7 @@ export default function CiblagePage() {
   }))
 
   // Pool non ciblé
-  // Garantir que langues est toujours un tableau même si la route ne l'a pas enrichi
-  const poolNonCible = poolAvecDistance.map(c => ({ ...c, langues: c.langues || [] })).filter(c => !c.deja_cible)
+  const poolNonCible = poolAvecDistance.filter(c => !c.deja_cible)
 
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
@@ -155,7 +154,7 @@ export default function CiblagePage() {
       if (!hasAll) return false
     }
     if (filtreLangues.length > 0) {
-      const hasAll = filtreLangues.every(l => (c.langues || []).includes(l))
+      const hasAll = filtreLangues.every(l => c.langues.includes(l))
       if (!hasAll) return false
     }
     if (recherche) {
@@ -175,7 +174,6 @@ export default function CiblagePage() {
 
   const aiEnrichies = aiSuggestions
     .map(s => ({ ...s, candidat: poolAvecDistance.find(c => c.benevole_id === s.benevole_id) }))
-    .map(s => s.candidat ? { ...s, candidat: { ...s.candidat, langues: s.candidat.langues || [] } } : s)
     .filter(s => s.candidat && !s.candidat.deja_cible)
 
   // ── Géocodage Nominatim ───────────────────────────────────
@@ -239,7 +237,7 @@ export default function CiblagePage() {
   useEffect(() => {
     if (!referenceId || !dateDeb || !dateFin) return
     chargerPool(referenceId, dateDeb, dateFin, niveau)
-  }, [referenceId, niveau])
+  }, [referenceId, niveau, dateDeb])
 
   // ── Actions ───────────────────────────────────────────────
   const ajouter = async (candidat: Candidat, parIA = false) => {
