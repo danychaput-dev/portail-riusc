@@ -176,18 +176,15 @@ export default function CiblagePage() {
     .map(s => ({ ...s, candidat: poolAvecDistance.find(c => c.benevole_id === s.benevole_id) }))
     .filter(s => s.candidat && !s.candidat.deja_cible)
 
-  // ── Géocodage Nominatim ───────────────────────────────────
+  // ── Géocodage via route proxy (Nominatim côté serveur) ──────
   const geocoderLieu = useCallback(async (lieu: string) => {
     if (!lieu) return
     setGeocoding(true)
     try {
-      const q = encodeURIComponent(`${lieu}, Québec, Canada`)
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`, {
-        headers: { 'Accept-Language': 'fr' }
-      })
+      const res = await fetch(`/api/geocode?lieu=${encodeURIComponent(lieu)}`)
       const data = await res.json()
-      if (data?.[0]) {
-        setDepCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) })
+      if (data?.lat && data?.lon) {
+        setDepCoords({ lat: data.lat, lon: data.lon })
       }
     } catch { /* silencieux */ }
     setGeocoding(false)
@@ -237,7 +234,7 @@ export default function CiblagePage() {
   useEffect(() => {
     if (!referenceId || !dateDeb || !dateFin) return
     chargerPool(referenceId, dateDeb, dateFin, niveau)
-  }, [referenceId, niveau, dateDeb])
+  }, [referenceId, niveau])
 
   // ── Actions ───────────────────────────────────────────────
   const ajouter = async (candidat: Candidat, parIA = false) => {
@@ -337,28 +334,16 @@ export default function CiblagePage() {
           <div>
             <label style={LS}>Niveau</label>
             <div style={{ display: 'flex', border: `1px solid ${C}`, borderRadius: '6px', overflow: 'hidden' }}>
-              <button onClick={() => { setNiveau('deploiement'); setPool([]); setCibles([]); setAiSuggestions([]) }} style={{
-                padding: '7px 14px', fontSize: '13px', border: 'none', cursor: 'pointer',
-                backgroundColor: niveau === 'deploiement' ? C : 'white', color: niveau === 'deploiement' ? 'white' : C,
-                fontWeight: niveau === 'deploiement' ? '600' : '400'
-              }}>
-                Par déploiement
-              </button>
-              {!loadingVagues && vagues.length > 0 && (
-                <button onClick={() => { setNiveau('rotation'); setPool([]); setCibles([]); setAiSuggestions([]) }} style={{
+              {(['deploiement', 'rotation'] as const).map(n => (
+                <button key={n} onClick={() => { setNiveau(n); setPool([]); setCibles([]); setAiSuggestions([]) }} style={{
                   padding: '7px 14px', fontSize: '13px', border: 'none', cursor: 'pointer',
-                  backgroundColor: niveau === 'rotation' ? C : 'white', color: niveau === 'rotation' ? 'white' : C,
-                  fontWeight: niveau === 'rotation' ? '600' : '400'
+                  backgroundColor: niveau === n ? C : 'white', color: niveau === n ? 'white' : C,
+                  fontWeight: niveau === n ? '600' : '400'
                 }}>
-                  Par rotation
+                  {n === 'deploiement' ? 'Par déploiement' : 'Par rotation'}
                 </button>
-              )}
+              ))}
             </div>
-            {!loadingVagues && vagues.length === 0 && (
-              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                Aucune rotation — créez-en une dans la gestion des sinistres pour activer ce mode
-              </div>
-            )}
           </div>
         )}
         {selectedDeploymentId && niveau === 'rotation' && (
@@ -382,7 +367,7 @@ export default function CiblagePage() {
 
             {/* Recherche */}
             <div style={carteStyle}>
-              <input type="text" placeholder="Filtrer par nom, ville, région..." value={recherche} onChange={e => setRecherche(e.target.value)}
+              <input type="text" placeholder="Rechercher..." value={recherche} onChange={e => setRecherche(e.target.value)}
                 style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' as const }} />
             </div>
 
