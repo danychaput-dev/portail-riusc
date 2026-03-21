@@ -51,6 +51,91 @@ const COMPETENCES = [
   { field: 'operation_urgence',      label: 'Opérations urgence' },
 ]
 
+// ── Sous-filtres par champ compétence ─────────────────────────
+const SOUS_FILTRES: Record<string, {val: string; label: string}[]> = {
+  competence_rs: [
+    { val: '', label: 'Tous les niveaux' },
+    { val: 'Niveau 1', label: 'Niveau 1 (Chercheur / Équipier)' },
+    { val: 'Niveau 2', label: 'Niveau 2 — Chef d’équipe' },
+    { val: 'Niveau 3', label: 'Niveau 3 — Gestionnaire / Responsable' },
+  ],
+  certificat_premiers_soins: [
+    { val: '', label: 'Tous les types' },
+    { val: 'a)', label: 'a) RCR / DEA (4-6h)' },
+    { val: 'b)', label: 'b) Premiers soins standard (8-16h)' },
+    { val: 'c)', label: 'c) Secourisme milieu de travail (16h)' },
+    { val: 'd)', label: 'd) Secourisme milieu éloigné (20-40h)' },
+    { val: 'e)', label: 'e) Premier répondant (80-120h)' },
+  ],
+  vehicule_tout_terrain: [
+    { val: '', label: 'Tous' },
+    { val: 'VTT', label: 'VTT' },
+    { val: 'Motoneige', label: 'Motoneige' },
+    { val: 'Argo', label: 'Argo' },
+    { val: 'Côte à côte', label: 'Côte à côte / Side by side' },
+  ],
+  permis_conduire: [
+    { val: '', label: 'Toutes les classes' },
+    { val: 'Classe 5', label: 'Classe 5 — Voiture' },
+    { val: 'Classe 4b', label: 'Classe 4b — Autobus (4-14 pass.)' },
+    { val: 'Classe 4a', label: 'Classe 4a — Véhicule d’urgence' },
+    { val: 'Classe 3', label: 'Classe 3 — Camions' },
+    { val: 'Classe 2', label: 'Classe 2 — Autobus (24+ pass.)' },
+    { val: 'Classe 1', label: 'Classe 1 — Véhicules lourds' },
+    { val: 'Classe 6', label: 'Classe 6 — Motocyclette' },
+  ],
+  competences_securite: [
+    { val: '', label: 'Toutes' },
+    { val: 'chaîne', label: 'Scies à chaînes' },
+    { val: 'circulation', label: 'Contrôle circulation routière' },
+    { val: 'CNESST', label: 'Formateur certifié CNESST' },
+  ],
+  competences_sauvetage: [
+    { val: '', label: 'Tous' },
+    { val: 'eau vive', label: 'Eau vive' },
+    { val: 'glace', label: 'Glace' },
+    { val: 'corde', label: 'Corde' },
+    { val: 'hauteur', label: 'Hauteur' },
+  ],
+  satp_drone: [
+    { val: '', label: 'Tous' },
+    { val: '250g', label: 'Petit drone < 250g' },
+    { val: 'SATP de base', label: 'SATP de base / RPAS Basic' },
+    { val: 'SATP Obs', label: 'SATP Obs / Visual Observer' },
+    { val: 'Transport Canada', label: 'Licence Transport Canada' },
+  ],
+  communication: [
+    { val: '', label: 'Tous' },
+    { val: 'Radio amateur', label: 'Radio amateur' },
+    { val: 'VHF marine', label: 'Radio VHF marine' },
+    { val: 'satellite', label: 'Téléphonie satellite' },
+    { val: 'radioamateur', label: 'Certificat radioamateur' },
+    { val: 'mobile terrestre', label: 'Radio mobile terrestre' },
+    { val: 'maritime', label: 'Radio maritime' },
+    { val: 'réseau IP', label: 'Réseau IP / Networking' },
+  ],
+  cartographie_sig: [
+    { val: '', label: 'Tous' },
+    { val: 'topographiques', label: 'Lecture cartes topographiques' },
+    { val: 'GPS', label: 'Utilisation GPS' },
+    { val: 'SIG', label: 'SIG' },
+    { val: 'ArcGIS', label: 'ArcGIS (Pro / Online / QuickCapture)' },
+    { val: 'Caltopo', label: 'Caltopo / SARTopo' },
+    { val: 'Sartrack', label: 'Sartrack' },
+  ],
+  navire_marin: [
+    { val: '', label: 'Tous' },
+    { val: 'embarcation de plaisance', label: 'Permis embarcation de plaisance' },
+    { val: 'bateaux', label: 'Petits bateaux' },
+  ],
+  equipe_canine: [
+    { val: '', label: 'Toutes les spécialités' },
+    { val: 'Décombres', label: 'Décombres / USAR / Noyés' },
+    { val: 'Pistage', label: 'Pistage / Track-Trail' },
+    { val: 'Ratissage', label: 'Ratissage' },
+  ],
+}
+
 // ── Haversine ─────────────────────────────────────────────────
 function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371
@@ -101,8 +186,7 @@ export default function CiblagePage() {
   const [filtreCompetences, setFiltreCompetences] = useState<string[]>([])
   const [filtreLangues,     setFiltreLangues]     = useState<string[]>([])
   const [recherche,         setRecherche]         = useState('')
-  const [filtreRS,          setFiltreRS]          = useState('')
-  const [filtrePS,          setFiltrePS]          = useState('')
+  const [filtreSubComp,     setFiltreSubComp]     = useState<Record<string,string>>({})
 
   // Loading
   const [loadingSinistres,   setLoadingSinistres]   = useState(true)
@@ -156,15 +240,14 @@ export default function CiblagePage() {
       for (const f of filtreCompetences) {
         const vals: string[] = (c as any)[f] || []
         if (vals.length === 0) return false
-        if (f === 'competence_rs' && filtreRS) {
-          if (!vals.some(v => v.includes(filtreRS))) return false
-        }
+        const sub = filtreSubComp[f] || ''
         if (f === 'certificat_premiers_soins') {
-          // Vérifier date expiration si disponible
           if (c.date_expiration_certificat && dateDeb) {
             if (c.date_expiration_certificat < dateDeb) return false
           }
-          if (filtrePS && !vals.some(v => v.startsWith(filtrePS))) return false
+          if (sub && !vals.some(v => v.startsWith(sub))) return false
+        } else if (sub) {
+          if (!vals.some(v => v.toLowerCase().includes(sub.toLowerCase()))) return false
         }
       }
     }
@@ -423,7 +506,7 @@ export default function CiblagePage() {
             <div style={carteStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.05em' }}>COMPÉTENCES</div>
-                {(filtreCompetences.length > 0) && <button onClick={() => { setFiltreCompetences([]); setFiltreRS(''); setFiltrePS('') }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Effacer</button>}
+                {(filtreCompetences.length > 0) && <button onClick={() => { setFiltreCompetences([]); setFiltreSubComp({}) }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Effacer</button>}
               </div>
               {COMPETENCES.map(comp => {
                 const actif = filtreCompetences.includes(comp.field)
@@ -433,42 +516,20 @@ export default function CiblagePage() {
                       color: actif ? C : '#374151', fontWeight: actif ? '600' : '400' }}>
                       <input type="checkbox" checked={actif} onChange={() => {
                         toggleComp(comp.field)
-                        if (comp.field === 'competence_rs') setFiltreRS('')
-                        if (comp.field === 'certificat_premiers_soins') setFiltrePS('')
+                        setFiltreSubComp(p => { const n = {...p}; delete n[comp.field]; return n })
                       }} />
                       {comp.label}
                     </label>
-                    {/* Sous-filtres Recherche & sauvetage */}
-                    {actif && comp.field === 'competence_rs' && (
+                    {/* Sous-filtres dynamiques */}
+                    {actif && SOUS_FILTRES[comp.field] && (
                       <div style={{ marginLeft: '20px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        {[
-                          { val: '', label: 'Tous les niveaux' },
-                          { val: 'Niveau 1', label: 'Niveau 1 (Chercheur / Équipier)' },
-                          { val: 'Niveau 2', label: 'Niveau 2 — Chef d'équipe' },
-                          { val: 'Niveau 3', label: 'Niveau 3 — Gestionnaire / Responsable' },
-                        ].map(o => (
+                        {SOUS_FILTRES[comp.field].map(o => (
                           <label key={o.val} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px',
-                            color: filtreRS === o.val ? C : '#64748b', fontWeight: filtreRS === o.val ? '600' : '400' }}>
-                            <input type="radio" name="filtreRS" checked={filtreRS === o.val} onChange={() => setFiltreRS(o.val)} />
-                            {o.label}
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    {/* Sous-filtres Premiers soins */}
-                    {actif && comp.field === 'certificat_premiers_soins' && (
-                      <div style={{ marginLeft: '20px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        {[
-                          { val: '', label: 'Tous les types' },
-                          { val: 'a)', label: 'RCR / DEA (4-6h)' },
-                          { val: 'b)', label: 'Premiers soins standard (8-16h)' },
-                          { val: 'c)', label: 'Secourisme milieu de travail (16h)' },
-                          { val: 'd)', label: 'Secourisme milieu éloigné (20-40h)' },
-                          { val: 'e)', label: 'Premier répondant (80-120h)' },
-                        ].map(o => (
-                          <label key={o.val} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px',
-                            color: filtrePS === o.val ? C : '#64748b', fontWeight: filtrePS === o.val ? '600' : '400' }}>
-                            <input type="radio" name="filtrePS" checked={filtrePS === o.val} onChange={() => setFiltrePS(o.val)} />
+                            color: (filtreSubComp[comp.field]||'') === o.val ? C : '#64748b',
+                            fontWeight: (filtreSubComp[comp.field]||'') === o.val ? '600' : '400' }}>
+                            <input type="radio" name={`sub_${comp.field}`}
+                              checked={(filtreSubComp[comp.field]||'') === o.val}
+                              onChange={() => setFiltreSubComp(p => ({...p, [comp.field]: o.val}))} />
                             {o.label}
                           </label>
                         ))}
