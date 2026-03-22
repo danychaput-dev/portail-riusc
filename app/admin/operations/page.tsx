@@ -5,154 +5,168 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type StepStatus = 'locked' | 'active' | 'done'
 
 interface Sinistre {
-  id: string; nom: string; type_incident?: string; lieu?: string
-  date_debut?: string; statut: string
+  id: string; nom: string; type_incident?: string
+  lieu?: string; date_debut?: string; statut: string
 }
-
+interface Demande {
+  id: string; sinistre_id: string; organisme: string
+  type_mission?: string; lieu?: string
+  nb_personnes_requis?: number; date_debut?: string; date_fin_estimee?: string
+  priorite: string; statut: string; identifiant?: string
+  contact_nom?: string; contact_telephone?: string
+}
 interface Deployment {
   id: string; identifiant: string; nom: string; lieu?: string
   date_debut?: string; date_fin?: string; nb_personnes_par_vague?: number
   statut: string; point_rassemblement?: string; notes_logistique?: string
 }
-
 interface Ciblage {
   id: string; benevole_id: string; statut: string
   reservistes: { prenom: string; nom: string; telephone: string }
 }
-
 interface DispoV2 {
   id: string; benevole_id: string; date_jour: string; disponible: boolean
   commentaire?: string
   reservistes?: { prenom: string; nom: string }
 }
-
 interface Vague {
   id: string; identifiant?: string; numero: number
   date_debut: string; date_fin: string
   nb_personnes_requis?: number; statut: string
 }
 
-// ─── Message templates ───────────────────────────────────────────────────────
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
-function tplNotif(sinistNom: string, depNom: string, dateDebut: string): string {
+const TYPES_INCIDENT = [
+  'Inondation','Incendie','Glissement de terrain','Vague de froid',
+  'Vague de chaleur','Tempête','Accident industriel',
+  'Recherche et sauvetage','Vérification de bien-être','Évacuation','Autre',
+]
+const ORGANISMES = ['SOPFEU','Croix-Rouge','Municipalité','Gouvernement du Québec','Autre']
+const TYPES_MISSION: Record<string, string[]> = {
+  'SOPFEU':    ['Construction de digues','Gestion des débris','Logistique terrain','Support opérationnel'],
+  'Croix-Rouge': ["Centre de services aux sinistrés","Hébergement d'urgence",'Distribution de ressources','Soutien psychosocial','Inscription et référencement'],
+  'default':   ['Construction de digues','Gestion des débris',"Centre de services aux sinistrés","Hébergement d'urgence",'Distribution de ressources','Soutien psychosocial','Recherche et sauvetage','Vérification de bien-être','Logistique','Support opérationnel','Autre'],
+}
+
+const STEP_LABELS = ['Sinistre','Demandes','Déploiement','Ciblage','Notification dispos','Disponibilités reçues','Rotation créée','Mobilisation confirmée']
+const STEP_SUBS   = ['Créer ou sélectionner','Lier les demandes','Créer ou sélectionner','Réservistes ciblés','Message éditable + envoi','Ciblés / Échéancier / Rotations','IA suggère les affectations','Confirmer + envoyer']
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const FF = '"Segoe UI", system-ui, -apple-system, sans-serif'
+
+function dateFr(iso?: string | null) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+function orgAbbr(o: string) {
+  const map: Record<string,string> = { 'Croix-Rouge':'CR','Municipalité':'MUN','SOPFEU':'SPF','Gouvernement du Québec':'GQC' }
+  return map[o] || o.slice(0,3).toUpperCase()
+}
+function genDemandeId(existing: Demande[], organisme: string, date: string): string {
+  const n = (existing.length + 1).toString().padStart(3,'0')
+  const d = date ? date.replace(/-/g,'').slice(2) : 'XXXXXX'
+  return `DEM-${n}-${orgAbbr(organisme)}-${d}`
+}
+function genDeployId(existing: Deployment[]): string {
+  return `DEP-${(existing.length + 1).toString().padStart(3,'0')}`
+}
+function tplNotif(sinNom: string, depNom: string, dateDebut?: string): string {
   return `Bonjour,
 
-Dans le cadre du sinistre « ${sinistNom} », nous sollicitons votre disponibilité pour le déploiement ${depNom}${dateDebut ? ` prévu à partir du ${dateDebut}` : ''}.
+Dans le cadre du sinistre « ${sinNom} », nous sollicitons votre disponibilité pour le déploiement ${depNom}${dateDebut ? ` prévu à partir du ${dateFr(dateDebut)}` : ''}.
 
 Veuillez soumettre vos disponibilités via le portail RIUSC dans les 4 prochains jours :
 https://portail.riusc.ca/disponibilites
 
 Merci pour votre engagement.
-
 L'équipe RIUSC / AQBRS`
 }
-
-function tplMobil(depNom: string, vagueNom: string, dateDebut: string, dateFin: string, lieu?: string): string {
+function tplMobil(depNom: string, vagNom: string, debut: string, fin: string, lieu?: string): string {
   return `Bonjour,
 
-Vous êtes officiellement mobilisé(e) pour la rotation ${vagueNom} du ${dateDebut} au ${dateFin} dans le cadre du déploiement ${depNom}.
+Vous êtes officiellement mobilisé(e) pour la rotation ${vagNom} du ${dateFr(debut)} au ${dateFr(fin)} dans le cadre du déploiement ${depNom}.
 
 ${lieu ? `Lieu de déploiement : ${lieu}\n` : ''}Veuillez confirmer votre présence via le portail RIUSC :
 https://portail.riusc.ca/mobilisation
 
 En cas d'empêchement, contactez-nous immédiatement.
-
 L'équipe RIUSC / AQBRS`
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Couleurs wizard ──────────────────────────────────────────────────────────
 
-const FF = '"Segoe UI", system-ui, -apple-system, sans-serif'
-
-const STEP_LABELS = [
-  'Sinistre', 'Déploiement', 'Ciblage',
-  'Notification dispos', 'Disponibilités reçues',
-  'Rotation créée', 'Mobilisation confirmée',
-]
-const STEP_SUBS = [
-  'Sélectionner ou créer', 'Configurer le déploiement', 'Réservistes ciblés',
-  'Aperçu message + envoi', 'Ciblés / Échéancier / Rotation',
-  'IA suggère les affectations', 'Confirmer + envoyer',
-]
-
-function getC(s: StepStatus, ai = false) {
-  if (s === 'done') return { bg: '#d1fae5', br: '#10b981', t: '#065f46', st: '#047857' }
+function stC(s: StepStatus, ai = false) {
+  if (s === 'done')   return { bg:'#d1fae5', br:'#10b981', t:'#065f46', st:'#047857' }
   if (s === 'active') return ai
-    ? { bg: '#ede9fe', br: '#8b5cf6', t: '#5b21b6', st: '#7c3aed' }
-    : { bg: '#dbeafe', br: '#3b82f6', t: '#1d4ed8', st: '#2563eb' }
-  return { bg: '#f9fafb', br: '#e5e7eb', t: '#c9c9c9', st: '#e5e7eb' }
+    ? { bg:'#ede9fe', br:'#8b5cf6', t:'#5b21b6', st:'#7c3aed' }
+    : { bg:'#dbeafe', br:'#3b82f6', t:'#1d4ed8', st:'#2563eb' }
+  return { bg:'#f9fafb', br:'#e5e7eb', t:'#c4c4c4', st:'#e5e7eb' }
 }
-
-function ac(statuses: StepStatus[], i: number): string {
-  const s = statuses[i] || 'locked'
+function arC(s: StepStatus) {
   return s === 'done' ? '#10b981' : s === 'active' ? '#3b82f6' : '#d1d5db'
 }
 
-function mId(statuses: StepStatus[], i: number): string {
-  const c = ac(statuses, i)
-  return `url(#am${c === '#10b981' ? 'g' : c === '#3b82f6' ? 'b' : 'n'})`
-}
+// ─── Wizard SVG (8 étapes) ────────────────────────────────────────────────────
 
-function dateFr(iso?: string) {
-  if (!iso) return ''
-  const [y, m, d] = iso.split('-')
-  return `${d}/${m}/${y}`
-}
+function WizardSVG({ statuses, onStep }: { statuses: StepStatus[]; onStep:(n:number)=>void }) {
+  const BW = 200, BH = 46, CX = 340
 
-// ─── Wizard SVG ──────────────────────────────────────────────────────────────
+  const Y1 = 20                        // Sinistre
+  const Y2 = Y1 + BH + 20             // Demandes     = 86
+  const Y3 = Y2 + BH + 20             // Déploiement  = 152
+  const ZY = Y3 + BH + 16             // Zone top     = 214
+  const BW45 = 148
+  const Y45 = ZY + 26                 // étapes 4+5   = 240
+  const X4 = 178, X5 = 354
+  const X4C = X4 + BW45/2             // 252
+  const X5C = X5 + BW45/2             // 428
+  const BEND  = ZY + 7                // coude        = 221
+  const ZB = Y45 + BH + 40            // Zone bottom  = 326
+  const Y6 = ZB + 20                  // Dispos       = 346
+  const BW6 = 280
+  const Y7 = Y6 + BH + 20            // Rotation IA  = 412
+  const BW7 = 240
+  const Y8 = Y7 + BH + 20            // Mobilisation = 478
+  const H  = Y8 + BH + 40            // total        = 564
 
-function WizardSVG({ statuses, onStep }: { statuses: StepStatus[]; onStep: (n: number) => void }) {
-  // Layout constants — viewBox 680 wide
-  const CX = 340, BW = 200, BH = 48
-  const Y1 = 20
-  const Y2 = Y1 + BH + 22          // 90
-  const ZY = Y2 + BH + 20          // 158 — zone top
-  const BW34 = 155
-  const Y34 = ZY + 28              // 186
-  const X3 = 170, X4 = 355
-  const X3C = X3 + BW34 / 2        // 247.5
-  const X4C = X4 + BW34 / 2        // 432.5
-  const BEND_Y = ZY + 8            // 166
-  const Y5 = Y34 + BH + 24         // 258
-  const BW5 = 280, X5 = CX - 140   // 200
-  const Y6 = Y5 + BH + 20          // 326
-  const BW6 = 240, X6 = CX - 120   // 220
-  const ZB = Y6 + BH + 16          // 390 — zone bottom
-  const Y7 = ZB + 22               // 412
-  const H = Y7 + BH + 40           // 500
+  const mkMarker = (k: string, col: string) => (
+    <marker key={k} id={`am${k}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M2 1L8 5L2 9" fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </marker>
+  )
+  const mid = (s: StepStatus) => {
+    const c = arC(s)
+    return c === '#10b981' ? 'url(#amg)' : c === '#3b82f6' ? 'url(#amb)' : 'url(#amn)'
+  }
+  const ln = (s: StepStatus) => ({ stroke: arC(s), strokeWidth: 1.5, fill: 'none' })
 
-  const renderBox = (n: number, x: number, y: number, w: number, ai = false) => {
-    const s = statuses[n - 1] || 'locked'
-    const c = getC(s, ai)
+  const box = (n: number, x: number, y: number, w: number, ai = false) => {
+    const s = statuses[n-1] || 'locked'
+    const c = stC(s, ai)
     const clickable = s !== 'locked'
     return (
-      <g
-        key={n}
-        onClick={() => clickable && onStep(n)}
-        style={{ cursor: clickable ? 'pointer' : 'default' }}
-      >
-        <rect x={x} y={y} width={w} height={BH} rx="8" fill={c.bg} stroke={c.br} strokeWidth="0.8" />
-        <text x={x + w / 2} y={y + BH / 2 - 7} textAnchor="middle" dominantBaseline="central"
-          fontSize="13" fontWeight="500" fill={c.t} fontFamily={FF}>
-          {STEP_LABELS[n - 1]}
-        </text>
-        <text x={x + w / 2} y={y + BH / 2 + 9} textAnchor="middle" dominantBaseline="central"
-          fontSize="11" fill={c.st} fontFamily={FF}>
-          {STEP_SUBS[n - 1]}
-        </text>
+      <g key={n} onClick={() => clickable && onStep(n)} style={{ cursor: clickable ? 'pointer' : 'default' }}>
+        <rect x={x} y={y} width={w} height={BH} rx="8" fill={c.bg} stroke={c.br} strokeWidth="0.8"/>
+        <text x={x+w/2} y={y+BH/2-7} textAnchor="middle" dominantBaseline="central"
+          fontSize="13" fontWeight="500" fill={c.t} fontFamily={FF}>{STEP_LABELS[n-1]}</text>
+        <text x={x+w/2} y={y+BH/2+9} textAnchor="middle" dominantBaseline="central"
+          fontSize="11" fill={c.st} fontFamily={FF}>{STEP_SUBS[n-1]}</text>
         {s === 'done' && (
-          <text x={x + w - 14} y={y + BH / 2} dominantBaseline="central"
-            textAnchor="middle" fontSize="12" fill={c.t} fontFamily={FF}>✓</text>
+          <text x={x+w-14} y={y+BH/2} dominantBaseline="central" textAnchor="middle"
+            fontSize="12" fill={c.t} fontFamily={FF}>✓</text>
         )}
         {ai && s !== 'locked' && (
           <>
-            <rect x={x + w - 42} y={y + 6} width={33} height={16} rx="8" fill="#8b5cf6" opacity="0.9" />
-            <text x={x + w - 26} y={y + 14} textAnchor="middle" dominantBaseline="central"
+            <rect x={x+w-42} y={y+6} width={33} height={16} rx="8" fill="#8b5cf6" opacity="0.9"/>
+            <text x={x+w-26} y={y+14} textAnchor="middle" dominantBaseline="central"
               fontSize="10" fill="#ede9fe" fontWeight="600" fontFamily={FF}>IA ✦</text>
           </>
         )}
@@ -161,144 +175,126 @@ function WizardSVG({ statuses, onStep }: { statuses: StepStatus[]; onStep: (n: n
   }
 
   return (
-    <svg width="100%" viewBox={`0 0 680 ${H}`} style={{ display: 'block' }}>
+    <svg width="100%" viewBox={`0 0 680 ${H}`} style={{ display:'block' }}>
       <defs>
-        {([['n', '#d1d5db'], ['b', '#3b82f6'], ['g', '#10b981']] as [string, string][]).map(([k, col]) => (
-          <marker key={k} id={`am${k}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-            <path d="M2 1L8 5L2 9" fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </marker>
-        ))}
+        {mkMarker('n','#d1d5db')}
+        {mkMarker('b','#3b82f6')}
+        {mkMarker('g','#10b981')}
       </defs>
 
-      {/* Étape 1 */}
-      {renderBox(1, CX - BW / 2, Y1, BW)}
-      <line x1={CX} y1={Y1 + BH} x2={CX} y2={Y2 - 2} stroke={ac(statuses, 0)} strokeWidth="1.5" markerEnd={mId(statuses, 0)} />
+      {/* 1 Sinistre */}
+      {box(1, CX-BW/2, Y1, BW)}
+      <line x1={CX} y1={Y1+BH} x2={CX} y2={Y2-2} {...ln(statuses[0])} markerEnd={mid(statuses[0])}/>
 
-      {/* Étape 2 */}
-      {renderBox(2, CX - BW / 2, Y2, BW)}
+      {/* 2 Demandes */}
+      {box(2, CX-BW/2, Y2, BW)}
+      <line x1={CX} y1={Y2+BH} x2={CX} y2={Y3-2} {...ln(statuses[1])} markerEnd={mid(statuses[1])}/>
 
-      {/* L-flèche 2→3 (bas → gauche → bas dans la zone) */}
-      <path
-        d={`M${CX},${Y2 + BH} L${CX},${BEND_Y} L${X3C},${BEND_Y} L${X3C},${Y34 - 2}`}
-        fill="none" stroke={ac(statuses, 1)} strokeWidth="1.5" markerEnd={mId(statuses, 1)}
-      />
+      {/* 3 Déploiement */}
+      {box(3, CX-BW/2, Y3, BW)}
+      {/* L-coude 3→4 */}
+      <path d={`M${CX},${Y3+BH} L${CX},${BEND} L${X4C},${BEND} L${X4C},${Y45-2}`}
+        {...ln(statuses[2])} markerEnd={mid(statuses[2])}/>
 
       {/* Zone déploiement */}
-      <rect x="30" y={ZY} width="620" height={ZB - ZY} rx="12"
-        fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="5 3" opacity="0.35" />
-      <text x="46" y={ZY + 16} fontSize="11" fill="#3b82f6" fontFamily={FF} opacity="0.8">
-        Niveau : par déploiement
-      </text>
+      <rect x="30" y={ZY} width="620" height={ZB-ZY} rx="12"
+        fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="5 3" opacity="0.35"/>
+      <text x="46" y={ZY+16} fontSize="11" fill="#3b82f6" fontFamily={FF} opacity="0.8">Niveau : par déploiement</text>
 
-      {/* Étape 3 */}
-      {renderBox(3, X3, Y34, BW34)}
+      {/* 4 Ciblage */}
+      {box(4, X4, Y45, BW45)}
+      {/* → 5 */}
+      <line x1={X4+BW45} y1={Y45+BH/2} x2={X5-2} y2={Y45+BH/2}
+        {...ln(statuses[3])} markerEnd={mid(statuses[3])}/>
+      {/* 5 Notif */}
+      {box(5, X5, Y45, BW45)}
+      {/* L-coude 5→6 */}
+      <path d={`M${X5C},${Y45+BH} L${X5C},${Y6-10} L${CX},${Y6-10} L${CX},${Y6-2}`}
+        {...ln(statuses[4])} markerEnd={mid(statuses[4])}/>
 
-      {/* Flèche horizontale 3→4 */}
-      <line x1={X3 + BW34} y1={Y34 + BH / 2} x2={X4 - 2} y2={Y34 + BH / 2}
-        stroke={ac(statuses, 2)} strokeWidth="1.5" markerEnd={mId(statuses, 2)} />
+      {/* 6 Disponibilités */}
+      {box(6, CX-BW6/2, Y6, BW6)}
+      <line x1={CX} y1={Y6+BH} x2={CX} y2={Y7-2} {...ln(statuses[5])} markerEnd={mid(statuses[5])}/>
 
-      {/* Étape 4 */}
-      {renderBox(4, X4, Y34, BW34)}
+      {/* 7 Rotation IA */}
+      {box(7, CX-BW7/2, Y7, BW7, true)}
+      <line x1={CX} y1={Y7+BH} x2={CX} y2={Y8-2} {...ln(statuses[6])} markerEnd={mid(statuses[6])}/>
 
-      {/* L-flèche 4→5 */}
-      <path
-        d={`M${X4C},${Y34 + BH} L${X4C},${Y5 - 10} L${CX},${Y5 - 10} L${CX},${Y5 - 2}`}
-        fill="none" stroke={ac(statuses, 3)} strokeWidth="1.5" markerEnd={mId(statuses, 3)}
-      />
-
-      {/* Étape 5 */}
-      {renderBox(5, X5, Y5, BW5)}
-      <line x1={CX} y1={Y5 + BH} x2={CX} y2={Y6 - 2} stroke={ac(statuses, 4)} strokeWidth="1.5" markerEnd={mId(statuses, 4)} />
-
-      {/* Étape 6 IA */}
-      {renderBox(6, X6, Y6, BW6, true)}
-      <line x1={CX} y1={Y6 + BH} x2={CX} y2={Y7 - 2} stroke={ac(statuses, 5)} strokeWidth="1.5" markerEnd={mId(statuses, 5)} />
-
-      {/* Étape 7 */}
-      {renderBox(7, CX - BW / 2, Y7, BW)}
+      {/* 8 Mobilisation */}
+      {box(8, CX-BW/2, Y8, BW)}
     </svg>
   )
 }
 
 // ─── StepCard ─────────────────────────────────────────────────────────────────
 
-function StepCard({
-  id, n, status, title, subtitle, children,
-}: {
+function StepCard({ id, n, status, title, subtitle, ai=false, children }: {
   id: string; n: number; status: StepStatus; title: string
-  subtitle?: string; children?: React.ReactNode
+  subtitle?: string; ai?: boolean; children?: React.ReactNode
 }) {
-  const isDone = status === 'done'
-  const isActive = status === 'active'
-  const isLocked = status === 'locked'
+  const done=status==='done', active=status==='active', locked=status==='locked'
+  const bdr = done?'#10b981':active?(ai?'#8b5cf6':'#3b82f6'):'#e5e7eb'
+  const hBg = done?'#f0fdf4':active?(ai?'#faf5ff':'#eff6ff'):'#fafafa'
+  const hBd = done?'#bbf7d0':active?(ai?'#ddd6fe':'#bfdbfe'):'#f3f4f6'
+  const tC  = done?'#065f46':active?(ai?'#5b21b6':'#1d4ed8'):'#9ca3af'
+  const sC  = done?'#047857':active?(ai?'#7c3aed':'#2563eb'):'#d1d5db'
   return (
-    <div
-      id={id}
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 12,
-        border: `1.5px solid ${isDone ? '#10b981' : isActive ? '#3b82f6' : '#e5e7eb'}`,
-        overflow: 'hidden',
-        transition: 'border-color 0.2s',
-      }}
-    >
-      <div style={{
-        padding: '12px 20px',
-        backgroundColor: isDone ? '#f0fdf4' : isActive ? '#eff6ff' : '#fafafa',
-        borderBottom: `1px solid ${isDone ? '#bbf7d0' : isActive ? '#bfdbfe' : '#f3f4f6'}`,
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-          backgroundColor: isDone ? '#10b981' : isActive ? '#3b82f6' : '#e5e7eb',
-          color: isLocked ? '#9ca3af' : 'white',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 700,
-        }}>
-          {isDone ? '✓' : n}
+    <div id={id} style={{ backgroundColor:'white', borderRadius:12, border:`1.5px solid ${bdr}`, overflow:'hidden', transition:'border-color 0.2s' }}>
+      <div style={{ padding:'12px 20px', backgroundColor:hBg, borderBottom:`1px solid ${hBd}`, display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700,
+          backgroundColor: done?'#10b981':active?(ai?'#8b5cf6':'#3b82f6'):'#e5e7eb',
+          color: locked?'#9ca3af':'white' }}>
+          {done?'✓':n}
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 15, color: isDone ? '#065f46' : isActive ? '#1d4ed8' : '#9ca3af' }}>
+        <div style={{ flex:1 }}>
+          <div style={{ fontWeight:600, fontSize:15, color:tC, display:'flex', alignItems:'center', gap:8 }}>
             {title}
+            {ai && active && <span style={{ fontSize:10, padding:'1px 7px', borderRadius:8, backgroundColor:'#8b5cf6', color:'white', fontWeight:600 }}>IA ✦</span>}
           </div>
-          {subtitle && (
-            <div style={{ fontSize: 12, color: isDone ? '#047857' : isActive ? '#2563eb' : '#d1d5db', marginTop: 1 }}>
-              {subtitle}
-            </div>
-          )}
+          {subtitle && <div style={{ fontSize:12, color:sC, marginTop:1 }}>{subtitle}</div>}
         </div>
-        {isLocked && (
-          <span style={{ fontSize: 11, color: '#c4c4c4', fontStyle: 'italic' }}>
-            🔒 Étapes précédentes requises
-          </span>
-        )}
+        {locked && <span style={{ fontSize:11, color:'#c4c4c4', fontStyle:'italic' }}>🔒 Étapes précédentes requises</span>}
       </div>
-      {!isLocked && children && (
-        <div style={{ padding: '20px' }}>{children}</div>
-      )}
+      {!locked && children && <div style={{ padding:'20px' }}>{children}</div>}
     </div>
   )
 }
 
-// ─── Bouton helper ────────────────────────────────────────────────────────────
+// ─── UI helpers ───────────────────────────────────────────────────────────────
 
-function Btn({ onClick, disabled, loading, color = '#1e3a5f', children }: {
-  onClick: () => void; disabled?: boolean; loading?: boolean; color?: string; children: React.ReactNode
+function Btn({ onClick, disabled, loading, color='#1e3a5f', outline=false, children }: {
+  onClick:()=>void; disabled?:boolean; loading?:boolean; color?:string; outline?:boolean; children:React.ReactNode
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled || loading}
-      style={{
-        padding: '9px 20px', borderRadius: 8, border: 'none',
-        backgroundColor: disabled || loading ? '#e5e7eb' : color,
-        color: disabled || loading ? '#9ca3af' : 'white',
-        fontSize: 13, fontWeight: 600, cursor: disabled || loading ? 'not-allowed' : 'pointer',
-        transition: 'background 0.15s',
-      }}
-    >
-      {loading ? '⏳ ...' : children}
+    <button onClick={onClick} disabled={disabled||loading} style={{
+      padding:'8px 18px', borderRadius:8, fontSize:13, fontWeight:600, cursor: disabled||loading?'not-allowed':'pointer',
+      border: outline?`1.5px solid ${color}`:'none',
+      backgroundColor: disabled||loading?'#e5e7eb': outline?'white':color,
+      color: disabled||loading?'#9ca3af': outline?color:'white',
+      transition:'background 0.15s',
+    }}>
+      {loading?'⏳ ...':children}
     </button>
+  )
+}
+
+const IS: React.CSSProperties = { padding:'7px 10px', borderRadius:6, border:'1px solid #d1d5db', fontSize:13, backgroundColor:'white', color:'#1e293b', width:'100%', boxSizing:'border-box' }
+const LS: React.CSSProperties = { display:'block', fontSize:11, fontWeight:600, color:'#64748b', marginBottom:3, textTransform:'uppercase', letterSpacing:'0.04em' as any }
+const G2: React.CSSProperties = { display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }
+
+function Field({ label, children }: { label:string; children:React.ReactNode }) {
+  return <div><label style={LS}>{label}</label>{children}</div>
+}
+function SBox({ children }: { children:React.ReactNode }) {
+  return <div style={{ backgroundColor:'#f8fafc', borderRadius:10, border:'1px solid #e5e7eb', padding:16 }}>{children}</div>
+}
+function SelCard({ selected, onClick, children }: { selected:boolean; onClick:()=>void; children:React.ReactNode }) {
+  return (
+    <div onClick={onClick} style={{ padding:'10px 14px', borderRadius:8, cursor:'pointer',
+      border:`1.5px solid ${selected?'#3b82f6':'#e5e7eb'}`,
+      backgroundColor: selected?'#eff6ff':'white', transition:'all 0.1s' }}>
+      {children}
+    </div>
   )
 }
 
@@ -306,572 +302,547 @@ function Btn({ onClick, disabled, loading, color = '#1e3a5f', children }: {
 
 export default function OperationsPage() {
   const supabase = createClient()
-  const router = useRouter()
+  const router   = useRouter()
 
-  // ── Data ──────────────────────────────────────────────────────────────────
-  const [sinistres, setSinistres] = useState<Sinistre[]>([])
+  // données
+  const [sinistres,   setSinistres]   = useState<Sinistre[]>([])
+  const [demandes,    setDemandes]    = useState<Demande[]>([])
   const [deployments, setDeployments] = useState<Deployment[]>([])
-  const [ciblages, setCiblages] = useState<Ciblage[]>([])
-  const [dispos, setDispos] = useState<DispoV2[]>([])
-  const [vagues, setVagues] = useState<Vague[]>([])
+  const [ciblages,    setCiblages]    = useState<Ciblage[]>([])
+  const [dispos,      setDispos]      = useState<DispoV2[]>([])
+  const [vagues,      setVagues]      = useState<Vague[]>([])
 
-  // ── Sélection ──────────────────────────────────────────────────────────────
-  const [selectedSinistreId, setSelectedSinistreId] = useState<string | null>(null)
-  const [selectedDeploymentId, setSelectedDeploymentId] = useState<string | null>(null)
+  // sélections
+  const [sinId,  setSinId]  = useState<string|null>(null)
+  const [demIds, setDemIds] = useState<string[]>([])
+  const [depId,  setDepId]  = useState<string|null>(null)
 
-  const selectedSinistre = sinistres.find(s => s.id === selectedSinistreId)
-  const selectedDeployment = deployments.find(d => d.id === selectedDeploymentId)
+  const selSin = sinistres.find(s=>s.id===sinId)
+  const selDep = deployments.find(d=>d.id===depId)
 
-  // ── État des étapes ────────────────────────────────────────────────────────
-  const [step5Validated, setStep5Validated] = useState(false)
-  const [mobilisationSent, setMobilisationSent] = useState(false)
+  // formulaires
+  const [showFSin, setShowFSin] = useState(false)
+  const [showFDem, setShowFDem] = useState(false)
+  const [showFDep, setShowFDep] = useState(false)
 
-  // ── Messages ───────────────────────────────────────────────────────────────
-  const [msgNotif, setMsgNotif] = useState('')
-  const [msgMobil, setMsgMobil] = useState('')
+  const [fSin, setFSin] = useState({ nom:'', type_incident:'', lieu:'', date_debut:'' })
+  const [fDem, setFDem] = useState({ organisme:'', type_mission:'', lieu:'', nb_personnes_requis:'', date_debut:'', date_fin_estimee:'', priorite:'Normale', contact_nom:'', contact_telephone:'' })
+  const [fDep, setFDep] = useState({ nom:'', lieu:'', date_debut:'', date_fin:'', nb_personnes_par_vague:'', point_rassemblement:'', notes_logistique:'' })
 
-  // ── IA ─────────────────────────────────────────────────────────────────────
-  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null)
-  const [loadingAI, setLoadingAI] = useState(false)
+  const [savSin, setSavSin] = useState(false)
+  const [savDem, setSavDem] = useState(false)
+  const [savDep, setSavDep] = useState(false)
 
-  // ── Formulaire vague ───────────────────────────────────────────────────────
-  const [newVague, setNewVague] = useState({ date_debut: '', date_fin: '', nb: '' })
-  const [savingVague, setSavingVague] = useState(false)
+  // wizard
+  const [step6Ok,       setStep6Ok]       = useState(false)
+  const [mobilSent,     setMobilSent]     = useState(false)
+  const [msgNotif,      setMsgNotif]      = useState('')
+  const [msgMobil,      setMsgMobil]      = useState('')
+  const [aiSugg,        setAiSugg]        = useState<string|null>(null)
+  const [loadAI,        setLoadAI]        = useState(false)
+  const [newVague,      setNewVague]      = useState({ date_debut:'', date_fin:'', nb:'' })
+  const [savVague,      setSavVague]      = useState(false)
+  const [sendingNotif,  setSendingNotif]  = useState(false)
+  const [sendingMobil,  setSendingMobil]  = useState(false)
 
-  // ── Loading / sending ──────────────────────────────────────────────────────
-  const [sendingNotif, setSendingNotif] = useState(false)
-  const [sendingMobil, setSendingMobil] = useState(false)
-  const [loadingDeps, setLoadingDeps] = useState(false)
-
-  // ── Logique de complétion des étapes ──────────────────────────────────────
-
-  const stepDone = useCallback((n: number): boolean => {
-    switch (n) {
-      case 1: return !!selectedSinistreId
-      case 2: return !!selectedDeploymentId
-      case 3: return ciblages.length > 0
-      case 4: return ciblages.some(c => c.statut === 'notifie')
-      case 5: return step5Validated
-      case 6: return vagues.length > 0
-      case 7: return mobilisationSent
+  // ── Complétion ─────────────────────────────────────────────────────────────
+  const done = useCallback((n: number): boolean => {
+    switch(n) {
+      case 1: return !!sinId
+      case 2: return demIds.length > 0
+      case 3: return !!depId
+      case 4: return ciblages.length > 0
+      case 5: return ciblages.some(c=>c.statut==='notifie')
+      case 6: return step6Ok
+      case 7: return vagues.length > 0
+      case 8: return mobilSent
       default: return false
     }
-  }, [selectedSinistreId, selectedDeploymentId, ciblages, step5Validated, vagues, mobilisationSent])
+  }, [sinId, demIds, depId, ciblages, step6Ok, vagues, mobilSent])
 
-  const currentStep = useMemo(() => {
-    for (let i = 1; i <= 7; i++) {
-      if (!stepDone(i)) return i
-    }
-    return 7
-  }, [stepDone])
+  const curStep = useMemo(() => {
+    for (let i=1;i<=8;i++) if(!done(i)) return i
+    return 8
+  }, [done])
 
-  const stepStatus = (n: number): StepStatus => {
-    if (stepDone(n)) return 'done'
-    if (n <= currentStep) return 'active'
-    return 'locked'
-  }
+  const ss = (n: number): StepStatus => done(n)?'done': n<=curStep?'active':'locked'
+  const statuses: StepStatus[] = [1,2,3,4,5,6,7,8].map(n=>ss(n))
 
-  const statuses: StepStatus[] = [1, 2, 3, 4, 5, 6, 7].map(n => stepStatus(n))
-
-  // ── Chargement des données ─────────────────────────────────────────────────
+  // ── Chargements ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    supabase
-      .from('sinistres')
-      .select('*')
-      .in('statut', ['Actif', 'En cours'])
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setSinistres(data) })
+    supabase.from('sinistres').select('*').in('statut',['Actif','En cours'])
+      .order('created_at',{ascending:false}).then(({data})=>{ if(data) setSinistres(data) })
   }, [])
 
   useEffect(() => {
-    if (!selectedSinistreId) { setDeployments([]); return }
-    setLoadingDeps(true)
-    // Déploiements liés via deployments_demandes → demandes → sinistres
-    supabase
-      .from('deployments')
-      .select(`
-        id, identifiant, nom, lieu, date_debut, date_fin,
-        nb_personnes_par_vague, statut, point_rassemblement, notes_logistique,
-        deployments_demandes ( demandes ( sinistre_id ) )
-      `)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) {
-          const filtered = data.filter((d: any) =>
-            d.deployments_demandes?.some((dd: any) =>
-              dd.demandes?.sinistre_id === selectedSinistreId
-            )
-          )
-          setDeployments(filtered)
+    if (!sinId) { setDemandes([]); return }
+    supabase.from('demandes').select('*').eq('sinistre_id',sinId)
+      .order('date_reception',{ascending:false}).then(({data})=>{ if(data) setDemandes(data) })
+  }, [sinId])
+
+  useEffect(() => {
+    if (!demIds.length) { setDeployments([]); return }
+    supabase.from('deployments_demandes')
+      .select('deployment_id, deployments(*)')
+      .in('demande_id', demIds)
+      .then(({data}) => {
+        if (!data) return
+        const seen = new Set<string>()
+        const deps: Deployment[] = []
+        for (const row of data as any[]) {
+          if (row.deployments && !seen.has(row.deployment_id)) {
+            seen.add(row.deployment_id); deps.push(row.deployments)
+          }
         }
-        setLoadingDeps(false)
+        setDeployments(deps)
       })
-  }, [selectedSinistreId])
+  }, [demIds.join(',')])
 
   useEffect(() => {
-    if (!selectedDeploymentId) {
-      setCiblages([]); setDispos([]); setVagues([])
-      setStep5Validated(false); setMobilisationSent(false); setAiSuggestion(null)
-      return
-    }
-    // Ciblages
-    supabase
-      .from('ciblages')
-      .select('id, benevole_id, statut, reservistes ( prenom, nom, telephone )')
-      .eq('niveau', 'deploiement')
-      .eq('reference_id', selectedDeploymentId)
-      .neq('statut', 'retire')
-      .then(({ data }) => { if (data) setCiblages(data as any) })
-    // Disponibilités v2
-    supabase
-      .from('disponibilites_v2')
-      .select('id, benevole_id, date_jour, disponible, commentaire, reservistes ( prenom, nom )')
-      .eq('deployment_id', selectedDeploymentId)
-      .order('date_jour')
-      .then(({ data }) => { if (data) setDispos(data as any) })
-    // Vagues (= rotations)
-    supabase
-      .from('vagues')
-      .select('*')
-      .eq('deployment_id', selectedDeploymentId)
-      .order('numero')
-      .then(({ data }) => { if (data) setVagues(data) })
-  }, [selectedDeploymentId])
-
-  // Mise à jour des templates de message
-  useEffect(() => {
-    if (!selectedSinistre || !selectedDeployment) return
-    setMsgNotif(tplNotif(selectedSinistre.nom, selectedDeployment.nom, selectedDeployment.date_debut || ''))
-  }, [selectedSinistre, selectedDeployment])
+    if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
+    supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
+      .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
+      .then(({data})=>{ if(data) setCiblages(data as any) })
+    supabase.from('disponibilites_v2').select('id,benevole_id,date_jour,disponible,commentaire,reservistes(prenom,nom)')
+      .eq('deployment_id',depId).order('date_jour').then(({data})=>{ if(data) setDispos(data as any) })
+    supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
+      .then(({data})=>{ if(data) setVagues(data) })
+  }, [depId])
 
   useEffect(() => {
-    if (!selectedDeployment) return
+    if (!selSin || !selDep) return
+    setMsgNotif(tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
+  }, [sinId, depId])
+
+  useEffect(() => {
+    if (!selDep) return
     const v = vagues[0]
-    setMsgMobil(tplMobil(
-      selectedDeployment.nom,
-      v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
-      v?.date_debut || '[date début]',
-      v?.date_fin || '[date fin]',
-      selectedDeployment.lieu,
-    ))
-  }, [selectedDeployment, vagues])
+    setMsgMobil(tplMobil(selDep.nom, v?(v.identifiant||`Rotation #${v.numero}`):'[rotation à définir]', v?.date_debut||'[date début]', v?.date_fin||'[date fin]', selDep.lieu))
+  }, [depId, vagues.length])
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
+  const creerSinistre = async () => {
+    if (!fSin.nom.trim()) return
+    setSavSin(true)
+    const {data,error} = await supabase.from('sinistres')
+      .insert({ nom:fSin.nom.trim(), type_incident:fSin.type_incident||null, lieu:fSin.lieu||null, date_debut:fSin.date_debut||null, statut:'Actif' })
+      .select().single()
+    if (!error && data) { setSinistres(p=>[data,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
+    setSavSin(false)
+  }
+
+  const creerDemande = async () => {
+    if (!fDem.organisme || !sinId) return
+    setSavDem(true)
+    const identifiant = genDemandeId(demandes, fDem.organisme, fDem.date_debut)
+    const {data,error} = await supabase.from('demandes').insert({
+      sinistre_id:sinId, organisme:fDem.organisme, type_mission:fDem.type_mission||null,
+      lieu:fDem.lieu||null, nb_personnes_requis:fDem.nb_personnes_requis?parseInt(fDem.nb_personnes_requis):null,
+      date_debut:fDem.date_debut||null, date_fin_estimee:fDem.date_fin_estimee||null,
+      priorite:fDem.priorite, statut:'Nouvelle', identifiant,
+      contact_nom:fDem.contact_nom||null, contact_telephone:fDem.contact_telephone||null,
+    }).select().single()
+    if (!error && data) {
+      setDemandes(p=>[data,...p]); setDemIds(p=>[...p,data.id])
+      setShowFDem(false); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
+    }
+    setSavDem(false)
+  }
+
+  const creerDeployment = async () => {
+    if (!fDep.nom.trim() || !demIds.length) return
+    setSavDep(true)
+    const identifiant = genDeployId(deployments)
+    const {data,error} = await supabase.from('deployments').insert({
+      identifiant, nom:fDep.nom.trim(), lieu:fDep.lieu||null,
+      date_debut:fDep.date_debut||null, date_fin:fDep.date_fin||null,
+      nb_personnes_par_vague:fDep.nb_personnes_par_vague?parseInt(fDep.nb_personnes_par_vague):null,
+      point_rassemblement:fDep.point_rassemblement||null, notes_logistique:fDep.notes_logistique||null,
+      statut:'Planifié',
+    }).select().single()
+    if (!error && data) {
+      await supabase.from('deployments_demandes').insert(demIds.map(did=>({ deployment_id:data.id, demande_id:did })))
+      setDeployments(p=>[...p,data]); setDepId(data.id)
+      setShowFDep(false); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+    }
+    setSavDep(false)
+  }
 
   const rafraichirCiblages = async () => {
-    if (!selectedDeploymentId) return
-    const { data } = await supabase
-      .from('ciblages')
-      .select('id, benevole_id, statut, reservistes ( prenom, nom, telephone )')
-      .eq('niveau', 'deploiement')
-      .eq('reference_id', selectedDeploymentId)
-      .neq('statut', 'retire')
+    if (!depId) return
+    const {data} = await supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
+      .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
     if (data) setCiblages(data as any)
   }
 
   const sendNotifications = async () => {
-    const nonNotifies = ciblages.filter(c => c.statut !== 'notifie').map(c => c.id)
-    if (nonNotifies.length === 0) return
+    const toNotify = ciblages.filter(c=>c.statut!=='notifie').map(c=>c.id)
+    if (!toNotify.length) return
     setSendingNotif(true)
-    const { error } = await supabase
-      .from('ciblages')
-      .update({ statut: 'notifie', updated_at: new Date().toISOString() })
-      .in('id', nonNotifies)
-    if (!error) {
-      setCiblages(prev => prev.map(c =>
-        nonNotifies.includes(c.id) ? { ...c, statut: 'notifie' } : c
-      ))
-      // TODO: appel Edge Function pour envoi SMS/email réel
-      // fetch('/api/notifications/dispos', { method:'POST', body: JSON.stringify({ deployment_id: selectedDeploymentId, message: msgNotif }) })
-    }
+    await supabase.from('ciblages').update({statut:'notifie',updated_at:new Date().toISOString()}).in('id',toNotify)
+    try {
+      await fetch('https://n8n.aqbrs.ca/webhook/riusc-envoi-ciblage-portail', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ deployment_id:depId, ciblage_ids:toNotify, message_override:msgNotif, type_envoi:'disponibilites' }),
+      })
+    } catch(e) { console.error('n8n notif',e) }
+    setCiblages(p=>p.map(c=>toNotify.includes(c.id)?{...c,statut:'notifie'}:c))
     setSendingNotif(false)
   }
 
   const getAISuggestion = async () => {
-    if (!selectedDeployment) return
-    setLoadingAI(true)
-    setAiSuggestion(null)
+    if (!selDep) return
+    setLoadAI(true); setAiSugg(null)
     try {
       const res = await fetch('/api/operations/rotation-ia', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          deployment: selectedDeployment,
-          sinistre: selectedSinistre,
-          dispos,
-          nb_cibles_notifies: ciblages.filter(c => c.statut === 'notifie').length,
-        }),
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ deployment:selDep, sinistre:selSin, dispos, nb_cibles_notifies:ciblages.filter(c=>c.statut==='notifie').length }),
       })
-      const data = await res.json()
-      setAiSuggestion(data.suggestion || 'Aucune suggestion générée.')
-
-      // Pré-remplir le formulaire si Claude a extrait des dates
-      if (data.date_debut) setNewVague(v => ({ ...v, date_debut: data.date_debut }))
-      if (data.date_fin) setNewVague(v => ({ ...v, date_fin: data.date_fin }))
-      if (data.nb_personnes) setNewVague(v => ({ ...v, nb: String(data.nb_personnes) }))
-    } catch {
-      setAiSuggestion('Erreur lors de la connexion à Claude. Vérifiez la route /api/operations/rotation-ia.')
-    }
-    setLoadingAI(false)
+      const d = await res.json()
+      setAiSugg(d.suggestion||'Aucune suggestion générée.')
+      if (d.date_debut) setNewVague(v=>({...v,date_debut:d.date_debut}))
+      if (d.date_fin)   setNewVague(v=>({...v,date_fin:d.date_fin}))
+      if (d.nb_personnes) setNewVague(v=>({...v,nb:String(d.nb_personnes)}))
+    } catch { setAiSugg('Erreur de connexion à Claude.') }
+    setLoadAI(false)
   }
 
   const createVague = async () => {
-    if (!selectedDeploymentId || !newVague.date_debut || !newVague.date_fin) return
-    setSavingVague(true)
+    if (!depId || !newVague.date_debut || !newVague.date_fin) return
+    setSavVague(true)
     const num = vagues.length + 1
-    const { data, error } = await supabase
-      .from('vagues')
-      .insert({
-        deployment_id: selectedDeploymentId,
-        numero: num,
-        date_debut: newVague.date_debut,
-        date_fin: newVague.date_fin,
-        nb_personnes_requis: newVague.nb ? parseInt(newVague.nb) : null,
-        statut: 'Planifiée',
-        identifiant: `ROT-${num.toString().padStart(2, '0')}`,
-      })
-      .select()
-      .single()
-    if (!error && data) {
-      setVagues(prev => [...prev, data])
-      setNewVague({ date_debut: '', date_fin: '', nb: '' })
-    }
-    setSavingVague(false)
+    const {data,error} = await supabase.from('vagues').insert({
+      deployment_id:depId, numero:num, date_debut:newVague.date_debut, date_fin:newVague.date_fin,
+      nb_personnes_requis:newVague.nb?parseInt(newVague.nb):null, statut:'Planifiée',
+      identifiant:`ROT-${num.toString().padStart(2,'0')}`,
+    }).select().single()
+    if (!error && data) { setVagues(p=>[...p,data]); setNewVague({date_debut:'',date_fin:'',nb:''}) }
+    setSavVague(false)
   }
 
   const sendMobilisation = async () => {
-    if (!selectedDeploymentId || vagues.length === 0) return
+    if (!depId || !vagues.length) return
     setSendingMobil(true)
-    // TODO: insert assignations + call Edge Function pour envoi
-    // Exempe d'insertion dans assignations pour chaque confirmé × chaque vague :
-    // const confirmés = dispos.filter(d => d.disponible).map(d => d.benevole_id)
-    // for (const vagueId of vagues.map(v => v.id)) {
-    //   for (const bId of confirmés) {
-    //     await supabase.from('assignations').insert({ vague_id: vagueId, benevole_id: bId, ... })
-    //   }
-    // }
-    setMobilisationSent(true)
-    setSendingMobil(false)
+    try {
+      await fetch('https://n8n.aqbrs.ca/webhook/riusc-envoi-mobilisation-portail', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' }),
+      })
+    } catch(e) { console.error('n8n mobil',e) }
+    setMobilSent(true); setSendingMobil(false)
   }
 
-  // ── Rendu ─────────────────────────────────────────────────────────────────
+  // ── Données dérivées ────────────────────────────────────────────────────────
+  const uniqueDates = [...new Set(dispos.map(d=>d.date_jour))].sort()
+  const nbReponses  = [...new Set(dispos.map(d=>d.benevole_id))].length
 
-  // Données pour la vue disponibilités (étape 5)
-  const ciblageBenevoleIds = ciblages.map(c => c.benevole_id)
-  const disposByBenevole = ciblages.map(c => ({
-    ciblage: c,
-    dispos: dispos.filter(d => d.benevole_id === c.benevole_id),
-    aRepondu: dispos.some(d => d.benevole_id === c.benevole_id),
-  }))
-  const uniqueDates = [...new Set(dispos.map(d => d.date_jour))].sort()
-  const nbReponses = disposByBenevole.filter(x => x.aRepondu).length
+  const TA: React.CSSProperties = { ...IS, minHeight:130, resize:'vertical', lineHeight:1.6, fontFamily:'inherit', height:'auto' }
+  const ADD_BTN: React.CSSProperties = { padding:'9px 16px', borderRadius:8, border:'1.5px dashed #cbd5e1', backgroundColor:'transparent', color:'#64748b', fontSize:13, cursor:'pointer', width:'100%', textAlign:'left' }
 
-  const inputStyle: React.CSSProperties = {
-    padding: '7px 10px', borderRadius: 6, border: '1px solid #d1d5db',
-    fontSize: 13, backgroundColor: 'white', color: '#1e293b',
-  }
-
-  const textareaStyle: React.CSSProperties = {
-    ...inputStyle,
-    width: '100%', minHeight: 140, resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.6,
-    boxSizing: 'border-box',
-  }
-
+  // ── Rendu ────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f1f5f9' }}>
-      <PortailHeader />
-      <main style={{ maxWidth: 860, margin: '0 auto', padding: '24px 16px 60px' }}>
+    <div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9' }}>
+      <PortailHeader/>
+      <main style={{ maxWidth:860, margin:'0 auto', padding:'24px 16px 80px' }}>
 
-        {/* En-tête */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1e3a5f', margin: 0 }}>
-            Tableau de bord opérationnel
-          </h1>
-          <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0' }}>
-            Wizard guidé de mobilisation — chaque étape se déverrouille quand la précédente est complétée.
+        <div style={{ marginBottom:20 }}>
+          <h1 style={{ fontSize:20, fontWeight:700, color:'#1e3a5f', margin:0 }}>Tableau de bord opérationnel</h1>
+          <p style={{ fontSize:12, color:'#64748b', margin:'3px 0 0' }}>
+            Wizard guidé — chaque étape se déverrouille quand la précédente est complétée.
           </p>
         </div>
 
-        {/* Wizard SVG (progress visual) */}
-        <div style={{
-          backgroundColor: 'white', borderRadius: 14,
-          border: '1px solid #e5e7eb', padding: '20px 24px', marginBottom: 24,
-        }}>
-          <WizardSVG statuses={statuses} onStep={n => {
-            document.getElementById(`step-${n}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }} />
+        {/* Wizard SVG */}
+        <div style={{ backgroundColor:'white', borderRadius:14, border:'1px solid #e5e7eb', padding:'20px 24px', marginBottom:24 }}>
+          <WizardSVG statuses={statuses} onStep={n=>document.getElementById(`step-${n}`)?.scrollIntoView({behavior:'smooth',block:'start'})}/>
         </div>
 
-        {/* Panneaux des étapes */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
-          {/* ──────────────────────── ÉTAPE 1 : Sinistre ──────────────────── */}
-          <StepCard
-            id="step-1" n={1} status={stepStatus(1)} title="Sinistre"
-            subtitle={selectedSinistre ? `${selectedSinistre.nom} — ${selectedSinistre.lieu || ''}` : 'Sélectionner le sinistre actif'}
-          >
-            {sinistres.length === 0 ? (
-              <p style={{ color: '#f59e0b', fontSize: 13 }}>Aucun sinistre actif trouvé dans Supabase.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {sinistres.map(s => (
-                  <div
-                    key={s.id}
-                    onClick={() => setSelectedSinistreId(s.id)}
-                    style={{
-                      padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
-                      border: `1.5px solid ${selectedSinistreId === s.id ? '#3b82f6' : '#e5e7eb'}`,
-                      backgroundColor: selectedSinistreId === s.id ? '#eff6ff' : 'white',
-                      transition: 'all 0.1s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 600, fontSize: 13, color: '#1e3a5f' }}>{s.nom}</span>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, backgroundColor: '#d1fae5', color: '#065f46', fontWeight: 600 }}>
-                        {s.statut}
-                      </span>
+          {/* ─── ÉTAPE 1 : Sinistre ─────────────────────────────────────── */}
+          <StepCard id="step-1" n={1} status={ss(1)} title="Sinistre"
+            subtitle={selSin ? `${selSin.nom}${selSin.lieu ? ' · '+selSin.lieu : ''}` : 'Sélectionner ou créer un sinistre'}>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {sinistres.map(s => (
+                <SelCard key={s.id} selected={sinId===s.id} onClick={()=>{ setSinId(s.id); setDemIds([]); setDepId(null) }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <span style={{ fontWeight:600, fontSize:13, color:'#1e3a5f' }}>{s.nom}</span>
+                    <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#d1fae5', color:'#065f46', fontWeight:600 }}>{s.statut}</span>
+                  </div>
+                  <div style={{ fontSize:11, color:'#64748b', marginTop:2, display:'flex', gap:12, flexWrap:'wrap' }}>
+                    {s.type_incident && <span>🔥 {s.type_incident}</span>}
+                    {s.lieu && <span>📍 {s.lieu}</span>}
+                    {s.date_debut && <span>📅 {dateFr(s.date_debut)}</span>}
+                  </div>
+                </SelCard>
+              ))}
+              {showFSin ? (
+                <SBox>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>Nouveau sinistre</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <div style={G2}>
+                      <Field label="Nom *"><input style={IS} value={fSin.nom} onChange={e=>setFSin(f=>({...f,nom:e.target.value}))} placeholder="ex : Inondation Saguenay 2025"/></Field>
+                      <Field label="Type d'incident">
+                        <select style={IS} value={fSin.type_incident} onChange={e=>setFSin(f=>({...f,type_incident:e.target.value}))}>
+                          <option value="">— choisir —</option>
+                          {TYPES_INCIDENT.map(t=><option key={t}>{t}</option>)}
+                        </select>
+                      </Field>
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                      {s.type_incident && <span>🔥 {s.type_incident}</span>}
-                      {s.lieu && <span>📍 {s.lieu}</span>}
-                      {s.date_debut && <span>📅 {dateFr(s.date_debut)}</span>}
+                    <div style={G2}>
+                      <Field label="Lieu"><input style={IS} value={fSin.lieu} onChange={e=>setFSin(f=>({...f,lieu:e.target.value}))} placeholder="Ville, région..."/></Field>
+                      <Field label="Date de début"><input type="date" style={IS} value={fSin.date_debut} onChange={e=>setFSin(f=>({...f,date_debut:e.target.value}))}/></Field>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <Btn onClick={creerSinistre} loading={savSin} disabled={!fSin.nom.trim()} color="#1e3a5f">✓ Créer</Btn>
+                      <Btn onClick={()=>setShowFSin(false)} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                </SBox>
+              ) : (
+                <button style={ADD_BTN} onClick={()=>setShowFSin(true)}>+ Créer un nouveau sinistre</button>
+              )}
+            </div>
           </StepCard>
 
-          {/* ──────────────────────── ÉTAPE 2 : Déploiement ──────────────── */}
-          <StepCard
-            id="step-2" n={2} status={stepStatus(2)} title="Déploiement"
-            subtitle={selectedDeployment ? `${selectedDeployment.identifiant} — ${selectedDeployment.nom}` : 'Sélectionner le déploiement'}
-          >
-            {loadingDeps ? (
-              <p style={{ color: '#94a3b8', fontSize: 13 }}>Chargement des déploiements…</p>
-            ) : deployments.length === 0 ? (
-              <div>
-                <p style={{ color: '#94a3b8', fontSize: 13 }}>
-                  Aucun déploiement trouvé pour ce sinistre.{' '}
-                  <button
-                    onClick={() => router.push('/admin/sinistres')}
-                    style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: 0, textDecoration: 'underline' }}
-                  >
-                    Créer un déploiement
-                  </button>
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {deployments.map(d => (
-                  <div
-                    key={d.id}
-                    onClick={() => setSelectedDeploymentId(d.id)}
-                    style={{
-                      padding: '10px 14px', borderRadius: 8, cursor: 'pointer',
-                      border: `1.5px solid ${selectedDeploymentId === d.id ? '#7c3aed' : '#e5e7eb'}`,
-                      backgroundColor: selectedDeploymentId === d.id ? '#faf5ff' : 'white',
-                      transition: 'all 0.1s',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ fontWeight: 700, fontSize: 12, color: '#7c3aed' }}>{d.identifiant}</span>
-                        <span style={{ fontSize: 13, color: '#1e3a5f', marginLeft: 8 }}>{d.nom}</span>
+          {/* ─── ÉTAPE 2 : Demandes ─────────────────────────────────────── */}
+          <StepCard id="step-2" n={2} status={ss(2)} title="Demandes"
+            subtitle={demIds.length>0 ? `${demIds.length} demande(s) sélectionnée(s)` : `${demandes.length} demande(s) liée(s) au sinistre`}>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <p style={{ fontSize:12, color:'#64748b', margin:0 }}>
+                Cochez les demandes couvertes par ce déploiement. Un déploiement peut regrouper plusieurs demandes.
+              </p>
+              {demandes.length===0 && !showFDem && (
+                <div style={{ padding:16, textAlign:'center', color:'#94a3b8', fontSize:13 }}>Aucune demande — créez-en une ci-dessous.</div>
+              )}
+              {demandes.map(d => {
+                const checked = demIds.includes(d.id)
+                return (
+                  <div key={d.id} onClick={()=>setDemIds(p=>checked?p.filter(x=>x!==d.id):[...p,d.id])} style={{
+                    padding:'10px 14px', borderRadius:8, cursor:'pointer',
+                    border:`1.5px solid ${checked?'#3b82f6':'#e5e7eb'}`,
+                    backgroundColor: checked?'#eff6ff':'white', transition:'all 0.1s',
+                  }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, justifyContent:'space-between' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <input type="checkbox" checked={checked} readOnly style={{ pointerEvents:'none', flexShrink:0 }}/>
+                        <span style={{ fontWeight:700, fontSize:12, color:'#7c3aed' }}>{d.identifiant}</span>
+                        <span style={{ fontSize:13, color:'#1e3a5f' }}>{d.organisme}</span>
+                        {d.type_mission && <span style={{ fontSize:11, color:'#64748b' }}>· {d.type_mission}</span>}
                       </div>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, backgroundColor: '#f3f4f6', color: '#6b7280', fontWeight: 600 }}>
-                        {d.statut}
-                      </span>
+                      <span style={{ fontSize:11, padding:'2px 7px', borderRadius:8, backgroundColor:'#f3f4f6', color:'#6b7280', flexShrink:0 }}>{d.statut}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize:11, color:'#64748b', marginTop:3, paddingLeft:22, display:'flex', gap:10, flexWrap:'wrap' }}>
                       {d.lieu && <span>📍 {d.lieu}</span>}
-                      {d.date_debut && <span>📅 {dateFr(d.date_debut)}{d.date_fin ? ` → ${dateFr(d.date_fin)}` : ''}</span>}
-                      {d.nb_personnes_par_vague && <span>👥 {d.nb_personnes_par_vague}/rotation</span>}
+                      {d.nb_personnes_requis && <span>👥 {d.nb_personnes_requis} pers.</span>}
+                      {d.date_debut && <span>📅 {dateFr(d.date_debut)}{d.date_fin_estimee?` → ${dateFr(d.date_fin_estimee)}`:''}</span>}
+                      {d.contact_nom && <span>👤 {d.contact_nom}{d.contact_telephone?` · ${d.contact_telephone}`:''}</span>}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                )
+              })}
+              {showFDem ? (
+                <SBox>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>Nouvelle demande</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <div style={G2}>
+                      <Field label="Organisme *">
+                        <select style={IS} value={fDem.organisme} onChange={e=>setFDem(f=>({...f,organisme:e.target.value,type_mission:''}))}>
+                          <option value="">— choisir —</option>
+                          {ORGANISMES.map(o=><option key={o}>{o}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Type de mission">
+                        <select style={IS} value={fDem.type_mission} onChange={e=>setFDem(f=>({...f,type_mission:e.target.value}))} disabled={!fDem.organisme}>
+                          <option value="">— choisir —</option>
+                          {(TYPES_MISSION[fDem.organisme]||TYPES_MISSION['default']).map(t=><option key={t}>{t}</option>)}
+                        </select>
+                      </Field>
+                    </div>
+                    <div style={G2}>
+                      <Field label="Lieu"><input style={IS} value={fDem.lieu} onChange={e=>setFDem(f=>({...f,lieu:e.target.value}))} placeholder="Adresse ou secteur"/></Field>
+                      <Field label="Nb personnes requis"><input type="number" style={IS} value={fDem.nb_personnes_requis} onChange={e=>setFDem(f=>({...f,nb_personnes_requis:e.target.value}))} placeholder="ex : 12"/></Field>
+                    </div>
+                    <div style={G2}>
+                      <Field label="Date de début"><input type="date" style={IS} value={fDem.date_debut} onChange={e=>setFDem(f=>({...f,date_debut:e.target.value}))}/></Field>
+                      <Field label="Date de fin estimée"><input type="date" style={IS} value={fDem.date_fin_estimee} onChange={e=>setFDem(f=>({...f,date_fin_estimee:e.target.value}))}/></Field>
+                    </div>
+                    <div style={G2}>
+                      <Field label="Contact (nom)"><input style={IS} value={fDem.contact_nom} onChange={e=>setFDem(f=>({...f,contact_nom:e.target.value}))} placeholder="Responsable"/></Field>
+                      <Field label="Contact (téléphone)"><input style={IS} value={fDem.contact_telephone} onChange={e=>setFDem(f=>({...f,contact_telephone:e.target.value}))} placeholder="(418) 000-0000"/></Field>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <Btn onClick={creerDemande} loading={savDem} disabled={!fDem.organisme} color="#7c3aed">✓ Créer la demande</Btn>
+                      <Btn onClick={()=>setShowFDem(false)} outline color="#6b7280">Annuler</Btn>
+                    </div>
+                  </div>
+                </SBox>
+              ) : (
+                <button style={ADD_BTN} onClick={()=>setShowFDem(true)}>+ Ajouter une demande</button>
+              )}
+            </div>
           </StepCard>
 
-          {/* ──────────────────────── ÉTAPE 3 : Ciblage ──────────────────── */}
-          <StepCard
-            id="step-3" n={3} status={stepStatus(3)} title="Ciblage"
-            subtitle={ciblages.length > 0 ? `${ciblages.length} réserviste(s) ciblé(s)` : 'Aucun ciblage pour ce déploiement'}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {ciblages.length > 0 ? (
-                <div style={{
-                  backgroundColor: '#f0fdf4', borderRadius: 8,
-                  border: '1px solid #bbf7d0', padding: '10px 14px',
-                }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#065f46', marginBottom: 6 }}>
-                    ✅ {ciblages.length} réserviste(s) dans le pool de ciblage
+          {/* ─── ÉTAPE 3 : Déploiement ──────────────────────────────────── */}
+          <StepCard id="step-3" n={3} status={ss(3)} title="Déploiement"
+            subtitle={selDep ? `${selDep.identifiant} — ${selDep.nom}` : deployments.length>0?`${deployments.length} déploiement(s) disponible(s)`:'Créer un déploiement'}>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {demIds.length===0 && <p style={{ fontSize:12, color:'#f59e0b', margin:0 }}>⚠️ Sélectionnez d'abord les demandes à l'étape 2.</p>}
+              {deployments.map(d => (
+                <SelCard key={d.id} selected={depId===d.id} onClick={()=>setDepId(d.id)}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                    <div>
+                      <span style={{ fontWeight:700, fontSize:12, color:'#7c3aed' }}>{d.identifiant}</span>
+                      <span style={{ fontSize:13, color:'#1e3a5f', marginLeft:8 }}>{d.nom}</span>
+                    </div>
+                    <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#f3f4f6', color:'#6b7280', fontWeight:600 }}>{d.statut}</span>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {ciblages.slice(0, 12).map(c => (
-                      <span key={c.id} style={{
-                        fontSize: 11, padding: '2px 8px', borderRadius: 10,
-                        backgroundColor: c.statut === 'notifie' ? '#dbeafe' : '#f1f5f9',
-                        color: c.statut === 'notifie' ? '#1d4ed8' : '#475569',
-                        fontWeight: 500,
-                      }}>
-                        {c.reservistes.prenom} {c.reservistes.nom}
-                        {c.statut === 'notifie' && ' ✓'}
+                  <div style={{ fontSize:11, color:'#64748b', marginTop:3, display:'flex', gap:12, flexWrap:'wrap' }}>
+                    {d.lieu && <span>📍 {d.lieu}</span>}
+                    {d.date_debut && <span>📅 {dateFr(d.date_debut)}{d.date_fin?` → ${dateFr(d.date_fin)}`:''}</span>}
+                    {d.nb_personnes_par_vague && <span>👥 {d.nb_personnes_par_vague}/rotation</span>}
+                    {d.point_rassemblement && <span>📌 {d.point_rassemblement}</span>}
+                  </div>
+                </SelCard>
+              ))}
+              {showFDep ? (
+                <SBox>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
+                    Nouveau déploiement
+                    {demIds.length>0 && <span style={{ fontWeight:400, fontSize:11, color:'#64748b', marginLeft:8 }}>— lié à {demIds.length} demande(s)</span>}
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <Field label="Nom du déploiement *"><input style={IS} value={fDep.nom} onChange={e=>setFDep(f=>({...f,nom:e.target.value}))} placeholder="ex : Déploiement Gatineau — Digues"/></Field>
+                    <div style={G2}>
+                      <Field label="Lieu"><input style={IS} value={fDep.lieu} onChange={e=>setFDep(f=>({...f,lieu:e.target.value}))} placeholder="Ville, secteur"/></Field>
+                      <Field label="Personnes / rotation"><input type="number" style={IS} value={fDep.nb_personnes_par_vague} onChange={e=>setFDep(f=>({...f,nb_personnes_par_vague:e.target.value}))} placeholder="ex : 8"/></Field>
+                    </div>
+                    <div style={G2}>
+                      <Field label="Date de début"><input type="date" style={IS} value={fDep.date_debut} onChange={e=>setFDep(f=>({...f,date_debut:e.target.value}))}/></Field>
+                      <Field label="Date de fin"><input type="date" style={IS} value={fDep.date_fin} onChange={e=>setFDep(f=>({...f,date_fin:e.target.value}))}/></Field>
+                    </div>
+                    <Field label="Point de rassemblement"><input style={IS} value={fDep.point_rassemblement} onChange={e=>setFDep(f=>({...f,point_rassemblement:e.target.value}))} placeholder="Adresse de départ"/></Field>
+                    <Field label="Notes logistique">
+                      <textarea style={{ ...IS, minHeight:60, resize:'vertical', lineHeight:1.5, fontFamily:'inherit', height:'auto' }}
+                        value={fDep.notes_logistique} onChange={e=>setFDep(f=>({...f,notes_logistique:e.target.value}))} placeholder="Transport, hébergement, équipement..."/>
+                    </Field>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <Btn onClick={creerDeployment} loading={savDep} disabled={!fDep.nom.trim()||demIds.length===0} color="#7c3aed">✓ Créer le déploiement</Btn>
+                      <Btn onClick={()=>setShowFDep(false)} outline color="#6b7280">Annuler</Btn>
+                    </div>
+                  </div>
+                </SBox>
+              ) : (
+                <button style={ADD_BTN} onClick={()=>setShowFDep(true)}>+ Créer un nouveau déploiement</button>
+              )}
+            </div>
+          </StepCard>
+
+          {/* ─── ÉTAPE 4 : Ciblage ──────────────────────────────────────── */}
+          <StepCard id="step-4" n={4} status={ss(4)} title="Ciblage"
+            subtitle={ciblages.length>0?`${ciblages.length} réserviste(s) ciblé(s)`:'Aucun ciblage pour ce déploiement'}>
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {ciblages.length>0 ? (
+                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px' }}>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#065f46', marginBottom:6 }}>✅ {ciblages.length} réserviste(s) dans le pool</div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+                    {ciblages.slice(0,15).map(c=>(
+                      <span key={c.id} style={{ fontSize:11, padding:'2px 8px', borderRadius:10,
+                        backgroundColor:c.statut==='notifie'?'#dbeafe':'#f1f5f9',
+                        color:c.statut==='notifie'?'#1d4ed8':'#475569', fontWeight:500 }}>
+                        {c.reservistes.prenom} {c.reservistes.nom}{c.statut==='notifie'?' ✓':''}
                       </span>
                     ))}
-                    {ciblages.length > 12 && (
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>+{ciblages.length - 12} autres</span>
-                    )}
+                    {ciblages.length>15 && <span style={{ fontSize:11, color:'#94a3b8' }}>+{ciblages.length-15} autres</span>}
                   </div>
                 </div>
               ) : (
-                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>
-                  Rendez-vous sur la page de ciblage pour ajouter des réservistes à ce déploiement.
-                </p>
+                <p style={{ fontSize:13, color:'#94a3b8', margin:0 }}>Rendez-vous sur la page de ciblage pour ajouter des réservistes.</p>
               )}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <Btn
-                  onClick={() => router.push(`/admin/ciblage?deployment=${selectedDeploymentId}`)}
-                  color="#1e3a5f"
-                >
-                  🎯 Aller au ciblage
-                </Btn>
-                <Btn onClick={rafraichirCiblages} color="#475569">
-                  🔄 Rafraîchir
-                </Btn>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                <Btn onClick={()=>router.push(`/admin/ciblage?deployment=${depId}`)} color="#1e3a5f">🎯 Aller au ciblage</Btn>
+                <Btn onClick={rafraichirCiblages} outline color="#475569">🔄 Rafraîchir</Btn>
               </div>
             </div>
           </StepCard>
 
-          {/* ──────────────────────── ÉTAPE 4 : Notification dispos ─────── */}
-          <StepCard
-            id="step-4" n={4} status={stepStatus(4)} title="Notification des disponibilités"
-            subtitle={ciblages.some(c => c.statut === 'notifie')
-              ? `${ciblages.filter(c => c.statut === 'notifie').length}/${ciblages.length} notifié(s)`
-              : `${ciblages.length} réserviste(s) à notifier`}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{
-                backgroundColor: '#fafafa', borderRadius: 8, border: '1px solid #e5e7eb',
-                padding: '10px 14px', fontSize: 12, color: '#64748b',
-              }}>
-                <strong style={{ color: '#1e3a5f' }}>📨 {ciblages.length} destinataire(s)</strong>
-                {' '}— Ce message sera envoyé à tous les réservistes ciblés non encore notifiés.
+          {/* ─── ÉTAPE 5 : Notification dispos ──────────────────────────── */}
+          <StepCard id="step-5" n={5} status={ss(5)} title="Notification des disponibilités"
+            subtitle={ciblages.some(c=>c.statut==='notifie') ? `${ciblages.filter(c=>c.statut==='notifie').length}/${ciblages.length} notifié(s) — envoyé via n8n` : `${ciblages.length} réserviste(s) à notifier`}>
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px', fontSize:12, color:'#64748b' }}>
+                <strong style={{ color:'#1e3a5f' }}>📨 {ciblages.filter(c=>c.statut!=='notifie').length} destinataire(s)</strong>
+                {' '}— Envoi via n8n (SMS Twilio + courriel SMTP).
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Aperçu du message (éditable)
-                </label>
-                <textarea
-                  value={msgNotif}
-                  onChange={e => setMsgNotif(e.target.value)}
-                  style={textareaStyle}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Btn
-                  onClick={sendNotifications}
-                  disabled={ciblages.length === 0 || ciblages.every(c => c.statut === 'notifie')}
-                  loading={sendingNotif}
-                  color="#1d4ed8"
-                >
-                  📨 Envoyer les notifications ({ciblages.filter(c => c.statut !== 'notifie').length})
+              <Field label="Aperçu du message (éditable)">
+                <textarea style={TA} value={msgNotif} onChange={e=>setMsgNotif(e.target.value)}/>
+              </Field>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <Btn onClick={sendNotifications} disabled={!ciblages.length||ciblages.every(c=>c.statut==='notifie')} loading={sendingNotif} color="#1d4ed8">
+                  📨 Envoyer via n8n ({ciblages.filter(c=>c.statut!=='notifie').length})
                 </Btn>
-                {ciblages.some(c => c.statut === 'notifie') && (
-                  <span style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>
-                    ✓ {ciblages.filter(c => c.statut === 'notifie').length} déjà notifié(s)
-                  </span>
+                {ciblages.some(c=>c.statut==='notifie') && (
+                  <span style={{ fontSize:12, color:'#10b981', fontWeight:600 }}>✓ {ciblages.filter(c=>c.statut==='notifie').length} déjà notifié(s)</span>
                 )}
               </div>
             </div>
           </StepCard>
 
-          {/* ──────────────────────── ÉTAPE 5 : Disponibilités reçues ────── */}
-          <StepCard
-            id="step-5" n={5} status={stepStatus(5)} title="Disponibilités reçues"
-            subtitle={`${nbReponses}/${ciblages.length} réponses reçues`}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* ─── ÉTAPE 6 : Disponibilités reçues ────────────────────────── */}
+          <StepCard id="step-6" n={6} status={ss(6)} title="Disponibilités reçues"
+            subtitle={`${nbReponses}/${ciblages.length} réponse(s) reçues`}>
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr 1fr', gap:12, minHeight:160 }}>
 
-              {/* Vue 3 colonnes */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: 12, minHeight: 200 }}>
-
-                {/* Col 1 : Ciblés */}
-                <div style={{ backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', backgroundColor: '#f1f5f9' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Ciblés ({ciblages.length})
-                    </div>
+                {/* Col ciblés */}
+                <div style={{ backgroundColor:'#f8fafc', borderRadius:8, border:'1px solid #e5e7eb', overflow:'hidden' }}>
+                  <div style={{ padding:'7px 12px', borderBottom:'1px solid #e5e7eb', backgroundColor:'#f1f5f9' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#1e3a5f', textTransform:'uppercase' as any, letterSpacing:'0.04em' }}>Ciblés ({ciblages.length})</span>
                   </div>
-                  <div style={{ overflowY: 'auto', maxHeight: 300 }}>
-                    {disposByBenevole.map(({ ciblage: c, aRepondu }) => (
-                      <div key={c.id} style={{
-                        padding: '7px 12px', borderBottom: '1px solid #f1f5f9',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
-                      }}>
-                        <span style={{ fontSize: 12, color: '#334155', fontWeight: aRepondu ? 500 : 400 }}>
-                          {c.reservistes.prenom} {c.reservistes.nom.charAt(0)}.
-                        </span>
-                        <span style={{
-                          fontSize: 10, padding: '1px 6px', borderRadius: 8, fontWeight: 600,
-                          backgroundColor: aRepondu ? '#d1fae5' : '#fef3c7',
-                          color: aRepondu ? '#065f46' : '#92400e',
-                        }}>
-                          {aRepondu ? '✓' : '?'}
-                        </span>
-                      </div>
-                    ))}
-                    {ciblages.length === 0 && (
-                      <p style={{ padding: 12, fontSize: 12, color: '#94a3b8', margin: 0 }}>Aucun ciblé</p>
-                    )}
+                  <div style={{ overflowY:'auto', maxHeight:260 }}>
+                    {ciblages.map(c=>{
+                      const ar = dispos.some(d=>d.benevole_id===c.benevole_id)
+                      return (
+                        <div key={c.id} style={{ padding:'6px 12px', borderBottom:'1px solid #f1f5f9', display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
+                          <span style={{ fontSize:12, color:'#334155', fontWeight:ar?500:400 }}>{c.reservistes.prenom} {c.reservistes.nom.charAt(0)}.</span>
+                          <span style={{ fontSize:10, padding:'1px 6px', borderRadius:8, fontWeight:600, backgroundColor:ar?'#d1fae5':'#fef3c7', color:ar?'#065f46':'#92400e' }}>{ar?'✓':'?'}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
-                {/* Col 2 : Échéancier */}
-                <div style={{ backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', backgroundColor: '#f1f5f9' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Échéancier des dispos
-                    </div>
+                {/* Col échéancier */}
+                <div style={{ backgroundColor:'#f8fafc', borderRadius:8, border:'1px solid #e5e7eb', overflow:'hidden' }}>
+                  <div style={{ padding:'7px 12px', borderBottom:'1px solid #e5e7eb', backgroundColor:'#f1f5f9' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#1e3a5f', textTransform:'uppercase' as any, letterSpacing:'0.04em' }}>Échéancier</span>
                   </div>
-                  {uniqueDates.length === 0 ? (
-                    <p style={{ padding: 12, fontSize: 12, color: '#94a3b8', margin: 0 }}>En attente de réponses…</p>
-                  ) : (
-                    <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 300 }}>
-                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11 }}>
+                  {uniqueDates.length===0 ? <p style={{ padding:12, fontSize:12, color:'#94a3b8', margin:0 }}>En attente de réponses…</p> : (
+                    <div style={{ overflowX:'auto', overflowY:'auto', maxHeight:260 }}>
+                      <table style={{ borderCollapse:'collapse', width:'100%', fontSize:11 }}>
                         <thead>
                           <tr>
-                            <th style={{ padding: '4px 8px', textAlign: 'left', color: '#64748b', fontWeight: 600, borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, backgroundColor: '#f8fafc' }}>
-                              Nom
-                            </th>
-                            {uniqueDates.map(d => (
-                              <th key={d} style={{ padding: '4px 6px', textAlign: 'center', color: '#64748b', fontWeight: 600, borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, backgroundColor: '#f8fafc', whiteSpace: 'nowrap' }}>
-                                {d.slice(5)} {/* MM-DD */}
+                            <th style={{ padding:'4px 8px', textAlign:'left', color:'#64748b', fontWeight:600, borderBottom:'1px solid #e5e7eb', position:'sticky', top:0, backgroundColor:'#f8fafc' }}>Nom</th>
+                            {uniqueDates.map(d=>(
+                              <th key={d} style={{ padding:'4px 5px', textAlign:'center', color:'#64748b', fontWeight:600, borderBottom:'1px solid #e5e7eb', position:'sticky', top:0, backgroundColor:'#f8fafc', whiteSpace:'nowrap' }}>
+                                {d.slice(5)}
                               </th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {ciblages.map(c => {
-                            const dispsCiblage = dispos.filter(d => d.benevole_id === c.benevole_id)
+                          {ciblages.map(c=>{
+                            const dc = dispos.filter(d=>d.benevole_id===c.benevole_id)
                             return (
                               <tr key={c.id}>
-                                <td style={{ padding: '4px 8px', color: '#334155', borderBottom: '1px solid #f8fafc', whiteSpace: 'nowrap' }}>
-                                  {c.reservistes.prenom.charAt(0)}. {c.reservistes.nom.charAt(0)}.
-                                </td>
-                                {uniqueDates.map(date => {
-                                  const d = dispsCiblage.find(x => x.date_jour === date)
+                                <td style={{ padding:'4px 8px', color:'#334155', borderBottom:'1px solid #f8fafc', whiteSpace:'nowrap' }}>{c.reservistes.prenom.charAt(0)}. {c.reservistes.nom.charAt(0)}.</td>
+                                {uniqueDates.map(date=>{
+                                  const d = dc.find(x=>x.date_jour===date)
                                   return (
-                                    <td key={date} style={{
-                                      padding: '4px 6px', textAlign: 'center',
-                                      borderBottom: '1px solid #f8fafc',
-                                      backgroundColor: !d ? '#f8fafc' : d.disponible ? '#d1fae5' : '#fee2e2',
-                                    }}>
-                                      <span style={{ fontSize: 12 }}>
-                                        {!d ? '·' : d.disponible ? '✓' : '✗'}
-                                      </span>
+                                    <td key={date} style={{ padding:'4px 5px', textAlign:'center', borderBottom:'1px solid #f8fafc', backgroundColor:!d?'#f8fafc':d.disponible?'#d1fae5':'#fee2e2' }}>
+                                      <span style={{ fontSize:11 }}>{!d?'·':d.disponible?'✓':'✗'}</span>
                                     </td>
                                   )
                                 })}
@@ -884,206 +855,106 @@ export default function OperationsPage() {
                   )}
                 </div>
 
-                {/* Col 3 : Rotations */}
-                <div style={{ backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', backgroundColor: '#f1f5f9' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      Rotations ({vagues.length})
-                    </div>
+                {/* Col rotations */}
+                <div style={{ backgroundColor:'#f8fafc', borderRadius:8, border:'1px solid #e5e7eb', overflow:'hidden' }}>
+                  <div style={{ padding:'7px 12px', borderBottom:'1px solid #e5e7eb', backgroundColor:'#f1f5f9' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#1e3a5f', textTransform:'uppercase' as any, letterSpacing:'0.04em' }}>Rotations ({vagues.length})</span>
                   </div>
-                  <div style={{ padding: 12 }}>
-                    {vagues.length === 0 ? (
-                      <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>Sera créé à l'étape 6</p>
-                    ) : (
-                      vagues.map(v => (
-                        <div key={v.id} style={{ marginBottom: 8 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: '#7c3aed' }}>
-                            {v.identifiant || `Rotation #${v.numero}`}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>
-                            {dateFr(v.date_debut)} → {dateFr(v.date_fin)}
-                          </div>
-                          {v.nb_personnes_requis && (
-                            <div style={{ fontSize: 11, color: '#64748b' }}>👥 {v.nb_personnes_requis} pers.</div>
-                          )}
-                        </div>
-                      ))
-                    )}
+                  <div style={{ padding:12 }}>
+                    {vagues.length===0 ? <p style={{ fontSize:12, color:'#94a3b8', margin:0 }}>Sera créé à l'étape 7</p>
+                    : vagues.map(v=>(
+                      <div key={v.id} style={{ marginBottom:8 }}>
+                        <div style={{ fontSize:12, fontWeight:600, color:'#7c3aed' }}>{v.identifiant||`Rot. #${v.numero}`}</div>
+                        <div style={{ fontSize:11, color:'#64748b' }}>{dateFr(v.date_debut)} → {dateFr(v.date_fin)}</div>
+                        {v.nb_personnes_requis && <div style={{ fontSize:11, color:'#64748b' }}>👥 {v.nb_personnes_requis} pers.</div>}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Bouton validation étape 5 */}
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Btn
-                  onClick={() => { setStep5Validated(true) }}
-                  disabled={dispos.length === 0 || step5Validated}
-                  color="#065f46"
-                >
-                  {step5Validated ? '✅ Étape validée' : `✅ Valider (${nbReponses} réponse(s) analysées)`}
+              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                <Btn onClick={()=>setStep6Ok(true)} disabled={dispos.length===0||step6Ok} color="#065f46">
+                  {step6Ok?'✅ Étape validée':`✅ Valider (${nbReponses} réponse(s))`}
                 </Btn>
-                {dispos.length === 0 && (
-                  <span style={{ fontSize: 12, color: '#f59e0b' }}>
-                    En attente des disponibilités des réservistes
-                  </span>
-                )}
+                {dispos.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>En attente des réponses des réservistes</span>}
               </div>
             </div>
           </StepCard>
 
-          {/* ──────────────────────── ÉTAPE 6 : Rotation IA ──────────────── */}
-          <StepCard
-            id="step-6" n={6} status={stepStatus(6)} title="Rotation créée"
-            subtitle={vagues.length > 0 ? `${vagues.length} rotation(s) créée(s)` : 'IA suggère les affectations optimales'}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-              {/* Bouton IA */}
+          {/* ─── ÉTAPE 7 : Rotation IA ───────────────────────────────────── */}
+          <StepCard id="step-7" n={7} status={ss(7)} title="Rotation créée" ai
+            subtitle={vagues.length>0?`${vagues.length} rotation(s) planifiée(s)`:'IA suggère les affectations optimales'}>
+            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
               <div>
-                <Btn onClick={getAISuggestion} loading={loadingAI} color="#6d28d9">
-                  ✦ Demander une suggestion à Claude
-                </Btn>
-                <p style={{ fontSize: 11, color: '#94a3b8', margin: '6px 0 0' }}>
-                  Claude analysera les disponibilités et proposera des rotations optimales.
+                <Btn onClick={getAISuggestion} loading={loadAI} color="#6d28d9">✦ Demander une suggestion à Claude</Btn>
+                <p style={{ fontSize:11, color:'#94a3b8', margin:'6px 0 0' }}>
+                  Claude analysera les disponibilités et proposera les créneaux de rotation optimaux.
                 </p>
               </div>
-
-              {/* Résultat IA */}
-              {aiSuggestion && (
-                <div style={{
-                  backgroundColor: '#faf5ff', borderRadius: 10,
-                  border: '1.5px solid #ddd6fe', padding: 16,
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#5b21b6' }}>✦ Suggestion de Claude</span>
-                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 8, backgroundColor: '#8b5cf6', color: 'white', fontWeight: 600 }}>IA</span>
+              {aiSugg && (
+                <div style={{ backgroundColor:'#faf5ff', borderRadius:10, border:'1.5px solid #ddd6fe', padding:16 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#5b21b6' }}>✦ Suggestion de Claude</span>
+                    <span style={{ fontSize:10, padding:'1px 6px', borderRadius:8, backgroundColor:'#8b5cf6', color:'white', fontWeight:600 }}>IA</span>
                   </div>
-                  <pre style={{
-                    fontSize: 12, color: '#4c1d95', margin: 0,
-                    whiteSpace: 'pre-wrap', lineHeight: 1.6,
-                    fontFamily: 'inherit',
-                  }}>
-                    {aiSuggestion}
-                  </pre>
+                  <pre style={{ fontSize:12, color:'#4c1d95', margin:0, whiteSpace:'pre-wrap', lineHeight:1.6, fontFamily:'inherit' }}>{aiSugg}</pre>
                 </div>
               )}
-
-              {/* Rotations existantes */}
-              {vagues.length > 0 && (
-                <div style={{ backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', padding: '10px 14px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#065f46', marginBottom: 8 }}>
-                    Rotations créées ({vagues.length})
-                  </div>
-                  {vagues.map(v => (
-                    <div key={v.id} style={{ fontSize: 12, color: '#065f46', marginBottom: 4 }}>
-                      <strong>{v.identifiant || `Rot. #${v.numero}`}</strong>
-                      {' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}
-                      {v.nb_personnes_requis && ` · ${v.nb_personnes_requis} pers.`}
+              {vagues.length>0 && (
+                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px' }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'#065f46', marginBottom:8 }}>Rotations créées ({vagues.length})</div>
+                  {vagues.map(v=>(
+                    <div key={v.id} style={{ fontSize:12, color:'#065f46', marginBottom:4 }}>
+                      <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>{' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}
                     </div>
                   ))}
                 </div>
               )}
-
-              {/* Formulaire nouvelle rotation */}
-              <div style={{ backgroundColor: '#f8fafc', borderRadius: 10, border: '1px solid #e5e7eb', padding: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 10 }}>
-                  {vagues.length > 0 ? '+ Ajouter une rotation' : 'Créer la première rotation'}
+              <SBox>
+                <div style={{ fontSize:12, fontWeight:700, color:'#1e3a5f', marginBottom:10 }}>
+                  {vagues.length>0?'+ Ajouter une rotation':'Créer la première rotation'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', gap: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 3 }}>Début</label>
-                    <input type="date" value={newVague.date_debut}
-                      onChange={e => setNewVague(v => ({ ...v, date_debut: e.target.value }))}
-                      style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 3 }}>Fin</label>
-                    <input type="date" value={newVague.date_fin}
-                      onChange={e => setNewVague(v => ({ ...v, date_fin: e.target.value }))}
-                      style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 3 }}>Nb pers.</label>
-                    <input type="number" value={newVague.nb} placeholder="—"
-                      onChange={e => setNewVague(v => ({ ...v, nb: e.target.value }))}
-                      style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }} />
-                  </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 90px', gap:10 }}>
+                  <Field label="Début"><input type="date" style={IS} value={newVague.date_debut} onChange={e=>setNewVague(v=>({...v,date_debut:e.target.value}))}/></Field>
+                  <Field label="Fin"><input type="date" style={IS} value={newVague.date_fin} onChange={e=>setNewVague(v=>({...v,date_fin:e.target.value}))}/></Field>
+                  <Field label="Nb pers."><input type="number" style={IS} value={newVague.nb} placeholder="—" onChange={e=>setNewVague(v=>({...v,nb:e.target.value}))}/></Field>
                 </div>
-                <div style={{ marginTop: 12 }}>
-                  <Btn
-                    onClick={createVague}
-                    disabled={!newVague.date_debut || !newVague.date_fin}
-                    loading={savingVague}
-                    color="#7c3aed"
-                  >
-                    + Créer la rotation
-                  </Btn>
+                <div style={{ marginTop:10 }}>
+                  <Btn onClick={createVague} disabled={!newVague.date_debut||!newVague.date_fin} loading={savVague} color="#7c3aed">+ Créer la rotation</Btn>
                 </div>
-              </div>
+              </SBox>
             </div>
           </StepCard>
 
-          {/* ──────────────────────── ÉTAPE 7 : Mobilisation ────────────── */}
-          <StepCard
-            id="step-7" n={7} status={stepStatus(7)} title="Mobilisation confirmée"
-            subtitle={mobilisationSent ? 'Confirmations envoyées ✓' : 'Envoyer les confirmations de mobilisation'}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-              {/* Résumé rotations */}
-              {vagues.length > 0 && (
-                <div style={{ backgroundColor: '#fafafa', borderRadius: 8, border: '1px solid #e5e7eb', padding: '10px 14px' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#1e3a5f', marginBottom: 6 }}>
-                    Mobilisation pour {vagues.length} rotation(s)
-                  </div>
-                  {vagues.map(v => (
-                    <div key={v.id} style={{
-                      fontSize: 12, color: '#334155', display: 'flex', gap: 12,
-                      padding: '4px 0', borderBottom: '1px solid #f1f5f9',
-                    }}>
-                      <span style={{ fontWeight: 600, color: '#7c3aed' }}>{v.identifiant || `Rot. #${v.numero}`}</span>
+          {/* ─── ÉTAPE 8 : Mobilisation ──────────────────────────────────── */}
+          <StepCard id="step-8" n={8} status={ss(8)} title="Mobilisation confirmée"
+            subtitle={mobilSent?'Confirmations envoyées via n8n ✓':'Envoyer les confirmations de mobilisation'}>
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {vagues.length>0 && (
+                <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:'#1e3a5f', marginBottom:6 }}>Mobilisation pour {vagues.length} rotation(s)</div>
+                  {vagues.map(v=>(
+                    <div key={v.id} style={{ fontSize:12, color:'#334155', display:'flex', gap:12, padding:'4px 0', borderBottom:'1px solid #f1f5f9' }}>
+                      <span style={{ fontWeight:600, color:'#7c3aed' }}>{v.identifiant||`Rot. #${v.numero}`}</span>
                       <span>📅 {dateFr(v.date_debut)} → {dateFr(v.date_fin)}</span>
                       {v.nb_personnes_requis && <span>👥 {v.nb_personnes_requis} pers.</span>}
                     </div>
                   ))}
                 </div>
               )}
-
-              {/* Message mobilisation */}
-              <div>
-                <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Aperçu du message de mobilisation (éditable)
-                </label>
-                <textarea
-                  value={msgMobil}
-                  onChange={e => setMsgMobil(e.target.value)}
-                  style={textareaStyle}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <Btn
-                  onClick={sendMobilisation}
-                  disabled={vagues.length === 0 || mobilisationSent}
-                  loading={sendingMobil}
-                  color="#065f46"
-                >
-                  {mobilisationSent ? '✅ Mobilisation envoyée' : '🚀 Envoyer les confirmations'}
+              <Field label="Aperçu du message de mobilisation (éditable)">
+                <textarea style={TA} value={msgMobil} onChange={e=>setMsgMobil(e.target.value)}/>
+              </Field>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSent} loading={sendingMobil} color="#065f46">
+                  {mobilSent?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
                 </Btn>
-                {vagues.length === 0 && (
-                  <span style={{ fontSize: 12, color: '#f59e0b' }}>
-                    Créez d'abord les rotations à l'étape 6
-                  </span>
-                )}
+                {vagues.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>Créez d'abord les rotations à l'étape 7</span>}
               </div>
-
-              {mobilisationSent && (
-                <div style={{
-                  backgroundColor: '#d1fae5', borderRadius: 8,
-                  border: '1px solid #6ee7b7', padding: '12px 16px',
-                  fontSize: 13, color: '#065f46', fontWeight: 600,
-                }}>
-                  🎉 Opération complète — La mobilisation est confirmée et les assignations sont créées.
+              {mobilSent && (
+                <div style={{ backgroundColor:'#d1fae5', borderRadius:8, border:'1px solid #6ee7b7', padding:'12px 16px', fontSize:13, color:'#065f46', fontWeight:600 }}>
+                  🎉 Opération complète — La mobilisation est confirmée et les notifications ont été envoyées via n8n.
                 </div>
               )}
             </div>
