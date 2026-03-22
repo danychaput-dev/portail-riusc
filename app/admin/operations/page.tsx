@@ -332,11 +332,20 @@ export default function OperationsPage() {
       if (ctx.demIds.length) setDemIds(ctx.demIds)
       if (ctx.depId)         setDepId(ctx.depId)
     }
-    // Activer le sync seulement après la restauration
     // Lire le flag step4 depuis ciblage
     try {
       const s4dep = localStorage.getItem('riusc_ops_step4_done')
-      if (s4dep && ctx?.depId && s4dep === ctx.depId) setStep4Override(true)
+      if (s4dep && ctx?.depId && s4dep === ctx.depId) {
+        setStep4Override(true)
+        // Forcer le reload des ciblages après que depId soit appliqué
+        setTimeout(() => {
+          if (ctx.depId) {
+            supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
+              .eq('niveau','deploiement').eq('reference_id',ctx.depId).neq('statut','retire')
+              .then(({data})=>{ if(data) setCiblages(data as any) })
+          }
+        }, 300)
+      }
     } catch {}
     setTimeout(() => { isMounted.current = true }, 0)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -453,7 +462,7 @@ export default function OperationsPage() {
       .eq('deployment_id',depId).order('date_jour').then(({data})=>{ if(data) setDispos(data as any) })
     supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
       .then(({data})=>{ if(data) setVagues(data) })
-  }, [depId])
+  }, [depId, step4Override])
 
   useEffect(() => {
     if (!selSin || !selDep) return
