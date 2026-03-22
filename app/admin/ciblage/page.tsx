@@ -246,7 +246,7 @@ export default function CiblagePage() {
   const [filtreLangues,     setFiltreLangues]     = useState<string[]>([])
   const [recherche,         setRecherche]         = useState('')
   const [filtreSubComp,     setFiltreSubComp]     = useState<Record<string,string>>({})
-  const [filtreBadge,       setFiltreBadge]       = useState<string>('')
+  const [filtreBadges,      setFiltreBadges]      = useState<string[]>([])
 
   // Loading
   const [loadingSinistres,   setLoadingSinistres]   = useState(true)
@@ -295,7 +295,10 @@ export default function CiblagePage() {
 
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
-    if (filtrePreference && c.preference_tache !== filtrePreference && c.preference_tache !== 'aucune') return false
+    if (filtrePreference) {
+      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+    }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
         const vals: string[] = (c as any)[f] || []
@@ -315,9 +318,9 @@ export default function CiblagePage() {
       const hasAll = filtreLangues.every(l => c.langues.includes(l))
       if (!hasAll) return false
     }
-    if (filtreBadge) {
+    if (filtreBadges.length > 0) {
       const badges = getCompetencesBadges(c).map(b => b.label)
-      if (!badges.includes(filtreBadge)) return false
+      if (!filtreBadges.every(fb => badges.includes(fb))) return false
     }
     if (recherche) {
       const q = recherche.toLowerCase()
@@ -340,7 +343,10 @@ export default function CiblagePage() {
 
   // Badges présents dans le pool (sans le filtre badge) pour la barre de pastilles
   const poolPourBadges = poolNonCible.filter(c => {
-    if (filtrePreference && c.preference_tache !== filtrePreference && c.preference_tache !== 'aucune') return false
+    if (filtrePreference) {
+      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+    }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
         const vals: string[] = (c as any)[f] || []
@@ -363,7 +369,7 @@ export default function CiblagePage() {
   })
   const badgesDisponibles = Array.from(new Set(
     poolPourBadges.flatMap(c => getCompetencesBadges(c).map(b => b.label))
-  )).sort()
+  )).sort() as string[]
 
   const aiEnrichies = aiSuggestions
     .map(s => ({ ...s, candidat: poolAvecDistance.find(c => c.benevole_id === s.benevole_id) }))
@@ -406,7 +412,7 @@ export default function CiblagePage() {
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
-    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadge('')
+    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([])
     const dep = deployments.find(d => d.id === selectedDeploymentId) || null
     setSelectedDeployment(dep)
     if (dep?.lieu) geocoderLieu(dep.lieu)
@@ -669,22 +675,25 @@ export default function CiblagePage() {
               </div>
               {badgesDisponibles.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                  {filtreBadge && (
-                    <button onClick={() => setFiltreBadge('')} style={{
+                  {filtreBadges.length > 0 && (
+                    <button onClick={() => setFiltreBadges([])} style={{
                       fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
                       border: '1px solid #ef4444', backgroundColor: '#fef2f2',
                       color: '#dc2626', cursor: 'pointer', fontWeight: '600'
-                    }}>✕ Effacer</button>
+                    }}>✕ Effacer ({filtreBadges.length})</button>
                   )}
-                  {badgesDisponibles.map(label => (
-                    <button key={label} onClick={() => setFiltreBadge(filtreBadge === label ? '' : label)} style={{
-                      fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
-                      border: `1px solid ${filtreBadge === label ? C : '#d1d5db'}`,
-                      backgroundColor: filtreBadge === label ? C : 'white',
-                      color: filtreBadge === label ? 'white' : '#374151',
-                      cursor: 'pointer', fontWeight: filtreBadge === label ? '600' : '400'
-                    }}>{label}</button>
-                  ))}
+                  {badgesDisponibles.map((label: string) => {
+                    const actif = filtreBadges.includes(label)
+                    return (
+                      <button key={label} onClick={() => setFiltreBadges(p => actif ? p.filter(x => x !== label) : [...p, label])} style={{
+                        fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+                        border: `1px solid ${actif ? C : '#d1d5db'}`,
+                        backgroundColor: actif ? C : 'white',
+                        color: actif ? 'white' : '#374151',
+                        cursor: 'pointer', fontWeight: actif ? '600' : '400'
+                      }}>{label}</button>
+                    )
+                  })}
                 </div>
               )}
             </div>

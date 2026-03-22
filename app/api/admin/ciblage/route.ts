@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
     // Compétences + coords + date expiration
     const { data: compData } = await supabaseAdmin
       .from('reservistes')
-      .select(`benevole_id, date_expiration_certificat, latitude, longitude,
+      .select(`benevole_id, date_expiration_certificat, latitude, longitude, preference_tache,
         competence_rs, certificat_premiers_soins, vehicule_tout_terrain,
         navire_marin, permis_conduire, satp_drone, equipe_canine,
         competences_securite, competences_sauvetage, communication,
@@ -178,6 +178,7 @@ export async function GET(req: NextRequest) {
         communication: comp.communication || [],
         cartographie_sig: comp.cartographie_sig || [],
         operation_urgence: comp.operation_urgence || [],
+        preference_tache: comp.preference_tache || c.preference_tache || 'aucune',
       }
     })
     return NextResponse.json(enriched)
