@@ -367,6 +367,7 @@ export default function OperationsPage() {
 
   // wizard
   const [step4Override, setStep4Override] = useState(false)
+  const [step6Ok,       setStep6Ok]       = useState(false)
   const [mobilSent,     setMobilSent]     = useState(false)
   const [msgNotif,      setMsgNotif]      = useState('')
   const [msgMobil,      setMsgMobil]      = useState('')
