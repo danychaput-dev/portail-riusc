@@ -220,9 +220,9 @@ function badgePref(p: string) {
 export default function CiblagePage() {
   // Sélection
   const [sinistres,            setSinistres]            = useState<Sinistre[]>([])
-  const [selectedSinistreId,   setSelectedSinistreId]   = useState('')
+  const [selectedSinistreId,   setSelectedSinistreId]   = useState(() => typeof window !== 'undefined' ? localStorage.getItem('ciblage_sinistre') || '' : '')
   const [deployments,          setDeployments]          = useState<Deployment[]>([])
-  const [selectedDeploymentId, setSelectedDeploymentId] = useState('')
+  const [selectedDeploymentId, setSelectedDeploymentId] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('ciblage_deployment') || '' : '')
   const [selectedDeployment,   setSelectedDeployment]   = useState<Deployment | null>(null)
   const [niveau,               setNiveau]               = useState<'rotation'|'deploiement'>('deploiement')
   const [vagues,               setVagues]               = useState<Vague[]>([])
@@ -298,8 +298,8 @@ export default function CiblagePage() {
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -350,8 +350,8 @@ export default function CiblagePage() {
   // Badges présents dans le pool (sans le filtre badge) pour la barre de pastilles
   const poolPourBadges = poolNonCible.filter(c => {
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -405,6 +405,7 @@ export default function CiblagePage() {
   }, [])
 
   useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('ciblage_sinistre', selectedSinistreId)
     if (!selectedSinistreId) return
     setLoadingDeployments(true)
     setSelectedDeploymentId(''); setSelectedDeployment(null)
@@ -415,6 +416,7 @@ export default function CiblagePage() {
   }, [selectedSinistreId])
 
   useEffect(() => {
+    if (typeof window !== 'undefined') localStorage.setItem('ciblage_deployment', selectedDeploymentId)
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
