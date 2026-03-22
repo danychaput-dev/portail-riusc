@@ -12,7 +12,7 @@ interface Candidat {
   benevole_id: string; prenom: string; nom: string; telephone: string
   region: string; ville: string; preference_tache: string
   deployable: boolean; en_deploiement_actif: boolean
-  rotations_consecutives: number; repos_requis_jusqu: string | null
+  rotations_consecutives: number; repos_requis_jusqu: striang | null
   raison_alerte: string | null; deja_cible: boolean
   latitude: number | null; longitude: number | null
   competence_rs: string[]; certificat_premiers_soins: string[]
@@ -778,15 +778,32 @@ export default function CiblagePage() {
                   <button onClick={toutAjouterIA} style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white', color: '#16a34a', cursor: 'pointer', fontWeight: '600' }}>Tout ajouter</button>
                 </div>
                 <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {aiEnrichies.map(s => (
-                    <div key={s.benevole_id} style={{ padding: '8px 14px', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: '500', fontSize: '13px' }}>{s.candidat?.prenom} {s.candidat?.nom}</div>
-                        <div style={{ fontSize: '11px', color: '#16a34a' }}>{s.raison}</div>
+                  {aiEnrichies.map(s => {
+                    const badgesIA = s.candidat ? getCompetencesBadges(s.candidat) : []
+                    const distIA = s.candidat?.distance_km
+                    return (
+                      <div key={s.benevole_id} style={{ padding: '8px 14px', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: '500', fontSize: '13px' }}>{s.candidat?.prenom} {s.candidat?.nom}</span>
+                            {depCoords && distIA !== undefined && (
+                              <span style={{ fontSize: '10px', fontWeight: '600', color: distIA < 50 ? '#22c55e' : distIA < 150 ? '#f59e0b' : '#94a3b8' }}>📍 {distIA} km</span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>{s.candidat?.ville}{s.candidat?.ville && s.candidat?.region ? ', ' : ''}{s.candidat?.region}</div>
+                          <div style={{ fontSize: '11px', color: '#16a34a', fontStyle: 'italic', marginTop: '2px' }}>{s.raison}</div>
+                          {badgesIA.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+                              {badgesIA.map((b, i) => (
+                                <span key={i} style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button onClick={() => s.candidat && ajouter(s.candidat, true)} style={{ fontSize: '12px', padding: '3px 9px', borderRadius: '6px', border: 'none', backgroundColor: '#16a34a', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0, marginTop: '2px' }}>+ Ajouter</button>
                       </div>
-                      <button onClick={() => s.candidat && ajouter(s.candidat, true)} style={{ fontSize: '12px', padding: '3px 9px', borderRadius: '6px', border: 'none', backgroundColor: '#16a34a', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>+ Ajouter</button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -821,7 +838,15 @@ export default function CiblagePage() {
                           {cible.ajoute_par_ia && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>IA</span>}
                           {cible.statut === 'notifie' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: '700' }}>✓</span>}
                         </div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{cible.reservistes.ville}{cible.reservistes.ville && cible.reservistes.region ? ', ' : ''}{cible.reservistes.region}</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <span>{cible.reservistes.ville}{cible.reservistes.ville && cible.reservistes.region ? ', ' : ''}{cible.reservistes.region}</span>
+                          {(() => {
+                            const candidat = pool.find(p => p.benevole_id === cible.benevole_id)
+                            const dist = candidat?.distance_km
+                            if (!depCoords || dist === undefined) return null
+                            return <span style={{ color: dist < 50 ? '#22c55e' : dist < 150 ? '#f59e0b' : '#94a3b8', fontWeight: '600' }}>📍 {dist} km</span>
+                          })()}
+                        </div>
                       </div>
                       {cible.statut !== 'notifie' && (
                         <button onClick={() => retirer(cible)} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #fca5a5', backgroundColor: 'white', color: '#ef4444', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
