@@ -151,80 +151,6 @@ function formatDate(d?: string | null) {
   return new Date(d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })
 }
 
-// Extrait toutes les compétences actives d'un candidat sous forme de labels courts
-function getCompetencesBadges(c: any): { label: string; color: string; bg: string }[] {
-  const badges: { label: string; color: string; bg: string }[] = []
-  const add = (label: string, color: string, bg: string) => badges.push({ label, color, bg })
-
-  // RS
-  if (c.competence_rs?.length > 0) {
-    const max = c.competence_rs.reduce((a: string, b: string) => {
-      const niv = (s: string) => s.includes('3') ? 3 : s.includes('2') ? 2 : 1
-      return niv(b) > niv(a) ? b : a
-    }, c.competence_rs[0])
-    const n = max.includes('3') ? 'RS Niv.3' : max.includes('2') ? 'RS Niv.2' : 'RS Niv.1'
-    add(n, '#0f6e56', '#e1f5ee')
-  }
-  // Premiers soins
-  if (c.certificat_premiers_soins?.length > 0) {
-    const best = c.certificat_premiers_soins.reduce((a: string, b: string) => {
-      const ord = (s: string) => ['e)','d)','c)','b)','a)'].findIndex(x => s.startsWith(x))
-      return ord(b) < ord(a) ? b : a
-    }, c.certificat_premiers_soins[0])
-    const lbl = best.startsWith('e)') ? 'Premier répondant' : best.startsWith('d)') ? 'Secourisme éloigné' :
-                best.startsWith('c)') ? 'Secourisme travail' : best.startsWith('b)') ? 'Premiers soins std' : 'RCR/DEA'
-    add(lbl, '#185fa5', '#e6f1fb')
-  }
-  // VTT
-  if (c.vehicule_tout_terrain?.length > 0) add('VTT/Moto-neige', '#854f0b', '#faeeda')
-  // Navire
-  if (c.navire_marin?.length > 0) add('Navire/Marin', '#185fa5', '#e6f1fb')
-  // Permis spéciaux (classe 1-4)
-  const permisSpec = (c.permis_conduire || []).filter((p: string) => /Classe [1-4]/.test(p))
-  if (permisSpec.length > 0) {
-    const best = permisSpec.sort()[0]
-    const cls = best.match(/Classe (\w+)/)?.[1] || ''
-    add(`Permis Cl.${cls}`, '#3b6d11', '#eaf3de')
-  }
-  // Drone
-  if (c.satp_drone?.length > 0) {
-    const hasLicence = c.satp_drone.some((d: string) => d.includes('Transport Canada') || d.includes('SATP'))
-    add(hasLicence ? 'Drone certifié' : 'Drone <250g', '#534ab7', '#eeedfe')
-  }
-  // Équipe canine
-  if (c.equipe_canine?.length > 0) add('Équipe canine', '#993c1d', '#faece7')
-  // Sauvetage
-  if (c.competences_sauvetage?.length > 0) {
-    const types = c.competences_sauvetage.map((s: string) =>
-      s.includes('eau') ? 'Eau vive' : s.includes('glace') ? 'Glace' : s.includes('corde') ? 'Corde' : 'Hauteur'
-    )
-    types.forEach((t: string) => add(`Sauvetage ${t}`, '#3b6d11', '#eaf3de'))
-  }
-  // Sécurité
-  if (c.competences_securite?.length > 0) {
-    if (c.competences_securite.some((s: string) => s.includes('chaîne') || s.includes('chaine'))) add('Scie chaîne', '#993c1d', '#faece7')
-    if (c.competences_securite.some((s: string) => s.includes('circulation'))) add('Contrôle circulation', '#854f0b', '#faeeda')
-    if (c.competences_securite.some((s: string) => s.includes('CNESST'))) add('CNESST formateur', '#5f5e5a', '#f1efe8')
-  }
-  // Communication
-  if (c.communication?.length > 0) {
-    if (c.communication.some((s: string) => s.toLowerCase().includes('radio amateur'))) add('Radio amateur', '#534ab7', '#eeedfe')
-    if (c.communication.some((s: string) => s.includes('VHF'))) add('Radio VHF', '#534ab7', '#eeedfe')
-    if (c.communication.some((s: string) => s.includes('satellite'))) add('Tél. satellite', '#534ab7', '#eeedfe')
-  }
-  // Cartographie
-  if (c.cartographie_sig?.length > 0) {
-    if (c.cartographie_sig.some((s: string) => s.includes('ArcGIS'))) add('ArcGIS', '#0f6e56', '#e1f5ee')
-    else if (c.cartographie_sig.some((s: string) => s.includes('SIG'))) add('SIG', '#0f6e56', '#e1f5ee')
-    else if (c.cartographie_sig.some((s: string) => s.includes('GPS'))) add('GPS', '#0f6e56', '#e1f5ee')
-    else add('Cartographie', '#0f6e56', '#e1f5ee')
-  }
-  // Expérience urgence
-  if (c.operation_urgence?.length > 0) add('Exp. urgence', '#5f5e5a', '#f1efe8')
-
-  return badges
-}
-
 function badgePref(p: string) {
   if (p === 'terrain')   return { label: 'Terrain',   bg: '#e8f0f8', color: C }
   if (p === 'sinistres') return { label: 'Sinistrés', bg: '#f3e8ff', color: '#7c3aed' }
@@ -389,7 +315,7 @@ export default function CiblagePage() {
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
-    setPool([]); setCibles([]); setAiSuggestions([])
+    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadge('')
     const dep = deployments.find(d => d.id === selectedDeploymentId) || null
     setSelectedDeployment(dep)
     if (dep?.lieu) geocoderLieu(dep.lieu)
@@ -548,7 +474,7 @@ export default function CiblagePage() {
       {erreur && <div style={{ margin: '12px 24px', padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>⚠ {erreur}</div>}
 
       {estPret ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 360px', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 420px', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
 
           {/* ── COLONNE GAUCHE : Filtres ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
@@ -679,12 +605,14 @@ export default function CiblagePage() {
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '3px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: pref.bg, color: pref.color }}>{pref.label}</span>
-                        {getCompetencesBadges(c).map((b, i) => (
-                          <span key={i} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
+                        {filtreCompetences.map(f => (c as any)[f]?.length > 0 && (
+                          <span key={f} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#dbeafe', color: C }}>
+                            {COMPETENCES.find(x => x.field === f)?.label}
+                          </span>
                         ))}
-                        {(c.langues || []).filter((l: string) => l !== 'Français').map((l: string) => (
+                        {filtreLangues.filter(l => c.langues.includes(l)).map(l => (
                           <span key={l} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#f3e8ff', color: '#7c3aed' }}>{l}</span>
                         ))}
                       </div>
@@ -760,18 +688,33 @@ export default function CiblagePage() {
                 {cibles.length === 0 ? (
                   <div style={videStyle}>Aucun réserviste ciblé</div>
                 ) : cibles.map(cible => (
-                  <div key={cible.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 14px', borderBottom: '1px solid #f1f5f9', gap: '8px', backgroundColor: cible.statut === 'notifie' ? '#f0fdf4' : 'white' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span style={{ fontWeight: '500', fontSize: '13px' }}>{cible.reservistes.prenom} {cible.reservistes.nom}</span>
-                        {cible.ajoute_par_ia && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>IA</span>}
-                        {cible.statut === 'notifie' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: '700' }}>✓</span>}
+                  <div key={cible.id} style={{ padding: '8px 14px', borderBottom: '1px solid #f1f5f9', backgroundColor: cible.statut === 'notifie' ? '#f0fdf4' : 'white' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: '500', fontSize: '13px' }}>{cible.reservistes.prenom} {cible.reservistes.nom}</span>
+                          {cible.ajoute_par_ia && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>IA</span>}
+                          {cible.statut === 'notifie' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: '700' }}>✓</span>}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{cible.reservistes.ville}{cible.reservistes.ville && cible.reservistes.region ? ', ' : ''}{cible.reservistes.region}</div>
                       </div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8' }}>{cible.reservistes.ville}{cible.reservistes.ville && cible.reservistes.region ? ', ' : ''}{cible.reservistes.region}</div>
+                      {cible.statut !== 'notifie' && (
+                        <button onClick={() => retirer(cible)} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #fca5a5', backgroundColor: 'white', color: '#ef4444', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
+                      )}
                     </div>
-                    {cible.statut !== 'notifie' && (
-                      <button onClick={() => retirer(cible)} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #fca5a5', backgroundColor: 'white', color: '#ef4444', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
-                    )}
+                    {(() => {
+                      const candidat = pool.find(p => p.benevole_id === cible.benevole_id)
+                      if (!candidat) return null
+                      const badges = getCompetencesBadges(candidat)
+                      if (badges.length === 0) return null
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+                          {badges.map((b, i) => (
+                            <span key={i} style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
+                          ))}
+                        </div>
+                      )
+                    })()}
                   </div>
                 ))}
               </div>
