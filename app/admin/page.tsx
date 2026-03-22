@@ -59,30 +59,13 @@ export default function AdminDashboardPage() {
 
   const modules: Module[] = [
     {
-      titre: 'Sinistres',
-      description: 'Créer et gérer les sinistres, suivre les demandes d\'aide par organisme',
+      titre: 'Opérations',
+      description: 'Wizard guidé de mobilisation — sinistre, demandes, déploiement, ciblage, notifications, rotations',
       icone: '🚨',
-      href: '/admin/sinistres',
+      href: '/admin/operations',
       couleur: '#dc2626',
       statut: 'actif',
       badge: stats.sinistres_actifs || undefined,
-    },
-    {
-      titre: 'Déploiements',
-      description: 'Gérer les déploiements actifs, les vagues et les assignations',
-      icone: '🚁',
-      href: '/admin/deploiements',
-      couleur: '#2563eb',
-      statut: 'bientot',
-      badge: stats.deploiements_actifs || undefined,
-    },
-    {
-      titre: 'Ciblage',
-      description: 'Composer et valider les listes de réservistes ciblés avant envoi',
-      icone: '🎯',
-      href: '/admin/ciblage',
-      couleur: '#7c3aed',
-      statut: 'actif',
     },
     {
       titre: 'Validation certificats',
