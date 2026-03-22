@@ -341,6 +341,15 @@ export default function CiblagePage() {
     chargerPool(referenceId, dateDeb, dateFin, niveau)
   }, [referenceId, niveau, dateDeb])
 
+  // Géocoder automatiquement dès que le lieu du déploiement est connu
+  useEffect(() => {
+    const lieu = niveau === 'deploiement' ? selectedDeployment?.lieu : selectedVague ? selectedDeployment?.lieu : null
+    if (lieu) {
+      setDepCoords(null)
+      geocoderLieu(lieu)
+    }
+  }, [selectedDeployment?.lieu, niveau])
+
   // ── Actions ───────────────────────────────────────────────
   const ajouter = async (candidat: Candidat, parIA = false) => {
     if (ajoutEnCours.includes(candidat.benevole_id)) return
