@@ -12,7 +12,7 @@ interface Candidat {
   benevole_id: string; prenom: string; nom: string; telephone: string
   region: string; ville: string; preference_tache: string
   deployable: boolean; en_deploiement_actif: boolean
-  rotations_consecutives: number; repos_requis_jusqu: striang | null
+  rotations_consecutives: number; repos_requis_jusqu: string | null
   raison_alerte: string | null; deja_cible: boolean
   latitude: number | null; longitude: number | null
   competence_rs: string[]; certificat_premiers_soins: string[]
