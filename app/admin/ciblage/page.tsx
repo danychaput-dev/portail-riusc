@@ -151,6 +151,65 @@ function formatDate(d?: string | null) {
   return new Date(d).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' })
 }
 
+// Extrait toutes les compétences actives d'un candidat sous forme de labels courts
+function getCompetencesBadges(c: any): { label: string; color: string; bg: string }[] {
+  const badges: { label: string; color: string; bg: string }[] = []
+  const add = (label: string, color: string, bg: string) => badges.push({ label, color, bg })
+
+  if (c.competence_rs?.length > 0) {
+    const max = c.competence_rs.reduce((a: string, b: string) => {
+      const niv = (s: string) => s.includes('3') ? 3 : s.includes('2') ? 2 : 1
+      return niv(b) > niv(a) ? b : a
+    }, c.competence_rs[0])
+    add(max.includes('3') ? 'RS Niv.3' : max.includes('2') ? 'RS Niv.2' : 'RS Niv.1', '#0f6e56', '#e1f5ee')
+  }
+  if (c.certificat_premiers_soins?.length > 0) {
+    const best = c.certificat_premiers_soins.reduce((a: string, b: string) => {
+      const ord = (s: string) => ['e)','d)','c)','b)','a)'].findIndex(x => s.startsWith(x))
+      return ord(b) < ord(a) ? b : a
+    }, c.certificat_premiers_soins[0])
+    const lbl = best.startsWith('e)') ? 'Premier répondant' : best.startsWith('d)') ? 'Secourisme éloigné' :
+                best.startsWith('c)') ? 'Secourisme travail' : best.startsWith('b)') ? 'Premiers soins std' : 'RCR/DEA'
+    add(lbl, '#185fa5', '#e6f1fb')
+  }
+  if (c.vehicule_tout_terrain?.length > 0) add('VTT/Moto-neige', '#854f0b', '#faeeda')
+  if (c.navire_marin?.length > 0) add('Navire/Marin', '#185fa5', '#e6f1fb')
+  const permisSpec = (c.permis_conduire || []).filter((p: string) => /Classe [1-4]/.test(p))
+  if (permisSpec.length > 0) {
+    const cls = permisSpec.sort()[0].match(/Classe (\w+)/)?.[1] || ''
+    add(`Permis Cl.${cls}`, '#3b6d11', '#eaf3de')
+  }
+  if (c.satp_drone?.length > 0) {
+    const hasLicence = c.satp_drone.some((d: string) => d.includes('Transport Canada') || d.includes('SATP'))
+    add(hasLicence ? 'Drone certifié' : 'Drone <250g', '#534ab7', '#eeedfe')
+  }
+  if (c.equipe_canine?.length > 0) add('Équipe canine', '#993c1d', '#faece7')
+  if (c.competences_sauvetage?.length > 0) {
+    const types = [...new Set(c.competences_sauvetage.map((s: string) =>
+      s.includes('eau') ? 'Eau vive' : s.includes('glace') ? 'Glace' : s.includes('corde') ? 'Corde' : 'Hauteur'
+    ))]
+    types.forEach((t: any) => add(`Sauvetage ${t}`, '#3b6d11', '#eaf3de'))
+  }
+  if (c.competences_securite?.length > 0) {
+    if (c.competences_securite.some((s: string) => s.includes('chaîne') || s.includes('chaine'))) add('Scie chaîne', '#993c1d', '#faece7')
+    if (c.competences_securite.some((s: string) => s.includes('circulation'))) add('Contrôle circulation', '#854f0b', '#faeeda')
+    if (c.competences_securite.some((s: string) => s.includes('CNESST'))) add('CNESST formateur', '#5f5e5a', '#f1efe8')
+  }
+  if (c.communication?.length > 0) {
+    if (c.communication.some((s: string) => s.toLowerCase().includes('radio amateur'))) add('Radio amateur', '#534ab7', '#eeedfe')
+    if (c.communication.some((s: string) => s.includes('VHF'))) add('Radio VHF', '#534ab7', '#eeedfe')
+    if (c.communication.some((s: string) => s.includes('satellite'))) add('Tél. satellite', '#534ab7', '#eeedfe')
+  }
+  if (c.cartographie_sig?.length > 0) {
+    if (c.cartographie_sig.some((s: string) => s.includes('ArcGIS'))) add('ArcGIS', '#0f6e56', '#e1f5ee')
+    else if (c.cartographie_sig.some((s: string) => s.includes('SIG'))) add('SIG', '#0f6e56', '#e1f5ee')
+    else if (c.cartographie_sig.some((s: string) => s.includes('GPS'))) add('GPS', '#0f6e56', '#e1f5ee')
+    else add('Cartographie', '#0f6e56', '#e1f5ee')
+  }
+  if (c.operation_urgence?.length > 0) add('Exp. urgence', '#5f5e5a', '#f1efe8')
+  return badges
+}
+
 function badgePref(p: string) {
   if (p === 'terrain')   return { label: 'Terrain',   bg: '#e8f0f8', color: C }
   if (p === 'sinistres') return { label: 'Sinistrés', bg: '#f3e8ff', color: '#7c3aed' }
@@ -256,6 +315,10 @@ export default function CiblagePage() {
       const hasAll = filtreLangues.every(l => c.langues.includes(l))
       if (!hasAll) return false
     }
+    if (filtreBadge) {
+      const badges = getCompetencesBadges(c).map(b => b.label)
+      if (!badges.includes(filtreBadge)) return false
+    }
     if (recherche) {
       const q = recherche.toLowerCase()
       if (!`${c.prenom} ${c.nom}`.toLowerCase().includes(q) &&
@@ -274,6 +337,33 @@ export default function CiblagePage() {
     if (a.deployable !== b.deployable) return a.deployable ? -1 : 1
     return `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`)
   })
+
+  // Badges présents dans le pool (sans le filtre badge) pour la barre de pastilles
+  const poolPourBadges = poolNonCible.filter(c => {
+    if (filtrePreference && c.preference_tache !== filtrePreference && c.preference_tache !== 'aucune') return false
+    if (filtreCompetences.length > 0) {
+      for (const f of filtreCompetences) {
+        const vals: string[] = (c as any)[f] || []
+        if (vals.length === 0) return false
+        const sub = filtreSubComp[f] || ''
+        if (f === 'certificat_premiers_soins') {
+          if (c.date_expiration_certificat && dateDeb) {
+            if (c.date_expiration_certificat < dateDeb) return false
+          }
+          if (sub && !vals.some((v: string) => v.startsWith(sub))) return false
+        } else if (sub) {
+          if (!vals.some((v: string) => v.toLowerCase().includes(sub.toLowerCase()))) return false
+        }
+      }
+    }
+    if (filtreLangues.length > 0) {
+      if (!filtreLangues.every(l => (c.langues || []).includes(l))) return false
+    }
+    return true
+  })
+  const badgesDisponibles = Array.from(new Set(
+    poolPourBadges.flatMap(c => getCompetencesBadges(c).map(b => b.label))
+  )).sort()
 
   const aiEnrichies = aiSuggestions
     .map(s => ({ ...s, candidat: poolAvecDistance.find(c => c.benevole_id === s.benevole_id) }))
@@ -571,12 +661,32 @@ export default function CiblagePage() {
           {/* ── COLONNE CENTRE : Pool ── */}
           <div style={{ ...carteStyle, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: badgesDisponibles.length > 0 ? '8px' : 0 }}>
                 <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: C }}>Pool de candidats</h2>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
                   {loadingPool ? 'Chargement...' : `${poolFiltre.filter(c => c.deployable).length} déployables / ${poolFiltre.length} affichés`}
                 </span>
               </div>
+              {badgesDisponibles.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {filtreBadge && (
+                    <button onClick={() => setFiltreBadge('')} style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+                      border: '1px solid #ef4444', backgroundColor: '#fef2f2',
+                      color: '#dc2626', cursor: 'pointer', fontWeight: '600'
+                    }}>✕ Effacer</button>
+                  )}
+                  {badgesDisponibles.map(label => (
+                    <button key={label} onClick={() => setFiltreBadge(filtreBadge === label ? '' : label)} style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '8px',
+                      border: `1px solid ${filtreBadge === label ? C : '#d1d5db'}`,
+                      backgroundColor: filtreBadge === label ? C : 'white',
+                      color: filtreBadge === label ? 'white' : '#374151',
+                      cursor: 'pointer', fontWeight: filtreBadge === label ? '600' : '400'
+                    }}>{label}</button>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ overflowY: 'auto', flex: 1 }}>
               {loadingPool ? (
@@ -606,14 +716,12 @@ export default function CiblagePage() {
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '4px', marginTop: '3px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '3px', marginTop: '4px', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: pref.bg, color: pref.color }}>{pref.label}</span>
-                        {filtreCompetences.map(f => (c as any)[f]?.length > 0 && (
-                          <span key={f} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#dbeafe', color: C }}>
-                            {COMPETENCES.find(x => x.field === f)?.label}
-                          </span>
+                        {getCompetencesBadges(c).map((b, i) => (
+                          <span key={i} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
                         ))}
-                        {filtreLangues.filter(l => c.langues.includes(l)).map(l => (
+                        {(c.langues || []).filter((l: string) => l !== 'Français').map((l: string) => (
                           <span key={l} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#f3e8ff', color: '#7c3aed' }}>{l}</span>
                         ))}
                       </div>
