@@ -565,7 +565,7 @@ export default function CiblagePage() {
 
       {/* Header */}
       <div style={{ backgroundColor: C, color: 'white', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', flexShrink: 0 }}>
-        <a href="/admin/operations" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '13px' }}>← Opérations</a>
+        <a href={`/admin/operations${selectedDeploymentId ? `?dep=${selectedDeploymentId}${selectedSinistreId ? `&sin=${selectedSinistreId}` : ''}` : ''}`} style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '13px' }}>← Opérations</a>
         <span style={{ color: 'rgba(255,255,255,0.3)' }}>/</span>
         <h1 style={{ margin: 0, fontSize: '17px', fontWeight: '600' }}>Ciblage des réservistes</h1>
       </div>

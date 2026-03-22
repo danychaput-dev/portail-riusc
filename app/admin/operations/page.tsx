@@ -426,6 +426,14 @@ export default function OperationsPage() {
       })
   }, [demIds.join(',')])
 
+  // Quand depId est restauré sans demIds (retour depuis ciblage),
+  // charger le déploiement directement pour que selDep soit défini
+  useEffect(() => {
+    if (!depId || deployments.some(d => d.id === depId)) return
+    supabase.from('deployments').select('*').eq('id', depId).single()
+      .then(({ data }) => { if (data) setDeployments([data]) })
+  }, [depId])
+
   useEffect(() => {
     if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
     supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
