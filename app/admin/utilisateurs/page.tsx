@@ -13,6 +13,7 @@ interface Utilisateur {
   nom: string
   email: string
   role: Role
+  niveau_ressource: 1 | 2 | 3
   saving?: boolean
 }
 
@@ -26,6 +27,69 @@ const ROLE_COLORS: Record<Role, { bg: string; border: string; text: string }> = 
   admin: { bg: '#fef2f2', border: '#fca5a5', text: '#dc2626' },
   coordonnateur: { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
   reserviste: { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
+}
+
+function NiveauSearch({ supabase, onMessage }: { supabase: any; onMessage: any }) {
+  const [recherche, setRecherche] = useState('')
+  const [resultats, setResultats] = useState<any[]>([])
+  const [enCours, setEnCours] = useState(false)
+
+  const chercher = async () => {
+    if (!recherche.trim()) return
+    setEnCours(true)
+    const { data } = await supabase
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, region, niveau_ressource')
+      .or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%`)
+      .limit(10)
+    setResultats(data || [])
+    setEnCours(false)
+  }
+
+  const changerNiveau = async (benevole_id: string, niveau: number) => {
+    await supabase.from('reservistes').update({ niveau_ressource: niveau }).eq('benevole_id', benevole_id)
+    setResultats(prev => prev.map(r => r.benevole_id === benevole_id ? { ...r, niveau_ressource: niveau } : r))
+    onMessage({ type: 'success', text: 'Niveau mis à jour' })
+    setTimeout(() => onMessage(null), 3000)
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        <input type="text" placeholder="Nom ou prénom du réserviste..." value={recherche}
+          onChange={e => setRecherche(e.target.value)} onKeyDown={e => e.key === 'Enter' && chercher()}
+          style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none' }} />
+        <button onClick={chercher} disabled={enCours}
+          style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+          {enCours ? '⏳' : '🔍 Chercher'}
+        </button>
+      </div>
+      {resultats.length > 0 && (
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+          {resultats.map(r => (
+            <div key={r.benevole_id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e3a5f' }}>{r.prenom} {r.nom}</div>
+                <div style={{ fontSize: '11px', color: '#6b7280' }}>{r.region}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '11px', color: '#6b7280', marginRight: '4px' }}>Niveau :</span>
+                {[1, 2, 3].map(n => (
+                  <button key={n} onClick={() => changerNiveau(r.benevole_id, n)} style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    border: `2px solid ${(r.niveau_ressource || 1) === n ? '#1e3a5f' : '#d1d5db'}`,
+                    backgroundColor: (r.niveau_ressource || 1) === n ? '#1e3a5f' : 'white',
+                    color: (r.niveau_ressource || 1) === n ? 'white' : '#6b7280',
+                    fontSize: '12px', fontWeight: '700', cursor: 'pointer'
+                  }}>{n}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function AdminUtilisateursPage() {
@@ -46,7 +110,7 @@ export default function AdminUtilisateursPage() {
 
       const { data } = await supabase
         .from('reservistes')
-        .select('benevole_id, prenom, nom, email, role')
+        .select('benevole_id, prenom, nom, email, role, niveau_ressource')
         .in('role', ['admin', 'coordonnateur'])
         .order('nom')
 
@@ -55,6 +119,21 @@ export default function AdminUtilisateursPage() {
     }
     init()
   }, [])
+
+  const changerNiveau = async (benevole_id: string, niveau: 1 | 2 | 3) => {
+    setUtilisateurs(prev => prev.map(u => u.benevole_id === benevole_id ? { ...u, saving: true } : u))
+    const { error } = await supabase
+      .from('reservistes')
+      .update({ niveau_ressource: niveau })
+      .eq('benevole_id', benevole_id)
+    if (error) {
+      setMessage({ type: 'error', text: 'Erreur lors de la mise à jour du niveau' })
+    } else {
+      setMessage({ type: 'success', text: 'Niveau mis à jour' })
+      setTimeout(() => setMessage(null), 3000)
+    }
+    setUtilisateurs(prev => prev.map(u => u.benevole_id === benevole_id ? { ...u, niveau_ressource: niveau, saving: false } : u))
+  }
 
   const changerRole = async (benevole_id: string, nouveauRole: Role) => {
     setUtilisateurs(prev => prev.map(u => u.benevole_id === benevole_id ? { ...u, saving: true } : u))
@@ -85,7 +164,7 @@ export default function AdminUtilisateursPage() {
     setRechercheEnCours(true)
     const { data } = await supabase
       .from('reservistes')
-      .select('benevole_id, prenom, nom, email, role')
+      .select('benevole_id, prenom, nom, email, role, niveau_ressource')
       .or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%`)
       .eq('role', 'reserviste')
       .limit(10)
@@ -164,21 +243,45 @@ export default function AdminUtilisateursPage() {
                   <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', backgroundColor: c.bg, border: `1px solid ${c.border}`, color: c.text, whiteSpace: 'nowrap' }}>
                     {ROLE_LABELS[u.role]}
                   </span>
-                  <select
-                    value={u.role}
-                    disabled={u.saving}
-                    onChange={e => changerRole(u.benevole_id, e.target.value as Role)}
-                    style={{ padding: '5px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer' }}
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="coordonnateur">Coordonnateur</option>
-                    <option value="reserviste">Réserviste (retirer)</option>
-                  </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                    <select
+                      value={u.role}
+                      disabled={u.saving}
+                      onChange={e => changerRole(u.benevole_id, e.target.value as Role)}
+                      style={{ padding: '5px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer' }}
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="coordonnateur">Coordonnateur</option>
+                      <option value="reserviste">Réserviste (retirer)</option>
+                    </select>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}>Niv.</span>
+                      {([1, 2, 3] as const).map(n => (
+                        <button key={n} onClick={() => changerNiveau(u.benevole_id, n)} style={{
+                          width: '24px', height: '24px', borderRadius: '50%', border: `2px solid ${(u.niveau_ressource || 1) === n ? '#1e3a5f' : '#d1d5db'}`,
+                          backgroundColor: (u.niveau_ressource || 1) === n ? '#1e3a5f' : 'white',
+                          color: (u.niveau_ressource || 1) === n ? 'white' : '#6b7280',
+                          fontSize: '11px', fontWeight: '700', cursor: 'pointer'
+                        }}>{n}</button>
+                      ))}
+                    </div>
+                  </div>
                   {u.saving && <span style={{ fontSize: '12px', color: '#9ca3af' }}>⏳</span>}
                 </div>
               )
             })
           )}
+        </div>
+
+        {/* Assigner niveau ressource */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '24px' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#1e3a5f' }}>Assigner un niveau ressource</h2>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#6b7280' }}>Niv. 1 = tous les réservistes · Niv. 2 = spécialités · Niv. 3 = chef d'équipe</p>
+          </div>
+          <div style={{ padding: '16px 20px' }}>
+            <NiveauSearch supabase={supabase} onMessage={setMessage} />
+          </div>
         </div>
 
         {/* Ajouter un rôle à un réserviste */}

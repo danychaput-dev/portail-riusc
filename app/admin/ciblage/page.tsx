@@ -22,6 +22,7 @@ interface Candidat {
   competences_securite: string[]; competences_sauvetage: string[]
   communication: string[]; cartographie_sig: string[]; operation_urgence: string[]
   langues: string[]
+  niveau_ressource: number
   distance_km?: number
 }
 
@@ -240,6 +241,7 @@ export default function CiblagePage() {
   const [geocoding,       setGeocoding]       = useState(false)
   const [trierDistance,   setTrierDistance]   = useState(false)
   const [trierBadges,     setTrierBadges]     = useState(false)
+  const [filtreNiveaux,   setFiltreNiveaux]   = useState<number[]>([1, 2, 3])
 
   // Filtres
   const [filtrePreference,  setFiltrePreference]  = useState('')
@@ -297,9 +299,12 @@ export default function CiblagePage() {
 
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
+    if (filtreNiveaux.length > 0 && filtreNiveaux.length < 3) {
+      if (!filtreNiveaux.includes(c.niveau_ressource || 1)) return false
+    }
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -349,9 +354,12 @@ export default function CiblagePage() {
 
   // Badges présents dans le pool (sans le filtre badge) pour la barre de pastilles
   const poolPourBadges = poolNonCible.filter(c => {
+    if (filtreNiveaux.length > 0 && filtreNiveaux.length < 3) {
+      if (!filtreNiveaux.includes(c.niveau_ressource || 1)) return false
+    }
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -434,7 +442,7 @@ export default function CiblagePage() {
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
-    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([]); setTrierDistance(false); setTrierBadges(false)
+    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([]); setTrierDistance(false); setTrierBadges(false); setFiltreNiveaux([1, 2, 3])
     const dep = deployments.find(d => d.id === selectedDeploymentId) || null
     setSelectedDeployment(dep)
     if (dep?.lieu) geocoderLieu(dep.lieu)
@@ -658,6 +666,18 @@ export default function CiblagePage() {
               ))}
             </div>
 
+            {/* Niveau ressource */}
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>NIVEAU RESSOURCE</div>
+              {[1, 2, 3].map(n => (
+                <label key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '4px' }}>
+                  <input type="checkbox" checked={filtreNiveaux.includes(n)}
+                    onChange={() => setFiltreNiveaux(p => p.includes(n) ? p.filter(x => x !== n) : [...p, n].sort())} />
+                  {n === 1 ? '⚪ Niveau 1 — Tous' : n === 2 ? '🔵 Niveau 2 — Spécialités' : '🔴 Niveau 3 — Chef d'équipe'}
+                </label>
+              ))}
+            </div>
+
             {/* Compétences */}
             <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -763,6 +783,13 @@ export default function CiblagePage() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '2px' }}>
                         <span style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{c.prenom} {c.nom}</span>
+                        {(c.niveau_ressource || 1) > 1 && (
+                          <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px',
+                            backgroundColor: (c.niveau_ressource || 1) === 3 ? '#fef2f2' : '#eff6ff',
+                            color: (c.niveau_ressource || 1) === 3 ? '#dc2626' : '#1d4ed8', fontWeight: '700' }}>
+                            Niv.{c.niveau_ressource}
+                          </span>
+                        )}
                         {c.en_deploiement_actif  && <span style={badge('#f59e0b')}>⚠ Déployé</span>}
                         {c.repos_requis_jusqu    && <span style={badge('#ef4444')}>⛔ Repos</span>}
                       </div>
