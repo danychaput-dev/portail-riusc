@@ -579,16 +579,16 @@ export default function CiblagePage() {
         <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 1fr', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
 
           {/* ── COLONNE GAUCHE : Filtres ── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0', overflowY: 'auto', backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
 
             {/* Recherche */}
-            <div style={carteStyle}>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
               <input type="text" placeholder="Filtrer par nom, ville, région..." value={recherche} onChange={e => setRecherche(e.target.value)}
                 style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' as const }} />
             </div>
 
             {/* Tri */}
-            <div style={carteStyle}>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>TRIER PAR</div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '6px' }}>
                 <input type="checkbox" checked={trierDistance} onChange={e => setTrierDistance(e.target.checked)} />
@@ -605,7 +605,7 @@ export default function CiblagePage() {
             </div>
 
             {/* Préférence */}
-            <div style={carteStyle}>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>PRÉFÉRENCE</div>
               {[{ val: '', label: 'Tous' }, { val: 'terrain', label: '🏔 Terrain' }, { val: 'sinistres', label: '🤝 Sinistrés' }].map(o => (
                 <label key={o.val} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '4px' }}>
@@ -616,7 +616,7 @@ export default function CiblagePage() {
             </div>
 
             {/* Compétences */}
-            <div style={carteStyle}>
+            <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.05em' }}>COMPÉTENCES</div>
                 {(filtreCompetences.length > 0) && <button onClick={() => { setFiltreCompetences([]); setFiltreSubComp({}) }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Effacer</button>}
@@ -633,7 +633,6 @@ export default function CiblagePage() {
                       }} />
                       {comp.label}
                     </label>
-                    {/* Sous-filtres dynamiques */}
                     {actif && SOUS_FILTRES[comp.field] && (
                       <div style={{ marginLeft: '20px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         {SOUS_FILTRES[comp.field].map(o => (
@@ -655,7 +654,7 @@ export default function CiblagePage() {
 
             {/* Langues */}
             {langues.length > 0 && (
-              <div style={carteStyle}>
+              <div style={{ padding: '10px 12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.05em' }}>LANGUES</div>
                   {filtreLangues.length > 0 && <button onClick={() => setFiltreLangues([])} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>Effacer</button>}
