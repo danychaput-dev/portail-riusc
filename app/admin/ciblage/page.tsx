@@ -1,7 +1,6 @@
-import React from 'react'
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 // ── Types ─────────────────────────────────────────────────────
 interface Sinistre  { id: string; nom: string; statut: string; lieu: string; date_debut: string }
@@ -413,7 +412,7 @@ export default function CiblagePage() {
     fetch('/api/admin/ciblage?action=langues').then(r => r.json()).then(d => setLangues(d || []))
   }, [])
 
-  const isFirstSinistreLoad = React.useRef(true)
+  const isFirstSinistreLoad = useRef(true)
 
   useEffect(() => {
     localStorage.setItem('ciblage_sinistre', selectedSinistreId)
