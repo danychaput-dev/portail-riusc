@@ -330,9 +330,10 @@ Réponds UNIQUEMENT en JSON valide, sans markdown ni explication, format exact :
       })
     })
 
-    if (!response.ok) {
-      return NextResponse.json({ error: 'Erreur API IA', suggestions: [] }, { status: 500 })
-    }
+   if (!response.ok) {
+  const errText = await response.text()
+  return NextResponse.json({ error: 'Erreur API IA', detail: errText, suggestions: [] }, { status: 500 })
+}
 
     const aiData = await response.json()
     const text = aiData.content?.[0]?.text || '{}'
