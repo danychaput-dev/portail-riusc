@@ -258,6 +258,7 @@ export default function CiblagePage() {
   const [loadingNotif,       setLoadingNotif]       = useState(false)
   const [ajoutEnCours,       setAjoutEnCours]       = useState<string[]>([])
   const [notifEnvoyees,      setNotifEnvoyees]      = useState(false)
+  const [aiCochees,          setAiCochees]          = useState<string[]>([])
   const [erreur,             setErreur]             = useState<string | null>(null)
 
   // ── Computed ──────────────────────────────────────────────
@@ -571,6 +572,19 @@ export default function CiblagePage() {
             </select>
           </div>
         )}
+        {estPret && (
+          <div style={{ marginLeft: 'auto' }}>
+            <button onClick={demanderAI} disabled={loadingAI || loadingPool} style={{
+              padding: '7px 16px', borderRadius: '6px', border: `2px solid ${C}`,
+              backgroundColor: 'white', color: C, fontSize: '13px', fontWeight: '600',
+              cursor: (loadingAI || loadingPool) ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              opacity: (loadingAI || loadingPool) ? 0.7 : 1
+            }}>
+              {loadingAI ? '⟳ Analyse en cours…' : '✦ Compléter avec l\'IA'}
+            </button>
+          </div>
+        )}
       </div>
 
       {erreur && <div style={{ margin: '12px 24px', padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>⚠ {erreur}</div>}
@@ -758,54 +772,87 @@ export default function CiblagePage() {
           {/* ── COLONNE DROITE : IA + Ciblés ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
 
-            {/* Bouton IA en haut */}
-            <button onClick={demanderAI} disabled={loadingAI || loadingPool} style={{
-              padding: '11px', borderRadius: '8px', border: `2px solid ${C}`,
-              backgroundColor: 'white', color: C, fontSize: '14px', fontWeight: '600',
-              cursor: (loadingAI || loadingPool) ? 'wait' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              opacity: (loadingAI || loadingPool) ? 0.7 : 1
-            }}>
-              {loadingAI ? '⟳ Analyse en cours…' : '✦ Compléter avec l\'IA'}
-            </button>
-
             {/* Suggestions IA */}
-            {aiEnrichies.length > 0 && (
-              <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', overflow: 'hidden' }}>
-                <div style={{ padding: '9px 14px', borderBottom: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: '600', fontSize: '13px', color: '#15803d' }}>✦ Suggestions IA ({aiEnrichies.length})</span>
-                  <button onClick={toutAjouterIA} style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white', color: '#16a34a', cursor: 'pointer', fontWeight: '600' }}>Tout ajouter</button>
-                </div>
-                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {aiEnrichies.map(s => {
-                    const badgesIA = s.candidat ? getCompetencesBadges(s.candidat) : []
-                    const distIA = s.candidat?.distance_km
-                    return (
-                      <div key={s.benevole_id} style={{ padding: '8px 14px', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: '500', fontSize: '13px' }}>{s.candidat?.prenom} {s.candidat?.nom}</span>
-                            {depCoords && distIA !== undefined && (
-                              <span style={{ fontSize: '10px', fontWeight: '600', color: distIA < 50 ? '#22c55e' : distIA < 150 ? '#f59e0b' : '#94a3b8' }}>📍 {distIA} km</span>
+            {aiEnrichies.length > 0 && (() => {
+              const badgesIA_dispo = Array.from(new Set(
+                aiEnrichies.flatMap(s => s.candidat ? getCompetencesBadges(s.candidat).map(b => b.label) : [])
+              )).sort() as string[]
+              const aiFiltrees = aiEnrichies.filter(s => {
+                if (filtreBadges.length === 0) return true
+                const bl = s.candidat ? getCompetencesBadges(s.candidat).map(b => b.label) : []
+                return filtreBadges.every(fb => bl.includes(fb))
+              })
+              const toutCoches = aiCochees.length === aiFiltrees.length && aiFiltrees.length > 0
+              return (
+                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #bbf7d0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: badgesIA_dispo.length > 0 ? '6px' : 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input type="checkbox" checked={toutCoches} onChange={() => setAiCochees(toutCoches ? [] : aiFiltrees.map(s => s.benevole_id))} />
+                        <span style={{ fontWeight: '600', fontSize: '13px', color: '#15803d' }}>✦ Suggestions IA ({aiFiltrees.length})</span>
+                      </div>
+                      <button onClick={async () => {
+                        const aAjouter = aiCochees.length > 0
+                          ? aiEnrichies.filter(s => aiCochees.includes(s.benevole_id))
+                          : aiFiltrees
+                        for (const s of aAjouter) { if (s.candidat) await ajouter(s.candidat, true) }
+                        setAiCochees([])
+                      }} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: 'white', color: '#16a34a', cursor: 'pointer', fontWeight: '600' }}>
+                        {aiCochees.length > 0 ? `Ajouter (${aiCochees.length})` : 'Tout ajouter'}
+                      </button>
+                    </div>
+                    {badgesIA_dispo.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                        {filtreBadges.length > 0 && (
+                          <button onClick={() => setFiltreBadges([])} style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '8px', border: '1px solid #ef4444', backgroundColor: '#fef2f2', color: '#dc2626', cursor: 'pointer' }}>✕</button>
+                        )}
+                        {badgesIA_dispo.map((label: string) => {
+                          const actif = filtreBadges.includes(label)
+                          return (
+                            <button key={label} onClick={() => setFiltreBadges(p => actif ? p.filter(x => x !== label) : [...p, label])} style={{
+                              fontSize: '9px', padding: '1px 6px', borderRadius: '8px',
+                              border: `1px solid ${actif ? C : '#d1d5db'}`,
+                              backgroundColor: actif ? C : 'white',
+                              color: actif ? 'white' : '#374151', cursor: 'pointer'
+                            }}>{label}</button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                    {aiFiltrees.map(s => {
+                      const badgesS = s.candidat ? getCompetencesBadges(s.candidat) : []
+                      const distS = s.candidat?.distance_km
+                      const cochee = aiCochees.includes(s.benevole_id)
+                      return (
+                        <div key={s.benevole_id} onClick={() => setAiCochees(p => cochee ? p.filter(x => x !== s.benevole_id) : [...p, s.benevole_id])}
+                          style={{ padding: '7px 12px', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', backgroundColor: cochee ? '#dcfce7' : 'transparent' }}>
+                          <input type="checkbox" checked={cochee} onChange={() => {}} style={{ marginTop: '3px', flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: '500', fontSize: '12px' }}>{s.candidat?.prenom} {s.candidat?.nom}</span>
+                              {depCoords && distS !== undefined && (
+                                <span style={{ fontSize: '10px', fontWeight: '600', color: distS < 50 ? '#22c55e' : distS < 150 ? '#f59e0b' : '#94a3b8' }}>📍 {distS} km</span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#64748b' }}>{s.candidat?.ville}{s.candidat?.ville && s.candidat?.region ? ', ' : ''}{s.candidat?.region}</div>
+                            <div style={{ fontSize: '10px', color: '#16a34a', fontStyle: 'italic' }}>{s.raison}</div>
+                            {badgesS.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', marginTop: '3px' }}>
+                                {badgesS.map((b, i) => (
+                                  <span key={i} style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
+                                ))}
+                              </div>
                             )}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{s.candidat?.ville}{s.candidat?.ville && s.candidat?.region ? ', ' : ''}{s.candidat?.region}</div>
-                          <div style={{ fontSize: '11px', color: '#16a34a', fontStyle: 'italic', marginTop: '2px' }}>{s.raison}</div>
-                          {badgesIA.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
-                              {badgesIA.map((b, i) => (
-                                <span key={i} style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                        <button onClick={() => s.candidat && ajouter(s.candidat, true)} style={{ fontSize: '12px', padding: '3px 9px', borderRadius: '6px', border: 'none', backgroundColor: '#16a34a', color: 'white', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0, marginTop: '2px' }}>+ Ajouter</button>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* Carte ciblés */}
             <div style={{ ...carteStyle, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
