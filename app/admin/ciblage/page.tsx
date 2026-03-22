@@ -239,6 +239,7 @@ export default function CiblagePage() {
   const [depCoords,       setDepCoords]       = useState<{ lat: number; lon: number } | null>(null)
   const [geocoding,       setGeocoding]       = useState(false)
   const [trierDistance,   setTrierDistance]   = useState(false)
+  const [triMode,         setTriMode]         = useState<'defaut'|'distance'|'badges'>('defaut')
 
   // Filtres
   const [filtrePreference,  setFiltrePreference]  = useState('')
@@ -296,8 +297,9 @@ export default function CiblagePage() {
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+      // strict: terrain = uniquement terrain, sinistres = uniquement sinistres
+      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -330,22 +332,28 @@ export default function CiblagePage() {
     }
     return true
   }).sort((a, b) => {
-    if (trierDistance) {
+    // Toujours déployables en premier
+    if (a.deployable !== b.deployable) return a.deployable ? -1 : 1
+    if (triMode === 'distance') {
       const aHas = a.distance_km !== undefined
       const bHas = b.distance_km !== undefined
       if (aHas && bHas) return a.distance_km! - b.distance_km!
       if (aHas) return -1
       if (bHas) return 1
     }
-    if (a.deployable !== b.deployable) return a.deployable ? -1 : 1
+    if (triMode === 'badges') {
+      const aBadges = getCompetencesBadges(a).length
+      const bBadges = getCompetencesBadges(b).length
+      if (bBadges !== aBadges) return bBadges - aBadges
+    }
     return `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`)
   })
 
   // Badges présents dans le pool (sans le filtre badge) pour la barre de pastilles
   const poolPourBadges = poolNonCible.filter(c => {
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
+      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -582,17 +590,26 @@ export default function CiblagePage() {
                 style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' as const }} />
             </div>
 
-            {/* Proximité */}
+            {/* Tri */}
             <div style={carteStyle}>
-              <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>PROXIMITÉ</div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px' }}>
-                <input type="checkbox" checked={trierDistance} onChange={e => setTrierDistance(e.target.checked)} />
-                Trier par distance
-              </label>
-              {trierDistance && (
-                <div style={{ marginTop: '6px', fontSize: '11px', color: geocoding ? '#f59e0b' : depCoords ? '#22c55e' : '#94a3b8' }}>
-                  {geocoding ? '⟳ Géolocalisation...' : depCoords ? `✓ Lieu géolocalisé` : '⚠ Lieu non trouvé'}
-                  {depCoords && <span style={{ display: 'block', color: '#94a3b8', marginTop: '2px' }}>Vol d'oiseau — tenir compte des traversées</span>}
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', letterSpacing: '0.05em' }}>TRIER PAR</div>
+              {[
+                { val: 'defaut', label: 'Défaut (déployables)' },
+                { val: 'distance', label: '📍 Proximité' },
+                { val: 'badges', label: '⭐ Plus de compétences' },
+              ].map(o => (
+                <label key={o.val} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '4px' }}>
+                  <input type="radio" name="tri" checked={triMode === o.val} onChange={() => {
+                    setTriMode(o.val as any)
+                    setTrierDistance(o.val === 'distance')
+                  }} />
+                  {o.label}
+                </label>
+              ))}
+              {triMode === 'distance' && (
+                <div style={{ marginTop: '4px', fontSize: '11px', color: geocoding ? '#f59e0b' : depCoords ? '#22c55e' : '#94a3b8' }}>
+                  {geocoding ? '⟳ Géolocalisation...' : depCoords ? '✓ Lieu géolocalisé' : '⚠ Lieu non trouvé'}
+                  {depCoords && <span style={{ display: 'block', color: '#94a3b8', marginTop: '2px' }}>Vol d'oiseau</span>}
                 </div>
               )}
             </div>
@@ -869,6 +886,6 @@ export default function CiblagePage() {
 // ── Styles partagés ────────────────────────────────────────
 const LS: React.CSSProperties = { display: 'block', fontSize: '11px', fontWeight: '600', color: '#64748b', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const SS: React.CSSProperties = { padding: '7px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', backgroundColor: 'white', color: '#1e293b' }
-const carteStyle: React.CSSProperties = { backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }
+const carteStyle: React.CSSProperties = { backgroundColor: 'white', borderRadius: '0px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', overflow: 'hidden' }
 const videStyle: React.CSSProperties = { padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }
 const badge = (color: string): React.CSSProperties => ({ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: `${color}20`, color, fontWeight: '600' })

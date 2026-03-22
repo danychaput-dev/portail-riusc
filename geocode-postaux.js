@@ -1,10 +1,5 @@
-// geocode-postaux.js
-// Géocode les réservistes avec code_postal mais sans latitude/longitude
+// geocode-postaux.js v2 — stratégie FSA + ville en fallback
 // Usage: node geocode-postaux.js
-//
-// Variables d'environnement requises:
-//   SUPABASE_URL=https://jtzwkmcfarxptpcoaxxl.supabase.co
-//   SUPABASE_SERVICE_ROLE_KEY=votre_cle
 
 const SUPABASE_URL = process.env.SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -20,111 +15,99 @@ const headers = {
   'Content-Type': 'application/json'
 }
 
-// Délai entre les requêtes (ms) — respecter les limites des APIs
-const DELAI_GEOCODERCA = 300
-const DELAI_NOMINATIM = 1100
+const DELAI = 1200 // 1.2s entre chaque requête Nominatim
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
-// Nettoyer le code postal — garder seulement les 3 premiers caractères (FSA)
-// ou le code complet formaté A1A 1A1
-function nettoyerCodePostal(cp) {
-  if (!cp) return null
+function extraireCodePostal(cp) {
+  if (!cp) return { fsa: null, complet: null }
   const clean = cp.replace(/\s+/g, '').toUpperCase()
-  if (clean.length < 3) return null
-  // Format: A1A1A1 → A1A 1A1
-  if (clean.length === 6) return `${clean.slice(0,3)} ${clean.slice(3)}`
-  if (clean.length === 7 && clean[3] === ' ') return clean
-  // FSA seulement (3 chars)
-  if (clean.length >= 3) return clean.slice(0, 3)
-  return null
+  if (clean.length < 3) return { fsa: null, complet: null }
+  const fsa = clean.slice(0, 3)
+  const complet = clean.length >= 6 ? `${clean.slice(0,3)} ${clean.slice(3,6)}` : null
+  return { fsa, complet }
 }
 
-// Géocodage via geocoder.ca
-async function geocoderCA(codePostal) {
-  try {
-    const cp = encodeURIComponent(codePostal)
-    const res = await fetch(`https://geocoder.ca/${cp}?json=1`, {
-      headers: { 'User-Agent': 'portail.riusc.ca (contact@aqbrs.ca)' }
-    })
-    const data = await res.json()
-    if (data?.latt && data?.longt) {
-      const lat = parseFloat(data.latt)
-      const lon = parseFloat(data.longt)
-      if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
-        return { lat, lon, source: 'geocoder.ca' }
-      }
-    }
-  } catch {}
-  return null
+// Valider coordonnées QC/Ontario est
+function coordsValides(lat, lon) {
+  if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) return false
+  if (Math.abs(lat - 49.00041490) < 0.001 && Math.abs(lon - (-112.78802660)) < 0.001) return false
+  if (lat < 44.5 || lat > 63.5) return false
+  if (lon < -80.5 || lon > -52.0) return false
+  return true
 }
 
-// Géocodage via Nominatim (fallback)
-async function nominatim(codePostal) {
+async function nominatim(query) {
   try {
-    const q = encodeURIComponent(`${codePostal}, Canada`)
+    const q = encodeURIComponent(query)
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=ca`,
-      {
-        headers: {
-          'User-Agent': 'portail.riusc.ca (contact@aqbrs.ca)',
-          'Accept-Language': 'fr'
-        }
-      }
+      { headers: { 'User-Agent': 'portail.riusc.ca (contact@aqbrs.ca)', 'Accept-Language': 'fr' } }
     )
     const data = await res.json()
-    if (data?.[0]?.lat && data?.[0]?.lon) {
+    if (data?.[0]) {
       const lat = parseFloat(data[0].lat)
       const lon = parseFloat(data[0].lon)
-      if (!isNaN(lat) && !isNaN(lon)) {
-        return { lat, lon, source: 'nominatim' }
-      }
+      if (coordsValides(lat, lon)) return { lat, lon }
     }
   } catch {}
+  return null
+}
+
+async function geocoder(r) {
+  const { fsa, complet } = extraireCodePostal(r.code_postal)
+
+  // Essai 1 — code postal complet
+  if (complet) {
+    const res = await nominatim(`${complet}, Quebec, Canada`)
+    await sleep(DELAI)
+    if (res) return { ...res, source: `code complet ${complet}` }
+  }
+
+  // Essai 2 — FSA seulement
+  if (fsa) {
+    const res = await nominatim(`${fsa}, Quebec, Canada`)
+    await sleep(DELAI)
+    if (res) return { ...res, source: `FSA ${fsa}` }
+  }
+
+  // Essai 3 — ville + province
+  if (r.ville && r.ville.trim()) {
+    const ville = r.ville.trim()
+    const res = await nominatim(`${ville}, Quebec, Canada`)
+    await sleep(DELAI)
+    if (res) return { ...res, source: `ville ${ville}` }
+  }
+
+  // Essai 4 — ville sans province (pour Hors Québec)
+  if (r.ville && r.ville.trim()) {
+    const res = await nominatim(`${r.ville.trim()}, Canada`)
+    await sleep(DELAI)
+    if (res) return { ...res, source: `ville Canada ${r.ville}` }
+  }
+
   return null
 }
 
 async function main() {
   console.log('Chargement des réservistes sans coordonnées...')
 
-  // Récupérer tous les réservistes avec code postal mais sans coords
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/reservistes?select=benevole_id,prenom,nom,code_postal&role=eq.reserviste&latitude=is.null&code_postal=not.is.null&code_postal=neq.`,
+    `${SUPABASE_URL}/rest/v1/reservistes?select=benevole_id,prenom,nom,code_postal,ville,region&role=eq.reserviste&latitude=is.null`,
     { headers }
   )
   const reservistes = await res.json()
+  console.log(`${reservistes.length} réservistes à géocoder\n`)
 
-  console.log(`${reservistes.length} réservistes à géocoder`)
-
-  let succes = 0
-  let echecs = 0
-  let dejaFait = 0
+  let succes = 0, echecs = 0
 
   for (let i = 0; i < reservistes.length; i++) {
     const r = reservistes[i]
-    const cp = nettoyerCodePostal(r.code_postal)
+    process.stdout.write(`[${i+1}/${reservistes.length}] ${r.prenom} ${r.nom} (${r.code_postal || 'N/A'}) → `)
 
-    if (!cp) {
-      echecs++
-      continue
-    }
-
-    process.stdout.write(`[${i+1}/${reservistes.length}] ${r.prenom} ${r.nom} (${cp}) → `)
-
-    // Essai 1: geocoder.ca
-    let coords = await geocoderCA(cp)
-    await sleep(DELAI_GEOCODERCA)
-
-    // Essai 2: Nominatim si geocoder.ca échoue
-    if (!coords) {
-      coords = await nominatim(cp)
-      await sleep(DELAI_NOMINATIM)
-    }
+    const coords = await geocoder(r)
 
     if (coords) {
-      // Mettre à jour Supabase
       const upd = await fetch(
         `${SUPABASE_URL}/rest/v1/reservistes?benevole_id=eq.${r.benevole_id}`,
         {
@@ -134,7 +117,7 @@ async function main() {
         }
       )
       if (upd.ok) {
-        console.log(`✓ ${coords.lat.toFixed(4)}, ${coords.lon.toFixed(4)} (${coords.source})`)
+        console.log(`✓ ${coords.lat.toFixed(4)}, ${coords.lon.toFixed(4)} [${coords.source}]`)
         succes++
       } else {
         console.log(`✗ Erreur DB`)
@@ -145,9 +128,8 @@ async function main() {
       echecs++
     }
 
-    // Pause toutes les 50 requêtes
     if ((i + 1) % 50 === 0) {
-      console.log(`\n--- Pause 5s (${i+1} traités) ---\n`)
+      console.log(`\n--- Pause 5s (${i+1} traités, ${succes} succès) ---\n`)
       await sleep(5000)
     }
   }
@@ -155,7 +137,6 @@ async function main() {
   console.log(`\n=== Terminé ===`)
   console.log(`✓ Succès : ${succes}`)
   console.log(`✗ Échecs : ${echecs}`)
-  console.log(`- Déjà fait : ${dejaFait}`)
 }
 
 main().catch(console.error)
