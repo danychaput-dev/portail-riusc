@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+export const dynamic = 'force-dynamic'
+
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 
@@ -279,7 +281,32 @@ function SelCard({ selected, onClick, children }: { selected:boolean; onClick:()
 
 export default function OperationsPage() {
   const supabase = createClient()
-  const router   = useRouter()
+  const router      = useRouter()
+  const searchParams = useSearchParams()
+  const pathname    = usePathname()
+  const isMounted   = useRef(false)
+
+  // ── Clé localStorage ──────────────────────────────────────────────────────
+  const LS_KEY = 'riusc_ops_context'
+
+  // ── Lire le contexte sauvegardé (URL prime sur localStorage) ─────────────
+  const readSavedContext = useCallback(() => {
+    const urlSin  = searchParams.get('sin')
+    const urlDep  = searchParams.get('dep')
+    const urlDems = searchParams.get('dems')
+    if (urlSin || urlDep || urlDems) {
+      return {
+        sinId:  urlSin  || null,
+        depId:  urlDep  || null,
+        demIds: urlDems ? urlDems.split(',').filter(Boolean) : [],
+      }
+    }
+    try {
+      const raw = localStorage.getItem(LS_KEY)
+      if (raw) return JSON.parse(raw) as { sinId: string|null; depId: string|null; demIds: string[] }
+    } catch {}
+    return null
+  }, [searchParams])
 
   // données
   const [sinistres,   setSinistres]   = useState<Sinistre[]>([])
@@ -290,12 +317,29 @@ export default function OperationsPage() {
   const [vagues,      setVagues]      = useState<Vague[]>([])
 
   // sélections
-  const [sinId,  setSinId]  = useState<string|null>(null)
-  const [demIds, setDemIds] = useState<string[]>([])
-  const [depId,  setDepId]  = useState<string|null>(null)
+  // ── Sélections (initialisées depuis URL / localStorage) ───────────────────
+  const [sinId,  setSinId]  = useState<string|null>(() => readSavedContext()?.sinId  ?? null)
+  const [demIds, setDemIds] = useState<string[]>  (() => readSavedContext()?.demIds ?? [])
+  const [depId,  setDepId]  = useState<string|null>(() => readSavedContext()?.depId  ?? null)
 
   const selSin = sinistres.find(s=>s.id===sinId)
   const selDep = deployments.find(d=>d.id===depId)
+
+  // ── Sync URL + localStorage à chaque changement de sélection ─────────────
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    // localStorage
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ sinId, depId, demIds }))
+    } catch {}
+    // URL params (remplace sans ajouter à l'historique)
+    const p = new URLSearchParams()
+    if (sinId)        p.set('sin',  sinId)
+    if (depId)        p.set('dep',  depId)
+    if (demIds.length) p.set('dems', demIds.join(','))
+    const qs = p.toString()
+    router.replace(`${pathname}${qs ? '?'+qs : ''}`, { scroll: false })
+  }, [sinId, depId, demIds.join(',')])
 
   // formulaires
   const [showFSin, setShowFSin] = useState(false)
