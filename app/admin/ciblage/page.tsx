@@ -239,7 +239,7 @@ export default function CiblagePage() {
   // Géolocalisation déploiement
   const [depCoords,       setDepCoords]       = useState<{ lat: number; lon: number } | null>(null)
   const [geocoding,       setGeocoding]       = useState(false)
-  const [trierDistance,   setTrierDistance]   = useState(false)
+  const [trierDistance,   setTrierDistance]   = useState(true)
   const [trierBadges,     setTrierBadges]     = useState(false)
   const [filtreNiveaux,   setFiltreNiveaux]   = useState<number[]>([1, 2, 3])
 
@@ -673,7 +673,7 @@ export default function CiblagePage() {
                 <label key={n} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', marginBottom: '4px' }}>
                   <input type="checkbox" checked={filtreNiveaux.includes(n)}
                     onChange={() => setFiltreNiveaux(p => p.includes(n) ? p.filter(x => x !== n) : [...p, n].sort())} />
-                  {n === 1 ? '⚪ Niveau 1 — Tous' : n === 2 ? '🔵 Niveau 2 — Spécialités' : '🔴 Niveau 3 — Chef d'équipe'}
+                  {n === 1 ? '⚪ Niveau 1 — Tous' : n === 2 ? '🔵 Niveau 2 — Spécialités' : '🔴 Niveau 3 — Chef d’équipe'}
                 </label>
               ))}
             </div>
