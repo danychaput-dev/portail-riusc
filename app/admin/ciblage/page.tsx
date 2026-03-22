@@ -576,7 +576,7 @@ export default function CiblagePage() {
       {erreur && <div style={{ margin: '12px 24px', padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>⚠ {erreur}</div>}
 
       {estPret ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 420px', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr 1fr', gap: '16px', padding: '16px 24px', flex: 1, minHeight: 0 }}>
 
           {/* ── COLONNE GAUCHE : Filtres ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
