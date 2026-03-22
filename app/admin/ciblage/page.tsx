@@ -917,9 +917,29 @@ export default function CiblagePage() {
               <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
                   <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: C }}>Réservistes ciblés</h2>
-                  <span style={{ fontSize: '24px', fontWeight: '700', color: couleurJauge, lineHeight: 1 }}>
-                    {cibles.length}<span style={{ fontSize: '13px', fontWeight: '400', color: '#94a3b8' }}> / {ratioMax}</span>
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {cibles.length > 0 && (
+                      <button
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('riusc_ops_step4_done', selectedDeploymentId)
+                          } catch {}
+                          const url = `/admin/operations?dep=${selectedDeploymentId}${selectedSinistreId ? `&sin=${selectedSinistreId}` : ''}`
+                          window.location.href = url
+                        }}
+                        style={{
+                          padding: '5px 12px', borderRadius: '6px', border: 'none',
+                          backgroundColor: dansLaFourchette ? '#065f46' : '#1e3a5f',
+                          color: 'white', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                        }}
+                      >
+                        ✓ Terminé → Opérations
+                      </button>
+                    )}
+                    <span style={{ fontSize: '24px', fontWeight: '700', color: couleurJauge, lineHeight: 1 }}>
+                      {cibles.length}<span style={{ fontSize: '13px', fontWeight: '400', color: '#94a3b8' }}> / {ratioMax}</span>
+                    </span>
+                  </div>
                 </div>
                 <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '5px' }}>
                   <div style={{ height: '100%', width: `${pct}%`, backgroundColor: couleurJauge, borderRadius: '3px', transition: 'width 0.4s' }} />

@@ -329,6 +329,11 @@ export default function OperationsPage() {
       if (ctx.depId)         setDepId(ctx.depId)
     }
     // Activer le sync seulement après la restauration
+    // Lire le flag step4 depuis ciblage
+    try {
+      const s4dep = localStorage.getItem('riusc_ops_step4_done')
+      if (s4dep && ctx?.depId && s4dep === ctx.depId) setStep4Override(true)
+    } catch {}
     setTimeout(() => { isMounted.current = true }, 0)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -361,7 +366,7 @@ export default function OperationsPage() {
   const [savDep, setSavDep] = useState(false)
 
   // wizard
-  const [step6Ok,       setStep6Ok]       = useState(false)
+  const [step4Override, setStep4Override] = useState(false)
   const [mobilSent,     setMobilSent]     = useState(false)
   const [msgNotif,      setMsgNotif]      = useState('')
   const [msgMobil,      setMsgMobil]      = useState('')
@@ -378,14 +383,14 @@ export default function OperationsPage() {
       case 1: return !!sinId
       case 2: return demIds.length > 0
       case 3: return !!depId
-      case 4: return ciblages.length > 0
+      case 4: return ciblages.length > 0 || step4Override
       case 5: return ciblages.some(c=>c.statut==='notifie')
       case 6: return step6Ok
       case 7: return vagues.length > 0
       case 8: return mobilSent
       default: return false
     }
-  }, [sinId, demIds, depId, ciblages, step6Ok, vagues, mobilSent])
+  }, [sinId, demIds, depId, ciblages, step4Override, step6Ok, vagues, mobilSent])
 
   const curStep = useMemo(() => {
     for (let i=1;i<=8;i++) if(!done(i)) return i
