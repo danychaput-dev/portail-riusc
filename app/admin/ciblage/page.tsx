@@ -187,6 +187,7 @@ export default function CiblagePage() {
   const [filtreLangues,     setFiltreLangues]     = useState<string[]>([])
   const [recherche,         setRecherche]         = useState('')
   const [filtreSubComp,     setFiltreSubComp]     = useState<Record<string,string>>({})
+  const [filtreBadge,       setFiltreBadge]       = useState<string>('')
 
   // Loading
   const [loadingSinistres,   setLoadingSinistres]   = useState(true)
