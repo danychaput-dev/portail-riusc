@@ -442,7 +442,7 @@ export default function CiblagePage() {
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
-    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([]); setTrierDistance(True); setTrierBadges(false); setFiltreNiveaux([1, 2, 3])
+    setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([]); setTrierDistance(true); setTrierBadges(false); setFiltreNiveaux([1, 2, 3])
     const dep = deployments.find(d => d.id === selectedDeploymentId) || null
     setSelectedDeployment(dep)
     if (dep?.lieu) geocoderLieu(dep.lieu)
