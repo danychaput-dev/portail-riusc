@@ -9,7 +9,6 @@ const supabaseAdmin = createClient(
 
 const ALLOWED_TABLES = ['sinistres', 'demandes', 'deployments', 'vagues']
 
-// Géocoder un lieu via Nominatim côté serveur
 async function geocoderLieu(lieu: string): Promise<{ lat: number; lon: number } | null> {
   if (!lieu?.trim()) return null
   try {
@@ -22,7 +21,6 @@ async function geocoderLieu(lieu: string): Promise<{ lat: number; lon: number } 
     if (data?.[0]) {
       const lat = parseFloat(data[0].lat)
       const lon = parseFloat(data[0].lon)
-      // Valider que c'est bien au QC/Ontario
       if (!isNaN(lat) && !isNaN(lon) && lat > 44 && lat < 64 && lon > -80 && lon < -57) {
         return { lat, lon }
       }
@@ -169,12 +167,11 @@ export async function POST(request: NextRequest) {
         .replace(/\s+/g, ' ').trim()
     }
 
-    // Géocoder le lieu pour un nouveau déploiement
     if (table === 'deployments' && finalPayload.lieu) {
       const coords = await geocoderLieu(finalPayload.lieu)
       if (coords) {
-        finalPayload.latitude_geocodee = coords.lat
-        finalPayload.longitude_geocodee = coords.lon
+        finalPayload.latitude = coords.lat
+        finalPayload.longitude = coords.lon
       }
     }
 
@@ -206,12 +203,11 @@ export async function PUT(request: NextRequest) {
 
     let updatePayload = { ...payload, updated_at: new Date().toISOString() }
 
-    // Géocoder le lieu si c'est un déploiement et que le lieu est présent
     if (table === 'deployments' && payload.lieu) {
       const coords = await geocoderLieu(payload.lieu)
       if (coords) {
-        updatePayload.latitude_geocodee = coords.lat
-        updatePayload.longitude_geocodee = coords.lon
+        updatePayload.latitude = coords.lat
+        updatePayload.longitude = coords.lon
       }
     }
 
