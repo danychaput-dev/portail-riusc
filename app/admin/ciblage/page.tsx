@@ -220,9 +220,9 @@ function badgePref(p: string) {
 export default function CiblagePage() {
   // Sélection
   const [sinistres,            setSinistres]            = useState<Sinistre[]>([])
-  const [selectedSinistreId,   setSelectedSinistreId]   = useState(() => typeof window !== 'undefined' ? localStorage.getItem('ciblage_sinistre') || '' : '')
+  const [selectedSinistreId,   setSelectedSinistreId]   = useState('')
   const [deployments,          setDeployments]          = useState<Deployment[]>([])
-  const [selectedDeploymentId, setSelectedDeploymentId] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('ciblage_deployment') || '' : '')
+  const [selectedDeploymentId, setSelectedDeploymentId] = useState('')
   const [selectedDeployment,   setSelectedDeployment]   = useState<Deployment | null>(null)
   const [niveau,               setNiveau]               = useState<'rotation'|'deploiement'>('deploiement')
   const [vagues,               setVagues]               = useState<Vague[]>([])
@@ -298,8 +298,8 @@ export default function CiblagePage() {
   // Filtres client-side
   const poolFiltre = poolNonCible.filter(c => {
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
+      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -350,8 +350,8 @@ export default function CiblagePage() {
   // Badges présents dans le pool (sans le filtre badge) pour la barre de pastilles
   const poolPourBadges = poolNonCible.filter(c => {
     if (filtrePreference) {
-      if (filtrePreference === 'terrain' && c.preference_tache !== 'terrain') return false
-      if (filtrePreference === 'sinistres' && c.preference_tache !== 'sinistres') return false
+      if (filtrePreference === 'terrain' && c.preference_tache === 'sinistres') return false
+      if (filtrePreference === 'sinistres' && c.preference_tache === 'terrain') return false
     }
     if (filtreCompetences.length > 0) {
       for (const f of filtreCompetences) {
@@ -404,26 +404,42 @@ export default function CiblagePage() {
     fetch('/api/admin/ciblage?action=langues').then(r => r.json()).then(d => setLangues(d || []))
   }, [])
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('ciblage_sinistre', selectedSinistreId)
-    if (!selectedSinistreId) return
-    setLoadingDeployments(true)
-    setSelectedDeploymentId(''); setSelectedDeployment(null)
-    setSelectedVagueId(''); setSelectedVague(null)
-    setPool([]); setCibles([]); setAiSuggestions([]); setDepCoords(null)
-    fetch(`/api/admin/ciblage?action=deployments&sinistre_id=${selectedSinistreId}`)
-      .then(r => r.json()).then(d => { setDeployments(d || []); setLoadingDeployments(false) })
-  }, [selectedSinistreId])
+  const savedDeploymentId = typeof window !== 'undefined' ? localStorage.getItem('ciblage_deployment') || '' : ''
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('ciblage_deployment', selectedDeploymentId)
+    if (!selectedSinistreId) return
+    setLoadingDeployments(true)
+    // Ne pas effacer le déploiement si c'est la restauration initiale depuis localStorage
+    if (deployments.length > 0) {
+      setSelectedDeploymentId(''); setSelectedDeployment(null)
+      setSelectedVagueId(''); setSelectedVague(null)
+      setPool([]); setCibles([]); setAiSuggestions([]); setDepCoords(null)
+    }
+    fetch(`/api/admin/ciblage?action=deployments&sinistre_id=${selectedSinistreId}`)
+      .then(r => r.json()).then(d => {
+        setDeployments(d || [])
+        setLoadingDeployments(false)
+      })
+  }, [selectedSinistreId])
+
+  // Restaurer selectedDeployment quand la liste deployments est chargée
+  useEffect(() => {
+    if (deployments.length > 0 && selectedDeploymentId && !selectedDeployment) {
+      const dep = deployments.find(d => d.id === selectedDeploymentId) || null
+      if (dep) {
+        setSelectedDeployment(dep)
+        if (dep?.lieu) geocoderLieu(dep.lieu)
+      }
+    }
+  }, [deployments, selectedDeploymentId])
+
+  useEffect(() => {
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
     setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([]); setTrierDistance(false); setTrierBadges(false)
     const dep = deployments.find(d => d.id === selectedDeploymentId) || null
-    setSelectedDeployment(dep)
-    if (dep?.lieu) geocoderLieu(dep.lieu)
+    if (dep) { setSelectedDeployment(dep); if (dep?.lieu) geocoderLieu(dep.lieu) }
     fetch(`/api/admin/ciblage?action=vagues&deployment_id=${selectedDeploymentId}`)
       .then(r => r.json()).then(d => { setVagues(d || []); setLoadingVagues(false) })
   }, [selectedDeploymentId])
