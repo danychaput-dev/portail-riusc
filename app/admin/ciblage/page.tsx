@@ -518,7 +518,12 @@ export default function CiblagePage() {
       : `Déploiement ${selectedDeployment?.identifiant} — ${selectedDeployment?.nom} — À partir du ${formatDate(dateDeb)}`
     const res = await fetch('/api/admin/ciblage', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'ai-suggestions', pool: poolNonCible.slice(0, 100), cibles_actuels: cibles.map(c => c.benevole_id), nb_cible: ratioMax, context: contexte })
+      body: JSON.stringify({ action: 'ai-suggestions', pool: [...poolNonCible].sort((a, b) => {
+          if (a.deployable !== b.deployable) return a.deployable ? -1 : 1
+          const aD = a.distance_km ?? 99999
+          const bD = b.distance_km ?? 99999
+          return aD - bD
+        }).slice(0, 100), cibles_actuels: cibles.map(c => c.benevole_id), nb_cible: ratioMax, context: contexte })
     })
     const data = await res.json()
     setAiSuggestions(data.suggestions || [])
