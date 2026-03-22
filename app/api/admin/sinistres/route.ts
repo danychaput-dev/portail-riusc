@@ -1,316 +1,250 @@
-// app/api/admin/ciblage/route.ts
-import { createClient } from '@supabase/supabase-js'
+// app/api/admin/sinistres/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-async function verifierRole() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (name: string) => cookieStore.get(name)?.value } }
-  )
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: reserviste } = await supabaseAdmin
-    .from('reservistes')
-    .select('benevole_id, role')
-    .eq('user_id', user.id)
-    .single()
-  if (!reserviste || !['admin', 'coordonnateur'].includes(reserviste.role)) return null
-  return reserviste
-}
+const ALLOWED_TABLES = ['sinistres', 'demandes', 'deployments', 'vagues']
 
-export async function GET(req: NextRequest) {
-  const user = await verifierRole()
-  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-
-  const { searchParams } = new URL(req.url)
-  const action = searchParams.get('action')
-
-  // --- Sinistres actifs ou en veille ---
-  if (action === 'sinistres') {
-    const { data, error } = await supabaseAdmin
-      .from('sinistres')
-      .select('id, nom, statut, type_incident, lieu, date_debut')
-      .in('statut', ['Actif', 'En veille'])
-      .order('date_debut', { ascending: false })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
-  }
-
-  // --- Déploiements d'un sinistre ---
-  if (action === 'deployments') {
-    const sinistre_id = searchParams.get('sinistre_id')
-    if (!sinistre_id) return NextResponse.json({ error: 'sinistre_id manquant' }, { status: 400 })
-    const { data: demandes } = await supabaseAdmin
-      .from('demandes').select('id').eq('sinistre_id', sinistre_id)
-    if (!demandes || demandes.length === 0) return NextResponse.json([])
-    const demandeIds = demandes.map((d: any) => d.id)
-    const { data: links } = await supabaseAdmin
-      .from('deployments_demandes').select('deployment_id').in('demande_id', demandeIds)
-    if (!links || links.length === 0) return NextResponse.json([])
-    const deploymentIds = [...new Set(links.map((l: any) => l.deployment_id))]
-    const { data, error } = await supabaseAdmin
-      .from('deployments')
-      .select('id, identifiant, nom, statut, nb_personnes_par_vague, date_debut, date_fin, lieu')
-      .in('id', deploymentIds)
-      .not('statut', 'in', '("Complété","Annulé")')
-      .order('identifiant')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
-  }
-
-  // --- Rotations d'un déploiement ---
-  if (action === 'vagues') {
-    const deployment_id = searchParams.get('deployment_id')
-    if (!deployment_id) return NextResponse.json({ error: 'deployment_id manquant' }, { status: 400 })
-    const { data, error } = await supabaseAdmin
-      .from('vagues')
-      .select('id, identifiant, numero, date_debut, date_fin, nb_personnes_requis, statut')
-      .eq('deployment_id', deployment_id)
-      .not('statut', 'in', '("Complété","Annulé")')
-      .order('numero')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
-  }
-
-  // --- Pool de candidats ---
-  if (action === 'pool') {
-    const niveau       = searchParams.get('niveau')
-    const reference_id = searchParams.get('reference_id')
-    const date_debut   = searchParams.get('date_debut')
-    const date_fin     = searchParams.get('date_fin')
-    if (!niveau || !reference_id || !date_debut || !date_fin) {
-      return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
-    }
-
-    // 1. Pool de base via RPC
-    const { data: pool, error } = await supabaseAdmin.rpc('get_pool_ciblage', {
-      p_niveau:       niveau,
-      p_reference_id: reference_id,
-      p_date_debut:   date_debut,
-      p_date_fin:     date_fin,
-      p_regions:      null,
-      p_preference:   null
-    })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!pool || pool.length === 0) return NextResponse.json([])
-
-    const benevoleIds = pool.map((c: any) => c.benevole_id)
-
-    // 2. Compétences + coordonnées
-    const { data: competences } = await supabaseAdmin
-      .from('reservistes')
-      .select(`
-        benevole_id, latitude, longitude,
-        competence_rs, certificat_premiers_soins, vehicule_tout_terrain,
-        navire_marin, permis_conduire, satp_drone, equipe_canine,
-        competences_securite, competences_sauvetage, communication,
-        cartographie_sig, operation_urgence
-      `)
-      .in('benevole_id', benevoleIds)
-
-    const compMap = Object.fromEntries(
-      (competences || []).map((c: any) => [c.benevole_id, c])
+// Géocoder un lieu via Nominatim côté serveur
+async function geocoderLieu(lieu: string): Promise<{ lat: number; lon: number } | null> {
+  if (!lieu?.trim()) return null
+  try {
+    const q = encodeURIComponent(`${lieu}, Québec, Canada`)
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+      { headers: { 'User-Agent': 'portail.riusc.ca (contact@aqbrs.ca)', 'Accept-Language': 'fr' } }
     )
-
-    // 3. Langues
-    const { data: languesData } = await supabaseAdmin
-      .from('reserviste_langues')
-      .select('benevole_id, langues(id, nom)')
-      .in('benevole_id', benevoleIds)
-
-    const languesMap: Record<string, string[]> = {}
-    ;(languesData || []).forEach((l: any) => {
-      if (!languesMap[l.benevole_id]) languesMap[l.benevole_id] = []
-      if (l.langues?.nom) languesMap[l.benevole_id].push(l.langues.nom)
-    })
-
-    // 4. Merge
-    const result = pool.map((c: any) => ({
-      ...c,
-      latitude:              compMap[c.benevole_id]?.latitude || null,
-      longitude:             compMap[c.benevole_id]?.longitude || null,
-      competence_rs:         compMap[c.benevole_id]?.competence_rs || [],
-      certificat_premiers_soins: compMap[c.benevole_id]?.certificat_premiers_soins || [],
-      vehicule_tout_terrain: compMap[c.benevole_id]?.vehicule_tout_terrain || [],
-      navire_marin:          compMap[c.benevole_id]?.navire_marin || [],
-      permis_conduire:       compMap[c.benevole_id]?.permis_conduire || [],
-      satp_drone:            compMap[c.benevole_id]?.satp_drone || [],
-      equipe_canine:         compMap[c.benevole_id]?.equipe_canine || [],
-      competences_securite:  compMap[c.benevole_id]?.competences_securite || [],
-      competences_sauvetage: compMap[c.benevole_id]?.competences_sauvetage || [],
-      communication:         compMap[c.benevole_id]?.communication || [],
-      cartographie_sig:      compMap[c.benevole_id]?.cartographie_sig || [],
-      operation_urgence:     compMap[c.benevole_id]?.operation_urgence || [],
-      langues:               languesMap[c.benevole_id] || []
-    }))
-
-    return NextResponse.json(result)
-  }
-
-  // --- Ciblés actuels ---
-  if (action === 'ciblages') {
-    const reference_id = searchParams.get('reference_id')
-    if (!reference_id) return NextResponse.json({ error: 'reference_id manquant' }, { status: 400 })
-    const { data, error } = await supabaseAdmin
-      .from('ciblages')
-      .select('id, benevole_id, niveau, reference_id, statut, ajoute_par_ia, created_at')
-      .eq('reference_id', reference_id)
-      .neq('statut', 'retire')
-      .order('created_at')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    if (!data || data.length === 0) return NextResponse.json([])
-
-    const benevoleIds = data.map((c: any) => c.benevole_id)
-    const { data: reservistes } = await supabaseAdmin
-      .from('reservistes')
-      .select('benevole_id, prenom, nom, telephone, region, ville, preference_tache')
-      .in('benevole_id', benevoleIds)
-    const resMap = Object.fromEntries((reservistes || []).map((r: any) => [r.benevole_id, r]))
-    const enriched = data.map((c: any) => ({
-      ...c,
-      reservistes: resMap[c.benevole_id] || { prenom: '?', nom: '?', telephone: '', region: '', ville: '', preference_tache: '' }
-    }))
-    return NextResponse.json(enriched)
-  }
-
-  // --- Langues disponibles ---
-  if (action === 'langues') {
-    const { data, error } = await supabaseAdmin
-      .from('langues').select('id, nom').order('nom')
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data || [])
-  }
-
-  return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })
+    const data = await res.json()
+    if (data?.[0]) {
+      const lat = parseFloat(data[0].lat)
+      const lon = parseFloat(data[0].lon)
+      // Valider que c'est bien au QC/Ontario
+      if (!isNaN(lat) && !isNaN(lon) && lat > 44 && lat < 64 && lon > -80 && lon < -57) {
+        return { lat, lon }
+      }
+    }
+  } catch {}
+  return null
 }
 
-export async function POST(req: NextRequest) {
-  const user = await verifierRole()
-  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+async function verifierAcces(benevole_id: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from('reservistes').select('role').eq('benevole_id', benevole_id).single()
+  return data?.role === 'admin' || data?.role === 'coordonnateur'
+}
 
-  const body = await req.json()
-  const { action } = body
+async function nextVal(seq: string): Promise<number> {
+  const { data } = await supabaseAdmin.rpc('nextval_seq', { seq_name: seq })
+  if (data) return data
+  // Fallback si la RPC n'existe pas — utiliser SQL direct
+  const { data: d2 } = await supabaseAdmin
+    .from('_sequences_dummy').select('*').limit(0) // ne retourne rien, juste pour avoir le client
+  const res = await supabaseAdmin.rpc('execute_sql', { query: `SELECT nextval('${seq}')` }).single()
+  return 1
+}
 
-  if (action === 'ajouter') {
-    const { niveau, reference_id, benevole_id, ajoute_par_ia } = body
-    const { data, error } = await supabaseAdmin
-      .from('ciblages')
-      .insert({
-        niveau, reference_id, benevole_id,
-        ajoute_par: user.benevole_id,
-        ajoute_par_ia: ajoute_par_ia || false,
-        statut: 'cible'
-      })
-      .select('id, benevole_id, niveau, reference_id, statut, ajoute_par_ia')
-      .single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json(data)
-  }
+async function nextValDirect(seq: string): Promise<number> {
+  const { data, error } = await (supabaseAdmin as any)
+    .from('vagues').select('id').limit(0) // trigger connection
+  // Use raw SQL via Supabase
+  const result = await supabaseAdmin
+    .rpc('get_next_seq', { sequence_name: seq })
+  return result.data || 1
+}
 
-  if (action === 'retirer') {
-    const { ciblage_id } = body
-    const { error } = await supabaseAdmin
-      .from('ciblages')
-      .update({ statut: 'retire', updated_at: new Date().toISOString() })
-      .eq('id', ciblage_id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true })
-  }
-
-  if (action === 'ai-suggestions') {
-    const { pool, cibles_actuels, nb_cible, context } = body
-    const manquants = Math.max(0, nb_cible - cibles_actuels.length)
-    if (manquants === 0) return NextResponse.json({ suggestions: [] })
-
-    const candidats = pool
-      .filter((c: any) => !cibles_actuels.includes(c.benevole_id))
-      .slice(0, 80)
-      .map((c: any) => ({
-        benevole_id: c.benevole_id,
-        prenom: c.prenom,
-        nom: c.nom,
-        region: c.region,
-        ville: c.ville,
-        preference_tache: c.preference_tache,
-        deployable: c.deployable,
-        en_deploiement_actif: c.en_deploiement_actif,
-        rotations_consecutives: c.rotations_consecutives,
-        distance_km: c.distance_km || null,
-        langues: c.langues || []
-      }))
-
-    const prompt = `Tu es un assistant pour l'AQBRS, organisation québécoise de réservistes bénévoles en sécurité civile.
-
-Contexte : ${context}
-
-Il y a actuellement ${cibles_actuels.length} réservistes ciblés.
-Objectif : atteindre ${nb_cible} réservistes (ratio 3-4x pour compenser les désistements bénévoles).
-Tu dois suggérer exactement ${manquants} réservistes supplémentaires.
-
-Critères de priorité :
-1. deployable = true (pas en déploiement actif, pas en repos obligatoire)
-2. Proximité (distance_km faible si disponible)
-3. Diversité géographique des régions
-4. Variété des préférences (terrain + sinistres)
-
-Candidats disponibles :
-${JSON.stringify(candidats, null, 2)}
-
-Réponds UNIQUEMENT en JSON valide, sans markdown ni explication :
-{"suggestions":[{"benevole_id":"...","raison":"justification courte max 80 chars"}]}`
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+// Générer identifiant via séquence SQL directe
+async function getNextSeq(seqName: string): Promise<number> {
+  const { data, error } = await supabaseAdmin
+    .from('reservistes')
+    .select(`id`)
+    .limit(1)
+  // On utilise une requête brute via postgrest
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/rpc/get_nextval`,
+    {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01'
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    })
-    if (!response.ok) return NextResponse.json({ suggestions: [] }, { status: 500 })
-    const aiData = await response.json()
-    const text = aiData.content?.[0]?.text || '{}'
-    try {
-      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
-      return NextResponse.json(parsed)
-    } catch {
-      return NextResponse.json({ suggestions: [], error: 'Erreur parsing IA' })
+      body: JSON.stringify({ seq_name: seqName }),
     }
+  )
+  if (res.ok) {
+    const n = await res.json()
+    return typeof n === 'number' ? n : 1
   }
+  return Date.now() % 1000
+}
 
-  if (action === 'notifier') {
-    const { reference_id, niveau, ciblages } = body
-    try {
-      await fetch(`${process.env.N8N_WEBHOOK_BASE_URL}/ciblage-notifications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference_id, niveau, ciblages })
-      })
-    } catch (e) {
-      console.error('Erreur webhook n8n:', e)
+// Abréviations organisme
+function orgAbbr(organisme: string): string {
+  if (organisme.includes('SOPFEU')) return 'SP'
+  if (organisme.includes('Croix-Rouge')) return 'CR'
+  if (organisme.includes('Municipalité')) return 'MUN'
+  return 'AUT'
+}
+
+// Format date court : "17 mar"
+function dateCourtFr(dateStr?: string): string {
+  if (!dateStr) return ''
+  const mois = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep', 'oct', 'nov', 'déc']
+  const d = new Date(dateStr + 'T00:00:00')
+  return `${d.getDate()} ${mois[d.getMonth()]}`
+}
+
+// Tronquer et nettoyer pour identifiant
+function slug(s: string, max = 15): string {
+  return (s || '').replace(/[^a-zA-Z0-9\u00C0-\u017F\s-]/g, '').trim().slice(0, max).trim()
+}
+
+async function syncDeploiementsActifs(deployment: any, demande: any, sinistre: any) {
+  await supabaseAdmin.from('deploiements_actifs').upsert({
+    deploiement_id: deployment.id,
+    nom_deploiement: deployment.nom,
+    nom_sinistre: sinistre?.nom || null,
+    nom_demande: demande?.type_mission || null,
+    organisme: demande?.organisme || null,
+    date_debut: deployment.date_debut || null,
+    date_fin: deployment.date_fin || null,
+    lieu: deployment.lieu || null,
+    statut: deployment.statut,
+    tache: demande?.type_mission || null,
+    date_limite_reponse: null,
+  }, { onConflict: 'deploiement_id' })
+}
+
+async function syncDemandesJonction(deploymentId: string, demandesIds: string[]) {
+  await supabaseAdmin.from('deployments_demandes').delete().eq('deployment_id', deploymentId)
+  if (demandesIds.length > 0) {
+    await supabaseAdmin.from('deployments_demandes').insert(
+      demandesIds.map(did => ({ deployment_id: deploymentId, demande_id: did }))
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { table, payload, admin_benevole_id, context } = body
+    if (!await verifierAcces(admin_benevole_id)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    if (!ALLOWED_TABLES.includes(table)) return NextResponse.json({ error: 'Table invalide' }, { status: 400 })
+
+    let finalPayload = { ...payload }
+
+    // Auto-générer les identifiants
+    if (table === 'demandes' && !payload.identifiant) {
+      const n = await getNextSeq('seq_dem')
+      const num = String(n).padStart(3, '0')
+      const org = orgAbbr(payload.organisme || '')
+      const date = dateCourtFr(payload.date_debut)
+      const mission = slug(payload.type_mission || '', 12)
+      finalPayload.identifiant = `DEM-${num}-${org}${date ? `-${date}` : ''}${mission ? `-${mission}` : ''}`
     }
-    const { error } = await supabaseAdmin
-      .from('ciblages')
-      .update({ statut: 'notifie', updated_at: new Date().toISOString() })
-      .eq('reference_id', reference_id)
-      .eq('statut', 'cible')
+
+    if (table === 'deployments' && !payload.identifiant) {
+      const n = await getNextSeq('seq_dep')
+      const num = String(n).padStart(3, '0')
+      const org = context?.demande ? orgAbbr(context.demande.organisme || '') : ''
+      const mission = slug(context?.demande?.type_mission || '', 10)
+      const lieu = slug(payload.lieu || '', 20)
+      finalPayload.identifiant = `DEP-${num}${org ? ` - ${org}` : ''}${mission ? ` ${mission}` : ''}${lieu ? ` - ${lieu}` : ''}`
+        .replace(/\s+/g, ' ').trim()
+    }
+
+    if (table === 'vagues' && !payload.identifiant) {
+      const n = await getNextSeq('seq_vag')
+      const num = String(n).padStart(3, '0')
+      const dep = context?.deployment
+      const org = dep?.context_org || ''
+      const mission = dep?.context_mission || ''
+      const date = dateCourtFr(payload.date_debut)
+      const nb = payload.nb_personnes_requis ? `${payload.nb_personnes_requis} pers` : ''
+      finalPayload.identifiant = `VAG-${num}${org ? ` - ${org}` : ''}${mission ? `-${mission}` : ''}${date ? ` - ${date}` : ''}${nb ? ` (${nb})` : ''}`
+        .replace(/\s+/g, ' ').trim()
+    }
+
+    // Géocoder le lieu pour un nouveau déploiement
+    if (table === 'deployments' && finalPayload.lieu) {
+      const coords = await geocoderLieu(finalPayload.lieu)
+      if (coords) {
+        finalPayload.latitude_geocodee = coords.lat
+        finalPayload.longitude_geocodee = coords.lon
+      }
+    }
+
+    const { data, error } = await supabaseAdmin.from(table).insert(finalPayload).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true, count: ciblages?.length || 0 })
-  }
 
-  return NextResponse.json({ error: 'Action non reconnue' }, { status: 400 })
+    if (table === 'deployments' && context) {
+      await syncDeploiementsActifs(data, context.demande, context.sinistre)
+    }
+
+    return NextResponse.json({ data })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { table, id, payload, admin_benevole_id, context } = body
+    if (!await verifierAcces(admin_benevole_id)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+
+    if (table === 'deployments_demandes_sync') {
+      await syncDemandesJonction(id, payload.demandes_ids || [])
+      return NextResponse.json({ success: true })
+    }
+
+    if (!ALLOWED_TABLES.includes(table)) return NextResponse.json({ error: 'Table invalide' }, { status: 400 })
+
+    let updatePayload = { ...payload, updated_at: new Date().toISOString() }
+
+    // Géocoder le lieu si c'est un déploiement et que le lieu est présent
+    if (table === 'deployments' && payload.lieu) {
+      const coords = await geocoderLieu(payload.lieu)
+      if (coords) {
+        updatePayload.latitude_geocodee = coords.lat
+        updatePayload.longitude_geocodee = coords.lon
+      }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from(table).update(updatePayload).eq('id', id).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    if (table === 'deployments' && context) {
+      await syncDeploiementsActifs(data, context.demande, context.sinistre)
+    }
+
+    return NextResponse.json({ data })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { table, id, admin_benevole_id } = body
+    if (!await verifierAcces(admin_benevole_id)) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    if (!ALLOWED_TABLES.includes(table)) return NextResponse.json({ error: 'Table invalide' }, { status: 400 })
+
+    const { error } = await supabaseAdmin.from(table).delete().eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    if (table === 'deployments') {
+      await supabaseAdmin.from('deploiements_actifs').delete().eq('deploiement_id', id)
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
 }
