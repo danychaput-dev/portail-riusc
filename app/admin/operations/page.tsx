@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 
@@ -281,19 +281,17 @@ function SelCard({ selected, onClick, children }: { selected:boolean; onClick:()
 
 export default function OperationsPage() {
   const supabase = createClient()
-  const router      = useRouter()
-  const searchParams = useSearchParams()
-  const pathname    = usePathname()
-  const isMounted   = useRef(false)
-
-  // ── Clé localStorage ──────────────────────────────────────────────────────
-  const LS_KEY = 'riusc_ops_context'
+  const router    = useRouter()
+  const isMounted = useRef(false)
+  const LS_KEY    = 'riusc_ops_context'
 
   // ── Lire le contexte sauvegardé (URL prime sur localStorage) ─────────────
   const readSavedContext = useCallback(() => {
-    const urlSin  = searchParams.get('sin')
-    const urlDep  = searchParams.get('dep')
-    const urlDems = searchParams.get('dems')
+    if (typeof window === 'undefined') return null
+    const params = new URLSearchParams(window.location.search)
+    const urlSin  = params.get('sin')
+    const urlDep  = params.get('dep')
+    const urlDems = params.get('dems')
     if (urlSin || urlDep || urlDems) {
       return {
         sinId:  urlSin  || null,
@@ -306,7 +304,7 @@ export default function OperationsPage() {
       if (raw) return JSON.parse(raw) as { sinId: string|null; depId: string|null; demIds: string[] }
     } catch {}
     return null
-  }, [searchParams])
+  }, [])
 
   // données
   const [sinistres,   setSinistres]   = useState<Sinistre[]>([])
@@ -328,17 +326,13 @@ export default function OperationsPage() {
   // ── Sync URL + localStorage à chaque changement de sélection ─────────────
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    // localStorage
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify({ sinId, depId, demIds }))
-    } catch {}
-    // URL params (remplace sans ajouter à l'historique)
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ sinId, depId, demIds })) } catch {}
     const p = new URLSearchParams()
-    if (sinId)        p.set('sin',  sinId)
-    if (depId)        p.set('dep',  depId)
+    if (sinId)         p.set('sin',  sinId)
+    if (depId)         p.set('dep',  depId)
     if (demIds.length) p.set('dems', demIds.join(','))
     const qs = p.toString()
-    router.replace(`${pathname}${qs ? '?'+qs : ''}`, { scroll: false })
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? '?'+qs : ''}`)
   }, [sinId, depId, demIds.join(',')])
 
   // formulaires
