@@ -1,3 +1,4 @@
+import React from 'react'
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
@@ -399,50 +400,56 @@ export default function CiblagePage() {
   }, [])
 
   // ── Chargements ───────────────────────────────────────────
+  // Restaurer sélection depuis localStorage au montage
+  useEffect(() => {
+    const sinId = localStorage.getItem('ciblage_sinistre')
+    const depId = localStorage.getItem('ciblage_deployment')
+    if (sinId) setSelectedSinistreId(sinId)
+    if (depId) setSelectedDeploymentId(depId)
+  }, [])
+
   useEffect(() => {
     fetch('/api/admin/ciblage?action=sinistres').then(r => r.json()).then(d => { setSinistres(d || []); setLoadingSinistres(false) })
     fetch('/api/admin/ciblage?action=langues').then(r => r.json()).then(d => setLangues(d || []))
   }, [])
 
-  const savedDeploymentId = typeof window !== 'undefined' ? localStorage.getItem('ciblage_deployment') || '' : ''
+  const isFirstSinistreLoad = React.useRef(true)
 
   useEffect(() => {
+    localStorage.setItem('ciblage_sinistre', selectedSinistreId)
     if (!selectedSinistreId) return
     setLoadingDeployments(true)
-    // Ne pas effacer le déploiement si c'est la restauration initiale depuis localStorage
-    if (deployments.length > 0) {
+    // Ne pas effacer le déploiement lors du chargement initial (restauration localStorage)
+    if (!isFirstSinistreLoad.current) {
       setSelectedDeploymentId(''); setSelectedDeployment(null)
       setSelectedVagueId(''); setSelectedVague(null)
       setPool([]); setCibles([]); setAiSuggestions([]); setDepCoords(null)
     }
+    isFirstSinistreLoad.current = false
     fetch(`/api/admin/ciblage?action=deployments&sinistre_id=${selectedSinistreId}`)
-      .then(r => r.json()).then(d => {
-        setDeployments(d || [])
-        setLoadingDeployments(false)
-      })
+      .then(r => r.json()).then(d => { setDeployments(d || []); setLoadingDeployments(false) })
   }, [selectedSinistreId])
 
-  // Restaurer selectedDeployment quand la liste deployments est chargée
   useEffect(() => {
-    if (deployments.length > 0 && selectedDeploymentId && !selectedDeployment) {
-      const dep = deployments.find(d => d.id === selectedDeploymentId) || null
-      if (dep) {
-        setSelectedDeployment(dep)
-        if (dep?.lieu) geocoderLieu(dep.lieu)
-      }
-    }
-  }, [deployments, selectedDeploymentId])
-
-  useEffect(() => {
+    localStorage.setItem('ciblage_deployment', selectedDeploymentId)
     if (!selectedDeploymentId) return
     setLoadingVagues(true)
     setSelectedVagueId(''); setSelectedVague(null)
     setPool([]); setCibles([]); setAiSuggestions([]); setFiltrePreference(''); setFiltreCompetences([]); setFiltreSubComp({}); setFiltreLangues([]); setFiltreBadges([]); setTrierDistance(false); setTrierBadges(false)
     const dep = deployments.find(d => d.id === selectedDeploymentId) || null
-    if (dep) { setSelectedDeployment(dep); if (dep?.lieu) geocoderLieu(dep.lieu) }
+    setSelectedDeployment(dep)
+    if (dep?.lieu) geocoderLieu(dep.lieu)
     fetch(`/api/admin/ciblage?action=vagues&deployment_id=${selectedDeploymentId}`)
       .then(r => r.json()).then(d => { setVagues(d || []); setLoadingVagues(false) })
   }, [selectedDeploymentId])
+
+  // Quand deployments se charge, restaurer selectedDeployment si pas encore résolu
+  useEffect(() => {
+    if (deployments.length > 0 && selectedDeploymentId && !selectedDeployment) {
+      const dep = deployments.find(d => d.id === selectedDeploymentId) || null
+      if (dep) { setSelectedDeployment(dep); if (dep.lieu) geocoderLieu(dep.lieu) }
+    }
+  }, [deployments])
 
   const chargerPool = useCallback(async (refId: string, debut: string, fin: string, niv: string) => {
     setLoadingPool(true); setErreur(null); setAiSuggestions([])
@@ -849,17 +856,17 @@ export default function CiblagePage() {
                           <input type="checkbox" checked={cochee} onChange={() => {}} style={{ marginTop: '3px', flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                              <span style={{ fontWeight: '500', fontSize: '12px' }}>{s.candidat?.prenom} {s.candidat?.nom}</span>
+                              <span style={{ fontWeight: '500', fontSize: '13px', color: '#1e293b' }}>{s.candidat?.prenom} {s.candidat?.nom}</span>
                               {depCoords && distS !== undefined && (
                                 <span style={{ fontSize: '10px', fontWeight: '600', color: distS < 50 ? '#22c55e' : distS < 150 ? '#f59e0b' : '#94a3b8' }}>📍 {distS} km</span>
                               )}
                             </div>
-                            <div style={{ fontSize: '10px', color: '#64748b' }}>{s.candidat?.ville}{s.candidat?.ville && s.candidat?.region ? ', ' : ''}{s.candidat?.region}</div>
-                            <div style={{ fontSize: '10px', color: '#16a34a', fontStyle: 'italic' }}>{s.raison}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>{s.candidat?.ville}{s.candidat?.ville && s.candidat?.region ? ', ' : ''}{s.candidat?.region}</div>
+                            <div style={{ fontSize: '11px', color: '#16a34a', fontStyle: 'italic' }}>{s.raison}</div>
                             {badgesS.length > 0 && (
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', marginTop: '3px' }}>
                                 {badgesS.map((b, i) => (
-                                  <span key={i} style={{ fontSize: '9px', padding: '1px 4px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
+                                  <span key={i} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
                                 ))}
                               </div>
                             )}
