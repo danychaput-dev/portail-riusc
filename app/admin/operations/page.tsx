@@ -315,10 +315,22 @@ export default function OperationsPage() {
   const [vagues,      setVagues]      = useState<Vague[]>([])
 
   // sélections
-  // ── Sélections (initialisées depuis URL / localStorage) ───────────────────
-  const [sinId,  setSinId]  = useState<string|null>(() => readSavedContext()?.sinId  ?? null)
-  const [demIds, setDemIds] = useState<string[]>  (() => readSavedContext()?.demIds ?? [])
-  const [depId,  setDepId]  = useState<string|null>(() => readSavedContext()?.depId  ?? null)
+  // ── Sélections (restaurées côté client dans useEffect) ───────────────────
+  const [sinId,  setSinId]  = useState<string|null>(null)
+  const [demIds, setDemIds] = useState<string[]>([])
+  const [depId,  setDepId]  = useState<string|null>(null)
+
+  // ── Restauration du contexte au montage (client uniquement) ──────────────
+  useEffect(() => {
+    const ctx = readSavedContext()
+    if (ctx) {
+      if (ctx.sinId)         setSinId(ctx.sinId)
+      if (ctx.demIds.length) setDemIds(ctx.demIds)
+      if (ctx.depId)         setDepId(ctx.depId)
+    }
+    // Activer le sync seulement après la restauration
+    setTimeout(() => { isMounted.current = true }, 0)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selSin = sinistres.find(s=>s.id===sinId)
   const selDep = deployments.find(d=>d.id===depId)
