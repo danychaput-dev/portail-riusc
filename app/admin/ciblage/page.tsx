@@ -563,7 +563,7 @@ export default function CiblagePage() {
 
       {/* Header */}
       <div style={{ backgroundColor: C, color: 'white', padding: '12px 24px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', flexShrink: 0 }}>
-        <a href="/admin" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '13px' }}>← Admin</a>
+        <a href="/admin/operations" style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '13px' }}>← Opérations</a>
         <span style={{ color: 'rgba(255,255,255,0.3)' }}>/</span>
         <h1 style={{ margin: 0, fontSize: '17px', fontWeight: '600' }}>Ciblage des réservistes</h1>
       </div>
@@ -972,16 +972,6 @@ export default function CiblagePage() {
               </div>
             </div>
 
-            {/* Bouton notifications */}
-            <button onClick={envoyerNotifications} disabled={cibles.length === 0 || loadingNotif || notifEnvoyees} style={{
-              padding: '11px', borderRadius: '8px', border: 'none',
-              backgroundColor: (cibles.length === 0 || notifEnvoyees) ? '#e2e8f0' : C,
-              color: (cibles.length === 0 || notifEnvoyees) ? '#94a3b8' : 'white',
-              fontSize: '14px', fontWeight: '600',
-              cursor: (cibles.length === 0 || loadingNotif || notifEnvoyees) ? 'not-allowed' : 'pointer'
-            }}>
-              {loadingNotif ? 'Envoi…' : notifEnvoyees ? `✓ Notifiés (${cibles.length})` : `📨 Envoyer notifications (${cibles.length})`}
-            </button>
           </div>
 
         </div>
