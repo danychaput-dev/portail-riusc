@@ -293,11 +293,15 @@ export default function OperationsPage() {
     const urlDep  = params.get('dep')
     const urlDems = params.get('dems')
     if (urlSin || urlDep || urlDems) {
-      return {
-        sinId:  urlSin  || null,
-        depId:  urlDep  || null,
-        demIds: urlDems ? urlDems.split(',').filter(Boolean) : [],
+      // URL prime pour sin/dep, mais si dems absent → lire localStorage
+      let demIds = urlDems ? urlDems.split(',').filter(Boolean) : []
+      if (!demIds.length) {
+        try {
+          const raw = localStorage.getItem(LS_KEY)
+          if (raw) demIds = JSON.parse(raw)?.demIds || []
+        } catch {}
       }
+      return { sinId: urlSin || null, depId: urlDep || null, demIds }
     }
     try {
       const raw = localStorage.getItem(LS_KEY)
@@ -741,7 +745,7 @@ export default function OperationsPage() {
           <StepCard id="step-3" n={3} status={ss(3)} title="Déploiement"
             subtitle={selDep ? `${selDep.identifiant} — ${selDep.nom}` : deployments.length>0?`${deployments.length} déploiement(s) disponible(s)`:'Créer un déploiement'}>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {demIds.length===0 && <p style={{ fontSize:12, color:'#f59e0b', margin:0 }}>⚠️ Sélectionnez d'abord les demandes à l'étape 2.</p>}
+              {demIds.length===0 && !depId && <p style={{ fontSize:12, color:'#f59e0b', margin:0 }}>⚠️ Sélectionnez d'abord les demandes à l'étape 2.</p>}
               {deployments.map(d => (
                 <SelCard key={d.id} selected={depId===d.id} onClick={()=>setDepId(d.id)}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -822,7 +826,7 @@ export default function OperationsPage() {
 
           {/* ─── ÉTAPE 5 : Notification dispos ──────────────────────────── */}
           <StepCard id="step-5" n={5} status={ss(5)} title="Notification des disponibilités"
-            subtitle={ciblages.some(c=>c.statut==='notifie') ? `${ciblages.filter(c=>c.statut==='notifie').length}/${ciblages.length} notifié(s) — envoyé via n8n` : `${ciblages.length} réserviste(s) à notifier`}>
+            subtitle={ciblages.some(c=>c.statut==='notifie') ? `${ciblages.filter(c=>c.statut==='notifie').length}/${ciblages.length} notifié(s) — envoyé via n8n` : ciblages.length > 0 ? `${ciblages.length} réserviste(s) à notifier` : 'Chargement des ciblages…'}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px', fontSize:12, color:'#64748b' }}>
                 <strong style={{ color:'#1e3a5f' }}>📨 {ciblages.filter(c=>c.statut!=='notifie').length} destinataire(s)</strong>
