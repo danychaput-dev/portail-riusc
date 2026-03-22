@@ -962,7 +962,7 @@ export default function CiblagePage() {
                       return (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
                           {badges.map((b, i) => (
-                            <span key={i} style={{ fontSize: '9px', padding: '1px 5px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
+                            <span key={i} style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: b.bg, color: b.color, fontWeight: '500' }}>{b.label}</span>
                           ))}
                         </div>
                       )
