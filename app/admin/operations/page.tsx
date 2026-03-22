@@ -59,9 +59,8 @@ const STEP_SUBS   = ['Créer ou sélectionner','Lier les demandes','Créer ou s�
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const FF = '"Segoe UI", system-ui, -apple-system, sans-serif'
 
-function dateFr(iso?: string | null) {
+(iso?: string | null) {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
   return `${d}/${m}/${y}`
@@ -101,130 +100,109 @@ En cas d'empêchement, contactez-nous immédiatement.
 L'équipe RIUSC / AQBRS`
 }
 
-// ─── Couleurs wizard ──────────────────────────────────────────────────────────
 
-function stC(s: StepStatus, ai = false) {
-  if (s === 'done')   return { bg:'#d1fae5', br:'#10b981', t:'#065f46', st:'#047857' }
-  if (s === 'active') return ai
-    ? { bg:'#ede9fe', br:'#8b5cf6', t:'#5b21b6', st:'#7c3aed' }
-    : { bg:'#dbeafe', br:'#3b82f6', t:'#1d4ed8', st:'#2563eb' }
-  return { bg:'#f9fafb', br:'#e5e7eb', t:'#c4c4c4', st:'#e5e7eb' }
-}
-function arC(s: StepStatus) {
-  return s === 'done' ? '#10b981' : s === 'active' ? '#3b82f6' : '#d1d5db'
-}
+// ─── Sidebar Stepper ──────────────────────────────────────────────────────────
 
-// ─── Wizard SVG (8 étapes) ────────────────────────────────────────────────────
+const STEP_ICONS = ['🔥','📋','🚁','🎯','📨','📊','✦','🚀']
 
-function WizardSVG({ statuses, onStep }: { statuses: StepStatus[]; onStep:(n:number)=>void }) {
-  const BW = 200, BH = 46, CX = 340
-
-  const Y1 = 20                        // Sinistre
-  const Y2 = Y1 + BH + 20             // Demandes     = 86
-  const Y3 = Y2 + BH + 20             // Déploiement  = 152
-  const ZY = Y3 + BH + 16             // Zone top     = 214
-  const BW45 = 148
-  const Y45 = ZY + 26                 // étapes 4+5   = 240
-  const X4 = 178, X5 = 354
-  const X4C = X4 + BW45/2             // 252
-  const X5C = X5 + BW45/2             // 428
-  const BEND  = ZY + 7                // coude        = 221
-  const ZB = Y45 + BH + 40            // Zone bottom  = 326
-  const Y6 = ZB + 20                  // Dispos       = 346
-  const BW6 = 280
-  const Y7 = Y6 + BH + 20            // Rotation IA  = 412
-  const BW7 = 240
-  const Y8 = Y7 + BH + 20            // Mobilisation = 478
-  const H  = Y8 + BH + 40            // total        = 564
-
-  const mkMarker = (k: string, col: string) => (
-    <marker key={k} id={`am${k}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-      <path d="M2 1L8 5L2 9" fill="none" stroke={col} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </marker>
-  )
-  const mid = (s: StepStatus) => {
-    const c = arC(s)
-    return c === '#10b981' ? 'url(#amg)' : c === '#3b82f6' ? 'url(#amb)' : 'url(#amn)'
-  }
-  const ln = (s: StepStatus) => ({ stroke: arC(s), strokeWidth: 1.5, fill: 'none' })
-
-  const box = (n: number, x: number, y: number, w: number, ai = false) => {
-    const s = statuses[n-1] || 'locked'
-    const c = stC(s, ai)
-    const clickable = s !== 'locked'
-    return (
-      <g key={n} onClick={() => clickable && onStep(n)} style={{ cursor: clickable ? 'pointer' : 'default' }}>
-        <rect x={x} y={y} width={w} height={BH} rx="8" fill={c.bg} stroke={c.br} strokeWidth="0.8"/>
-        <text x={x+w/2} y={y+BH/2-7} textAnchor="middle" dominantBaseline="central"
-          fontSize="13" fontWeight="500" fill={c.t} fontFamily={FF}>{STEP_LABELS[n-1]}</text>
-        <text x={x+w/2} y={y+BH/2+9} textAnchor="middle" dominantBaseline="central"
-          fontSize="11" fill={c.st} fontFamily={FF}>{STEP_SUBS[n-1]}</text>
-        {s === 'done' && (
-          <text x={x+w-14} y={y+BH/2} dominantBaseline="central" textAnchor="middle"
-            fontSize="12" fill={c.t} fontFamily={FF}>✓</text>
-        )}
-        {ai && s !== 'locked' && (
-          <>
-            <rect x={x+w-42} y={y+6} width={33} height={16} rx="8" fill="#8b5cf6" opacity="0.9"/>
-            <text x={x+w-26} y={y+14} textAnchor="middle" dominantBaseline="central"
-              fontSize="10" fill="#ede9fe" fontWeight="600" fontFamily={FF}>IA ✦</text>
-          </>
-        )}
-      </g>
-    )
-  }
-
+function SidebarStepper({ statuses, curStep, onStep, selSin, selDep }: {
+  statuses: StepStatus[]
+  curStep: number
+  onStep: (n: number) => void
+  selSin?: { nom: string }
+  selDep?: { nom: string; identifiant: string }
+}) {
   return (
-    <svg width="100%" viewBox={`0 0 680 ${H}`} style={{ display:'block' }}>
-      <defs>
-        {mkMarker('n','#d1d5db')}
-        {mkMarker('b','#3b82f6')}
-        {mkMarker('g','#10b981')}
-      </defs>
+    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+      {/* Contexte actif */}
+      {(selSin || selDep) && (
+        <div style={{ padding:'12px 16px', backgroundColor:'#f0fdf4', borderRadius:10, border:'1px solid #bbf7d0', marginBottom:20 }}>
+          {selSin && <div style={{ fontSize:12, fontWeight:600, color:'#065f46', marginBottom:selDep?3:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>🔥 {selSin.nom}</div>}
+          {selDep && <div style={{ fontSize:11, color:'#047857', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>🚁 {selDep.identifiant} — {selDep.nom}</div>}
+        </div>
+      )}
 
-      {/* 1 Sinistre */}
-      {box(1, CX-BW/2, Y1, BW)}
-      <line x1={CX} y1={Y1+BH} x2={CX} y2={Y2-2} {...ln(statuses[0])} markerEnd={mid(statuses[0])}/>
+      {STEP_LABELS.map((label, i) => {
+        const n = i + 1
+        const s = statuses[i] || 'locked'
+        const isDone   = s === 'done'
+        const isActive = s === 'active'
+        const isLocked = s === 'locked'
+        const isAI     = n === 7
+        const isLast   = n === 8
 
-      {/* 2 Demandes */}
-      {box(2, CX-BW/2, Y2, BW)}
-      <line x1={CX} y1={Y2+BH} x2={CX} y2={Y3-2} {...ln(statuses[1])} markerEnd={mid(statuses[1])}/>
+        const circleColor = isDone ? '#10b981' : isActive ? (isAI ? '#8b5cf6' : '#3b82f6') : '#d1d5db'
+        const labelColor  = isDone ? '#065f46' : isActive ? (isAI ? '#5b21b6' : '#1d4ed8') : '#9ca3af'
+        const lineColor   = isDone ? '#10b981' : '#e5e7eb'
 
-      {/* 3 Déploiement */}
-      {box(3, CX-BW/2, Y3, BW)}
-      {/* L-coude 3→4 */}
-      <path d={`M${CX},${Y3+BH} L${CX},${BEND} L${X4C},${BEND} L${X4C},${Y45-2}`}
-        {...ln(statuses[2])} markerEnd={mid(statuses[2])}/>
+        return (
+          <div key={n}>
+            <div
+              onClick={() => !isLocked && onStep(n)}
+              style={{
+                display:'flex', alignItems:'center', gap:10,
+                padding:'8px 10px', borderRadius:8,
+                cursor: isLocked ? 'default' : 'pointer',
+                backgroundColor: isActive ? (isAI ? '#faf5ff' : '#eff6ff') : 'transparent',
+                border: isActive ? `1px solid ${isAI ? '#ddd6fe' : '#bfdbfe'}` : '1px solid transparent',
+                transition:'background 0.1s',
+              }}
+            >
+              {/* Cercle */}
+              <div style={{
+                width:28, height:28, borderRadius:'50%', flexShrink:0,
+                backgroundColor: circleColor,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: isDone ? 13 : 12, fontWeight:700, color:'white',
+                boxShadow: isActive ? `0 0 0 3px ${isAI ? '#ede9fe' : '#dbeafe'}` : 'none',
+                transition:'box-shadow 0.2s',
+              }}>
+                {isDone ? '✓' : isAI ? '✦' : n}
+              </div>
 
-      {/* Zone déploiement */}
-      <rect x="30" y={ZY} width="620" height={ZB-ZY} rx="12"
-        fill="none" stroke="#3b82f6" strokeWidth="1" strokeDasharray="5 3" opacity="0.35"/>
-      <text x="46" y={ZY+16} fontSize="11" fill="#3b82f6" fontFamily={FF} opacity="0.8">Niveau : par déploiement</text>
+              {/* Label + sous-titre */}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:12, fontWeight: isActive ? 600 : 500, color:labelColor, display:'flex', alignItems:'center', gap:5 }}>
+                  {label}
+                  {isAI && !isLocked && (
+                    <span style={{ fontSize:9, padding:'1px 5px', borderRadius:6, backgroundColor:'#8b5cf6', color:'white', fontWeight:700 }}>IA</span>
+                  )}
+                  {isLocked && <span style={{ fontSize:11 }}>🔒</span>}
+                </div>
+                <div style={{ fontSize:10, color: isActive ? labelColor : '#c4c4c4', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {STEP_SUBS[i]}
+                </div>
+              </div>
+            </div>
 
-      {/* 4 Ciblage */}
-      {box(4, X4, Y45, BW45)}
-      {/* → 5 */}
-      <line x1={X4+BW45} y1={Y45+BH/2} x2={X5-2} y2={Y45+BH/2}
-        {...ln(statuses[3])} markerEnd={mid(statuses[3])}/>
-      {/* 5 Notif */}
-      {box(5, X5, Y45, BW45)}
-      {/* L-coude 5→6 */}
-      <path d={`M${X5C},${Y45+BH} L${X5C},${Y6-10} L${CX},${Y6-10} L${CX},${Y6-2}`}
-        {...ln(statuses[4])} markerEnd={mid(statuses[4])}/>
+            {/* Connecteur vertical */}
+            {!isLast && (
+              <div style={{ marginLeft:23, width:2, height:12, backgroundColor:lineColor, borderRadius:1 }}/>
+            )}
+          </div>
+        )
+      })}
 
-      {/* 6 Disponibilités */}
-      {box(6, CX-BW6/2, Y6, BW6)}
-      <line x1={CX} y1={Y6+BH} x2={CX} y2={Y7-2} {...ln(statuses[5])} markerEnd={mid(statuses[5])}/>
-
-      {/* 7 Rotation IA */}
-      {box(7, CX-BW7/2, Y7, BW7, true)}
-      <line x1={CX} y1={Y7+BH} x2={CX} y2={Y8-2} {...ln(statuses[6])} markerEnd={mid(statuses[6])}/>
-
-      {/* 8 Mobilisation */}
-      {box(8, CX-BW/2, Y8, BW)}
-    </svg>
+      {/* Progression */}
+      <div style={{ marginTop:20, padding:'10px 12px', backgroundColor:'#f8fafc', borderRadius:8, border:'1px solid #e5e7eb' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+          <span style={{ fontSize:11, color:'#64748b', fontWeight:600 }}>Progression</span>
+          <span style={{ fontSize:12, fontWeight:700, color:'#1e3a5f' }}>
+            {statuses.filter(s=>s==='done').length}/8
+          </span>
+        </div>
+        <div style={{ height:4, backgroundColor:'#e5e7eb', borderRadius:2, overflow:'hidden' }}>
+          <div style={{
+            height:'100%', borderRadius:2,
+            width:`${(statuses.filter(s=>s==='done').length/8)*100}%`,
+            backgroundColor:'#10b981', transition:'width 0.4s',
+          }}/>
+        </div>
+      </div>
+    </div>
   )
 }
+
 
 // ─── StepCard ─────────────────────────────────────────────────────────────────
 
@@ -545,21 +523,32 @@ export default function OperationsPage() {
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9' }}>
       <PortailHeader/>
-      <main style={{ maxWidth:860, margin:'0 auto', padding:'24px 16px 80px' }}>
 
-        <div style={{ marginBottom:20 }}>
-          <h1 style={{ fontSize:20, fontWeight:700, color:'#1e3a5f', margin:0 }}>Tableau de bord opérationnel</h1>
-          <p style={{ fontSize:12, color:'#64748b', margin:'3px 0 0' }}>
-            Wizard guidé — chaque étape se déverrouille quand la précédente est complétée.
-          </p>
+      <div style={{ display:'flex', alignItems:'flex-start', maxWidth:1200, margin:'0 auto', padding:'24px 16px 80px', gap:24 }}>
+
+        {/* ── Sidebar gauche (sticky) ──────────────────────────────────── */}
+        <div style={{
+          width:240, flexShrink:0,
+          position:'sticky', top:24,
+          backgroundColor:'white', borderRadius:14,
+          border:'1px solid #e5e7eb', padding:'20px 16px',
+          boxShadow:'0 1px 4px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#1e3a5f' }}>Tableau de bord opérationnel</div>
+            <div style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>Étape {curStep} / 8</div>
+          </div>
+          <SidebarStepper
+            statuses={statuses}
+            curStep={curStep}
+            onStep={n => document.getElementById(`step-${n}`)?.scrollIntoView({ behavior:'smooth', block:'start' })}
+            selSin={selSin}
+            selDep={selDep}
+          />
         </div>
 
-        {/* Wizard SVG */}
-        <div style={{ backgroundColor:'white', borderRadius:14, border:'1px solid #e5e7eb', padding:'20px 24px', marginBottom:24 }}>
-          <WizardSVG statuses={statuses} onStep={n=>document.getElementById(`step-${n}`)?.scrollIntoView({behavior:'smooth',block:'start'})}/>
-        </div>
-
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {/* ── Contenu principal (scrollable) ──────────────────────────── */}
+        <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:14 }}>
 
           {/* ─── ÉTAPE 1 : Sinistre ─────────────────────────────────────── */}
           <StepCard id="step-1" n={1} status={ss(1)} title="Sinistre"
@@ -960,8 +949,8 @@ export default function OperationsPage() {
             </div>
           </StepCard>
 
-        </div>
-      </main>
+        </div>{/* fin contenu principal */}
+      </div>{/* fin flex deux colonnes */}
     </div>
   )
 }
