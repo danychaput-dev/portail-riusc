@@ -459,7 +459,11 @@ export default function OperationsPage() {
     supabase.from('ciblages').select('id,benevole_id,statut')
       .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
       .then(async ({data: cibData}) => {
-        if (!cibData?.length) { setCiblages([]); return }
+        if (!cibData?.length) {
+          // Ne pas écraser si on a déjà des ciblages (ex: restaurés depuis cache)
+          setCiblages(prev => prev.length > 0 ? prev : [])
+          return
+        }
         // Fetch noms séparément
         const ids = cibData.map(c => c.benevole_id)
         const { data: resData } = await supabase.from('reservistes')
