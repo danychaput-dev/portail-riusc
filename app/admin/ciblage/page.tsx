@@ -923,6 +923,16 @@ export default function CiblagePage() {
                         onClick={() => {
                           try {
                             localStorage.setItem('riusc_ops_step4_done', selectedDeploymentId)
+                            // Sauvegarder les ciblages pour restauration immédiate dans le wizard
+                            localStorage.setItem('riusc_ops_ciblages_cache', JSON.stringify({
+                              depId: selectedDeploymentId,
+                              data: cibles.map(c => ({
+                                id: c.id,
+                                benevole_id: c.benevole_id,
+                                statut: c.statut,
+                                reservistes: c.reservistes,
+                              }))
+                            }))
                           } catch {}
                           const url = `/admin/operations?dep=${selectedDeploymentId}${selectedSinistreId ? `&sin=${selectedSinistreId}` : ''}`
                           window.location.href = url

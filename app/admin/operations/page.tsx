@@ -332,19 +332,19 @@ export default function OperationsPage() {
       if (ctx.demIds.length) setDemIds(ctx.demIds)
       if (ctx.depId)         setDepId(ctx.depId)
     }
-    // Lire le flag step4 depuis ciblage
+    // Lire le flag step4 + ciblages sauvegardés depuis ciblage
     try {
       const s4dep = localStorage.getItem('riusc_ops_step4_done')
       if (s4dep && ctx?.depId && s4dep === ctx.depId) {
         setStep4Override(true)
-        // Forcer le reload des ciblages après que depId soit appliqué
-        setTimeout(() => {
-          if (ctx.depId) {
-            supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
-              .eq('niveau','deploiement').eq('reference_id',ctx.depId).neq('statut','retire')
-              .then(({data})=>{ if(data) setCiblages(data as any) })
+        // Restaurer les ciblages sauvegardés directement sans fetch
+        const rawCiblages = localStorage.getItem('riusc_ops_ciblages_cache')
+        if (rawCiblages) {
+          const cached = JSON.parse(rawCiblages)
+          if (cached.depId === ctx.depId && cached.data?.length) {
+            setCiblages(cached.data)
           }
-        }, 300)
+        }
       }
     } catch {}
     setTimeout(() => { isMounted.current = true }, 0)
