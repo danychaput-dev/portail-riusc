@@ -149,22 +149,22 @@ export default function DisponibilitesPage() {
   }
 
   async function fetchDeploiementsActifs(benevoleId: string) {
-    const { data: ciblagesData } = await supabase.from('ciblages').select('reference_id').eq('benevole_id', benevoleId).eq('niveau', 'deploiement').eq('statut', 'notifie');
+    const { data: ciblagesData } = await supabase.from('ciblages').select('deploiement_id').eq('benevole_id', benevoleId);
     if (!ciblagesData || ciblagesData.length === 0) { setDeploiementsActifs([]); setCiblages([]); return; }
-    const deployIds = ciblagesData.map((c: any) => c.reference_id);
+    const deployIds = ciblagesData.map(c => c.deploiement_id);
     setCiblages(deployIds);
-    const { data } = await supabase.from('deployments').select('id, identifiant, nom, lieu, date_debut, date_fin, statut').in('id', deployIds);
-    if (data) setDeploiementsActifs(data.map((d: any) => ({ id: d.id, deploiement_id: d.id, nom_deploiement: d.nom, lieu: d.lieu, date_debut: d.date_debut, date_fin: d.date_fin, statut: d.statut })) as any);
+    const { data } = await supabase.from('deploiements_actifs').select('*').in('deploiement_id', deployIds).order('date_debut', { ascending: true });
+    if (data) setDeploiementsActifs(data);
   }
 
   async function fetchCiblageReponses(benevoleId: string) {
     const { data } = await supabase.from('ciblages').select('id, benevole_id, deploiement_id, statut_envoi, date_disponible_debut, date_disponible_fin, transport, commentaires').eq('benevole_id', benevoleId).in('statut_envoi', ['Répondu', 'Non disponible', 'En attente']);
     if (data && data.length > 0) {
       const deployIds = data.map(c => c.deploiement_id);
-      const { data: deps } = await supabase.from('deployments').select('id, nom').in('id', deployIds);
+      const { data: deps } = await supabase.from('deploiements_actifs').select('deploiement_id, nom_deploiement, nom_sinistre').in('deploiement_id', deployIds);
       const depMap: Record<string, { nom_deploiement: string; nom_sinistre?: string }> = {};
-      if (deps) deps.forEach((d: any) => { depMap[d.id] = { nom_deploiement: d.nom, nom_sinistre: undefined }; });
-      const enriched = data.map(c => ({ ...c, nom_deploiement: depMap[c.deploiement_id]?.nom_deploiement || 'Déploiement', nom_sinistre: undefined }));
+      if (deps) deps.forEach(d => { depMap[d.deploiement_id] = d; });
+      const enriched = data.map(c => ({ ...c, nom_deploiement: depMap[c.deploiement_id]?.nom_deploiement || 'Déploiement', nom_sinistre: depMap[c.deploiement_id]?.nom_sinistre || undefined }));
       setCiblageReponses(enriched);
     } else { setCiblageReponses([]); }
   }

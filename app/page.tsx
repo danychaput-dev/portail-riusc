@@ -438,18 +438,28 @@ export default function HomePage() {
             }
             setLoadingSelection(false)
 
-            // Ciblages + deploiements
+            // Ciblages + deploiements (nouveau système portail)
             if (ciblagesResult.status === 'fulfilled') {
               const ciblagesData = ciblagesResult.value?.data
               if (ciblagesData && ciblagesData.length > 0) {
-                const deployIds = ciblagesData.map((c: any) => c.deploiement_id)
+                const deployIds = ciblagesData.map((c: any) => c.deploiement_id).filter(Boolean)
                 setCiblages(deployIds)
                 const { data: deploiements } = await supabase
-                  .from('deploiements_actifs')
-                  .select('*')
-                  .in('deploiement_id', deployIds)
-                  .order('date_debut', { ascending: true })
-                if (deploiements) setDeploiementsActifs(deploiements)
+                  .from('deployments')
+                  .select('id, identifiant, nom, lieu, date_debut, date_fin, statut')
+                  .in('id', deployIds)
+                if (deploiements) {
+                  setDeploiementsActifs(deploiements.map((d: any) => ({
+                    id: d.id,
+                    deploiement_id: d.id,
+                    nom_deploiement: d.nom,
+                    nom_sinistre: undefined,
+                    lieu: d.lieu,
+                    date_debut: d.date_debut,
+                    date_fin: d.date_fin,
+                    statut: d.statut,
+                  })))
+                }
               }
             }
 
@@ -608,18 +618,28 @@ export default function HomePage() {
         }
         setLoadingSelection(false)
 
-        // Ciblages + deploiements
+        // Ciblages + deploiements (nouveau système portail)
         if (ciblagesResult.status === 'fulfilled') {
           const ciblagesData = ciblagesResult.value?.data
           if (ciblagesData && ciblagesData.length > 0) {
-            const deployIds = ciblagesData.map((c: any) => c.deploiement_id)
+            const deployIds = ciblagesData.map((c: any) => c.deploiement_id).filter(Boolean)
             setCiblages(deployIds)
             const { data: deploiements } = await supabase
-              .from('deploiements_actifs')
-              .select('*')
-              .in('deploiement_id', deployIds)
-              .order('date_debut', { ascending: true })
-            if (deploiements) setDeploiementsActifs(deploiements)
+              .from('deployments')
+              .select('id, identifiant, nom, lieu, date_debut, date_fin, statut')
+              .in('id', deployIds)
+            if (deploiements) {
+              setDeploiementsActifs(deploiements.map((d: any) => ({
+                id: d.id,
+                deploiement_id: d.id,
+                nom_deploiement: d.nom,
+                nom_sinistre: undefined,
+                lieu: d.lieu,
+                date_debut: d.date_debut,
+                date_fin: d.date_fin,
+                statut: d.statut,
+              })))
+            }
           }
         }
 

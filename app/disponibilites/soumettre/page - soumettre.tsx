@@ -90,23 +90,11 @@ function SoumettreContent() {
         if (res) setReserviste(res)
       }
 
-      const { data: depRaw } = await supabase
-        .from('deployments')
-        .select('id, identifiant, nom, lieu, date_debut, date_fin, statut, notes_logistique')
-        .eq('id', deploiementId)
+      const { data: dep } = await supabase
+        .from('deploiements_actifs')
+        .select('deploiement_id, nom_deploiement, nom_sinistre, type_incident, lieu, date_debut, date_fin, organisme, date_limite_reponse')
+        .eq('deploiement_id', deploiementId)
         .single()
-
-      const dep = depRaw ? {
-        deploiement_id: depRaw.id,
-        nom_deploiement: depRaw.nom,
-        nom_sinistre: undefined,
-        type_incident: undefined,
-        lieu: depRaw.lieu,
-        date_debut: depRaw.date_debut,
-        date_fin: depRaw.date_fin,
-        organisme: undefined,
-        date_limite_reponse: undefined,
-      } : null
 
       if (dep) {
         setDeploiement(dep)
