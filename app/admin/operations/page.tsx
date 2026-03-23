@@ -455,9 +455,22 @@ export default function OperationsPage() {
 
   useEffect(() => {
     if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
-    supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
+    // Fetch ciblages sans join pour éviter blocage RLS sur reservistes
+    supabase.from('ciblages').select('id,benevole_id,statut')
       .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
-      .then(({data})=>{ if(data) setCiblages(data as any) })
+      .then(async ({data: cibData}) => {
+        if (!cibData?.length) { setCiblages([]); return }
+        // Fetch noms séparément
+        const ids = cibData.map(c => c.benevole_id)
+        const { data: resData } = await supabase.from('reservistes')
+          .select('benevole_id,prenom,nom,telephone').in('benevole_id', ids)
+        const resMap: Record<string,any> = {}
+        for (const r of (resData || [])) resMap[r.benevole_id] = r
+        setCiblages(cibData.map(c => ({
+          ...c,
+          reservistes: resMap[c.benevole_id] || { prenom:'?', nom:'?', telephone:'' }
+        })))
+      })
     supabase.from('disponibilites_v2').select('id,benevole_id,date_jour,disponible,commentaire,reservistes(prenom,nom)')
       .eq('deployment_id',depId).order('date_jour').then(({data})=>{ if(data) setDispos(data as any) })
     supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
@@ -526,9 +539,18 @@ export default function OperationsPage() {
 
   const rafraichirCiblages = async () => {
     if (!depId) return
-    const {data} = await supabase.from('ciblages').select('id,benevole_id,statut,reservistes(prenom,nom,telephone)')
+    const {data: cibData} = await supabase.from('ciblages').select('id,benevole_id,statut')
       .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
-    if (data) setCiblages(data as any)
+    if (!cibData?.length) { setCiblages([]); return }
+    const ids = cibData.map(c => c.benevole_id)
+    const { data: resData } = await supabase.from('reservistes')
+      .select('benevole_id,prenom,nom,telephone').in('benevole_id', ids)
+    const resMap: Record<string,any> = {}
+    for (const r of (resData || [])) resMap[r.benevole_id] = r
+    setCiblages(cibData.map(c => ({
+      ...c,
+      reservistes: resMap[c.benevole_id] || { prenom:'?', nom:'?', telephone:'' }
+    })))
   }
 
   const sendNotifications = async () => {
