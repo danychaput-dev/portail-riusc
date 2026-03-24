@@ -475,7 +475,7 @@ export default function OperationsPage() {
           reservistes: resMap[c.benevole_id] || { prenom:'?', nom:'?', telephone:'' }
         })))
       })
-    supabase.from('disponibilites_v2').select('id,benevole_id,date_jour,disponible,commentaire,reservistes(prenom,nom)')
+    supabase.from('disponibilites_v2').select('id,benevole_id,date_jour,disponible,a_confirmer,commentaire')
       .eq('deployment_id',depId).order('date_jour').then(({data})=>{ if(data) setDispos(data as any) })
     supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
       .then(({data})=>{ if(data) setVagues(data) })
