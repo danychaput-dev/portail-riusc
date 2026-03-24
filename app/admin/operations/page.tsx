@@ -615,7 +615,15 @@ export default function OperationsPage() {
   }
 
   // ── Données dérivées ────────────────────────────────────────────────────────
-  const uniqueDates = [...new Set(dispos.map(d=>d.date_jour))].sort()
+  const uniqueDates = selDep?.date_debut && selDep?.date_fin
+    ? (() => {
+        const dates: string[] = []
+        const d = new Date(selDep.date_debut + 'T00:00:00')
+        const end = new Date(selDep.date_fin + 'T00:00:00')
+        while (d <= end) { dates.push(d.toISOString().split('T')[0]); d.setDate(d.getDate() + 1) }
+        return dates
+      })()
+    : [...new Set(dispos.map(d => d.date_jour))].sort()
   const nbReponses  = [...new Set(dispos.map(d=>d.benevole_id))].length
 
   const TA: React.CSSProperties = { ...IS, minHeight:130, resize:'vertical', lineHeight:1.6, fontFamily:'inherit', height:'auto' }
