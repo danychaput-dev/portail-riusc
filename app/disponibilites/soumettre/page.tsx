@@ -148,28 +148,18 @@ function SoumettreContent() {
       return
     }
 
-    const statutMap: Record<ReponseType, string> = {
-      disponible: 'Disponible',
-      non_disponible: 'Non disponible',
-      a_confirmer: 'En attente de confirmation',
-    }
-
     try {
       const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
-          deploiement_id: deploiement.deploiement_id,
-          prenom: reserviste.prenom,
-          nom: reserviste.nom,
-          email: reserviste.email,
-          telephone: reserviste.telephone || null,
+          deployment_id: deploiement.deploiement_id,
           date_debut: reponse !== 'non_disponible' ? dateDebut : null,
           date_fin: reponse !== 'non_disponible' ? dateFin : null,
           transport: reponse !== 'non_disponible' ? transport : null,
-          commentaires: commentaires || null,
-          statut: statutMap[reponse],
+          commentaire: commentaires || null,
+          disponible: reponse !== 'non_disponible',
         })
       })
 
