@@ -159,7 +159,8 @@ function SoumettreContent() {
           date_fin: reponse !== 'non_disponible' ? dateFin : null,
           transport: reponse !== 'non_disponible' ? transport : null,
           commentaire: commentaires || null,
-          disponible: reponse !== 'non_disponible',
+          disponible: reponse === 'disponible',
+          a_confirmer: reponse === 'a_confirmer',
         })
       })
 
