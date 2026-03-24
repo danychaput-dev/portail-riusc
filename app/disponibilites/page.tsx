@@ -146,13 +146,13 @@ export default function DisponibilitesPage() {
   async function fetchDisponibilites(benevoleId: string) {
     // Lire depuis disponibilites_v2 (nouveau système)
     const { data: v2data } = await supabase.from('disponibilites_v2')
-      .select('id, benevole_id, deployment_id, date_jour, disponible, commentaire')
+      .select('id, benevole_id, deployment_id, date_jour, disponible, a_confirmer, commentaire')
       .eq('benevole_id', benevoleId).order('date_jour', { ascending: true });
     if (v2data && v2data.length > 0) {
       // Grouper les jours consécutifs en plages par deployment_id
       const grouped: Record<string, typeof v2data> = {};
       for (const d of v2data) {
-        const key = d.deployment_id + '_' + (d.disponible ? 'dispo' : 'nondispo');
+        const key = d.deployment_id + '_' + (d.a_confirmer ? 'aconfirmer' : d.disponible ? 'dispo' : 'nondispo');
         if (!grouped[key]) grouped[key] = [];
         grouped[key].push(d);
       }
@@ -168,13 +168,13 @@ export default function DisponibilitesPage() {
             end = sorted[i].date_jour;
           } else {
             plages.push({ id: sorted[0].id, benevole_id: sorted[0].benevole_id, deploiement_id: sorted[0].deployment_id,
-              date_debut: start, date_fin: end, statut: sorted[0].disponible ? 'Disponible' : 'Non disponible',
+              date_debut: start, date_fin: end, statut: sorted[0].a_confirmer ? 'En attente' : sorted[0].disponible ? 'Disponible' : 'Non disponible',
               commentaire: sorted[0].commentaire, transport: null });
             start = sorted[i].date_jour; end = sorted[i].date_jour;
           }
         }
         plages.push({ id: sorted[0].id, benevole_id: sorted[0].benevole_id, deploiement_id: sorted[0].deployment_id,
-          date_debut: start, date_fin: end, statut: sorted[0].disponible ? 'Disponible' : 'Non disponible',
+          date_debut: start, date_fin: end, statut: sorted[0].a_confirmer ? 'En attente' : sorted[0].disponible ? 'Disponible' : 'Non disponible',
           commentaire: sorted[0].commentaire, transport: null });
       }
       setDisponibilites(plages);
@@ -199,9 +199,9 @@ export default function DisponibilitesPage() {
     if (isDemoActive()) { showDemoToast('✅ Mode démo — Confirmation simulée'); return; }
     setActionLoading(`confirmer-${dispo.id}`);
     try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
+      const response = await fetch('/api/disponibilites/confirmer', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benevole_id: reserviste.benevole_id, deploiement_id: dispo.deploiement_id, prenom: reserviste.prenom, nom: reserviste.nom, email: reserviste.email, telephone: null, date_debut: dispo.date_debut, date_fin: dispo.date_fin, transport: dispo.transport, commentaires: dispo.commentaire || null, statut: 'Disponible' })
+        body: JSON.stringify({ benevole_id: reserviste.benevole_id, deployment_id: dispo.deploiement_id })
       });
       if (response.ok) await refreshData(reserviste.benevole_id);
     } catch (e) { console.error('Erreur confirmation:', e); }
@@ -214,9 +214,9 @@ export default function DisponibilitesPage() {
     if (!confirm('Êtes-vous sûr de vouloir annuler cette plage de disponibilité ?')) return;
     setActionLoading(`annuler-${dispo.id}`);
     try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
+      const response = await fetch('/api/disponibilites/annuler', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benevole_id: reserviste.benevole_id, deploiement_id: dispo.deploiement_id, prenom: reserviste.prenom, nom: reserviste.nom, email: reserviste.email, telephone: null, date_debut: null, date_fin: null, transport: null, commentaires: 'Annulé par le réserviste', statut: 'Non disponible' })
+        body: JSON.stringify({ benevole_id: reserviste.benevole_id, deployment_id: dispo.deploiement_id, date_debut: dispo.date_debut, date_fin: dispo.date_fin })
       });
       if (response.ok) await refreshData(reserviste.benevole_id);
     } catch (e) { console.error('Erreur annulation:', e); }
@@ -403,7 +403,9 @@ export default function DisponibilitesPage() {
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
                               {dispo.date_debut && dispo.date_fin && (
                                 <span style={{ fontSize: '14px', color: '#374151', fontWeight: '600' }}>
-                                  📅 Du {formatDateCourt(dispo.date_debut)} au {formatDateCourt(dispo.date_fin)}
+                                  📅 {dispo.date_debut === dispo.date_fin
+                                    ? formatDateCourt(dispo.date_debut)
+                                    : `Du ${formatDateCourt(dispo.date_debut)} au ${formatDateCourt(dispo.date_fin)}`}
                                 </span>
                               )}
                               <span style={{
@@ -461,25 +463,7 @@ export default function DisponibilitesPage() {
                 );
               })}
 
-              {/* Réponses "Non disponible" (sans plages) */}
-              {Object.values(nonDispoParDeploi).map((rep) => (
-                <div key={`nd-${rep.id}`} style={{ border: '1px solid #e5e7eb', borderRadius: '10px', overflow: 'hidden', backgroundColor: '#fafafa' }}>
-                  <div style={{ padding: '14px 20px', backgroundColor: '#f0f4f8', borderBottom: '1px solid #e5e7eb' }}>
-                    {rep.nom_sinistre && (
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>🔥 {rep.nom_sinistre}</div>
-                    )}
-                    <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e3a5f' }}>🚨 {rep.nom_deploiement}</div>
-                  </div>
-                  <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ display: 'inline-block', padding: '3px 10px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '12px', fontWeight: '500' }}>
-                      ❌ Non disponible
-                    </span>
-                    {rep.commentaires && (
-                      <span style={{ fontSize: '12px', color: '#6b7280', fontStyle: 'italic' }}>💬 {rep.commentaires}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+
 
             </div>
           )}
