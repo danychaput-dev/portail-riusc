@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
@@ -98,7 +98,7 @@ const GROUPE_CFG: Record<Groupe, { label: string; bg: string; border: string }> 
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function DisponibilitesPage() {
+function DisponibilitesInner() {
   const supabase  = createClient()
   const router    = useRouter()
   const params    = useSearchParams()
@@ -538,5 +538,13 @@ export default function DisponibilitesPage() {
         </>}
       </main>
     </div>
+  )
+}
+
+export default function DisponibilitesPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:14 }}>Chargement…</div>}>
+      <DisponibilitesInner/>
+    </Suspense>
   )
 }
