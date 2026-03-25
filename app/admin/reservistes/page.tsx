@@ -204,7 +204,13 @@ export default function ReservistesPage() {
                   : b.nom.localeCompare(a.nom, 'fr')
                 ))
               }} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em', cursor: h === 'Nom' ? 'pointer' : 'default', userSelect: 'none' as const, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {h}{h === 'Nom' && <span style={{ color: '#94a3b8' }}>{sortAsc ? ' ↑' : ' ↓'}</span>}
+                {h}
+                {h === 'Nom' && <span style={{ color: '#94a3b8' }}>{sortAsc ? ' ↑' : ' ↓'}</span>}
+                {h === 'Bottes' && (
+                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#1e3a5f', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
+                    {data.filter(r => r.remboursement_bottes_date).length}
+                  </span>
+                )}
               </div>
             ))}
           </div>
