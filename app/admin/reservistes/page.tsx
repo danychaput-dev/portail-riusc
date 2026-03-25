@@ -54,6 +54,7 @@ export default function ReservistesPage() {
   const [exporting,   setExporting]   = useState(false)
   const [sortAsc,      setSortAsc]      = useState(true)
   const [authorized,  setAuthorized]  = useState(false)
+  const [filtreBottes, setFiltreBottes] = useState(false)
   // Auth
   useEffect(() => {
     const init = async () => {
@@ -77,7 +78,7 @@ export default function ReservistesPage() {
       const res = await fetch(`/api/admin/reservistes?${params}`)
       const json = await res.json()
       const sorted = (json.data || []).sort((a: any, b: any) => a.nom.localeCompare(b.nom, 'fr'))
-    setData(sorted)
+      setData(sorted)
       setTotal(json.total || 0)
       setLoading(false)
     }, recherche ? 350 : 0)
@@ -188,6 +189,28 @@ export default function ReservistesPage() {
               </button>
             )}
           </div>
+
+          {/* Filtre bottes */}
+          <button
+            onClick={() => setFiltreBottes(f => !f)}
+            style={{
+              padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+              border: `1px solid ${filtreBottes ? '#1e3a5f' : '#e2e8f0'}`,
+              backgroundColor: filtreBottes ? '#1e3a5f' : 'white',
+              color: filtreBottes ? 'white' : '#94a3b8',
+              cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' as const,
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            🥾 Bottes remboursées
+            <span style={{
+              fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700',
+              backgroundColor: filtreBottes ? 'white' : '#1e3a5f',
+              color: filtreBottes ? '#1e3a5f' : 'white',
+            }}>
+              {data.filter(r => r.remboursement_bottes_date).length}
+            </span>
+          </button>
         </div>
 
         {/* Tableau */}
@@ -222,7 +245,7 @@ export default function ReservistesPage() {
             <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
               Aucun réserviste trouvé
             </div>
-          ) : data.map((r, i) => {
+          ) : data.filter(r => !filtreBottes || r.remboursement_bottes_date).map((r, i) => {
             const badge = badgeGroupe(r.groupe)
             const adresse = [r.adresse].filter(Boolean).join(', ')
             return (
