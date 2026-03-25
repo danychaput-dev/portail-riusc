@@ -913,7 +913,7 @@ export default function OperationsPage() {
           <StepCard id="step-6" n={6} status={ss(6)} title="Disponibilités reçues"
             subtitle={`${nbReponses}/${ciblages.length} réponse(s) reçues`}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr 1fr', gap:12, minHeight:160 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:12, minHeight:160 }}>
 
                 {/* Col ciblés */}
                 <div style={{ backgroundColor:'#f8fafc', borderRadius:8, border:'1px solid #e5e7eb', overflow:'hidden' }}>
@@ -974,25 +974,12 @@ export default function OperationsPage() {
                   )}
                 </div>
 
-                {/* Col rotations */}
-                <div style={{ backgroundColor:'#f8fafc', borderRadius:8, border:'1px solid #e5e7eb', overflow:'hidden' }}>
-                  <div style={{ padding:'7px 12px', borderBottom:'1px solid #e5e7eb', backgroundColor:'#f1f5f9' }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#1e3a5f', textTransform:'uppercase' as any, letterSpacing:'0.04em' }}>Rotations ({vagues.length})</span>
-                  </div>
-                  <div style={{ padding:12 }}>
-                    {vagues.length===0 ? <p style={{ fontSize:12, color:'#94a3b8', margin:0 }}>Sera créé à l'étape 7</p>
-                    : vagues.map(v=>(
-                      <div key={v.id} style={{ marginBottom:8 }}>
-                        <div style={{ fontSize:12, fontWeight:600, color:'#7c3aed' }}>{v.identifiant||`Rot. #${v.numero}`}</div>
-                        <div style={{ fontSize:11, color:'#64748b' }}>{dateFr(v.date_debut)} → {dateFr(v.date_fin)}</div>
-                        {v.nb_personnes_requis && <div style={{ fontSize:11, color:'#64748b' }}>👥 {v.nb_personnes_requis} pers.</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
               </div>
 
-              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                <Btn onClick={()=>{ if(depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }} disabled={dispos.length===0} color="#1d4ed8">
+                  📊 Voir les disponibilités
+                </Btn>
                 <Btn onClick={()=>setStep6Ok(true)} disabled={dispos.length===0||step6Ok} color="#065f46">
                   {step6Ok?'✅ Étape validée':`✅ Valider (${nbReponses} réponse(s))`}
                 </Btn>
