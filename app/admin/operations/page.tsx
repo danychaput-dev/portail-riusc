@@ -390,6 +390,7 @@ export default function OperationsPage() {
   const [savVague,      setSavVague]      = useState(false)
   const [sendingNotif,  setSendingNotif]  = useState(false)
   const [sendingMobil,  setSendingMobil]  = useState(false)
+  const [fullscreen,    setFullscreen]    = useState(false)
 
   // ── Complétion ─────────────────────────────────────────────────────────────
   const done = useCallback((n: number): boolean => {
@@ -632,9 +633,28 @@ export default function OperationsPage() {
   // ── Rendu ────────────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9' }}>
-      <PortailHeader/>
+      {!fullscreen && <PortailHeader/>}
 
-      <div style={{ display:'flex', alignItems:'flex-start', maxWidth:1200, margin:'0 auto', padding:'24px 16px 80px', gap:24 }}>
+      <button
+        onClick={() => {
+          if (!fullscreen) { document.documentElement.requestFullscreen?.().catch(()=>{}) }
+          else { document.exitFullscreen?.().catch(()=>{}) }
+          setFullscreen(f => !f)
+        }}
+        title={fullscreen ? 'Quitter le plein écran' : 'Plein écran'}
+        style={{
+          position:'fixed', top:fullscreen ? 12 : 72, right:16, zIndex:9999,
+          width:36, height:36, borderRadius:8,
+          backgroundColor:'white', border:'1px solid #e5e7eb',
+          boxShadow:'0 2px 6px rgba(0,0,0,0.1)',
+          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+          fontSize:16, color:'#1e3a5f',
+        }}
+      >
+        {fullscreen ? '⤓' : '⤢'}
+      </button>
+
+      <div style={{ display:'flex', alignItems:'flex-start', maxWidth: fullscreen ? '100%' : 1200, margin:'0 auto', padding: fullscreen ? '12px 16px 40px' : '24px 16px 80px', gap:24 }}>
 
         {/* ── Sidebar gauche (sticky) ──────────────────────────────────── */}
         <div style={{
