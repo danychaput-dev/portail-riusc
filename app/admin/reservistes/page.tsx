@@ -33,6 +33,13 @@ interface Reserviste {
   code_postal: string
   groupe: string
   statut: string
+  remboursement_bottes_date: string | null
+}
+
+function moisAnnee(iso: string) {
+  const [y, m] = iso.split('-')
+  const mois = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc']
+  return `${mois[parseInt(m) - 1]} ${y}`
 }
 
 export default function ReservistesPage() {
@@ -97,6 +104,19 @@ export default function ReservistesPage() {
     a.click()
     URL.revokeObjectURL(url)
     setExporting(false)
+  }
+
+  const toggleBottes = async (benevole_id: string, currentDate: string | null) => {
+    const newDate = currentDate ? null : new Date().toISOString().split('T')[0]
+    const { error } = await supabase
+      .from('reservistes')
+      .update({ remboursement_bottes_date: newDate })
+      .eq('benevole_id', benevole_id)
+    if (!error) {
+      setData(prev => prev.map(r =>
+        r.benevole_id === benevole_id ? { ...r, remboursement_bottes_date: newDate } : r
+      ))
+    }
   }
 
   if (!authorized) return null
@@ -173,8 +193,8 @@ export default function ReservistesPage() {
         {/* Tableau */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
           {/* En-tête tableau */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 100px', gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-            {['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Groupe'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 90px 100px', gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+            {['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Bottes', 'Groupe'].map(h => (
               <div key={h} onClick={() => {
                 if (h !== 'Nom') return
                 const asc = !sortAsc
@@ -203,7 +223,7 @@ export default function ReservistesPage() {
               <div
                 key={r.benevole_id}
                 style={{
-                  display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 100px',
+                  display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 90px 100px',
                   gap: '0', borderBottom: '1px solid #f1f5f9',
                   backgroundColor: i % 2 === 0 ? 'white' : '#fafafa',
                   transition: 'background-color 0.1s'
@@ -239,6 +259,19 @@ export default function ReservistesPage() {
                 <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151' }}>
                   <div>{r.region || <span style={{ color: '#d1d5db' }}>—</span>}</div>
                   {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '2px' }}>{r.code_postal}</div>}
+                </div>
+                <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!r.remboursement_bottes_date}
+                    onChange={() => toggleBottes(r.benevole_id, r.remboursement_bottes_date)}
+                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#1e3a5f' }}
+                  />
+                  {r.remboursement_bottes_date && (
+                    <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                      {moisAnnee(r.remboursement_bottes_date)}
+                    </span>
+                  )}
                 </div>
                 <div style={{ padding: '11px 14px' }}>
                   <span style={{

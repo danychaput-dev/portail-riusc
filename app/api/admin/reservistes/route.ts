@@ -32,24 +32,22 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const groupes   = searchParams.get('groupes')   // ex: "Intérêt,Approuvé"
+  const groupes   = searchParams.get('groupes')
   const recherche = searchParams.get('recherche') || ''
-  const format    = searchParams.get('format')    // 'csv' pour export
+  const format    = searchParams.get('format')
 
   let query = supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at')
+    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date')
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
 
-  // Filtre groupe
   if (groupes) {
     const liste = groupes.split(',').map(g => g.trim()).filter(Boolean)
     if (liste.length > 0) query = query.in('groupe', liste)
   }
 
-  // Filtre recherche
   if (recherche) {
     query = query.or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%,ville.ilike.%${recherche}%,telephone.ilike.%${recherche}%`)
   }
@@ -59,9 +57,8 @@ export async function GET(req: NextRequest) {
 
   const reservistes = data || []
 
-  // Export CSV
   if (format === 'csv') {
-    const headers = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut']
+    const headers = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes']
     const rows = reservistes.map(r => [
       r.prenom || '',
       r.nom || '',
@@ -73,12 +70,13 @@ export async function GET(req: NextRequest) {
       r.region || '',
       r.code_postal || '',
       r.groupe || '',
-      r.statut || ''
+      r.statut || '',
+      r.remboursement_bottes_date || ''
     ])
     const csvContent = [headers, ...rows]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
       .join('\n')
-    const bom = '\uFEFF' // BOM UTF-8 pour Excel
+    const bom = '\uFEFF'
     return new NextResponse(bom + csvContent, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
