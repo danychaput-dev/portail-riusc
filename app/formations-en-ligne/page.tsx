@@ -145,6 +145,57 @@ export default function FormationsEnLignePage() {
     }))
   }, [reserviste, progressions])
 
+  // Verbes xAPI officiels ADL
+  const XAPI_VERBS = {
+    completed:   'http://adlnet.gov/expapi/verbs/completed',
+    passed:      'http://adlnet.gov/expapi/verbs/passed',
+    initialized: 'http://adlnet.gov/expapi/verbs/initialized',
+    experienced: 'http://adlnet.gov/expapi/verbs/experienced',
+  } as const
+
+  // Écouter les statements xAPI via postMessage (Storyline — détection principale)
+  useEffect(() => {
+    const ALLOWED_ORIGINS = new Set([
+      'https://portail.riusc.ca',
+      'https://lrs.aqbrs.ca',
+    ])
+
+    const handleMessage = (event: MessageEvent) => {
+      if (!ALLOWED_ORIGINS.has(event.origin)) return
+      if (!moduleActif) return
+
+      const statement = event.data?.statement || event.data
+      if (!statement?.verb?.id) return
+
+      const verb = String(statement.verb.id)
+
+      if (verb === XAPI_VERBS.completed || verb === XAPI_VERBS.passed) {
+        const score =
+          statement.result?.score?.scaled != null
+            ? Math.round(statement.result.score.scaled * 100)
+            : null
+        marquerCompletion(moduleActif, score)
+        return
+      }
+
+      if (verb === XAPI_VERBS.initialized || verb === XAPI_VERBS.experienced) {
+        marquerDebut(moduleActif)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [moduleActif, marquerCompletion, marquerDebut])
+
+  // Debug postMessage — dev uniquement, à retirer une fois Storyline validé
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    const debug = (e: MessageEvent) =>
+      console.log('[xAPI postMessage]', e.origin, e.data)
+    window.addEventListener('message', debug)
+    return () => window.removeEventListener('message', debug)
+  }, [])
+
   const handleIframeLoad = useCallback(() => {
     if (!moduleActif) return
 
