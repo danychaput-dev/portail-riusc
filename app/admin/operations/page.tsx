@@ -356,14 +356,14 @@ export default function OperationsPage() {
   // ── Sync URL + localStorage à chaque changement de sélection ─────────────
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ sinId, depId, demIds })) } catch {}
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ sinId, depId, demIds, msgNotif })) } catch {}
     const p = new URLSearchParams()
     if (sinId)         p.set('sin',  sinId)
     if (depId)         p.set('dep',  depId)
     if (demIds.length) p.set('dems', demIds.join(','))
     const qs = p.toString()
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? '?'+qs : ''}`)
-  }, [sinId, depId, demIds.join(',')])
+  }, [sinId, depId, demIds.join(','), msgNotif])
 
   // formulaires
   const [showFSin, setShowFSin] = useState(false)
@@ -382,7 +382,14 @@ export default function OperationsPage() {
   const [step4Override, setStep4Override] = useState(false)
   const [step6Ok,       setStep6Ok]       = useState(false)
   const [mobilSent,     setMobilSent]     = useState(false)
-  const [msgNotif,      setMsgNotif]      = useState('')
+  const [msgNotif,      setMsgNotif]      = useState(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      const raw = localStorage.getItem('riusc_ops_context')
+      if (raw) return JSON.parse(raw)?.msgNotif || ''
+    } catch {}
+    return ''
+  })
   const [msgMobil,      setMsgMobil]      = useState('')
   const [aiSugg,        setAiSugg]        = useState<string|null>(null)
   const [loadAI,        setLoadAI]        = useState(false)
