@@ -491,7 +491,7 @@ export default function OperationsPage() {
 
   useEffect(() => {
     if (!selSin || !selDep) return
-    setMsgNotif(prev => prev ? prev : tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
+    setMsgNotif((prev: string) => prev ? prev : tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
   }, [selSin?.id, selDep?.id])
 
   useEffect(() => {
