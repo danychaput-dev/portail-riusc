@@ -353,6 +353,16 @@ export default function OperationsPage() {
   const selSin = sinistres.find(s=>s.id===sinId)
   const selDep = deployments.find(d=>d.id===depId)
 
+  // formulaires
+  const [msgNotif,      setMsgNotif]      = useState(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      const raw = localStorage.getItem('riusc_ops_context')
+      if (raw) return JSON.parse(raw)?.msgNotif || ''
+    } catch {}
+    return ''
+  })
+
   // ── Sync URL + localStorage à chaque changement de sélection ─────────────
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
@@ -364,16 +374,6 @@ export default function OperationsPage() {
     const qs = p.toString()
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? '?'+qs : ''}`)
   }, [sinId, depId, demIds.join(','), msgNotif])
-
-  // formulaires
-  const [msgNotif,      setMsgNotif]      = useState(() => {
-    if (typeof window === 'undefined') return ''
-    try {
-      const raw = localStorage.getItem('riusc_ops_context')
-      if (raw) return JSON.parse(raw)?.msgNotif || ''
-    } catch {}
-    return ''
-  })
   const [showFSin, setShowFSin] = useState(false)
   const [showFDem, setShowFDem] = useState(false)
   const [showFDep, setShowFDep] = useState(false)
