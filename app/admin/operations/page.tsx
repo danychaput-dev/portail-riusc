@@ -366,6 +366,14 @@ export default function OperationsPage() {
   }, [sinId, depId, demIds.join(','), msgNotif])
 
   // formulaires
+  const [msgNotif,      setMsgNotif]      = useState(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      const raw = localStorage.getItem('riusc_ops_context')
+      if (raw) return JSON.parse(raw)?.msgNotif || ''
+    } catch {}
+    return ''
+  })
   const [showFSin, setShowFSin] = useState(false)
   const [showFDem, setShowFDem] = useState(false)
   const [showFDep, setShowFDep] = useState(false)
@@ -382,14 +390,6 @@ export default function OperationsPage() {
   const [step4Override, setStep4Override] = useState(false)
   const [step6Ok,       setStep6Ok]       = useState(false)
   const [mobilSent,     setMobilSent]     = useState(false)
-  const [msgNotif,      setMsgNotif]      = useState(() => {
-    if (typeof window === 'undefined') return ''
-    try {
-      const raw = localStorage.getItem('riusc_ops_context')
-      if (raw) return JSON.parse(raw)?.msgNotif || ''
-    } catch {}
-    return ''
-  })
   const [msgMobil,      setMsgMobil]      = useState('')
   const [aiSugg,        setAiSugg]        = useState<string|null>(null)
   const [loadAI,        setLoadAI]        = useState(false)
