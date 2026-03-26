@@ -35,7 +35,7 @@ const PDFS_SAMEDI_COMPLET = [
   { titre: "Introduction RIUSC & Sécurité civile", url: "/documents/camp/introduction-riusc-securite-civile.pdf" },
   { titre: "La synergie de la Réserve d'intervention d'urgence en sécurité civile (RIUSC)", url: "/documents/camp/synergie-reserve-intervention-urgence.pdf" },
   { titre: "Aide-mémoire — Savoir-agir et bonnes pratiques en présence de personnes sinistrées", url: "/documents/camp/savoir-agir-bonnes-pratiques-sinistres.pdf" },
-  { titre: "Structure d'équipe d'intervention", url: "/documents/camp/structure-equipe-intervention.pdf" },
+  { titre: "Structure d'intervention", url: "/documents/camp/structure-equipe-intervention.pdf" },
 ];
 
 const PDFS_DIMANCHE_COMPLET = [
@@ -48,7 +48,7 @@ const PDFS_SAMEDI_DEMO = [
   { titre: "Introduction RIUSC & Sécurité civile", url: `${SUPABASE_DEMO}/introduction-riusc-4-premieres-pages-demo.pdf` },
   { titre: "La synergie de la Réserve d'intervention d'urgence en sécurité civile (RIUSC)", url: `${SUPABASE_DEMO}/synergie-reserve-intervention-urgence-demo.pdf` },
   { titre: "Aide-mémoire — Savoir-agir et bonnes pratiques en présence de personnes sinistrées", url: `${SUPABASE_DEMO}/savoir-agir-4-premieres-pages-demo.pdf` },
-  { titre: "Structure d'équipe d'intervention", url: `${SUPABASE_DEMO}/structure-equipe-intervention-demo.pdf` },
+  { titre: "Structure d'intervention", url: `${SUPABASE_DEMO}/structure-equipe-intervention-demo.pdf` },
 ];
 
 const PDFS_DIMANCHE_DEMO = [
