@@ -45,6 +45,8 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
 interface Stats {
   totalInscrits: number
   totalInteret: number
+  totalApprouves: number
+  totalPartenaires: number
   parGroupe: { groupe: string; total: number }[]
   parOrganisme: { organisme: string; total: number }[]
   interetData: { label: string; total: number }[]
@@ -176,11 +178,12 @@ export default function DashboardPublicPage() {
         {stats && (
           <>
             {/* Badges sommaire */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-              <StatCard value={stats.totalInscrits} label="Réservistes inscrits" />
-              <StatCard value={totalQualifies}      label="Réservistes qualifiés" color={GREEN} />
-              <StatCard value={stats.totalInteret}  label="Avec intérêt à joindre" color={AMBER} />
-              <StatCard value={totalVerifies}        label="Antécédents vérifiés" color={GREEN} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+              <StatCard value={stats.totalInscrits}   label="Réservistes inscrits" />
+              <StatCard value={stats.totalInteret}    label="Avec intérêt à joindre" color={AMBER} />
+              <StatCard value={stats.totalPartenaires} label="Partenaires" color={'#4a7b65'} />
+              <StatCard value={stats.totalApprouves}  label="Réservistes qualifiés" color={NAVY} />
+              <StatCard value={totalVerifies}          label="Antécédents vérifiés" color={GREEN} />
             </div>
 
             {/* Grille graphiques */}

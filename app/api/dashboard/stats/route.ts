@@ -102,12 +102,16 @@ export async function GET() {
       .map(([statut, total]) => ({ statut, total }))
 
     // ── Totaux ────────────────────────────────────────────────────────────────
-    const totalInscrits = reservistes?.length || 0
-    const totalInteret  = (groupeCounts['Intérêt'] || 0)
+    const totalInscrits   = reservistes?.length || 0
+    const totalInteret    = (groupeCounts['Intérêt'] || 0)
+    const totalApprouves  = (groupeCounts['Approuvé'] || 0)
+    const totalPartenaires = (groupeCounts['Partenaires'] || 0)
 
     return NextResponse.json({
       totalInscrits,
       totalInteret,
+      totalApprouves,
+      totalPartenaires,
       parGroupe,
       parOrganisme,
       interetData,
