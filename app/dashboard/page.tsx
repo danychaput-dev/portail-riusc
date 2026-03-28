@@ -37,7 +37,7 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
 }
 
 interface CampData {
-  cohort: number; dates: string
+  cohort: number; dates: string; ville?: string
   inscrits: number
   informe_absence: number | null
   attendues: number | null
@@ -53,6 +53,7 @@ interface Stats {
   parRegionApprouves: { region: string; total: number }[]
   parRegionInteret: { region: string; total: number }[]
   antecedentsData: { statut: string; total: number }[]
+  bottesData: { label: string; total: number }[]
   last24h: number; last7d: number; last30d: number
   dailyData: { date: string; count: number }[]
   campsData: CampData[]
@@ -151,7 +152,6 @@ export default function DashboardPublicPage() {
       .catch(() => { setError(true); setLoading(false) })
   }, [])
 
-  const totalVerifies = stats?.antecedentsData.find(a => a.statut === 'verifie')?.total || 0
   const maxDaily = stats ? Math.max(...stats.dailyData.map(d => d.count), 1) : 1
   const today = new Date().toISOString().slice(0, 10)
 
@@ -188,12 +188,11 @@ export default function DashboardPublicPage() {
         {stats && (
           <>
             {/* ── Badges ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
               <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" />
               <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} />
               <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" />
               <StatCard value={stats.totalApprouves}   label="Réservistes qualifiés" color={NAVY} />
-              <StatCard value={totalVerifies}           label="Antécédents vérifiés" color={GREEN} />
             </div>
 
             {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
@@ -203,12 +202,16 @@ export default function DashboardPublicPage() {
                 <OrgTable data={stats.parOrganisme} />
               </Card>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <Card title="Personnes avec intérêt à joindre la RIUSC">
-                  <ResponsiveContainer width="100%" height={200}>
+              {/* Colonne droite : 3 graphiques empilés à hauteur égale */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Personnes avec intérêt à joindre</p>
+                  <ResponsiveContainer width="100%" height={110}>
                     <PieChart>
-                      <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={80}
-                        label={({ name, value, percent }: any) => `${name} : ${value} (${(percent * 100).toFixed(0)}%)`}>
+                      <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={48}
+                        label={({ name, value, percent }: any) => `${name} : ${value} (${(percent*100).toFixed(0)}%)`}
+                        labelLine={false}>
                         <Cell fill={NAVY} />
                         <Cell fill={AMBER} />
                       </Pie>
@@ -216,12 +219,13 @@ export default function DashboardPublicPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total }))} />
-                </Card>
+                </div>
 
-                <Card title="Antécédents judiciaires" subtitle="Groupe Réservistes qualifiés seulement">
-                  <ResponsiveContainer width="100%" height={160}>
+                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Antécédents judiciaires <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>— Réservistes qualifiés</span></p>
+                  <ResponsiveContainer width="100%" height={110}>
                     <PieChart>
-                      <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={45} outerRadius={72}>
+                      <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={30} outerRadius={50}>
                         {stats.antecedentsData.map((entry, i) => (
                           <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
                         ))}
@@ -230,7 +234,24 @@ export default function DashboardPublicPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
-                </Card>
+                </div>
+
+                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Bottes <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>— Réservistes qualifiés</span></p>
+                  <ResponsiveContainer width="100%" height={110}>
+                    <PieChart>
+                      <Pie data={stats.bottesData} dataKey="total" nameKey="label" cx="50%" cy="50%" innerRadius={30} outerRadius={50}
+                        label={({ name, value, percent }: any) => `${(percent*100).toFixed(0)}%`}
+                        labelLine={false}>
+                        <Cell fill={NAVY} />
+                        <Cell fill="#e5e7eb" />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <Legend items={stats.bottesData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : BORDER, value: d.total }))} />
+                </div>
+
               </div>
             </div>
 
@@ -306,6 +327,7 @@ export default function DashboardPublicPage() {
                       <thead>
                         <tr style={{ backgroundColor: BG, borderBottom: `2px solid ${BORDER}` }}>
                           <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Cohorte</th>
+                          <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Ville</th>
                           <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Dates</th>
                           {campCols.map(col => (
                             <th key={col.key} style={{ textAlign: 'center', padding: '10px 16px', color: col.color, fontWeight: 600, fontSize: 13 }}>
@@ -318,6 +340,7 @@ export default function DashboardPublicPage() {
                         {stats.campsData.map((camp, i) => (
                           <tr key={i} style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: i % 2 === 0 ? WHITE : BG }}>
                             <td style={{ padding: '12px 16px', color: NAVY, fontWeight: 700, fontSize: 15 }}>{camp.cohort}<sup style={{ fontSize: 11 }}>e</sup></td>
+                            <td style={{ padding: '12px 16px', color: TEXT, fontSize: 13 }}>{camp.ville || '—'}</td>
                             <td style={{ padding: '12px 16px', color: MUTED, fontSize: 13 }}>{camp.dates || '—'}</td>
                             {campCols.map(col => {
                               const val = camp[col.key]
@@ -341,7 +364,7 @@ export default function DashboardPublicPage() {
                         ))}
                         {/* Ligne totaux — camps passés seulement */}
                         <tr style={{ borderTop: `2px solid ${BORDER}`, backgroundColor: '#f0f4f8' }}>
-                          <td colSpan={2} style={{ padding: '10px 16px', fontWeight: 700, color: NAVY, fontSize: 13 }}>Total</td>
+                          <td colSpan={3} style={{ padding: '10px 16px', fontWeight: 700, color: NAVY, fontSize: 13 }}>Total</td>
                           {campCols.map(col => {
                             const total = stats.campsData
                               .filter(c => c.passe || col.key === 'inscrits')

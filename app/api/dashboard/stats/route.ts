@@ -21,6 +21,7 @@ function extractCohort(nom: string): number {
 interface CampEntry {
   cohort: number
   dates: string
+  ville?: string
   inscrits: number
   informe_absence: number | null
   attendues: number | null
@@ -108,6 +109,20 @@ export async function GET() {
     const antecedentsData = Object.entries(antecedentsCounts)
       .map(([statut, total]) => ({ statut, total }))
 
+    // ── Bottes — Approuvés seulement ──────────────────────────────────────────
+    const { data: bottesRaw } = await supabase
+      .from('reservistes')
+      .select('grandeur_bottes')
+      .eq('statut', 'Actif')
+      .eq('groupe', 'Approuvé')
+
+    const avecBottes  = (bottesRaw || []).filter(r => r.grandeur_bottes && r.grandeur_bottes.trim() !== '').length
+    const sansBottes  = (bottesRaw || []).length - avecBottes
+    const bottesData  = [
+      { label: 'Avec bottes',  total: avecBottes },
+      { label: 'Sans bottes',  total: sansBottes },
+    ]
+
     // ── Nouvelles inscriptions ────────────────────────────────────────────────
     const now = Date.now()
     const DAY = 86400000
@@ -134,27 +149,27 @@ export async function GET() {
     // ── Inscriptions camps ────────────────────────────────────────────────────
     // Données historiques hardcodées
     const CAMPS_HISTORIQUES: CampEntry[] = [
-      { cohort: 6, dates: '', inscrits: 65, informe_absence: 5,  attendues: 60, no_show: 6,  qualifie: 54, passe: true },
-      { cohort: 7, dates: '', inscrits: 30, informe_absence: 3,  attendues: 27, no_show: 9,  qualifie: 19, passe: true },
-      { cohort: 8, dates: '', inscrits: 75, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
+      { cohort: 6, dates: '31 jan – 1er fév 2026', ville: 'Laval',            inscrits: 65, informe_absence: 5,  attendues: 60, no_show: 6,  qualifie: 54, passe: true },
+      { cohort: 7, dates: '21–22 fév 2026',        ville: 'Trois-Rivières',   inscrits: 30, informe_absence: 3,  attendues: 27, no_show: 9,  qualifie: 19, passe: true },
+      { cohort: 8, dates: '14–15 mars 2026',        ville: 'Sainte-Catherine', inscrits: 75, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
     ]
 
     // Camps futurs depuis DB (inscrits seulement)
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
-      .select('camp_nom, camp_dates, session_id')
+      .select('camp_nom, camp_dates, camp_lieu, session_id')
 
-    const futurMap: Record<string, { cohort: number; dates: string; inscrits: number }> = {}
+    const futurMap: Record<string, { cohort: number; dates: string; ville: string; inscrits: number }> = {}
     for (const c of campsRaw || []) {
       const cohortNum = extractCohort(c.camp_nom || '')
       if (CAMPS_HISTORIQUES.some(h => h.cohort === cohortNum)) continue
       const key = c.session_id || c.camp_nom || 'inconnu'
-      if (!futurMap[key]) futurMap[key] = { cohort: cohortNum, dates: c.camp_dates || '—', inscrits: 0 }
+      if (!futurMap[key]) futurMap[key] = { cohort: cohortNum, dates: c.camp_dates || '—', ville: c.camp_lieu || '—', inscrits: 0 }
       futurMap[key].inscrits++
     }
 
     const campsFuturs: CampEntry[] = Object.values(futurMap).map(f => ({
-      cohort: f.cohort, dates: f.dates, inscrits: f.inscrits,
+      cohort: f.cohort, dates: f.dates, ville: f.ville, inscrits: f.inscrits,
       informe_absence: null, attendues: null, no_show: null, qualifie: null,
       passe: false,
     }))
@@ -172,6 +187,7 @@ export async function GET() {
       parRegionApprouves,
       parRegionInteret,
       antecedentsData,
+      bottesData,
       last24h, last7d, last30d,
       dailyData,
       campsData,
