@@ -7,10 +7,16 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export const revalidate = 300 // cache 5 min pour les nouvelles inscriptions
+export const revalidate = 300
 
 function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10)
+}
+
+// Extrait le numéro de cohorte depuis le nom du camp (ex: "Camp 6e", "6e cohorte", etc.)
+function extractCohort(nom: string): number {
+  const m = nom.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 999;
 }
 
 export async function GET() {
@@ -32,7 +38,6 @@ export async function GET() {
       orgMap[po.benevole_id] = org
     }
 
-    // Organisme display name
     const orgDisplayName = (org: string): string => {
       if (org.includes('SOPFEU')) return 'SOPFEU'
       if (org.includes('Croix-Rouge')) return 'Croix-Rouge'
@@ -40,18 +45,15 @@ export async function GET() {
       return org
     }
 
-    // ── 1. Répartition par groupe ─────────────────────────────────────────────
+    // ── Répartition par groupe ────────────────────────────────────────────────
     const groupeOrder = ['Intérêt', 'Approuvé', 'Partenaires']
     const groupeCounts: Record<string, number> = {}
     for (const r of reservistes || []) {
       const g = r.groupe || 'Autre'
       groupeCounts[g] = (groupeCounts[g] || 0) + 1
     }
-    const parGroupe = groupeOrder
-      .filter(g => groupeCounts[g])
-      .map(groupe => ({ groupe, total: groupeCounts[groupe] }))
 
-    // ── 2. Qualifiés par organisme ────────────────────────────────────────────
+    // ── Qualifiés par organisme ───────────────────────────────────────────────
     const qualifies = (reservistes || []).filter(r =>
       r.groupe === 'Approuvé' || r.groupe === 'Partenaires'
     )
@@ -65,19 +67,13 @@ export async function GET() {
       .map(([organisme, total]) => ({ organisme, total }))
       .sort((a, b) => b.total - a.total)
 
-    // ── 3. Intérêt: public vs AQBRS ──────────────────────────────────────────
-    const interetPublic = (reservistes || []).filter(r =>
-      r.groupe === 'Intérêt' && !orgMap[r.benevole_id]
-    ).length
-    const interetAQBRS = (reservistes || []).filter(r =>
-      r.groupe === 'Intérêt' && !!orgMap[r.benevole_id]
-    ).length
+    // ── Intérêt: public vs AQBRS ──────────────────────────────────────────────
     const interetData = [
-      { label: 'Public', total: interetPublic },
-      { label: 'AQBRS', total: interetAQBRS },
+      { label: 'Public', total: (reservistes || []).filter(r => r.groupe === 'Intérêt' && !orgMap[r.benevole_id]).length },
+      { label: 'AQBRS',  total: (reservistes || []).filter(r => r.groupe === 'Intérêt' && !!orgMap[r.benevole_id]).length },
     ]
 
-    // ── 4. Répartition géographique ───────────────────────────────────────────
+    // ── Répartition géographique ──────────────────────────────────────────────
     const buildRegionData = (groupe: string) => {
       const counts: Record<string, number> = {}
       for (const r of reservistes || []) {
@@ -92,7 +88,7 @@ export async function GET() {
     const parRegionApprouves = buildRegionData('Approuvé')
     const parRegionInteret   = buildRegionData('Intérêt')
 
-    // ── 5. Antécédents judiciaires — Approuvés seulement ─────────────────────
+    // ── Antécédents — Approuvés seulement ─────────────────────────────────────
     const antecedentsCounts: Record<string, number> = {}
     for (const r of reservistes || []) {
       if (r.groupe !== 'Approuvé') continue
@@ -102,22 +98,20 @@ export async function GET() {
     const antecedentsData = Object.entries(antecedentsCounts)
       .map(([statut, total]) => ({ statut, total }))
 
-    // ── 6. Nouvelles inscriptions ─────────────────────────────────────────────
+    // ── Nouvelles inscriptions ────────────────────────────────────────────────
     const now = Date.now()
     const DAY = 86400000
     const getInscDate = (r: any): number | null => {
       const d = r.monday_created_at || r.created_at
       return d ? new Date(d).getTime() : null
     }
-    const last24h  = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY }).length
-    const last7d   = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY }).length
-    const last30d  = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY }).length
+    const last24h = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY }).length
+    const last7d  = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY }).length
+    const last30d = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY }).length
 
-    // Sparkline 30 jours
     const dailyCounts: Record<string, number> = {}
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(now - i * DAY)
-      dailyCounts[formatDate(d)] = 0
+      dailyCounts[formatDate(new Date(now - i * DAY))] = 0
     }
     for (const r of reservistes || []) {
       const d = r.monday_created_at || r.created_at
@@ -127,37 +121,60 @@ export async function GET() {
     }
     const dailyData = Object.entries(dailyCounts).map(([date, count]) => ({ date, count }))
 
-    // ── 7. Inscriptions camps ─────────────────────────────────────────────────
+    // ── Inscriptions camps ────────────────────────────────────────────────────
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
       .select('camp_nom, camp_dates, camp_lieu, session_id, presence')
 
-    const campMap: Record<string, { nom: string; dates: string; lieu: string; confirmes: number; total: number }> = {}
-    for (const c of campsRaw || []) {
-      const key = c.session_id || c.camp_nom
-      if (!campMap[key]) {
-        campMap[key] = { nom: c.camp_nom || '—', dates: c.camp_dates || '—', lieu: c.camp_lieu || '—', confirmes: 0, total: 0 }
-      }
-      campMap[key].total++
-      if (c.presence === 'confirme') campMap[key].confirmes++
-    }
-    const campsData = Object.values(campMap).sort((a, b) => a.nom.localeCompare(b.nom))
+    // Grouper par session
+    const campMap: Record<string, {
+      nom: string; dates: string; lieu: string
+      inscrits: number
+      informe_absence: number
+      no_show: number
+      qualifie: number
+    }> = {}
 
-    // ── Totaux ────────────────────────────────────────────────────────────────
+    for (const c of campsRaw || []) {
+      const key = c.session_id || c.camp_nom || 'inconnu'
+      if (!campMap[key]) {
+        campMap[key] = {
+          nom: c.camp_nom || '—',
+          dates: c.camp_dates || '—',
+          lieu: c.camp_lieu || '—',
+          inscrits: 0, informe_absence: 0, no_show: 0, qualifie: 0,
+        }
+      }
+      campMap[key].inscrits++
+      const p = (c.presence || '').toLowerCase()
+      if (p.includes('absent') || p.includes('informe') || p === 'absent_informe') {
+        campMap[key].informe_absence++
+      } else if (p.includes('no_show') || p === 'no_show') {
+        campMap[key].no_show++
+      } else if (p.includes('qualifie') || p.includes('qualifié') || p === 'qualifie') {
+        campMap[key].qualifie++
+      }
+    }
+
+    // Trier par numéro de cohorte
+    const campsData = Object.values(campMap)
+      .sort((a, b) => extractCohort(a.nom) - extractCohort(b.nom))
+      .map(c => ({
+        ...c,
+        attendues: c.inscrits - c.informe_absence,
+      }))
+
     return NextResponse.json({
       totalInscrits:    reservistes?.length || 0,
       totalInteret:     groupeCounts['Intérêt']     || 0,
       totalApprouves:   groupeCounts['Approuvé']    || 0,
       totalPartenaires: groupeCounts['Partenaires'] || 0,
-      parGroupe,
       parOrganisme,
       interetData,
       parRegionApprouves,
       parRegionInteret,
       antecedentsData,
-      last24h,
-      last7d,
-      last30d,
+      last24h, last7d, last30d,
       dailyData,
       campsData,
       updatedAt: new Date().toISOString(),

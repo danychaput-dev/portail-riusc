@@ -24,12 +24,6 @@ const ORG_COLORS: Record<string, string> = {
   'MSP':         '#4a7b65',
 }
 
-const GROUPE_COLORS: Record<string, string> = {
-  'Intérêt':     AMBER,
-  'Approuvé':    NAVY,
-  'Partenaires': '#4a7b65',
-}
-
 const ANTECEDENTS_COLORS: Record<string, string> = {
   'verifie':    GREEN,
   'en_attente': AMBER,
@@ -43,27 +37,18 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
 }
 
 interface CampData {
-  nom: string
-  dates: string
-  lieu: string
-  confirmes: number
-  total: number
+  nom: string; dates: string; lieu: string
+  inscrits: number; informe_absence: number; attendues: number; no_show: number; qualifie: number
 }
 
 interface Stats {
-  totalInscrits: number
-  totalInteret: number
-  totalApprouves: number
-  totalPartenaires: number
-  parGroupe: { groupe: string; total: number }[]
+  totalInscrits: number; totalInteret: number; totalApprouves: number; totalPartenaires: number
   parOrganisme: { organisme: string; total: number }[]
   interetData: { label: string; total: number }[]
   parRegionApprouves: { region: string; total: number }[]
   parRegionInteret: { region: string; total: number }[]
   antecedentsData: { statut: string; total: number }[]
-  last24h: number
-  last7d: number
-  last30d: number
+  last24h: number; last7d: number; last30d: number
   dailyData: { date: string; count: number }[]
   campsData: CampData[]
   updatedAt: string
@@ -81,11 +66,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-function Card({ title, subtitle, children, fullWidth = false, style = {} }: {
-  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean; style?: React.CSSProperties
+function Card({ title, subtitle, children, fullWidth = false }: {
+  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean
 }) {
   return (
-    <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, gridColumn: fullWidth ? '1 / -1' : undefined, ...style }}>
+    <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, gridColumn: fullWidth ? '1 / -1' : undefined }}>
       <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${YELLOW}` }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: NAVY }}>{title}</h3>
         {subtitle && <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>{subtitle}</p>}
@@ -103,7 +88,6 @@ function StatCard({ value, label, color = NAVY }: { value: number; label: string
     </div>
   )
 }
-
 
 function Legend({ items }: { items: { label: string; color: string; value: number }[] }) {
   return (
@@ -132,7 +116,9 @@ function OrgTable({ data }: { data: { organisme: string; total: number }[] }) {
                 <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: ORG_COLORS[row.organisme] || MUTED, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, color: TEXT }}>{row.organisme}</span>
               </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: NAVY }}>{row.total} <span style={{ fontSize: 12, color: MUTED, fontWeight: 400 }}>({pct}%)</span></span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: NAVY, whiteSpace: 'nowrap' }}>
+                {row.total} <span style={{ fontSize: 12, color: MUTED, fontWeight: 400 }}>({pct}%)</span>
+              </span>
             </div>
             <div style={{ height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`, backgroundColor: ORG_COLORS[row.organisme] || MUTED, borderRadius: 3 }} />
@@ -164,18 +150,24 @@ export default function DashboardPublicPage() {
   const maxDaily = stats ? Math.max(...stats.dailyData.map(d => d.count), 1) : 1
   const today = new Date().toISOString().slice(0, 10)
 
+  // Colonnes camps
+  const campCols = [
+    { key: 'inscrits',        label: 'Inscrits',            color: NAVY },
+    { key: 'informe_absence', label: 'Informé de l\'absence', color: AMBER },
+    { key: 'attendues',       label: 'Attendues',            color: NAVY },
+    { key: 'no_show',         label: 'No Show',              color: RED },
+    { key: 'qualifie',        label: 'Qualifiés',            color: GREEN },
+  ]
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: BG }}>
 
-      {/* En-tête */}
+      {/* ── En-tête ── */}
       <div style={{ backgroundColor: NAVY, borderBottom: `3px solid ${YELLOW}`, padding: '16px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <img src="/logo-aqbrs.png" alt="AQBRS" style={{ height: 36, filter: 'brightness(0) invert(1)' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <div>
-              <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: WHITE }}>Tableau de bord — RIUSC</h1>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Réserve d&apos;intervention d&apos;urgence en sécurité civile du Québec</p>
-            </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: WHITE }}>Tableau de bord — RIUSC</h1>
+            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Réserve d&apos;intervention d&apos;urgence en sécurité civile du Québec</p>
           </div>
           {stats && (
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
@@ -191,7 +183,7 @@ export default function DashboardPublicPage() {
 
         {stats && (
           <>
-            {/* ── Badges sommaire ── */}
+            {/* ── Badges ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
               <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" />
               <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} />
@@ -200,17 +192,14 @@ export default function DashboardPublicPage() {
               <StatCard value={totalVerifies}           label="Antécédents vérifiés" color={GREEN} />
             </div>
 
-            {/* ── Ligne 1 : 2 colonnes égales ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'stretch' }}>
+            {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'start' }}>
 
-              {/* Colonne gauche : Organisme */}
               <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Réservistes qualifiés et Partenaires">
                 <OrgTable data={stats.parOrganisme} />
               </Card>
 
-              {/* Colonne droite : Intérêt + Antécédents empilés */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
                 <Card title="Personnes avec intérêt à joindre la RIUSC">
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
@@ -238,31 +227,13 @@ export default function DashboardPublicPage() {
                   </ResponsiveContainer>
                   <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
                 </Card>
-
               </div>
             </div>
 
-            {/* ── Ligne 2 : Répartition par groupe + Géo côte à côte ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
-
-              <Card title="Répartition par groupe">
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={stats.parGroupe} layout="vertical" barCategoryGap="25%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 12, fill: MUTED }} />
-                    <YAxis type="category" dataKey="groupe" tick={{ fontSize: 12, fill: MUTED }} width={90} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="total" name="Total" radius={[0, 4, 4, 0]}>
-                      {stats.parGroupe.map((entry, i) => (
-                        <Cell key={i} fill={GROUPE_COLORS[entry.groupe] || MUTED} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-
+            {/* ── Ligne 2 : Géo côte à côte ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <Card title="Géographie — Réservistes qualifiés">
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={stats.parRegionApprouves} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="region" tick={{ fontSize: 9, fill: MUTED }} interval={0} angle={-30} textAnchor="end" height={60} />
@@ -274,7 +245,7 @@ export default function DashboardPublicPage() {
               </Card>
 
               <Card title="Géographie — Avec intérêt">
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={stats.parRegionInteret} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="region" tick={{ fontSize: 9, fill: MUTED }} interval={0} angle={-30} textAnchor="end" height={60} />
@@ -284,18 +255,16 @@ export default function DashboardPublicPage() {
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
-
             </div>
 
             {/* ── Ligne 3 : Nouvelles inscriptions ── */}
             <div style={{ marginBottom: 20 }}>
               <Card title="Nouvelles inscriptions">
-                {/* Compteurs */}
-                <div style={{ display: 'flex', gap: 32, borderBottom: `1px solid ${BORDER}`, paddingBottom: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 40, borderBottom: `1px solid ${BORDER}`, paddingBottom: 16, marginBottom: 16, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Dernières 24h', value: stats.last24h, color: stats.last24h > 0 ? GREEN : MUTED },
-                    { label: '7 derniers jours', value: stats.last7d, color: stats.last7d > 0 ? NAVY : MUTED },
-                    { label: '30 derniers jours', value: stats.last30d, color: stats.last30d > 0 ? NAVY : MUTED },
+                    { label: 'Dernières 24h',      value: stats.last24h,  color: stats.last24h  > 0 ? GREEN : MUTED },
+                    { label: '7 derniers jours',   value: stats.last7d,   color: stats.last7d   > 0 ? NAVY  : MUTED },
+                    { label: '30 derniers jours',  value: stats.last30d,  color: stats.last30d  > 0 ? NAVY  : MUTED },
                   ].map((s, i) => (
                     <div key={i}>
                       <div style={{ fontSize: 28, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
@@ -303,7 +272,6 @@ export default function DashboardPublicPage() {
                     </div>
                   ))}
                 </div>
-                {/* Sparkline */}
                 <div style={{ fontSize: 13, color: MUTED, marginBottom: 8, fontWeight: 500 }}>Inscriptions par jour (30 derniers jours)</div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
                   {stats.dailyData.map(({ date, count }) => {
@@ -312,14 +280,8 @@ export default function DashboardPublicPage() {
                     return (
                       <div key={date} title={`${date} : ${count} inscription${count > 1 ? 's' : ''}`}
                         style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                        <div style={{ fontSize: 9, color: MUTED, fontWeight: 500 }}>{count > 0 ? count : ''}</div>
-                        <div style={{
-                          width: '100%', maxWidth: 22,
-                          height: `${Math.max(h, 4)}%`,
-                          background: isToday ? GREEN : count > 0 ? NAVY : BORDER,
-                          borderRadius: '3px 3px 0 0',
-                          opacity: count > 0 ? 1 : 0.4,
-                        }} />
+                        <div style={{ fontSize: 9, color: MUTED }}>{count > 0 ? count : ''}</div>
+                        <div style={{ width: '100%', maxWidth: 22, height: `${Math.max(h, 4)}%`, background: isToday ? GREEN : count > 0 ? NAVY : BORDER, borderRadius: '3px 3px 0 0', opacity: count > 0 ? 1 : 0.4 }} />
                       </div>
                     )
                   })}
@@ -331,37 +293,61 @@ export default function DashboardPublicPage() {
               </Card>
             </div>
 
-            {/* ── Ligne 4 : Inscriptions aux camps ── */}
+            {/* ── Ligne 4 : Camps ── */}
             {stats.campsData.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <Card title="Inscriptions aux camps de qualification">
+                <Card title="Camps de qualification — Résultats par cohorte">
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                       <thead>
-                        <tr style={{ borderBottom: `2px solid ${BORDER}` }}>
-                          <th style={{ textAlign: 'left', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Camp</th>
-                          <th style={{ textAlign: 'left', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Dates</th>
-                          <th style={{ textAlign: 'left', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Lieu</th>
-                          <th style={{ textAlign: 'center', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Confirmés</th>
-                          <th style={{ textAlign: 'center', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Total inscrits</th>
+                        <tr style={{ backgroundColor: BG, borderBottom: `2px solid ${BORDER}` }}>
+                          <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Cohorte</th>
+                          <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Site</th>
+                          <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Dates</th>
+                          {campCols.map(col => (
+                            <th key={col.key} style={{ textAlign: 'center', padding: '10px 16px', color: col.color, fontWeight: 600, fontSize: 13 }}>
+                              {col.label}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
                         {stats.campsData.map((camp, i) => (
                           <tr key={i} style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: i % 2 === 0 ? WHITE : BG }}>
-                            <td style={{ padding: '10px 16px', color: NAVY, fontWeight: 600 }}>{camp.nom}</td>
-                            <td style={{ padding: '10px 16px', color: TEXT }}>{camp.dates}</td>
-                            <td style={{ padding: '10px 16px', color: MUTED }}>{camp.lieu}</td>
-                            <td style={{ padding: '10px 16px', textAlign: 'center' }}>
-                              <span style={{ backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontSize: 13, fontWeight: 600 }}>
-                                {camp.confirmes}
-                              </span>
+                            <td style={{ padding: '12px 16px', color: NAVY, fontWeight: 700, fontSize: 15 }}>{camp.nom}</td>
+                            <td style={{ padding: '12px 16px', color: TEXT }}>{camp.lieu}</td>
+                            <td style={{ padding: '12px 16px', color: MUTED, fontSize: 13 }}>{camp.dates}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              <span style={{ fontWeight: 600, color: NAVY }}>{camp.inscrits}</span>
                             </td>
-                            <td style={{ padding: '10px 16px', textAlign: 'center' }}>
-                              <strong style={{ color: NAVY }}>{camp.total}</strong>
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              <span style={{ fontWeight: 600, color: AMBER }}>{camp.informe_absence}</span>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              <span style={{ fontWeight: 600, color: NAVY }}>{camp.attendues}</span>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              <span style={{ fontWeight: 600, color: RED }}>{camp.no_show}</span>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                              <span style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontWeight: 600, fontSize: 13 }}>
+                                {camp.qualifie}
+                              </span>
                             </td>
                           </tr>
                         ))}
+                        {/* Ligne totaux */}
+                        <tr style={{ borderTop: `2px solid ${BORDER}`, backgroundColor: '#f0f4f8' }}>
+                          <td colSpan={3} style={{ padding: '10px 16px', fontWeight: 700, color: NAVY, fontSize: 13 }}>Total</td>
+                          {campCols.map(col => {
+                            const total = stats.campsData.reduce((s, c) => s + (c as any)[col.key], 0)
+                            return (
+                              <td key={col.key} style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: col.color, fontSize: 14 }}>
+                                {total}
+                              </td>
+                            )
+                          })}
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -370,7 +356,7 @@ export default function DashboardPublicPage() {
             )}
 
             {/* Pied de page */}
-            <div style={{ marginTop: 12, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'center', fontSize: 12, color: MUTED }}>
+            <div style={{ paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'center', fontSize: 12, color: MUTED }}>
               Données agrégées — aucune information nominale n&apos;est divulguée. &nbsp;·&nbsp; Portail RIUSC © {new Date().getFullYear()} AQBRS
             </div>
           </>
