@@ -37,8 +37,13 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
 }
 
 interface CampData {
-  nom: string; dates: string; lieu: string
-  inscrits: number; informe_absence: number; attendues: number; no_show: number; qualifie: number
+  cohort: number; dates: string
+  inscrits: number
+  informe_absence: number | null
+  attendues: number | null
+  no_show: number | null
+  qualifie: number | null
+  passe: boolean
 }
 
 interface Stats {
@@ -150,10 +155,9 @@ export default function DashboardPublicPage() {
   const maxDaily = stats ? Math.max(...stats.dailyData.map(d => d.count), 1) : 1
   const today = new Date().toISOString().slice(0, 10)
 
-  // Colonnes camps
-  const campCols = [
-    { key: 'inscrits',        label: 'Inscrits',            color: NAVY },
-    { key: 'informe_absence', label: 'Informé de l\'absence', color: AMBER },
+  const campCols: { key: keyof CampData; label: string; color: string }[] = [
+    { key: 'inscrits',        label: 'Inscrits',             color: NAVY },
+    { key: 'informe_absence', label: "Informé de l'absence", color: AMBER },
     { key: 'attendues',       label: 'Attendues',            color: NAVY },
     { key: 'no_show',         label: 'No Show',              color: RED },
     { key: 'qualifie',        label: 'Qualifiés',            color: GREEN },
@@ -302,7 +306,6 @@ export default function DashboardPublicPage() {
                       <thead>
                         <tr style={{ backgroundColor: BG, borderBottom: `2px solid ${BORDER}` }}>
                           <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Cohorte</th>
-                          <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Site</th>
                           <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Dates</th>
                           {campCols.map(col => (
                             <th key={col.key} style={{ textAlign: 'center', padding: '10px 16px', color: col.color, fontWeight: 600, fontSize: 13 }}>
@@ -314,33 +317,35 @@ export default function DashboardPublicPage() {
                       <tbody>
                         {stats.campsData.map((camp, i) => (
                           <tr key={i} style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: i % 2 === 0 ? WHITE : BG }}>
-                            <td style={{ padding: '12px 16px', color: NAVY, fontWeight: 700, fontSize: 15 }}>{camp.nom}</td>
-                            <td style={{ padding: '12px 16px', color: TEXT }}>{camp.lieu}</td>
-                            <td style={{ padding: '12px 16px', color: MUTED, fontSize: 13 }}>{camp.dates}</td>
-                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 600, color: NAVY }}>{camp.inscrits}</span>
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 600, color: AMBER }}>{camp.informe_absence}</span>
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 600, color: NAVY }}>{camp.attendues}</span>
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 600, color: RED }}>{camp.no_show}</span>
-                            </td>
-                            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                              <span style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontWeight: 600, fontSize: 13 }}>
-                                {camp.qualifie}
-                              </span>
-                            </td>
+                            <td style={{ padding: '12px 16px', color: NAVY, fontWeight: 700, fontSize: 15 }}>{camp.cohort}<sup style={{ fontSize: 11 }}>e</sup></td>
+                            <td style={{ padding: '12px 16px', color: MUTED, fontSize: 13 }}>{camp.dates || '—'}</td>
+                            {campCols.map(col => {
+                              const val = camp[col.key]
+                              if (!camp.passe && col.key !== 'inscrits') {
+                                return <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center', color: MUTED }}>—</td>
+                              }
+                              if (col.key === 'qualifie') {
+                                return (
+                                  <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                    <span style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontWeight: 600, fontSize: 13 }}>{val}</span>
+                                  </td>
+                                )
+                              }
+                              return (
+                                <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                  <span style={{ fontWeight: 600, color: col.color }}>{val ?? '—'}</span>
+                                </td>
+                              )
+                            })}
                           </tr>
                         ))}
-                        {/* Ligne totaux */}
+                        {/* Ligne totaux — camps passés seulement */}
                         <tr style={{ borderTop: `2px solid ${BORDER}`, backgroundColor: '#f0f4f8' }}>
-                          <td colSpan={3} style={{ padding: '10px 16px', fontWeight: 700, color: NAVY, fontSize: 13 }}>Total</td>
+                          <td colSpan={2} style={{ padding: '10px 16px', fontWeight: 700, color: NAVY, fontSize: 13 }}>Total</td>
                           {campCols.map(col => {
-                            const total = stats.campsData.reduce((s, c) => s + (c as any)[col.key], 0)
+                            const total = stats.campsData
+                              .filter(c => c.passe || col.key === 'inscrits')
+                              .reduce((s, c) => s + ((c[col.key] as number) || 0), 0)
                             return (
                               <td key={col.key} style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: col.color, fontSize: 14 }}>
                                 {total}

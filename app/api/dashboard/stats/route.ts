@@ -13,10 +13,20 @@ function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
-// Extrait le numéro de cohorte depuis le nom du camp (ex: "Camp 6e", "6e cohorte", etc.)
 function extractCohort(nom: string): number {
   const m = nom.match(/(\d+)/);
   return m ? parseInt(m[1]) : 999;
+}
+
+interface CampEntry {
+  cohort: number
+  dates: string
+  inscrits: number
+  informe_absence: number | null
+  attendues: number | null
+  no_show: number | null
+  qualifie: number | null
+  passe: boolean
 }
 
 export async function GET() {
@@ -122,47 +132,35 @@ export async function GET() {
     const dailyData = Object.entries(dailyCounts).map(([date, count]) => ({ date, count }))
 
     // ── Inscriptions camps ────────────────────────────────────────────────────
+    // Données historiques hardcodées
+    const CAMPS_HISTORIQUES: CampEntry[] = [
+      { cohort: 6, dates: '', inscrits: 65, informe_absence: 5,  attendues: 60, no_show: 6,  qualifie: 54, passe: true },
+      { cohort: 7, dates: '', inscrits: 30, informe_absence: 3,  attendues: 27, no_show: 9,  qualifie: 19, passe: true },
+      { cohort: 8, dates: '', inscrits: 75, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
+    ]
+
+    // Camps futurs depuis DB (inscrits seulement)
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
-      .select('camp_nom, camp_dates, camp_lieu, session_id, presence')
+      .select('camp_nom, camp_dates, session_id')
 
-    // Grouper par session
-    const campMap: Record<string, {
-      nom: string; dates: string; lieu: string
-      inscrits: number
-      informe_absence: number
-      no_show: number
-      qualifie: number
-    }> = {}
-
+    const futurMap: Record<string, { cohort: number; dates: string; inscrits: number }> = {}
     for (const c of campsRaw || []) {
+      const cohortNum = extractCohort(c.camp_nom || '')
+      if (CAMPS_HISTORIQUES.some(h => h.cohort === cohortNum)) continue
       const key = c.session_id || c.camp_nom || 'inconnu'
-      if (!campMap[key]) {
-        campMap[key] = {
-          nom: c.camp_nom || '—',
-          dates: c.camp_dates || '—',
-          lieu: c.camp_lieu || '—',
-          inscrits: 0, informe_absence: 0, no_show: 0, qualifie: 0,
-        }
-      }
-      campMap[key].inscrits++
-      const p = (c.presence || '').toLowerCase()
-      if (p.includes('absent') || p.includes('informe') || p === 'absent_informe') {
-        campMap[key].informe_absence++
-      } else if (p.includes('no_show') || p === 'no_show') {
-        campMap[key].no_show++
-      } else if (p.includes('qualifie') || p.includes('qualifié') || p === 'qualifie') {
-        campMap[key].qualifie++
-      }
+      if (!futurMap[key]) futurMap[key] = { cohort: cohortNum, dates: c.camp_dates || '—', inscrits: 0 }
+      futurMap[key].inscrits++
     }
 
-    // Trier par numéro de cohorte
-    const campsData = Object.values(campMap)
-      .sort((a, b) => extractCohort(a.nom) - extractCohort(b.nom))
-      .map(c => ({
-        ...c,
-        attendues: c.inscrits - c.informe_absence,
-      }))
+    const campsFuturs: CampEntry[] = Object.values(futurMap).map(f => ({
+      cohort: f.cohort, dates: f.dates, inscrits: f.inscrits,
+      informe_absence: null, attendues: null, no_show: null, qualifie: null,
+      passe: false,
+    }))
+
+    const campsData = [...CAMPS_HISTORIQUES, ...campsFuturs]
+      .sort((a, b) => a.cohort - b.cohort)
 
     return NextResponse.json({
       totalInscrits:    reservistes?.length || 0,
