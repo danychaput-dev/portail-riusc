@@ -34,7 +34,7 @@ export async function GET() {
   try {
     const { data: reservistes, error } = await supabase
       .from('reservistes')
-      .select('benevole_id, groupe, region, antecedents_statut, monday_created_at, created_at')
+      .select('benevole_id, groupe, region, antecedents_statut, monday_created_at, created_at, remboursement_bottes_date')
       .eq('statut', 'Actif')
 
     if (error) throw error
@@ -110,17 +110,12 @@ export async function GET() {
       .map(([statut, total]) => ({ statut, total }))
 
     // ── Bottes — Approuvés seulement ──────────────────────────────────────────
-    const { data: bottesRaw } = await supabase
-      .from('reservistes')
-      .select('grandeur_bottes')
-      .eq('statut', 'Actif')
-      .eq('groupe', 'Approuvé')
-
-    const avecBottes  = (bottesRaw || []).filter(r => r.grandeur_bottes && r.grandeur_bottes.trim() !== '').length
-    const sansBottes  = (bottesRaw || []).length - avecBottes
-    const bottesData  = [
-      { label: 'Avec bottes',  total: avecBottes },
-      { label: 'Sans bottes',  total: sansBottes },
+    const approuvesOnly = (reservistes || []).filter(r => r.groupe === 'Approuvé')
+    const avecBottes = approuvesOnly.filter(r => !!r.remboursement_bottes_date).length
+    const sansBottes = approuvesOnly.length - avecBottes
+    const bottesData = [
+      { label: 'Avec bottes', total: avecBottes },
+      { label: 'Sans bottes', total: sansBottes },
     ]
 
     // ── Nouvelles inscriptions ────────────────────────────────────────────────
