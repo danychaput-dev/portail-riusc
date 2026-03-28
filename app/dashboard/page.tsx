@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -172,10 +172,23 @@ function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves,
   )
 }
 
+// Hook responsive
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(false)
+  React.useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isMobile
+}
+
 export default function DashboardPublicPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     fetch('/api/dashboard/stats')
@@ -199,7 +212,7 @@ export default function DashboardPublicPage() {
     <div style={{ minHeight: '100vh', backgroundColor: BG }}>
 
       {/* ── En-tête ── */}
-      <div style={{ backgroundColor: NAVY, borderBottom: `3px solid ${YELLOW}`, padding: '16px 24px' }}>
+      <div style={{ backgroundColor: NAVY, borderBottom: `3px solid ${YELLOW}`, padding: isMobile ? '12px 16px' : '16px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: WHITE }}>Tableau de bord — RIUSC</h1>
@@ -213,14 +226,14 @@ export default function DashboardPublicPage() {
         </div>
       </div>
 
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+      <main style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '16px 12px' : '32px 24px' }}>
         {loading && <div style={{ padding: 80, textAlign: 'center', color: MUTED, fontSize: 16 }}>Chargement des données…</div>}
         {error && <div style={{ backgroundColor: '#fef2f2', color: RED, padding: '16px 20px', borderRadius: 8, fontSize: 14, border: '1px solid #fecaca' }}>Erreur lors du chargement des données.</div>}
 
         {stats && (
           <>
             {/* ── Badges ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
               <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" />
               <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} />
               <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" />
@@ -228,7 +241,7 @@ export default function DashboardPublicPage() {
             </div>
 
             {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'stretch' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 20, alignItems: isMobile ? 'start' : 'stretch' }}>
 
               <Card title="Réservistes qualifiés et Partenaires">
                 <OrgTable
@@ -240,7 +253,7 @@ export default function DashboardPublicPage() {
               </Card>
 
               {/* Colonne droite : 3 graphiques empilés à hauteur égale */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: isMobile ? 'auto' : '100%' }}>
 
                 {/* Carte 1 : Intérêt */}
                 <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
@@ -294,7 +307,7 @@ export default function DashboardPublicPage() {
             </div>
 
             {/* ── Ligne 2 : Géo côte à côte ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <Card title="Géographie — Réservistes qualifiés">
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={stats.parRegionApprouves} barCategoryGap="30%">
