@@ -64,21 +64,24 @@ export async function GET() {
       groupeCounts[g] = (groupeCounts[g] || 0) + 1
     }
 
-    // ── Qualifiés : Approuvés (AQBRS-RS + Public) ───────────────────────────
+    // ── Réservistes qualifiés (Approuvés) par organisme ─────────────────────
     const approuvesRows = (reservistes || []).filter(r => r.groupe === 'Approuvé')
-    const aqbrsRS  = approuvesRows.filter(r => {
-      const org = orgMap[r.benevole_id] || ''
-      return org.includes('AQBRS') || org === ''
-    })
-    const publicApprouves = approuvesRows.filter(r => {
-      const org = orgMap[r.benevole_id] || ''
-      return org !== '' && !org.includes('AQBRS')
-    })
-
-    const reservistesQualifies = [
-      { organisme: 'Membres AQBRS Recherche et Sauvetage', total: aqbrsRS.length },
-      { organisme: 'Public', total: publicApprouves.length > 0 ? publicApprouves.length : approuvesRows.length - aqbrsRS.length },
-    ].filter(r => r.total > 0)
+    const approuvesOrgCounts: Record<string, number> = {}
+    for (const r of approuvesRows) {
+      const rawOrg = orgMap[r.benevole_id] || ''
+      let org: string
+      if (!rawOrg) {
+        org = 'Membres AQBRS Recherche et Sauvetage'
+      } else if (rawOrg.includes('AQBRS')) {
+        org = 'AQBRS (membres)'
+      } else {
+        org = orgDisplayName(rawOrg)
+      }
+      approuvesOrgCounts[org] = (approuvesOrgCounts[org] || 0) + 1
+    }
+    const reservistesQualifies = Object.entries(approuvesOrgCounts)
+      .map(([organisme, total]) => ({ organisme, total }))
+      .sort((a, b) => b.total - a.total)
 
     // ── Partenaires : regroupés par organisme ─────────────────────────────────
     const partenairesRows = (reservistes || []).filter(r => r.groupe === 'Partenaires')
@@ -91,7 +94,6 @@ export async function GET() {
       .map(([organisme, total]) => ({ organisme, total }))
       .sort((a, b) => b.total - a.total)
 
-    // Combiné pour compatibilité (gardé pour autres usages éventuels)
     const parOrganisme = [...reservistesQualifies, ...partenairesOrganismes]
 
     // ── Intérêt: public vs AQBRS ──────────────────────────────────────────────
