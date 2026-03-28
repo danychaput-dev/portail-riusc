@@ -189,60 +189,66 @@ export default function DashboardPublicPage() {
             {/* Grille graphiques */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
 
-              {/* 1. Qualifiés par organisme — tableau avec barres de progression */}
-              <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Approuvé et Partenaires">
-                <OrgTable data={stats.parOrganisme} />
-              </Card>
+              {/* Colonne gauche : Organisme + Répartition groupe */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-              {/* 2. Intérêt public vs AQBRS */}
-              <Card title="Personnes avec intérêt à joindre la RIUSC">
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={85}
-                      label={({ name, value, percent }: any) => `${name} : ${value} (${(percent * 100).toFixed(0)}%)`}>
-                      <Cell fill={NAVY} />
-                      <Cell fill={AMBER} />
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total }))} />
-              </Card>
+                <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Réservistes qualifiés et Partenaires">
+                  <OrgTable data={stats.parOrganisme} />
+                </Card>
 
-              {/* 3. Répartition par groupe */}
-              <Card title="Répartition par groupe">
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={stats.parGroupe} layout="vertical" barCategoryGap="25%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 12, fill: MUTED }} />
-                    <YAxis type="category" dataKey="groupe" tick={{ fontSize: 12, fill: MUTED }} width={90} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="total" name="Total" radius={[0, 4, 4, 0]}>
-                      {stats.parGroupe.map((entry, i) => (
-                        <Cell key={i} fill={GROUPE_COLORS[entry.groupe] || MUTED} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
+                <Card title="Répartition par groupe">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={stats.parGroupe} layout="vertical" barCategoryGap="25%">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 12, fill: MUTED }} />
+                      <YAxis type="category" dataKey="groupe" tick={{ fontSize: 12, fill: MUTED }} width={90} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="total" name="Total" radius={[0, 4, 4, 0]}>
+                        {stats.parGroupe.map((entry, i) => (
+                          <Cell key={i} fill={GROUPE_COLORS[entry.groupe] || MUTED} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
 
-              {/* 4. Antécédents judiciaires — Approuvés seulement */}
-              <Card title="Antécédents judiciaires" subtitle="Groupe Approuvé seulement">
-                <ResponsiveContainer width="100%" height={180}>
-                  <PieChart>
-                    <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={50} outerRadius={80}>
-                      {stats.antecedentsData.map((entry, i) => (
-                        <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: any, name: any) => [value, ANTECEDENTS_LABELS[name] || name]} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
-              </Card>
+              </div>
 
-              {/* 5. Répartition géographique — Approuvés */}
-              <Card title="Répartition géographique — Approuvés" fullWidth={false}>
+              {/* Colonne droite : Intérêt + Antécédents */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                <Card title="Personnes avec intérêt à joindre la RIUSC">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={85}
+                        label={({ name, value, percent }: any) => `${name} : ${value} (${(percent * 100).toFixed(0)}%)`}>
+                        <Cell fill={NAVY} />
+                        <Cell fill={AMBER} />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total }))} />
+                </Card>
+
+                <Card title="Antécédents judiciaires" subtitle="Groupe Réservistes qualifiés seulement">
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={50} outerRadius={80}>
+                        {stats.antecedentsData.map((entry, i) => (
+                          <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: any, name: any) => [value, ANTECEDENTS_LABELS[name] || name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
+                </Card>
+
+              </div>
+
+              {/* Répartition géographique — pleine largeur, côte à côte */}
+              <Card title="Répartition géographique — Réservistes qualifiés">
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={stats.parRegionApprouves} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -254,8 +260,7 @@ export default function DashboardPublicPage() {
                 </ResponsiveContainer>
               </Card>
 
-              {/* 6. Répartition géographique — Intérêt */}
-              <Card title="Répartition géographique — Avec intérêt" fullWidth={false}>
+              <Card title="Répartition géographique — Avec intérêt">
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={stats.parRegionInteret} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
