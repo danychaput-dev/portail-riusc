@@ -64,19 +64,35 @@ export async function GET() {
       groupeCounts[g] = (groupeCounts[g] || 0) + 1
     }
 
-    // ── Qualifiés par organisme ───────────────────────────────────────────────
-    const qualifies = (reservistes || []).filter(r =>
-      r.groupe === 'Approuvé' || r.groupe === 'Partenaires'
-    )
-    const orgCounts: Record<string, number> = {}
-    for (const r of qualifies) {
-      const rawOrg = orgMap[r.benevole_id] || ''
-      const org = rawOrg ? orgDisplayName(rawOrg) : 'AQBRS-RS'
-      orgCounts[org] = (orgCounts[org] || 0) + 1
+    // ── Qualifiés : Approuvés (AQBRS-RS + Public) ───────────────────────────
+    const approuvesRows = (reservistes || []).filter(r => r.groupe === 'Approuvé')
+    const aqbrsRS  = approuvesRows.filter(r => {
+      const org = orgMap[r.benevole_id] || ''
+      return org.includes('AQBRS') || org === ''
+    })
+    const publicApprouves = approuvesRows.filter(r => {
+      const org = orgMap[r.benevole_id] || ''
+      return org !== '' && !org.includes('AQBRS')
+    })
+
+    const reservistesQualifies = [
+      { organisme: 'Membres AQBRS Recherche et Sauvetage', total: aqbrsRS.length },
+      { organisme: 'Public', total: publicApprouves.length > 0 ? publicApprouves.length : approuvesRows.length - aqbrsRS.length },
+    ].filter(r => r.total > 0)
+
+    // ── Partenaires : regroupés par organisme ─────────────────────────────────
+    const partenairesRows = (reservistes || []).filter(r => r.groupe === 'Partenaires')
+    const partOrgCounts: Record<string, number> = {}
+    for (const r of partenairesRows) {
+      const org = orgDisplayName(orgMap[r.benevole_id] || '') || 'Autre'
+      partOrgCounts[org] = (partOrgCounts[org] || 0) + 1
     }
-    const parOrganisme = Object.entries(orgCounts)
+    const partenairesOrganismes = Object.entries(partOrgCounts)
       .map(([organisme, total]) => ({ organisme, total }))
       .sort((a, b) => b.total - a.total)
+
+    // Combiné pour compatibilité (gardé pour autres usages éventuels)
+    const parOrganisme = [...reservistesQualifies, ...partenairesOrganismes]
 
     // ── Intérêt: public vs AQBRS ──────────────────────────────────────────────
     const interetData = [
@@ -192,6 +208,8 @@ export async function GET() {
       totalApprouves:   groupeCounts['Approuvé']    || 0,
       totalPartenaires: groupeCounts['Partenaires'] || 0,
       parOrganisme,
+      reservistesQualifies,
+      partenairesOrganismes,
       interetData,
       parRegionApprouves,
       parRegionInteret,

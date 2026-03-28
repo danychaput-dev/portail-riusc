@@ -49,6 +49,8 @@ interface CampData {
 interface Stats {
   totalInscrits: number; totalInteret: number; totalApprouves: number; totalPartenaires: number
   parOrganisme: { organisme: string; total: number }[]
+  reservistesQualifies: { organisme: string; total: number }[]
+  partenairesOrganismes: { organisme: string; total: number }[]
   interetData: { label: string; total: number }[]
   parRegionApprouves: { region: string; total: number }[]
   parRegionInteret: { region: string; total: number }[]
@@ -109,33 +111,63 @@ function Legend({ items }: { items: { label: string; color: string; value: numbe
   )
 }
 
-function OrgTable({ data }: { data: { organisme: string; total: number }[] }) {
-  const total = data.reduce((s, o) => s + o.total, 0)
+function OrgBar({ row, max, color }: { row: { organisme: string; total: number }; max: number; color: string }) {
+  const pct = max > 0 ? Math.round((row.total / max) * 100) : 0
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {data.map((row, i) => {
-        const pct = total > 0 ? Math.round((row.total / total) * 100) : 0
-        return (
-          <div key={i}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: ORG_COLORS[row.organisme] || MUTED, flexShrink: 0 }} />
-                <span style={{ fontSize: 14, color: TEXT }}>{row.organisme}</span>
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: NAVY, whiteSpace: 'nowrap' }}>
-                {row.total} <span style={{ fontSize: 12, color: MUTED, fontWeight: 400 }}>({pct}%)</span>
-              </span>
-            </div>
-            <div style={{ height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${pct}%`, backgroundColor: ORG_COLORS[row.organisme] || MUTED, borderRadius: 3 }} />
-            </div>
-          </div>
-        )
-      })}
-      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${BORDER}`, marginTop: 4 }}>
-        <span style={{ fontSize: 13, color: MUTED }}>Total qualifiés</span>
-        <strong style={{ fontSize: 14, color: NAVY }}>{total}</strong>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: TEXT }}>{row.organisme}</span>
+        </div>
+        <span style={{ fontSize: 13, fontWeight: 600, color: NAVY, whiteSpace: 'nowrap' }}>
+          {row.total} <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>({pct}%)</span>
+        </span>
       </div>
+      <div style={{ height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, backgroundColor: color, borderRadius: 3 }} />
+      </div>
+    </div>
+  )
+}
+
+function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves, totalPartenaires }: {
+  reservistesQualifies: { organisme: string; total: number }[]
+  partenairesOrganismes: { organisme: string; total: number }[]
+  totalApprouves: number
+  totalPartenaires: number
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Section Réservistes qualifiés */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: NAVY }}>Réservistes qualifiés</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: NAVY, backgroundColor: '#e8eef5', padding: '2px 10px', borderRadius: 12 }}>{totalApprouves}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {reservistesQualifies.map((row, i) => (
+            <OrgBar key={i} row={row} max={totalApprouves} color={i === 0 ? NAVY : '#64748b'} />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ borderTop: `1px solid ${BORDER}` }} />
+
+      {/* Section Partenaires */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#4a7b65' }}>Partenaires</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#4a7b65', backgroundColor: '#e8f5f0', padding: '2px 10px', borderRadius: 12 }}>{totalPartenaires}</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {partenairesOrganismes.map((row, i) => (
+            <OrgBar key={i} row={row} max={totalPartenaires} color={ORG_COLORS[row.organisme] || MUTED} />
+          ))}
+        </div>
+      </div>
+
     </div>
   )
 }
@@ -198,8 +230,13 @@ export default function DashboardPublicPage() {
             {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'start' }}>
 
-              <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Réservistes qualifiés et Partenaires">
-                <OrgTable data={stats.parOrganisme} />
+              <Card title="Réservistes qualifiés et Partenaires">
+                <OrgTable
+                  reservistesQualifies={stats.reservistesQualifies}
+                  partenairesOrganismes={stats.partenairesOrganismes}
+                  totalApprouves={stats.totalApprouves}
+                  totalPartenaires={stats.totalPartenaires}
+                />
               </Card>
 
               {/* Colonne droite : 3 graphiques empilés à hauteur égale */}
