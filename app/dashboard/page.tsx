@@ -42,6 +42,14 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
   'refuse':     'Refusé',
 }
 
+interface CampData {
+  nom: string
+  dates: string
+  lieu: string
+  confirmes: number
+  total: number
+}
+
 interface Stats {
   totalInscrits: number
   totalInteret: number
@@ -53,6 +61,11 @@ interface Stats {
   parRegionApprouves: { region: string; total: number }[]
   parRegionInteret: { region: string; total: number }[]
   antecedentsData: { statut: string; total: number }[]
+  last24h: number
+  last7d: number
+  last30d: number
+  dailyData: { date: string; count: number }[]
+  campsData: CampData[]
   updatedAt: string
 }
 
@@ -68,11 +81,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-function Card({ title, subtitle, children, fullWidth = false }: {
-  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean
+function Card({ title, subtitle, children, fullWidth = false, style = {} }: {
+  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean; style?: React.CSSProperties
 }) {
   return (
-    <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, gridColumn: fullWidth ? '1 / -1' : undefined }}>
+    <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, gridColumn: fullWidth ? '1 / -1' : undefined, ...style }}>
       <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${YELLOW}` }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: NAVY }}>{title}</h3>
         {subtitle && <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>{subtitle}</p>}
@@ -91,6 +104,7 @@ function StatCard({ value, label, color = NAVY }: { value: number; label: string
   )
 }
 
+
 function Legend({ items }: { items: { label: string; color: string; value: number }[] }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', marginTop: 12 }}>
@@ -105,7 +119,6 @@ function Legend({ items }: { items: { label: string; color: string; value: numbe
   )
 }
 
-// Tableau pour qualifiés par organisme (meilleur que bar chart quand 1 valeur domine)
 function OrgTable({ data }: { data: { organisme: string; total: number }[] }) {
   const total = data.reduce((s, o) => s + o.total, 0)
   return (
@@ -122,7 +135,7 @@ function OrgTable({ data }: { data: { organisme: string; total: number }[] }) {
               <span style={{ fontSize: 14, fontWeight: 600, color: NAVY }}>{row.total} <span style={{ fontSize: 12, color: MUTED, fontWeight: 400 }}>({pct}%)</span></span>
             </div>
             <div style={{ height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${pct}%`, backgroundColor: ORG_COLORS[row.organisme] || MUTED, borderRadius: 3, transition: 'width 0.6s ease' }} />
+              <div style={{ height: '100%', width: `${pct}%`, backgroundColor: ORG_COLORS[row.organisme] || MUTED, borderRadius: 3 }} />
             </div>
           </div>
         )
@@ -147,8 +160,9 @@ export default function DashboardPublicPage() {
       .catch(() => { setError(true); setLoading(false) })
   }, [])
 
-  const totalQualifies = stats?.parOrganisme.reduce((s, o) => s + o.total, 0) || 0
-  const totalVerifies  = stats?.antecedentsData.find(a => a.statut === 'verifie')?.total || 0
+  const totalVerifies = stats?.antecedentsData.find(a => a.statut === 'verifie')?.total || 0
+  const maxDaily = stats ? Math.max(...stats.dailyData.map(d => d.count), 1) : 1
+  const today = new Date().toISOString().slice(0, 10)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: BG }}>
@@ -177,50 +191,30 @@ export default function DashboardPublicPage() {
 
         {stats && (
           <>
-            {/* Badges sommaire */}
+            {/* ── Badges sommaire ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
-              <StatCard value={stats.totalInscrits}   label="Réservistes inscrits" />
-              <StatCard value={stats.totalInteret}    label="Avec intérêt à joindre" color={AMBER} />
-              <StatCard value={stats.totalPartenaires} label="Partenaires" color={'#4a7b65'} />
-              <StatCard value={stats.totalApprouves}  label="Réservistes qualifiés" color={NAVY} />
-              <StatCard value={totalVerifies}          label="Antécédents vérifiés" color={GREEN} />
+              <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" />
+              <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} />
+              <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" />
+              <StatCard value={stats.totalApprouves}   label="Réservistes qualifiés" color={NAVY} />
+              <StatCard value={totalVerifies}           label="Antécédents vérifiés" color={GREEN} />
             </div>
 
-            {/* Grille graphiques */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {/* ── Ligne 1 : 2 colonnes égales ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'stretch' }}>
 
-              {/* Colonne gauche : Organisme + Répartition groupe */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Colonne gauche : Organisme */}
+              <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Réservistes qualifiés et Partenaires">
+                <OrgTable data={stats.parOrganisme} />
+              </Card>
 
-                <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Réservistes qualifiés et Partenaires">
-                  <OrgTable data={stats.parOrganisme} />
-                </Card>
-
-                <Card title="Répartition par groupe">
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={stats.parGroupe} layout="vertical" barCategoryGap="25%">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                      <XAxis type="number" tick={{ fontSize: 12, fill: MUTED }} />
-                      <YAxis type="category" dataKey="groupe" tick={{ fontSize: 12, fill: MUTED }} width={90} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="total" name="Total" radius={[0, 4, 4, 0]}>
-                        {stats.parGroupe.map((entry, i) => (
-                          <Cell key={i} fill={GROUPE_COLORS[entry.groupe] || MUTED} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-
-              </div>
-
-              {/* Colonne droite : Intérêt + Antécédents */}
+              {/* Colonne droite : Intérêt + Antécédents empilés */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
                 <Card title="Personnes avec intérêt à joindre la RIUSC">
-                  <ResponsiveContainer width="100%" height={220}>
+                  <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
-                      <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={85}
+                      <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={80}
                         label={({ name, value, percent }: any) => `${name} : ${value} (${(percent * 100).toFixed(0)}%)`}>
                         <Cell fill={NAVY} />
                         <Cell fill={AMBER} />
@@ -232,9 +226,9 @@ export default function DashboardPublicPage() {
                 </Card>
 
                 <Card title="Antécédents judiciaires" subtitle="Groupe Réservistes qualifiés seulement">
-                  <ResponsiveContainer width="100%" height={180}>
+                  <ResponsiveContainer width="100%" height={160}>
                     <PieChart>
-                      <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={50} outerRadius={80}>
+                      <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={45} outerRadius={72}>
                         {stats.antecedentsData.map((entry, i) => (
                           <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
                         ))}
@@ -246,26 +240,45 @@ export default function DashboardPublicPage() {
                 </Card>
 
               </div>
+            </div>
 
-              {/* Répartition géographique — pleine largeur, côte à côte */}
-              <Card title="Répartition géographique — Réservistes qualifiés">
-                <ResponsiveContainer width="100%" height={260}>
+            {/* ── Ligne 2 : Répartition par groupe + Géo côte à côte ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, marginBottom: 20 }}>
+
+              <Card title="Répartition par groupe">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={stats.parGroupe} layout="vertical" barCategoryGap="25%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 12, fill: MUTED }} />
+                    <YAxis type="category" dataKey="groupe" tick={{ fontSize: 12, fill: MUTED }} width={90} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="total" name="Total" radius={[0, 4, 4, 0]}>
+                      {stats.parGroupe.map((entry, i) => (
+                        <Cell key={i} fill={GROUPE_COLORS[entry.groupe] || MUTED} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+
+              <Card title="Géographie — Réservistes qualifiés">
+                <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={stats.parRegionApprouves} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="region" tick={{ fontSize: 10, fill: MUTED }} interval={0} angle={-25} textAnchor="end" height={60} />
-                    <YAxis tick={{ fontSize: 12, fill: MUTED }} />
+                    <XAxis dataKey="region" tick={{ fontSize: 9, fill: MUTED }} interval={0} angle={-30} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 11, fill: MUTED }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="total" name="Réservistes" fill={NAVY} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
 
-              <Card title="Répartition géographique — Avec intérêt">
-                <ResponsiveContainer width="100%" height={260}>
+              <Card title="Géographie — Avec intérêt">
+                <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={stats.parRegionInteret} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="region" tick={{ fontSize: 10, fill: MUTED }} interval={0} angle={-25} textAnchor="end" height={60} />
-                    <YAxis tick={{ fontSize: 12, fill: MUTED }} />
+                    <XAxis dataKey="region" tick={{ fontSize: 9, fill: MUTED }} interval={0} angle={-30} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 11, fill: MUTED }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="total" name="Personnes" fill={AMBER} radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -274,8 +287,90 @@ export default function DashboardPublicPage() {
 
             </div>
 
+            {/* ── Ligne 3 : Nouvelles inscriptions ── */}
+            <div style={{ marginBottom: 20 }}>
+              <Card title="Nouvelles inscriptions">
+                {/* Compteurs */}
+                <div style={{ display: 'flex', gap: 32, borderBottom: `1px solid ${BORDER}`, paddingBottom: 16, marginBottom: 16, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Dernières 24h', value: stats.last24h, color: stats.last24h > 0 ? GREEN : MUTED },
+                    { label: '7 derniers jours', value: stats.last7d, color: stats.last7d > 0 ? NAVY : MUTED },
+                    { label: '30 derniers jours', value: stats.last30d, color: stats.last30d > 0 ? NAVY : MUTED },
+                  ].map((s, i) => (
+                    <div key={i}>
+                      <div style={{ fontSize: 28, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                      <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Sparkline */}
+                <div style={{ fontSize: 13, color: MUTED, marginBottom: 8, fontWeight: 500 }}>Inscriptions par jour (30 derniers jours)</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
+                  {stats.dailyData.map(({ date, count }) => {
+                    const h = (count / maxDaily) * 100
+                    const isToday = date === today
+                    return (
+                      <div key={date} title={`${date} : ${count} inscription${count > 1 ? 's' : ''}`}
+                        style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+                        <div style={{ fontSize: 9, color: MUTED, fontWeight: 500 }}>{count > 0 ? count : ''}</div>
+                        <div style={{
+                          width: '100%', maxWidth: 22,
+                          height: `${Math.max(h, 4)}%`,
+                          background: isToday ? GREEN : count > 0 ? NAVY : BORDER,
+                          borderRadius: '3px 3px 0 0',
+                          opacity: count > 0 ? 1 : 0.4,
+                        }} />
+                      </div>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                  <span style={{ fontSize: 10, color: MUTED }}>il y a 30 jours</span>
+                  <span style={{ fontSize: 10, color: MUTED }}>aujourd&apos;hui</span>
+                </div>
+              </Card>
+            </div>
+
+            {/* ── Ligne 4 : Inscriptions aux camps ── */}
+            {stats.campsData.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <Card title="Inscriptions aux camps de qualification">
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${BORDER}` }}>
+                          <th style={{ textAlign: 'left', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Camp</th>
+                          <th style={{ textAlign: 'left', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Dates</th>
+                          <th style={{ textAlign: 'left', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Lieu</th>
+                          <th style={{ textAlign: 'center', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Confirmés</th>
+                          <th style={{ textAlign: 'center', padding: '8px 16px', color: MUTED, fontWeight: 600, fontSize: 13 }}>Total inscrits</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {stats.campsData.map((camp, i) => (
+                          <tr key={i} style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: i % 2 === 0 ? WHITE : BG }}>
+                            <td style={{ padding: '10px 16px', color: NAVY, fontWeight: 600 }}>{camp.nom}</td>
+                            <td style={{ padding: '10px 16px', color: TEXT }}>{camp.dates}</td>
+                            <td style={{ padding: '10px 16px', color: MUTED }}>{camp.lieu}</td>
+                            <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                              <span style={{ backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontSize: 13, fontWeight: 600 }}>
+                                {camp.confirmes}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                              <strong style={{ color: NAVY }}>{camp.total}</strong>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </div>
+            )}
+
             {/* Pied de page */}
-            <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'center', fontSize: 12, color: MUTED }}>
+            <div style={{ marginTop: 12, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'center', fontSize: 12, color: MUTED }}>
               Données agrégées — aucune information nominale n&apos;est divulguée. &nbsp;·&nbsp; Portail RIUSC © {new Date().getFullYear()} AQBRS
             </div>
           </>
