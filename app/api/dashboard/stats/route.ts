@@ -154,12 +154,26 @@ export async function GET() {
       .from('inscriptions_camps')
       .select('camp_nom, camp_dates, camp_lieu, session_id')
 
+    // Grouper par session_id uniquement (ignore les variations de camp_lieu)
+    // Pour la ville, extraire depuis camp_nom (ex: "Cohorte 10 - Camp de qualification - Québec")
+    const extractVille = (nom: string): string => {
+      const parts = nom.split(' - ')
+      return parts.length >= 3 ? parts[parts.length - 1].trim() : '—'
+    }
+
     const futurMap: Record<string, { cohort: number; dates: string; ville: string; inscrits: number }> = {}
     for (const c of campsRaw || []) {
       const cohortNum = extractCohort(c.camp_nom || '')
       if (CAMPS_HISTORIQUES.some(h => h.cohort === cohortNum)) continue
-      const key = c.session_id || c.camp_nom || 'inconnu'
-      if (!futurMap[key]) futurMap[key] = { cohort: cohortNum, dates: c.camp_dates || '—', ville: c.camp_lieu || '—', inscrits: 0 }
+      const key = c.session_id || 'inconnu'
+      if (!futurMap[key]) {
+        futurMap[key] = {
+          cohort: cohortNum,
+          dates: c.camp_dates || '—',
+          ville: extractVille(c.camp_nom || ''),
+          inscrits: 0,
+        }
+      }
       futurMap[key].inscrits++
     }
 
