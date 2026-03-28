@@ -228,7 +228,7 @@ export default function DashboardPublicPage() {
             </div>
 
             {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20, alignItems: 'stretch' }}>
 
               <Card title="Réservistes qualifiés et Partenaires">
                 <OrgTable
@@ -240,7 +240,7 @@ export default function DashboardPublicPage() {
               </Card>
 
               {/* Colonne droite : 3 graphiques empilés à hauteur égale */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
                   <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Personnes avec intérêt à joindre</p>
