@@ -6,16 +6,16 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts'
 
-const NAVY     = '#1e3a5f'
-const YELLOW   = '#ffd166'
-const BG       = '#f5f7fa'
-const WHITE    = '#ffffff'
-const TEXT     = '#374151'
-const MUTED    = '#6b7280'
-const BORDER   = '#e5e7eb'
-const GREEN    = '#059669'
-const AMBER    = '#d97706'
-const RED      = '#dc2626'
+const NAVY   = '#1e3a5f'
+const YELLOW = '#ffd166'
+const BG     = '#f5f7fa'
+const WHITE  = '#ffffff'
+const TEXT   = '#374151'
+const MUTED  = '#6b7280'
+const BORDER = '#e5e7eb'
+const GREEN  = '#059669'
+const AMBER  = '#d97706'
+const RED    = '#dc2626'
 
 const ORG_COLORS: Record<string, string> = {
   'AQBRS-RS':    NAVY,
@@ -25,10 +25,9 @@ const ORG_COLORS: Record<string, string> = {
 }
 
 const GROUPE_COLORS: Record<string, string> = {
+  'Intérêt':     AMBER,
   'Approuvé':    NAVY,
   'Partenaires': '#4a7b65',
-  'Intérêt':     AMBER,
-  'Déployable':  GREEN,
 }
 
 const ANTECEDENTS_COLORS: Record<string, string> = {
@@ -44,11 +43,13 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
 }
 
 interface Stats {
-  total: number
+  totalInscrits: number
+  totalInteret: number
   parGroupe: { groupe: string; total: number }[]
   parOrganisme: { organisme: string; total: number }[]
   interetData: { label: string; total: number }[]
-  parRegion: { region: string; total: number }[]
+  parRegionApprouves: { region: string; total: number }[]
+  parRegionInteret: { region: string; total: number }[]
   antecedentsData: { statut: string; total: number }[]
   updatedAt: string
 }
@@ -65,10 +66,15 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-function Card({ title, children, fullWidth = false }: { title: string; children: React.ReactNode; fullWidth?: boolean }) {
+function Card({ title, subtitle, children, fullWidth = false }: {
+  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean
+}) {
   return (
     <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, gridColumn: fullWidth ? '1 / -1' : undefined }}>
-      <h3 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 600, color: NAVY, paddingBottom: 12, borderBottom: `2px solid ${YELLOW}` }}>{title}</h3>
+      <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${YELLOW}` }}>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: NAVY }}>{title}</h3>
+        {subtitle && <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>{subtitle}</p>}
+      </div>
       {children}
     </div>
   )
@@ -97,6 +103,36 @@ function Legend({ items }: { items: { label: string; color: string; value: numbe
   )
 }
 
+// Tableau pour qualifiés par organisme (meilleur que bar chart quand 1 valeur domine)
+function OrgTable({ data }: { data: { organisme: string; total: number }[] }) {
+  const total = data.reduce((s, o) => s + o.total, 0)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {data.map((row, i) => {
+        const pct = total > 0 ? Math.round((row.total / total) * 100) : 0
+        return (
+          <div key={i}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: ORG_COLORS[row.organisme] || MUTED, flexShrink: 0 }} />
+                <span style={{ fontSize: 14, color: TEXT }}>{row.organisme}</span>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: NAVY }}>{row.total} <span style={{ fontSize: 12, color: MUTED, fontWeight: 400 }}>({pct}%)</span></span>
+            </div>
+            <div style={{ height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${pct}%`, backgroundColor: ORG_COLORS[row.organisme] || MUTED, borderRadius: 3, transition: 'width 0.6s ease' }} />
+            </div>
+          </div>
+        )
+      })}
+      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${BORDER}`, marginTop: 4 }}>
+        <span style={{ fontSize: 13, color: MUTED }}>Total qualifiés</span>
+        <strong style={{ fontSize: 14, color: NAVY }}>{total}</strong>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPublicPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -110,11 +146,12 @@ export default function DashboardPublicPage() {
   }, [])
 
   const totalQualifies = stats?.parOrganisme.reduce((s, o) => s + o.total, 0) || 0
-  const totalInteret   = stats?.interetData.reduce((s, i) => s + i.total, 0) || 0
   const totalVerifies  = stats?.antecedentsData.find(a => a.statut === 'verifie')?.total || 0
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: BG }}>
+
+      {/* En-tête */}
       <div style={{ backgroundColor: NAVY, borderBottom: `3px solid ${YELLOW}`, padding: '16px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -138,34 +175,25 @@ export default function DashboardPublicPage() {
 
         {stats && (
           <>
+            {/* Badges sommaire */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-              <StatCard value={stats.total}     label="Réservistes actifs" />
-              <StatCard value={totalQualifies}  label="Réservistes qualifiés" color={GREEN} />
-              <StatCard value={totalInteret}    label="En cours de qualification" color={AMBER} />
-              <StatCard value={totalVerifies}   label="Antécédents vérifiés" color={GREEN} />
+              <StatCard value={stats.totalInscrits} label="Réservistes inscrits" />
+              <StatCard value={totalQualifies}      label="Réservistes qualifiés" color={GREEN} />
+              <StatCard value={stats.totalInteret}  label="Avec intérêt à joindre" color={AMBER} />
+              <StatCard value={totalVerifies}        label="Antécédents vérifiés" color={GREEN} />
             </div>
 
+            {/* Grille graphiques */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
 
-              <Card title="Réservistes qualifiés par organisme">
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={stats.parOrganisme} barCategoryGap="40%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="organisme" tick={{ fontSize: 12, fill: MUTED }} />
-                    <YAxis tick={{ fontSize: 12, fill: MUTED }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="total" name="Total" radius={[4, 4, 0, 0]}>
-                      {stats.parOrganisme.map((entry, i) => (
-                        <Cell key={i} fill={ORG_COLORS[entry.organisme] || NAVY} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-                <Legend items={stats.parOrganisme.map(o => ({ label: o.organisme, color: ORG_COLORS[o.organisme] || NAVY, value: o.total }))} />
+              {/* 1. Qualifiés par organisme — tableau avec barres de progression */}
+              <Card title="Réservistes qualifiés par organisme" subtitle="Groupes Approuvé et Partenaires">
+                <OrgTable data={stats.parOrganisme} />
               </Card>
 
+              {/* 2. Intérêt public vs AQBRS */}
               <Card title="Personnes avec intérêt à joindre la RIUSC">
-                <ResponsiveContainer width="100%" height={240}>
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={85}
                       label={({ name, value, percent }: any) => `${name} : ${value} (${(percent * 100).toFixed(0)}%)`}>
@@ -178,8 +206,9 @@ export default function DashboardPublicPage() {
                 <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total }))} />
               </Card>
 
-              <Card title="Répartition totale par groupe">
-                <ResponsiveContainer width="100%" height={240}>
+              {/* 3. Répartition par groupe */}
+              <Card title="Répartition par groupe">
+                <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={stats.parGroupe} layout="vertical" barCategoryGap="25%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
                     <XAxis type="number" tick={{ fontSize: 12, fill: MUTED }} />
@@ -194,10 +223,11 @@ export default function DashboardPublicPage() {
                 </ResponsiveContainer>
               </Card>
 
-              <Card title="Antécédents judiciaires">
-                <ResponsiveContainer width="100%" height={200}>
+              {/* 4. Antécédents judiciaires — Approuvés seulement */}
+              <Card title="Antécédents judiciaires" subtitle="Groupe Approuvé seulement">
+                <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
-                    <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={55} outerRadius={85}>
+                    <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={50} outerRadius={80}>
                       {stats.antecedentsData.map((entry, i) => (
                         <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
                       ))}
@@ -208,11 +238,12 @@ export default function DashboardPublicPage() {
                 <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
               </Card>
 
-              <Card title="Répartition géographique par région" fullWidth>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={stats.parRegion} barCategoryGap="30%">
+              {/* 5. Répartition géographique — Approuvés */}
+              <Card title="Répartition géographique — Approuvés" fullWidth={false}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={stats.parRegionApprouves} barCategoryGap="30%">
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="region" tick={{ fontSize: 11, fill: MUTED }} interval={0} angle={-25} textAnchor="end" height={60} />
+                    <XAxis dataKey="region" tick={{ fontSize: 10, fill: MUTED }} interval={0} angle={-25} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 12, fill: MUTED }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="total" name="Réservistes" fill={NAVY} radius={[4, 4, 0, 0]} />
@@ -220,8 +251,22 @@ export default function DashboardPublicPage() {
                 </ResponsiveContainer>
               </Card>
 
+              {/* 6. Répartition géographique — Intérêt */}
+              <Card title="Répartition géographique — Avec intérêt" fullWidth={false}>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={stats.parRegionInteret} barCategoryGap="30%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="region" tick={{ fontSize: 10, fill: MUTED }} interval={0} angle={-25} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 12, fill: MUTED }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="total" name="Personnes" fill={AMBER} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
+
             </div>
 
+            {/* Pied de page */}
             <div style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'center', fontSize: 12, color: MUTED }}>
               Données agrégées — aucune information nominale n&apos;est divulguée. &nbsp;·&nbsp; Portail RIUSC © {new Date().getFullYear()} AQBRS
             </div>

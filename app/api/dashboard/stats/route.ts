@@ -11,7 +11,6 @@ export const revalidate = 3600 // cache 1h
 
 export async function GET() {
   try {
-    // Fetch all active reservists (non-personal fields only)
     const { data: reservistes, error } = await supabase
       .from('reservistes')
       .select('benevole_id, groupe, region, antecedents_statut')
@@ -19,15 +18,10 @@ export async function GET() {
 
     if (error) throw error
 
-    // Fetch partenaires organismes
     const { data: partenairesOrgs } = await supabase
       .from('reserviste_organisations')
-      .select(`
-        benevole_id,
-        organisations (nom)
-      `)
+      .select('benevole_id, organisations (nom)')
 
-    // Build a map: benevole_id -> organisme nom
     const orgMap: Record<string, string> = {}
     for (const po of (partenairesOrgs || [])) {
       const org = (po as any).organisations?.nom || ''
@@ -37,17 +31,20 @@ export async function GET() {
       else orgMap[po.benevole_id] = org
     }
 
-    // ── 1. Total par groupe ────────────────────────────────────────────────
+    // ── 1. Répartition par groupe (Intérêt, Approuvé, Partenaires seulement) ─
+    const groupeOrder = ['Intérêt', 'Approuvé', 'Partenaires']
     const groupeCounts: Record<string, number> = {}
     for (const r of reservistes || []) {
-      const g = r.groupe || 'Inconnu'
-      groupeCounts[g] = (groupeCounts[g] || 0) + 1
+      const g = r.groupe || 'Autre'
+      if (groupeOrder.includes(g)) {
+        groupeCounts[g] = (groupeCounts[g] || 0) + 1
+      }
     }
-    const parGroupe = Object.entries(groupeCounts)
-      .map(([groupe, total]) => ({ groupe, total }))
-      .sort((a, b) => b.total - a.total)
+    const parGroupe = groupeOrder
+      .filter(g => groupeCounts[g])
+      .map(groupe => ({ groupe, total: groupeCounts[groupe] }))
 
-    // ── 2. Qualifiés par organisme (Approuvé + Partenaires) ───────────────
+    // ── 2. Qualifiés par organisme (Approuvé + Partenaires) ──────────────────
     const qualifies = (reservistes || []).filter(r =>
       r.groupe === 'Approuvé' || r.groupe === 'Partenaires'
     )
@@ -60,44 +57,62 @@ export async function GET() {
       .map(([organisme, total]) => ({ organisme, total }))
       .sort((a, b) => b.total - a.total)
 
-    // ── 3. Intérêt: public vs AQBRS ───────────────────────────────────────
-    const interetAQBRS = (reservistes || []).filter(r =>
-      r.groupe === 'Intérêt' && orgMap[r.benevole_id]
-    ).length
+    // ── 3. Intérêt: public vs AQBRS ──────────────────────────────────────────
     const interetPublic = (reservistes || []).filter(r =>
       r.groupe === 'Intérêt' && !orgMap[r.benevole_id]
+    ).length
+    const interetAQBRS = (reservistes || []).filter(r =>
+      r.groupe === 'Intérêt' && orgMap[r.benevole_id]
     ).length
     const interetData = [
       { label: 'Public', total: interetPublic },
       { label: 'AQBRS', total: interetAQBRS },
     ]
 
-    // ── 4. Répartition géographique ───────────────────────────────────────
-    const regionCounts: Record<string, number> = {}
+    // ── 4. Répartition géographique — Approuvés ───────────────────────────────
+    const regionApprouvesCounts: Record<string, number> = {}
     for (const r of reservistes || []) {
-      if (!r.region) continue
-      regionCounts[r.region] = (regionCounts[r.region] || 0) + 1
+      if (!r.region || r.groupe !== 'Approuvé') continue
+      regionApprouvesCounts[r.region] = (regionApprouvesCounts[r.region] || 0) + 1
     }
-    const parRegion = Object.entries(regionCounts)
+    const parRegionApprouves = Object.entries(regionApprouvesCounts)
       .map(([region, total]) => ({ region, total }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 15) // top 15 régions
+      .slice(0, 15)
 
-    // ── 5. Antécédents judiciaires ────────────────────────────────────────
+    // ── 5. Répartition géographique — Intérêt ────────────────────────────────
+    const regionInteretCounts: Record<string, number> = {}
+    for (const r of reservistes || []) {
+      if (!r.region || r.groupe !== 'Intérêt') continue
+      regionInteretCounts[r.region] = (regionInteretCounts[r.region] || 0) + 1
+    }
+    const parRegionInteret = Object.entries(regionInteretCounts)
+      .map(([region, total]) => ({ region, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15)
+
+    // ── 6. Antécédents judiciaires — Approuvés seulement ─────────────────────
     const antecedentsCounts: Record<string, number> = {}
     for (const r of reservistes || []) {
+      if (r.groupe !== 'Approuvé') continue
       const s = r.antecedents_statut || 'en_attente'
       antecedentsCounts[s] = (antecedentsCounts[s] || 0) + 1
     }
     const antecedentsData = Object.entries(antecedentsCounts)
       .map(([statut, total]) => ({ statut, total }))
 
+    // ── Totaux ────────────────────────────────────────────────────────────────
+    const totalInscrits = reservistes?.length || 0
+    const totalInteret  = (groupeCounts['Intérêt'] || 0)
+
     return NextResponse.json({
-      total: reservistes?.length || 0,
+      totalInscrits,
+      totalInteret,
       parGroupe,
       parOrganisme,
       interetData,
-      parRegion,
+      parRegionApprouves,
+      parRegionInteret,
       antecedentsData,
       updatedAt: new Date().toISOString(),
     })
