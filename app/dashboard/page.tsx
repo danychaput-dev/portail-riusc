@@ -243,62 +243,50 @@ export default function DashboardPublicPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
 
                 {/* Carte 1 : Intérêt */}
-                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}`, flexShrink: 0 }}>Personnes avec intérêt à joindre</p>
-                  <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                    <div style={{ position: 'absolute', inset: 0 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="45%" outerRadius="42%"
-                            label={({ name, value, percent }: any) => `${name} : ${value} (${(percent*100).toFixed(0)}%)`}
-                            labelLine={false}>
-                            <Cell fill={NAVY} />
-                            <Cell fill={AMBER} />
-                          </Pie>
-                          <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Personnes avec intérêt à joindre</p>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={stats.interetData} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={70}
+                        label={({ name, value, percent }: any) => `${name} : ${value} (${(percent*100).toFixed(0)}%)`}
+                        labelLine={false}>
+                        <Cell fill={NAVY} />
+                        <Cell fill={AMBER} />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
                   <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total }))} />
                 </div>
 
                 {/* Carte 2 : Antécédents */}
-                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}`, flexShrink: 0 }}>Antécédents judiciaires <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>— Réservistes qualifiés</span></p>
-                  <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                    <div style={{ position: 'absolute', inset: 0 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius="28%" outerRadius="45%">
-                            {stats.antecedentsData.map((entry, i) => (
-                              <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value: any, name: any) => [value, ANTECEDENTS_LABELS[name] || name]} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Antécédents judiciaires <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>— Réservistes qualifiés</span></p>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={stats.antecedentsData} dataKey="total" nameKey="statut" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
+                        {stats.antecedentsData.map((entry, i) => (
+                          <Cell key={i} fill={ANTECEDENTS_COLORS[entry.statut] || MUTED} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: any, name: any) => [value, ANTECEDENTS_LABELS[name] || name]} />
+                    </PieChart>
+                  </ResponsiveContainer>
                   <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
                 </div>
 
                 {/* Carte 3 : Bottes */}
-                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                  <p style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}`, flexShrink: 0 }}>Bottes <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>— Réservistes qualifiés</span></p>
-                  <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-                    <div style={{ position: 'absolute', inset: 0 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={stats.bottesData} dataKey="total" nameKey="label" cx="50%" cy="50%" innerRadius="28%" outerRadius="45%">
-                            <Cell fill={NAVY} />
-                            <Cell fill="#e5e7eb" />
-                          </Pie>
-                          <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, flex: 1 }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: NAVY, paddingBottom: 8, borderBottom: `2px solid ${YELLOW}` }}>Bottes <span style={{ fontSize: 11, color: MUTED, fontWeight: 400 }}>— Réservistes qualifiés</span></p>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <PieChart>
+                      <Pie data={stats.bottesData} dataKey="total" nameKey="label" cx="50%" cy="50%" innerRadius={45} outerRadius={70}>
+                        <Cell fill={NAVY} />
+                        <Cell fill="#e5e7eb" />
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
                   <Legend items={stats.bottesData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : BORDER, value: d.total }))} />
                 </div>
 
