@@ -252,8 +252,8 @@ export default function DashboardPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={90}
-                    label={({ label, total, percent }) =>
-                      `${label}: ${total} (${(percent * 100).toFixed(0)}%)`
+                    label={({ name, value, percent }: any) =>
+                      `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                     }
                     labelLine={false}
                   >
