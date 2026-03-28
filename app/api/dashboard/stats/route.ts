@@ -43,10 +43,22 @@ export async function GET() {
       .from('reserviste_organisations')
       .select('benevole_id, organisations (nom)')
 
-    const orgMap: Record<string, string> = {}
+    // orgMapAll : toutes les orgs par personne (plusieurs possibles)
+    const orgMapAll: Record<string, string[]> = {}
     for (const po of (partenairesOrgs || [])) {
       const org = (po as any).organisations?.nom || ''
-      orgMap[po.benevole_id] = org
+      if (!org) continue
+      if (!orgMapAll[po.benevole_id]) orgMapAll[po.benevole_id] = []
+      orgMapAll[po.benevole_id].push(org)
+    }
+
+    // orgMap : org principale (AQBRS prioritaire)
+    const orgMap: Record<string, string> = {}
+    for (const [benevoleId, orgs] of Object.entries(orgMapAll)) {
+      const hasAQBRS = orgs.some(o => o.includes('AQBRS'))
+      orgMap[benevoleId] = hasAQBRS
+        ? orgs.find(o => o.includes('AQBRS'))!
+        : orgs[0]
     }
 
     const orgDisplayName = (org: string): string => {
@@ -65,29 +77,34 @@ export async function GET() {
     }
 
     // ── Réservistes qualifiés (Approuvés) par organisme ─────────────────────
-    const approuvesRows = (reservistes || []).filter(r => r.groupe === 'Approuvé')
+    // Inclut aussi les Partenaires avec AQBRS comme org principale
     const approuvesOrgCounts: Record<string, number> = {}
-    for (const r of approuvesRows) {
+    for (const r of (reservistes || [])) {
       const rawOrg = orgMap[r.benevole_id] || ''
-      let org: string
-      if (!rawOrg) {
-        org = 'Membres AQBRS Recherche et Sauvetage'
-      } else if (rawOrg.includes('AQBRS')) {
-        org = 'AQBRS (membres)'
-      } else {
-        org = orgDisplayName(rawOrg)
+      const isAQBRS = rawOrg.includes('AQBRS')
+
+      if (r.groupe === 'Approuvé') {
+        let org: string
+        if (!rawOrg) org = 'Membres AQBRS Recherche et Sauvetage'
+        else if (isAQBRS) org = 'AQBRS (membres)'
+        else org = orgDisplayName(rawOrg)
+        approuvesOrgCounts[org] = (approuvesOrgCounts[org] || 0) + 1
+      } else if (r.groupe === 'Partenaires' && isAQBRS) {
+        // Partenaire avec AQBRS → affiché dans section Réservistes qualifiés
+        approuvesOrgCounts['Membres AQBRS Recherche et Sauvetage'] =
+          (approuvesOrgCounts['Membres AQBRS Recherche et Sauvetage'] || 0) + 1
       }
-      approuvesOrgCounts[org] = (approuvesOrgCounts[org] || 0) + 1
     }
     const reservistesQualifies = Object.entries(approuvesOrgCounts)
       .map(([organisme, total]) => ({ organisme, total }))
       .sort((a, b) => b.total - a.total)
 
-    // ── Partenaires : regroupés par organisme ─────────────────────────────────
-    const partenairesRows = (reservistes || []).filter(r => r.groupe === 'Partenaires')
+    // ── Partenaires : regroupés par organisme (excl. ceux avec AQBRS) ─────────
     const partOrgCounts: Record<string, number> = {}
-    for (const r of partenairesRows) {
-      const org = orgDisplayName(orgMap[r.benevole_id] || '') || 'Autre'
+    for (const r of (reservistes || []).filter(r => r.groupe === 'Partenaires')) {
+      const rawOrg = orgMap[r.benevole_id] || ''
+      if (rawOrg.includes('AQBRS')) continue // déjà dans section AQBRS
+      const org = orgDisplayName(rawOrg) || 'Autre'
       partOrgCounts[org] = (partOrgCounts[org] || 0) + 1
     }
     const partenairesOrganismes = Object.entries(partOrgCounts)
