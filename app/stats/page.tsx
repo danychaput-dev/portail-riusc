@@ -986,7 +986,7 @@ export default function StatsPage() {
                                   const isNow = diffMin < 30;
                                   const isRecent = diffMin < 120;
                                   const dot = isNow ? GREEN : isRecent ? ORANGE : '#d1d5db';
-                                  const label = diffMin < 1 ? 'à l'instant' : diffMin < 60 ? `il y a ${diffMin} min` : `il y a ${Math.floor(diffMin/60)}h`;
+                                  const label = diffMin < 1 ? 'à l\'instant' : diffMin < 60 ? `il y a ${diffMin} min` : `il y a ${Math.floor(diffMin/60)}h`;
                                   return (
                                     <tr key={i} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
                                       <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
