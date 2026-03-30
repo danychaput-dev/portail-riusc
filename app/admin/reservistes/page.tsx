@@ -109,11 +109,12 @@ export default function ReservistesPage() {
 
   const toggleBottes = async (benevole_id: string, currentDate: string | null) => {
     const newDate = currentDate ? null : new Date().toISOString().split('T')[0]
-    const { error } = await supabase
-      .from('reservistes')
-      .update({ remboursement_bottes_date: newDate })
-      .eq('benevole_id', benevole_id)
-    if (!error) {
+    const res = await fetch('/api/admin/reservistes/bottes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_id, date: newDate }),
+    })
+    if (res.ok) {
       setData(prev => prev.map(r =>
         r.benevole_id === benevole_id ? { ...r, remboursement_bottes_date: newDate } : r
       ))
