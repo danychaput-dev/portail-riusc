@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date')
+    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration')
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
   const reservistes = data || []
 
   if (format === 'csv') {
-    const headers = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes']
+    const headers = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.']
     const rows = reservistes.map(r => [
       r.prenom || '',
       r.nom || '',
@@ -71,7 +71,10 @@ export async function GET(req: NextRequest) {
       r.code_postal || '',
       r.groupe || '',
       r.statut || '',
-      r.remboursement_bottes_date || ''
+      r.remboursement_bottes_date || '',
+      r.antecedents_statut || '',
+      r.antecedents_date_verification || '',
+      r.antecedents_date_expiration || ''
     ])
     const csvContent = [headers, ...rows]
       .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))

@@ -34,6 +34,17 @@ interface Reserviste {
   groupe: string
   statut: string
   remboursement_bottes_date: string | null
+  antecedents_statut: string | null
+  antecedents_date_verification: string | null
+  antecedents_date_expiration: string | null
+}
+
+interface ModalAntecedents {
+  benevole_id: string
+  nom: string
+  prenom: string
+  date_actuelle: string | null
+  statut_actuel: string | null
 }
 
 function moisAnnee(iso: string) {
@@ -42,19 +53,33 @@ function moisAnnee(iso: string) {
   return `${mois[parseInt(m) - 1]} ${y}`
 }
 
+function badgeAntecedents(statut: string | null, dateExpir: string | null) {
+  const expire = dateExpir && new Date(dateExpir) < new Date()
+  if (statut === 'verifie' && !expire) return { couleur: '#16a34a', bg: '#f0fdf4', label: 'Vérifié' }
+  if (statut === 'verifie' && expire)  return { couleur: '#dc2626', bg: '#fef2f2', label: 'Expiré' }
+  if (statut === 'refuse')             return { couleur: '#dc2626', bg: '#fef2f2', label: 'Refusé' }
+  return { couleur: '#d97706', bg: '#fffbeb', label: 'En attente' }
+}
+
 export default function ReservistesPage() {
   const supabase = createClient()
   const router   = useRouter()
 
-  const [loading,     setLoading]     = useState(true)
-  const [data,        setData]        = useState<Reserviste[]>([])
-  const [total,       setTotal]       = useState(0)
-  const [recherche,   setRecherche]   = useState('')
+  const [loading,        setLoading]        = useState(true)
+  const [data,           setData]           = useState<Reserviste[]>([])
+  const [total,          setTotal]          = useState(0)
+  const [recherche,      setRecherche]      = useState('')
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(['Approuvé', 'Intérêt'])
-  const [exporting,   setExporting]   = useState(false)
-  const [sortAsc,      setSortAsc]      = useState(true)
-  const [authorized,  setAuthorized]  = useState(false)
-  const [filtreBottes, setFiltreBottes] = useState(false)
+  const [exporting,      setExporting]      = useState(false)
+  const [sortAsc,        setSortAsc]        = useState(true)
+  const [authorized,     setAuthorized]     = useState(false)
+  const [userRole,       setUserRole]       = useState<string>('')
+  const [filtreBottes,   setFiltreBottes]   = useState(false)
+  const [modal,          setModal]          = useState<ModalAntecedents | null>(null)
+  const [modalDate,      setModalDate]      = useState('')
+  const [modalStatut,    setModalStatut]    = useState('verifie')
+  const [modalSaving,    setModalSaving]    = useState(false)
+
   // Auth
   useEffect(() => {
     const init = async () => {
@@ -62,6 +87,7 @@ export default function ReservistesPage() {
       if (!user) { router.push('/login'); return }
       const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
       if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
+      setUserRole(res.role)
       setAuthorized(true)
     }
     init()
@@ -121,6 +147,42 @@ export default function ReservistesPage() {
     }
   }
 
+  const ouvrirModalAntecedents = (r: Reserviste) => {
+    setModal({ benevole_id: r.benevole_id, nom: r.nom, prenom: r.prenom, date_actuelle: r.antecedents_date_verification, statut_actuel: r.antecedents_statut })
+    setModalDate(r.antecedents_date_verification || '')
+    setModalStatut(r.antecedents_statut === 'refuse' ? 'refuse' : 'verifie')
+  }
+
+  const sauvegarderAntecedents = async () => {
+    if (!modal) return
+    setModalSaving(true)
+    const res = await fetch('/api/admin/reservistes/antecedents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_id: modal.benevole_id, date_verification: modalDate || null, statut: modalStatut }),
+    })
+    if (res.ok) {
+      const json = await res.json()
+      setData(prev => prev.map(r =>
+        r.benevole_id === modal.benevole_id
+          ? { ...r, antecedents_statut: json.statut, antecedents_date_verification: json.date_verification, antecedents_date_expiration: json.date_expiration }
+          : r
+      ))
+      setModal(null)
+    }
+    setModalSaving(false)
+  }
+
+  const isAdmin = userRole === 'admin'
+
+  // Colonnes dynamiques selon le rôle
+  const gridCols = isAdmin
+    ? '1.5fr 1fr 1.6fr 1fr 1.4fr 90px 130px 100px'
+    : '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 90px 100px'
+  const headers = isAdmin
+    ? ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Région / CP', 'Bottes', 'Antécédents', 'Groupe']
+    : ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Bottes', 'Groupe']
+
   if (!authorized) return null
 
   return (
@@ -154,8 +216,6 @@ export default function ReservistesPage() {
 
         {/* Filtres */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-
-          {/* Recherche */}
           <div style={{ flex: 1, minWidth: '240px' }}>
             <input
               type="text"
@@ -165,8 +225,6 @@ export default function ReservistesPage() {
               style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, outline: 'none' }}
             />
           </div>
-
-          {/* Groupes */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Groupe :</span>
             {GROUPES_OPTIONS.map(opt => (
@@ -190,8 +248,6 @@ export default function ReservistesPage() {
               </button>
             )}
           </div>
-
-          {/* Filtre bottes */}
           <button
             onClick={() => setFiltreBottes(f => !f)}
             style={{
@@ -217,8 +273,8 @@ export default function ReservistesPage() {
         {/* Tableau */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
           {/* En-tête tableau */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 90px 100px', gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-            {['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Bottes', 'Groupe'].map(h => (
+          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+            {headers.map(h => (
               <div key={h} onClick={() => {
                 if (h !== 'Nom') return
                 const asc = !sortAsc
@@ -235,6 +291,11 @@ export default function ReservistesPage() {
                     {data.filter(r => r.remboursement_bottes_date).length}
                   </span>
                 )}
+                {h === 'Antécédents' && (
+                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
+                    {data.filter(r => r.antecedents_statut === 'verifie').length}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -243,53 +304,52 @@ export default function ReservistesPage() {
           {loading ? (
             <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Chargement…</div>
           ) : data.length === 0 ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
-              Aucun réserviste trouvé
-            </div>
+            <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Aucun réserviste trouvé</div>
           ) : data.filter(r => !filtreBottes || r.remboursement_bottes_date).map((r, i) => {
-            const badge = badgeGroupe(r.groupe)
-            const adresse = [r.adresse].filter(Boolean).join(', ')
+            const badge    = badgeGroupe(r.groupe)
+            const badgeAnt = badgeAntecedents(r.antecedents_statut, r.antecedents_date_expiration)
+            const adresse  = [r.adresse].filter(Boolean).join(', ')
             return (
               <div
                 key={r.benevole_id}
-                style={{
-                  display: 'grid', gridTemplateColumns: '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 90px 100px',
-                  gap: '0', borderBottom: '1px solid #f1f5f9',
-                  backgroundColor: i % 2 === 0 ? 'white' : '#fafafa',
-                  transition: 'background-color 0.1s'
-                }}
+                style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0', borderBottom: '1px solid #f1f5f9', backgroundColor: i % 2 === 0 ? 'white' : '#fafafa', transition: 'background-color 0.1s' }}
                 onMouseOver={e => (e.currentTarget as HTMLElement).style.backgroundColor = '#f0f5ff'}
                 onMouseOut={e => (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'white' : '#fafafa'}
               >
+                {/* Nom */}
                 <div style={{ padding: '11px 14px' }}>
-                  <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>
-                    {r.nom} {r.prenom}
-                  </div>
+                  <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{r.nom} {r.prenom}</div>
                   {r.telephone_secondaire && (
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                      Alt: {r.telephone_secondaire}
-                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Alt: {r.telephone_secondaire}</div>
                   )}
                 </div>
+                {/* Téléphone */}
                 <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151' }}>
                   {r.telephone || <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
+                {/* Courriel */}
                 <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' as const }}>
                   {r.email
                     ? <a href={`mailto:${r.email}`} style={{ color: C, textDecoration: 'none' }}>{r.email}</a>
                     : <span style={{ color: '#d1d5db' }}>—</span>
                   }
                 </div>
+                {/* Ville */}
                 <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151' }}>
                   {r.ville || <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
-                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151' }}>
-                  {adresse || <span style={{ color: '#d1d5db' }}>—</span>}
-                </div>
+                {/* Adresse (non-admin seulement) ou Région (admin) */}
+                {!isAdmin && (
+                  <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151' }}>
+                    {adresse || <span style={{ color: '#d1d5db' }}>—</span>}
+                  </div>
+                )}
+                {/* Région / CP */}
                 <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151' }}>
                   <div>{r.region || <span style={{ color: '#d1d5db' }}>—</span>}</div>
                   {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '2px' }}>{r.code_postal}</div>}
                 </div>
+                {/* Bottes */}
                 <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                   <input
                     type="checkbox"
@@ -303,6 +363,29 @@ export default function ReservistesPage() {
                     </span>
                   )}
                 </div>
+                {/* Antécédents — admin seulement */}
+                {isAdmin && (
+                  <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '3px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
+                        {badgeAnt.label}
+                      </span>
+                      <button
+                        onClick={() => ouvrirModalAntecedents(r)}
+                        title="Modifier la date de vérification"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#94a3b8', fontSize: '13px', lineHeight: 1 }}
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                    {r.antecedents_date_verification && (
+                      <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
+                        {moisAnnee(r.antecedents_date_verification)}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* Groupe */}
                 <div style={{ padding: '11px 14px' }}>
                   <span style={{
                     fontSize: '11px', padding: '3px 8px', borderRadius: '20px',
@@ -324,6 +407,79 @@ export default function ReservistesPage() {
         )}
 
       </main>
+
+      {/* Modal antécédents */}
+      {modal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={e => { if (e.target === e.currentTarget) setModal(null) }}
+        >
+          <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '28px', width: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '700', color: C }}>
+              Antécédents judiciaires
+            </h3>
+            <p style={{ margin: '0 0 20px 0', fontSize: '13px', color: '#64748b' }}>
+              {modal.prenom} {modal.nom}
+            </p>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                Statut
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {(['verifie', 'en_attente', 'refuse'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setModalStatut(s)}
+                    style={{
+                      flex: 1, padding: '7px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                      border: `2px solid ${modalStatut === s ? C : '#e2e8f0'}`,
+                      backgroundColor: modalStatut === s ? '#eef2ff' : 'white',
+                      color: modalStatut === s ? C : '#94a3b8',
+                    }}
+                  >
+                    {s === 'verifie' ? 'Vérifié' : s === 'en_attente' ? 'En attente' : 'Refusé'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+                Date de vérification
+                <span style={{ fontWeight: '400', color: '#94a3b8', marginLeft: '6px' }}>(expiration calculée automatiquement + 3 ans)</span>
+              </label>
+              <input
+                type="date"
+                value={modalDate}
+                onChange={e => setModalDate(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }}
+              />
+              {modalDate && (
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                  Expire le : {new Date(new Date(modalDate).setFullYear(new Date(modalDate).getFullYear() + 3)).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setModal(null)}
+                style={{ padding: '9px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Annuler
+              </button>
+              <button
+                onClick={sauvegarderAntecedents}
+                disabled={modalSaving}
+                style={{ padding: '9px 18px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: modalSaving ? 'not-allowed' : 'pointer', opacity: modalSaving ? 0.7 : 1 }}
+              >
+                {modalSaving ? 'Sauvegarde…' : 'Sauvegarder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
