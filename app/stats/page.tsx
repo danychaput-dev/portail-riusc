@@ -925,72 +925,122 @@ export default function StatsPage() {
               </Section>
             </div>
 
-            {/* Connexions échouées */}
-            {logStats.failedDetails.length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <Section title="⚠️ Connexions échouées (détails)">
+            {/* Actif aujourd'hui */}
+            {(() => {
+              const now = Date.now();
+              const userMap: Record<string, string> = {};
+              reservistes.forEach(r => {
+                if (r.prenom && r.nom) {
+                  if (r.user_id) userMap[r.user_id] = `${r.prenom} ${r.nom}`;
+                  if (r.benevole_id) userMap[r.benevole_id] = `${r.prenom} ${r.nom}`;
+                }
+              });
+              // Grouper par user — dernière page vue + heure
+              const userActivity: Record<string, { name: string; lastPage: string; lastSeen: number; count: number }> = {};
+              const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+              auditPages
+                .filter(p => (p.user_id || p.benevole_id) && new Date(p.visite_a).getTime() >= todayStart.getTime())
+                .forEach(p => {
+                  const key = p.user_id || p.benevole_id || '';
+                  const t = new Date(p.visite_a).getTime();
+                  if (!userActivity[key] || t > userActivity[key].lastSeen) {
+                    userActivity[key] = {
+                      name: userMap[key] || key.slice(0, 10) + '…',
+                      lastPage: p.page,
+                      lastSeen: t,
+                      count: (userActivity[key]?.count || 0) + 1,
+                    };
+                  } else {
+                    userActivity[key].count++;
+                  }
+                });
+              const actifs = Object.values(userActivity).sort((a, b) => b.lastSeen - a.lastSeen);
+              const enCeMoment = actifs.filter(u => now - u.lastSeen < 30 * 60 * 1000).length;
+
+              return (
+                <div style={{ marginBottom: 24 }}>
+                  <Section title={`🟢 Actif aujourd'hui — ${actifs.length} utilisateur${actifs.length !== 1 ? 's' : ''}`} accent={GREEN}>
+                    {actifs.length === 0
+                      ? <div style={{ color: '#9ca3af', fontSize: 14 }}>Aucune activité aujourd'hui</div>
+                      : (
+                        <>
+                          <div style={{ marginBottom: 12, fontSize: 13, color: '#6b7280' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginRight: 16 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: GREEN, display: 'inline-block' }} />
+                              En ce moment (−30 min) : <strong style={{ color: PRIMARY }}>{enCeMoment}</strong>
+                            </span>
+                          </div>
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                              <thead>
+                                <tr style={{ borderBottom: `2px solid ${GREY_BORDER}` }}>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Utilisateur</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Dernière page</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Pages vues</th>
+                                  <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Dernière activité</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {actifs.map((u, i) => {
+                                  const diffMin = Math.floor((now - u.lastSeen) / 60000);
+                                  const isNow = diffMin < 30;
+                                  const isRecent = diffMin < 120;
+                                  const dot = isNow ? GREEN : isRecent ? ORANGE : '#d1d5db';
+                                  const label = diffMin < 1 ? 'à l'instant' : diffMin < 60 ? `il y a ${diffMin} min` : `il y a ${Math.floor(diffMin/60)}h`;
+                                  return (
+                                    <tr key={i} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
+                                      <td style={{ padding: '8px 12px', fontWeight: 600, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: dot, flexShrink: 0, display: 'inline-block' }} />
+                                        {u.name}
+                                      </td>
+                                      <td style={{ padding: '8px 12px', color: '#374151' }}>{getPageLabel(u.lastPage)}</td>
+                                      <td style={{ padding: '8px 12px', color: '#6b7280' }}>{u.count}</td>
+                                      <td style={{ padding: '8px 12px', color: isNow ? GREEN : '#6b7280', fontWeight: isNow ? 600 : 400 }}>{label}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </>
+                      )
+                    }
+                  </Section>
+                </div>
+              );
+            })()}
+
+            {/* Journal authentification unifié */}
+            <Section title="🔐 Journal d'authentification">
+              {logStats.authEvents.length === 0
+                ? <div style={{ color: '#9ca3af', fontSize: 14 }}>Aucune tentative dans cette période</div>
+                : (
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: `2px solid ${GREY_BORDER}` }}>
+                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Statut</th>
                           <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Email / Tél</th>
                           <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Méthode</th>
                           <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Quand</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {logStats.failedDetails.map((f, i) => (
-                          <tr key={i} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
-                            <td style={{ padding: '8px 12px', color: RED, fontWeight: 500 }}>{f.email}</td>
-                            <td style={{ padding: '8px 12px', color: '#374151' }}>{f.method}</td>
-                            <td style={{ padding: '8px 12px', color: '#6b7280' }}>{f.time}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Section>
-              </div>
-            )}
-
-            {/* Journal connexions */}
-            <Section title="✅ Journal des connexions">
-              {logStats.authEvents.length === 0
-                ? <div style={{ color: '#9ca3af', fontSize: 14 }}>Aucune connexion dans cette période</div>
-                : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ borderBottom: `2px solid ${GREY_BORDER}` }}>
-                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Type</th>
-                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Email</th>
-                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Méthode</th>
-                          <th style={{ textAlign: 'left', padding: '8px 12px', color: '#6b7280', fontWeight: 600 }}>Quand</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {logStats.authEvents.map((e, i) => (
-                          <tr key={i} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
-                            <td style={{ padding: '8px 12px' }}>
-                              <span style={{
-                                display: 'inline-block',
-                                padding: '2px 10px',
-                                borderRadius: 12,
-                                fontSize: 12,
-                                fontWeight: 600,
-                                background: (e.event_type === 'login_sms' || e.event_type === 'login_email') ? '#dcfce7' : '#fef2f2',
-                                color: (e.event_type === 'login_sms' || e.event_type === 'login_email') ? GREEN : RED,
-                              }}>
-                                {(e.event_type === 'login_sms' || e.event_type === 'login_email') ? '✓ Réussi' : '✗ Échoué'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '8px 12px', color: '#374151' }}>{e.email || e.telephone || '—'}</td>
-                            <td style={{ padding: '8px 12px', color: '#6b7280' }}>{e.auth_method || '—'}</td>
-                            <td style={{ padding: '8px 12px', color: '#6b7280' }}>
-                              {new Date(e.created_at).toLocaleString('fr-CA', { timeZone: 'America/Montreal' })}
-                            </td>
-                          </tr>
-                        ))}
+                        {logStats.authEvents.map((e, i) => {
+                          const ok = e.event_type === 'login_sms' || e.event_type === 'login_email';
+                          return (
+                            <tr key={i} style={{ borderBottom: `1px solid ${GREY_BG}` }}>
+                              <td style={{ padding: '8px 12px' }}>
+                                <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600, background: ok ? '#dcfce7' : '#fef2f2', color: ok ? GREEN : RED }}>
+                                  {ok ? '✓ Réussi' : '✗ Échoué'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '8px 12px', color: ok ? '#374151' : RED, fontWeight: ok ? 400 : 500 }}>{e.email || e.telephone || '—'}</td>
+                              <td style={{ padding: '8px 12px', color: '#6b7280' }}>{e.auth_method || <span style={{ color: '#d1d5db' }}>code non soumis</span>}</td>
+                              <td style={{ padding: '8px 12px', color: '#6b7280' }}>{new Date(e.created_at).toLocaleString('fr-CA', { timeZone: 'America/Montreal' })}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
