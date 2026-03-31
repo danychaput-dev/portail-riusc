@@ -9,8 +9,10 @@ import PortailHeader from '@/app/components/PortailHeader'
 interface StatCount {
   sinistres_actifs: number
   deploiements_actifs: number
-  certificats_en_attente: number
-  reservistes_total: number
+  bottes_avec: number
+  bottes_sans: number
+  antecedents_verifie: number
+  antecedents_attente: number
 }
 
 interface Module {
@@ -27,7 +29,7 @@ export default function AdminDashboardPage() {
   const supabase = createClient()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState<StatCount>({ sinistres_actifs: 0, deploiements_actifs: 0, certificats_en_attente: 0, reservistes_total: 0 })
+  const [stats, setStats] = useState<StatCount>({ sinistres_actifs: 0, deploiements_actifs: 0, bottes_avec: 0, bottes_sans: 0, antecedents_verifie: 0, antecedents_attente: 0 })
   const [nomAdmin, setNomAdmin] = useState('')
 
   useEffect(() => {
@@ -39,18 +41,22 @@ export default function AdminDashboardPage() {
       setNomAdmin(res.prenom || '')
 
       // Charger les stats en parallèle
-      const [sinistres, deploiements, certificats, reservistes] = await Promise.all([
+      const [sinistres, deploiements, bottesRes, antecedentsRes] = await Promise.all([
         supabase.from('sinistres').select('id', { count: 'exact', head: true }).eq('statut', 'Actif'),
         supabase.from('deploiements_actifs').select('id', { count: 'exact', head: true }),
-        supabase.from('formations_benevoles').select('id', { count: 'exact', head: true }).eq('resultat', 'En attente').not('certificat_url', 'is', null).is('date_reussite', null),
-        supabase.from('reservistes').select('benevole_id', { count: 'exact', head: true }),
+        supabase.from('reservistes').select('remboursement_bottes_date').eq('statut', 'Actif').eq('groupe', 'Approuvé'),
+        supabase.from('reservistes').select('antecedents_statut').eq('statut', 'Actif').eq('groupe', 'Approuvé'),
       ])
 
+      const approuvesBottes = bottesRes.data || []
+      const approuvesAnt = antecedentsRes.data || []
       setStats({
         sinistres_actifs: sinistres.count || 0,
         deploiements_actifs: deploiements.count || 0,
-        certificats_en_attente: certificats.count || 0,
-        reservistes_total: reservistes.count || 0,
+        bottes_avec: approuvesBottes.filter(r => r.remboursement_bottes_date).length,
+        bottes_sans: approuvesBottes.filter(r => !r.remboursement_bottes_date).length,
+        antecedents_verifie: approuvesAnt.filter(r => r.antecedents_statut === 'verifie').length,
+        antecedents_attente: approuvesAnt.filter(r => r.antecedents_statut !== 'verifie').length,
       })
       setLoading(false)
     }
@@ -74,7 +80,7 @@ export default function AdminDashboardPage() {
       href: '/admin/certificats',
       couleur: '#059669',
       statut: 'actif',
-      badge: stats.certificats_en_attente || undefined,
+      badge: stats.antecedents_attente || undefined,
     },
     {
       titre: 'Réservistes',
@@ -85,10 +91,18 @@ export default function AdminDashboardPage() {
       statut: 'actif',
     },
     {
+      titre: 'Dashboard public',
+      description: 'Vue publique des statistiques RIUSC — inscrits, antécédents, bottes, cohortes',
+      icone: '📈',
+      href: '/dashboard',
+      couleur: '#0891b2',
+      statut: 'actif',
+    },
+    {
       titre: 'Statistiques',
       description: 'Trafic, connexions, utilisateurs actifs, conversions pub → inscriptions',
       icone: '📊',
-      href: '/admin/stats',
+      href: '/stats',
       couleur: '#7c3aed',
       statut: 'actif',
     },
@@ -159,18 +173,38 @@ export default function AdminDashboardPage() {
 
         {/* Bande de stats rapides */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '32px' }}>
-          {[
-            { label: 'Sinistres actifs', valeur: stats.sinistres_actifs, icone: '🚨', couleur: '#fef2f2', border: '#fca5a5', texte: '#dc2626' },
-            { label: 'Déploiements', valeur: stats.deploiements_actifs, icone: '🚁', couleur: '#eff6ff', border: '#bfdbfe', texte: '#2563eb' },
-            { label: 'Certificats en attente', valeur: stats.certificats_en_attente, icone: '🗂️', couleur: '#f0fdf4', border: '#bbf7d0', texte: '#059669' },
-            { label: 'Réservistes', valeur: stats.reservistes_total, icone: '👥', couleur: '#f0f9ff', border: '#bae6fd', texte: '#0891b2' },
-          ].map((stat) => (
-            <div key={stat.label} style={{ backgroundColor: stat.couleur, border: `1px solid ${stat.border}`, borderRadius: '10px', padding: '14px 16px' }}>
-              <div style={{ fontSize: '20px', marginBottom: '4px' }}>{stat.icone}</div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: stat.texte }}>{stat.valeur}</div>
-              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{stat.label}</div>
+          {/* Sinistres */}
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '10px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🚨</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#dc2626' }}>{stats.sinistres_actifs}</div>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Sinistres actifs</div>
+          </div>
+          {/* Déploiements */}
+          <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🚁</div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb' }}>{stats.deploiements_actifs}</div>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Déploiements</div>
+          </div>
+          {/* Bottes */}
+          <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🥾</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span style={{ fontSize: '24px', fontWeight: '700', color: '#059669' }}>{stats.bottes_avec}</span>
+              <span style={{ fontSize: '13px', color: '#9ca3af' }}>/ {stats.bottes_avec + stats.bottes_sans}</span>
             </div>
-          ))}
+            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Bottes remboursées (approuvés)</div>
+            {stats.bottes_sans > 0 && <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px' }}>{stats.bottes_sans} sans remboursement</div>}
+          </div>
+          {/* Antécédents */}
+          <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px', padding: '14px 16px' }}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🔍</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+              <span style={{ fontSize: '24px', fontWeight: '700', color: '#0891b2' }}>{stats.antecedents_verifie}</span>
+              <span style={{ fontSize: '13px', color: '#9ca3af' }}>/ {stats.antecedents_verifie + stats.antecedents_attente}</span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Antécédents vérifiés (approuvés)</div>
+            {stats.antecedents_attente > 0 && <div style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px' }}>{stats.antecedents_attente} en attente</div>}
+          </div>
         </div>
 
         {/* Grille des modules */}
