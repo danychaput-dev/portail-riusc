@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
-import test from 'node:test'
 
 const C = '#1e3a5f'
 
@@ -43,7 +42,7 @@ interface Deploiement {
   statut: string
   nb_personnes_par_vague: number
 }
-// partenaire
+
 const STATUT_DEMANDE_COLORS: Record<string, { bg: string; color: string }> = {
   'Nouvelle':      { bg: '#eff6ff', color: '#2563eb' },
   'En traitement': { bg: '#fffbeb', color: '#d97706' },
@@ -452,8 +451,14 @@ export default function PartenairePage() {
         )}
 
         {/* Footer */}
-        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-          Portail RIUSC — AQBRS · <a href="/dashboard" style={{ color: '#94a3b8' }}>Statistiques publiques</a>
+        <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Portail RIUSC — AQBRS</span>
+          <a
+            href="/dashboard"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: C, textDecoration: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+          >
+            📈 Statistiques RIUSC
+          </a>
         </div>
 
       </main>
