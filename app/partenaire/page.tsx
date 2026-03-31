@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
+import test from 'node:test'
 
 const C = '#1e3a5f'
 
@@ -42,7 +43,7 @@ interface Deploiement {
   statut: string
   nb_personnes_par_vague: number
 }
-
+-- test
 const STATUT_DEMANDE_COLORS: Record<string, { bg: string; color: string }> = {
   'Nouvelle':      { bg: '#eff6ff', color: '#2563eb' },
   'En traitement': { bg: '#fffbeb', color: '#d97706' },
