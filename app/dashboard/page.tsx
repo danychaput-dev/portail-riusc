@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -185,9 +187,11 @@ function useIsMobile() {
 }
 
 export default function DashboardPublicPage() {
+  const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [retourHref, setRetourHref] = useState<string | null>(null)
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -195,6 +199,21 @@ export default function DashboardPublicPage() {
       .then(r => r.json())
       .then(data => { setStats(data); setLoading(false) })
       .catch(() => { setError(true); setLoading(false) })
+  }, [])
+
+  // Détecter si l'utilisateur est connecté et son rôle pour afficher le bouton retour
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('reservistes').select('role').eq('user_id', user.id).single().then(({ data }) => {
+        if (!data) return
+        if (data.role === 'admin' || data.role === 'coordonnateur') setRetourHref('/admin')
+        else if (data.role === 'adjoint') setRetourHref('/admin/reservistes')
+        else if (data.role === 'partenaire') setRetourHref('/partenaire')
+        else setRetourHref('/')
+      })
+    })
   }, [])
 
   const maxDaily = stats ? Math.max(...stats.dailyData.map(d => d.count), 1) : 1
@@ -214,9 +233,19 @@ export default function DashboardPublicPage() {
       {/* ── En-tête ── */}
       <div style={{ backgroundColor: NAVY, borderBottom: `3px solid ${YELLOW}`, padding: isMobile ? '12px 16px' : '16px 24px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: WHITE }}>Tableau de bord — RIUSC</h1>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Réserve d&apos;intervention d&apos;urgence en sécurité civile du Québec</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            {retourHref && (
+              <button
+                onClick={() => router.push(retourHref)}
+                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, color: WHITE, fontSize: 13, fontWeight: 600, padding: '6px 14px', cursor: 'pointer', whiteSpace: 'nowrap' as const }}
+              >
+                ← Retour
+              </button>
+            )}
+            <div>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: WHITE }}>Tableau de bord — RIUSC</h1>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Réserve d&apos;intervention d&apos;urgence en sécurité civile du Québec</p>
+            </div>
           </div>
           {stats && (
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
