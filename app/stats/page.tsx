@@ -849,12 +849,50 @@ export default function StatsPage() {
             </div>
 
             {/* KPI Cards trafic */}
-            <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-              <StatCard icon="👁️" label="Pages vues" value={logStats.totalVisits} sub={`${logStats.anonymous} anonymes · ${logStats.authenticated} connectés`} />
-              <StatCard icon="🧑" label="Utilisateurs uniques" value={logStats.uniqueUsers} color={PRIMARY_LIGHT} />
-              <StatCard icon="✅" label="Connexions réussies" value={logStats.logins} color={GREEN} />
+            <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+              <StatCard icon="👁️" label="Visiteurs anonymes" value={logStats.anonymous} sub="Pages publiques (inscription, login)" />
+              <StatCard icon="🧑" label="Actifs dans le portail" value={auditStats.uniqueUsers} color={PRIMARY_LIGHT} sub="Utilisateurs avec session active" />
+              <StatCard icon="✅" label="Connexions réussies" value={logStats.logins} color={GREEN} sub="OTP validé aujourd'hui" />
               <StatCard icon="⚠️" label="Connexions échouées" value={logStats.failed} color={logStats.failed > 0 ? RED : '#6b7280'} />
             </div>
+
+            {/* Indicateur de conversion pub → inscription */}
+            {(() => {
+              const visitesInscription = logStats.pageRanking.find(([p]) => p === '/inscription')?.[1] || 0;
+              const visitesLogin = logStats.pageRanking.find(([p]) => p === '/login')?.[1] || 0;
+              const nouvInscrits = resStats.last24h;
+              const taux = visitesInscription > 0 ? Math.round((nouvInscrits / visitesInscription) * 100) : 0;
+              const tauxColor = taux >= 20 ? GREEN : taux >= 5 ? ORANGE : RED;
+              if (visitesInscription === 0 && nouvInscrits === 0) return null;
+              return (
+                <div style={{ backgroundColor: 'white', border: `1px solid ${GREY_BORDER}`, borderLeft: `4px solid ${PURPLE}`, borderRadius: 12, padding: '16px 20px', marginBottom: 24, display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 2, fontWeight: 500 }}>📣 Funnel pub → inscription</div>
+                    <div style={{ fontSize: 12, color: '#9ca3af' }}>{period === 'today' ? "Aujourd'hui" : period === '7d' ? '7 derniers jours' : period === '30d' ? '30 derniers jours' : 'Période personnalisée'}</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' }}>
+                    <div style={{ textAlign: 'center', padding: '8px 20px', backgroundColor: GREY_BG, borderRadius: 8 }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: PRIMARY }}>{visitesInscription}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>vues /inscription</div>
+                    </div>
+                    <div style={{ fontSize: 18, color: '#d1d5db' }}>→</div>
+                    <div style={{ textAlign: 'center', padding: '8px 20px', backgroundColor: GREY_BG, borderRadius: 8 }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: PRIMARY }}>{visitesLogin}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>vues /login</div>
+                    </div>
+                    <div style={{ fontSize: 18, color: '#d1d5db' }}>→</div>
+                    <div style={{ textAlign: 'center', padding: '8px 20px', backgroundColor: '#f0fdf4', borderRadius: 8, border: `1px solid #bbf7d0` }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: GREEN }}>{nouvInscrits}</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>nouveaux inscrits</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: '8px 20px', backgroundColor: '#faf5ff', borderRadius: 8, border: `1px solid #e9d5ff` }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: tauxColor }}>{taux}%</div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>taux conversion</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="print-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 24 }}>
               {/* Pages populaires */}

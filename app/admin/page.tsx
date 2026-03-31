@@ -85,6 +85,14 @@ export default function AdminDashboardPage() {
       statut: 'actif',
     },
     {
+      titre: 'Statistiques',
+      description: 'Trafic, connexions, utilisateurs actifs, conversions pub → inscriptions',
+      icone: '📊',
+      href: '/admin/stats',
+      couleur: '#7c3aed',
+      statut: 'actif',
+    },
+    {
       titre: 'Portail partenaires',
       description: 'Accès SOPFEU, Croix-Rouge — vue lecture sur leurs déploiements',
       icone: '🤝',
