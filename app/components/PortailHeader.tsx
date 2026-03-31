@@ -62,7 +62,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const { user: authUser, loading: authLoading } = useAuth()
 
   // Champs nécessaires pour vérifier la complétude du profil + header
-  const selectFields = 'benevole_id, role, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
+  const selectFields = 'benevole_id, role, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, antecedents_statut, antecedents_date_expiration'
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -297,14 +297,21 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
     reserviste.contact_urgence_nom && reserviste.contact_urgence_telephone
   )
 
-  const isDeployable = isProfilComplet && hasCertificats && (campStatus?.is_certified === true)
+  const isDeployable = isProfilComplet && hasCertificats && (campStatus?.is_certified === true) && isAntecedentsOk
 
   // Compteur pour le sous-texte (ex: "2/3 étapes complétées")
-  const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true].filter(Boolean).length
+  const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true, isAntecedentsOk].filter(Boolean).length
 
   // Vérifier si c'est un admin (peut emprunter des identités)
   const isAdmin = reserviste?.role === 'admin' || reserviste?.role === 'coordonnateur'
   const isAdjoint = reserviste?.role === 'adjoint'
+  const isPartenaire = reserviste?.role === 'partenaire'
+
+  // 4e condition déployable : antécédents vérifiés et non expirés
+  const isAntecedentsOk = !!(
+    (reserviste as any)?.antecedents_statut === 'verifie' &&
+    (!(reserviste as any)?.antecedents_date_expiration || new Date((reserviste as any).antecedents_date_expiration) > new Date())
+  )
 
   return (
     <>
@@ -378,6 +385,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '12px', position: 'relative' }}>
                   {loadingStatus ? (
                     <span style={{ color: '#6b7280' }}>...</span>
+                  ) : isPartenaire ? (
+                    <span style={{ color: '#0891b2', fontWeight: '600' }}>Partenaire</span>
                   ) : isDeployable ? (
                     <div
                       style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'default' }}
@@ -392,8 +401,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                         <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: '#111827', color: 'white', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', whiteSpace: 'nowrap', zIndex: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
                           <div style={{ fontWeight: '600', marginBottom: '6px', color: '#6ee7b7' }}>✓ Toutes les étapes complétées</div>
                           <div>✓ Profil complet</div>
-                          <div>✓ Certificat S'initier</div>
+                          <div>✓ Certificat S&apos;initier</div>
                           <div>✓ Camp de qualification réussi</div>
+                          <div>✓ Antécédents judiciaires vérifiés</div>
                         </div>
                       )}
                     </div>
@@ -413,8 +423,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                         <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: '#111827', color: 'white', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', whiteSpace: 'nowrap', zIndex: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
                           <div style={{ fontWeight: '600', marginBottom: '6px', color: '#fca5a5' }}>Étapes manquantes :</div>
                           <div>{isProfilComplet ? '✓' : '✗'} Profil complet</div>
-                          <div>{hasCertificats ? '✓' : '✗'} Certificat S'initier</div>
+                          <div>{hasCertificats ? '✓' : '✗'} Certificat S&apos;initier</div>
                           <div>{campStatus?.is_certified ? '✓' : '✗'} Camp de qualification réussi</div>
+                          <div>{isAntecedentsOk ? '✓' : '✗'} Antécédents judiciaires vérifiés</div>
                           <div style={{ marginTop: '8px', color: '#93c5fd', fontSize: '11px' }}>Cliquer pour voir Formation et parcours →</div>
                         </div>
                       )}
@@ -443,13 +454,21 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             {showUserMenu && (
               <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '210px', overflow: 'hidden', zIndex: 200 }}>
 
-                <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Mon profil
-                </a>
+                {isPartenaire ? (
+                  <a href="/partenaire" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                    <span style={{ fontSize: '18px' }}>🤝</span>
+                    Portail partenaires
+                  </a>
+                ) : (
+                  <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                    Mon profil
+                  </a>
+                )}
 
-                {isApproved && hasCiblages && (
+                {!isPartenaire && isApproved && hasCiblages && (
                   <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -457,34 +476,38 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                   </a>
                 )}
 
-                <a href="/informations" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                  Informations pratiques
-                </a>
+                {!isPartenaire && (
+                  <>
+                    <a href="/informations" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                      Informations pratiques
+                    </a>
 
-                <a href="/formation" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" /></svg>
-                  Formation et parcours
-                </a>
+                    <a href="/formation" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" /></svg>
+                      Formation et parcours
+                    </a>
 
-                <a href="/formations-en-ligne" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Formations en ligne
-                </a>
+                    <a href="/formations-en-ligne" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      Formations en ligne
+                    </a>
 
-                <a href="/communaute" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  <span style={{ flex: 1 }}>Communauté</span>
-                  {unreadCommunaute > 0 && (
-                    <span style={{ backgroundColor: '#dc2626', color: 'white', borderRadius: '10px', padding: '2px 7px', fontSize: '11px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>
-                      {unreadCommunaute > 99 ? '99+' : unreadCommunaute}
-                    </span>
-                  )}
-                </a>
+                    <a href="/communaute" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      <span style={{ flex: 1 }}>Communauté</span>
+                      {unreadCommunaute > 0 && (
+                        <span style={{ backgroundColor: '#dc2626', color: 'white', borderRadius: '10px', padding: '2px 7px', fontSize: '11px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>
+                          {unreadCommunaute > 99 ? '99+' : unreadCommunaute}
+                        </span>
+                      )}
+                    </a>
+                  </>
+                )}
 
                 {isAdjoint && (
                   <>
