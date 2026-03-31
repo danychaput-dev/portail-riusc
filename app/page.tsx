@@ -587,9 +587,13 @@ export default function HomePage() {
       if (reservisteData) {
         setReserviste(reservisteData)
 
-        // Rediriger les adjoints vers l'annuaire
+        // Redirections par rôle
         if (reservisteData.role === 'adjoint') {
           router.push('/admin/reservistes')
+          return
+        }
+        if (reservisteData.role === 'partenaire') {
+          router.push('/partenaire')
           return
         }
         
