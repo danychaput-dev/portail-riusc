@@ -84,7 +84,7 @@ export default function AdminDashboardPage() {
     },
     {
       titre: 'Réservistes',
-      description: `${stats.reservistes_total} réservistes — consulter les dossiers et compétences`,
+      description: 'Consulter les dossiers et compétences',
       icone: '👥',
       href: '/admin/reservistes',
       couleur: '#0891b2',
