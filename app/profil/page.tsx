@@ -1298,12 +1298,19 @@ export default function ProfilPage() {
       }
     }
 
-    // Valider le code postal
+    // Valider le code postal (non obligatoire pour les partenaires)
+    const isPartenaire = reserviste.role === 'partenaire'
     const codePostalRegex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i
-    if (!profilData.code_postal.trim()) {
-      setSaveMessage({ type: 'error', text: 'Le code postal est obligatoire. Sélectionnez votre adresse dans la liste pour le remplir automatiquement.' })
-      return
-    } else if (!codePostalRegex.test(profilData.code_postal.trim())) {
+    if (!isPartenaire) {
+      if (!profilData.code_postal.trim()) {
+        setSaveMessage({ type: 'error', text: 'Le code postal est obligatoire. Sélectionnez votre adresse dans la liste pour le remplir automatiquement.' })
+        return
+      } else if (!codePostalRegex.test(profilData.code_postal.trim())) {
+        setSaveMessage({ type: 'error', text: 'Le code postal est invalide. Format attendu : J1H 1A1' })
+        return
+      }
+    } else if (profilData.code_postal.trim() && !codePostalRegex.test(profilData.code_postal.trim())) {
+      // Partenaire a saisi un code postal mais il est invalide
       setSaveMessage({ type: 'error', text: 'Le code postal est invalide. Format attendu : J1H 1A1' })
       return
     }
@@ -1870,6 +1877,9 @@ export default function ProfilPage() {
           )}
         </Section>
 
+        {/* ── 2. Adresse + Contact urgence — masqué pour partenaires ── */}
+        {reserviste?.role !== 'partenaire' && (<>
+
         {/* ── 2. Adresse ── */}
         <Section title="Adresse" icon="📍">
           <div style={{ position: 'relative', marginBottom: '16px' }}>
@@ -1994,7 +2004,7 @@ export default function ProfilPage() {
 
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Code postal *
+                Code postal {reserviste?.role !== 'partenaire' ? '*' : ''}
               </label>
               <input
                 type="text"
@@ -2130,6 +2140,8 @@ export default function ProfilPage() {
             />
           </div>
         </Section>
+
+        </>)}
 
         {/* ── 4. Santé ── */}
         <Section
