@@ -421,7 +421,7 @@ export default function HomePage() {
               loadCertificats(bid),
               supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
               checkSinitier(bid),
-              fetch(`https://n8n.aqbrs.ca/webhook/mobilisation-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null)
+              loadMobilisationStatus(bid)
             ])
 
             // Camp status
@@ -493,6 +493,57 @@ export default function HomePage() {
           return
         }
       }
+
+  // ─── Mobilisation — remplace le webhook n8n/Monday ──────────────────────────
+  // Requête directe Supabase : ciblages → vagues → deployments
+  const loadMobilisationStatus = async (benevole_id: string): Promise<MobilisationVague | null> => {
+    try {
+      // Étape 1 : ciblage actif (notifie ou mobilise) au niveau rotation
+      const { data: ciblage } = await supabase
+        .from('ciblages')
+        .select('id, statut, reference_id')
+        .eq('benevole_id', benevole_id)
+        .eq('niveau', 'rotation')
+        .in('statut', ['notifie', 'mobilise'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!ciblage?.reference_id) return null
+
+      // Étape 2 : détails de la vague
+      const { data: vague } = await supabase
+        .from('vagues')
+        .select('id, identifiant, date_debut, date_fin, deployment_id')
+        .eq('id', ciblage.reference_id)
+        .maybeSingle()
+
+      if (!vague) return null
+
+      // Étape 3 : détails du déploiement
+      const { data: deployment } = await supabase
+        .from('deployments')
+        .select('id, nom, lieu')
+        .eq('id', vague.deployment_id)
+        .maybeSingle()
+
+      return {
+        mobilisation_item_id: ciblage.id,
+        vague_id: vague.identifiant,
+        deploiement_nom: deployment?.nom || '',
+        tache: deployment?.nom || '',
+        ville: deployment?.lieu || '',
+        date_debut: vague.date_debut,
+        date_fin: vague.date_fin,
+        horaire: null,
+        statut_confirmation: ciblage.statut === 'mobilise' ? 'Confirmé' : 'En attente',
+      }
+    } catch (e) {
+      console.log('Erreur loadMobilisationStatus:', e)
+      return null
+    }
+  }
+
 
   // Attendre le chargement de l'auth
       if (authLoading) {
@@ -605,7 +656,7 @@ export default function HomePage() {
           loadCertificats(bid),
           supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
           checkSinitier(bid),
-          fetch(`https://n8n.aqbrs.ca/webhook/mobilisation-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null)
+          loadMobilisationStatus(bid)
         ])
 
         // Camp status
