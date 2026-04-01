@@ -313,7 +313,7 @@ export default function HomePage() {
             return {
               id: f.id,
               name: f.nom_formation || f.certificat_url.split('/').pop() || 'Certificat',
-              url: urlData?.signedUrl || null,
+              url: urlData?.signedUrl || undefined,
             }
           })
         )
