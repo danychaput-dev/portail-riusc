@@ -68,6 +68,110 @@ interface Organisation {
   nom: string
 }
 
+// ─── Régions administratives du Québec ───────────────────────────────────────
+
+const REGIONS_QUEBEC = [
+  'Bas-Saint-Laurent',
+  'Saguenay–Lac-Saint-Jean',
+  'Capitale-Nationale',
+  'Mauricie',
+  'Estrie',
+  'Montréal',
+  'Outaouais',
+  'Abitibi-Témiscamingue',
+  'Côte-Nord',
+  'Nord-du-Québec',
+  'Gaspésie–Îles-de-la-Madeleine',
+  'Chaudière-Appalaches',
+  'Laval',
+  'Lanaudière',
+  'Laurentides',
+  'Montérégie',
+  'Centre-du-Québec',
+] as const
+
+const FSA_TO_REGION: Record<string, string> = {
+  G4W:'Bas-Saint-Laurent',G5L:'Bas-Saint-Laurent',G5M:'Bas-Saint-Laurent',G5N:'Bas-Saint-Laurent',
+  G5R:'Bas-Saint-Laurent',G5S:'Bas-Saint-Laurent',G0J:'Bas-Saint-Laurent',G0K:'Bas-Saint-Laurent',G0L:'Bas-Saint-Laurent',
+  G7H:'Saguenay–Lac-Saint-Jean',G7J:'Saguenay–Lac-Saint-Jean',G7K:'Saguenay–Lac-Saint-Jean',G7N:'Saguenay–Lac-Saint-Jean',
+  G7P:'Saguenay–Lac-Saint-Jean',G7S:'Saguenay–Lac-Saint-Jean',G7T:'Saguenay–Lac-Saint-Jean',G7X:'Saguenay–Lac-Saint-Jean',
+  G7Y:'Saguenay–Lac-Saint-Jean',G7Z:'Saguenay–Lac-Saint-Jean',G8A:'Saguenay–Lac-Saint-Jean',G8B:'Saguenay–Lac-Saint-Jean',
+  G8C:'Saguenay–Lac-Saint-Jean',G8E:'Saguenay–Lac-Saint-Jean',G8G:'Saguenay–Lac-Saint-Jean',G8H:'Saguenay–Lac-Saint-Jean',
+  G8J:'Saguenay–Lac-Saint-Jean',G8K:'Saguenay–Lac-Saint-Jean',G8L:'Saguenay–Lac-Saint-Jean',G8M:'Saguenay–Lac-Saint-Jean',
+  G8N:'Saguenay–Lac-Saint-Jean',G8P:'Saguenay–Lac-Saint-Jean',G0W:'Saguenay–Lac-Saint-Jean',
+  G1A:'Capitale-Nationale',G1B:'Capitale-Nationale',G1C:'Capitale-Nationale',G1E:'Capitale-Nationale',G1G:'Capitale-Nationale',
+  G1H:'Capitale-Nationale',G1J:'Capitale-Nationale',G1K:'Capitale-Nationale',G1L:'Capitale-Nationale',G1M:'Capitale-Nationale',
+  G1N:'Capitale-Nationale',G1P:'Capitale-Nationale',G1R:'Capitale-Nationale',G1S:'Capitale-Nationale',G1T:'Capitale-Nationale',
+  G1V:'Capitale-Nationale',G1W:'Capitale-Nationale',G1X:'Capitale-Nationale',G1Y:'Capitale-Nationale',
+  G2A:'Capitale-Nationale',G2B:'Capitale-Nationale',G2C:'Capitale-Nationale',G2E:'Capitale-Nationale',G2G:'Capitale-Nationale',
+  G2J:'Capitale-Nationale',G2K:'Capitale-Nationale',G2L:'Capitale-Nationale',G2M:'Capitale-Nationale',G2N:'Capitale-Nationale',
+  G3A:'Capitale-Nationale',G3B:'Capitale-Nationale',G3C:'Capitale-Nationale',G3E:'Capitale-Nationale',G3G:'Capitale-Nationale',
+  G3H:'Capitale-Nationale',G3J:'Capitale-Nationale',G3K:'Capitale-Nationale',G3L:'Capitale-Nationale',G3M:'Capitale-Nationale',
+  G3N:'Capitale-Nationale',G3Z:'Capitale-Nationale',G0A:'Capitale-Nationale',G0N:'Capitale-Nationale',
+  G8T:'Mauricie',G8V:'Mauricie',G8W:'Mauricie',G8X:'Mauricie',G8Y:'Mauricie',G8Z:'Mauricie',
+  G9A:'Mauricie',G9B:'Mauricie',G9C:'Mauricie',G9N:'Mauricie',G9P:'Mauricie',G9T:'Mauricie',G9X:'Mauricie',
+  G0T:'Mauricie',G0V:'Mauricie',G0X:'Mauricie',
+  J1H:'Estrie',J1J:'Estrie',J1K:'Estrie',J1L:'Estrie',J1M:'Estrie',J1N:'Estrie',J1R:'Estrie',J1S:'Estrie',
+  J1T:'Estrie',J1X:'Estrie',J1Z:'Estrie',J0B:'Estrie',
+  H1A:'Montréal',H1B:'Montréal',H1C:'Montréal',H1E:'Montréal',H1G:'Montréal',H1H:'Montréal',H1J:'Montréal',H1K:'Montréal',
+  H1L:'Montréal',H1M:'Montréal',H1N:'Montréal',H1P:'Montréal',H1R:'Montréal',H1S:'Montréal',H1T:'Montréal',H1V:'Montréal',
+  H1W:'Montréal',H1X:'Montréal',H1Y:'Montréal',H1Z:'Montréal',H2A:'Montréal',H2B:'Montréal',H2C:'Montréal',H2E:'Montréal',
+  H2G:'Montréal',H2H:'Montréal',H2J:'Montréal',H2K:'Montréal',H2L:'Montréal',H2M:'Montréal',H2N:'Montréal',H2P:'Montréal',
+  H2R:'Montréal',H2S:'Montréal',H2T:'Montréal',H2V:'Montréal',H2W:'Montréal',H2X:'Montréal',H2Y:'Montréal',H2Z:'Montréal',
+  H3A:'Montréal',H3B:'Montréal',H3C:'Montréal',H3E:'Montréal',H3G:'Montréal',H3H:'Montréal',H3J:'Montréal',H3K:'Montréal',
+  H3L:'Montréal',H3M:'Montréal',H3N:'Montréal',H3P:'Montréal',H3R:'Montréal',H3S:'Montréal',H3T:'Montréal',H3V:'Montréal',
+  H3W:'Montréal',H3X:'Montréal',H3Y:'Montréal',H3Z:'Montréal',H4A:'Montréal',H4B:'Montréal',H4C:'Montréal',H4E:'Montréal',
+  H4G:'Montréal',H4H:'Montréal',H4J:'Montréal',H4K:'Montréal',H4L:'Montréal',H4M:'Montréal',H4N:'Montréal',H4P:'Montréal',
+  H4R:'Montréal',H4S:'Montréal',H4T:'Montréal',H4V:'Montréal',H4W:'Montréal',H4X:'Montréal',H4Y:'Montréal',H4Z:'Montréal',
+  H5A:'Montréal',H5B:'Montréal',H8N:'Montréal',H8P:'Montréal',H8R:'Montréal',H8S:'Montréal',H8T:'Montréal',
+  H9A:'Montréal',H9B:'Montréal',H9C:'Montréal',H9E:'Montréal',H9G:'Montréal',H9H:'Montréal',H9J:'Montréal',H9K:'Montréal',
+  H9P:'Montréal',H9R:'Montréal',H9S:'Montréal',H9W:'Montréal',H9X:'Montréal',
+  J8L:'Outaouais',J8M:'Outaouais',J8N:'Outaouais',J8P:'Outaouais',J8R:'Outaouais',J8T:'Outaouais',J8V:'Outaouais',
+  J8X:'Outaouais',J8Y:'Outaouais',J8Z:'Outaouais',J9A:'Outaouais',J9H:'Outaouais',J9J:'Outaouais',
+  J0V:'Outaouais',J0X:'Outaouais',
+  J9B:'Abitibi-Témiscamingue',J9E:'Abitibi-Témiscamingue',J9L:'Abitibi-Témiscamingue',J9T:'Abitibi-Témiscamingue',
+  J9V:'Abitibi-Témiscamingue',J9X:'Abitibi-Témiscamingue',J9Y:'Abitibi-Témiscamingue',J9Z:'Abitibi-Témiscamingue',
+  J0Y:'Abitibi-Témiscamingue',J0Z:'Abitibi-Témiscamingue',
+  G4R:'Côte-Nord',G4S:'Côte-Nord',G4T:'Côte-Nord',G5A:'Côte-Nord',G5B:'Côte-Nord',G5C:'Côte-Nord',
+  G0G:'Côte-Nord',G0H:'Côte-Nord',
+  J0M:'Nord-du-Québec',
+  G0C:'Gaspésie–Îles-de-la-Madeleine',G0E:'Gaspésie–Îles-de-la-Madeleine',G0M:'Gaspésie–Îles-de-la-Madeleine',
+  G4V:'Gaspésie–Îles-de-la-Madeleine',G4X:'Gaspésie–Îles-de-la-Madeleine',G4Y:'Gaspésie–Îles-de-la-Madeleine',
+  G4Z:'Gaspésie–Îles-de-la-Madeleine',G5H:'Gaspésie–Îles-de-la-Madeleine',
+  G5Y:'Chaudière-Appalaches',G5Z:'Chaudière-Appalaches',G6A:'Chaudière-Appalaches',G6B:'Chaudière-Appalaches',
+  G6C:'Chaudière-Appalaches',G6E:'Chaudière-Appalaches',G6G:'Chaudière-Appalaches',G6H:'Chaudière-Appalaches',
+  G6J:'Chaudière-Appalaches',G6K:'Chaudière-Appalaches',G6L:'Chaudière-Appalaches',G6P:'Chaudière-Appalaches',
+  G6R:'Chaudière-Appalaches',G6S:'Chaudière-Appalaches',G6T:'Chaudière-Appalaches',G6V:'Chaudière-Appalaches',
+  G6W:'Chaudière-Appalaches',G6X:'Chaudière-Appalaches',G6Y:'Chaudière-Appalaches',G6Z:'Chaudière-Appalaches',
+  G7A:'Chaudière-Appalaches',G7B:'Chaudière-Appalaches',G7C:'Chaudière-Appalaches',G7E:'Chaudière-Appalaches',G7G:'Chaudière-Appalaches',
+  G0R:'Chaudière-Appalaches',G0S:'Chaudière-Appalaches',
+  H7A:'Laval',H7B:'Laval',H7C:'Laval',H7E:'Laval',H7G:'Laval',H7H:'Laval',H7J:'Laval',H7K:'Laval',
+  H7L:'Laval',H7M:'Laval',H7N:'Laval',H7P:'Laval',H7R:'Laval',H7S:'Laval',H7T:'Laval',H7V:'Laval',H7W:'Laval',H7X:'Laval',H7Y:'Laval',
+  J0K:'Lanaudière',J5L:'Lanaudière',J5R:'Lanaudière',J5T:'Lanaudière',J5V:'Lanaudière',J5W:'Lanaudière',
+  J5X:'Lanaudière',J5Y:'Lanaudière',J5Z:'Lanaudière',J6E:'Lanaudière',J6S:'Lanaudière',J6V:'Lanaudière',
+  J6W:'Lanaudière',J6X:'Lanaudière',J6Y:'Lanaudière',J6Z:'Lanaudière',
+  J0N:'Laurentides',J0R:'Laurentides',J0T:'Laurentides',J7A:'Laurentides',J7B:'Laurentides',J7C:'Laurentides',
+  J7E:'Laurentides',J7G:'Laurentides',J7H:'Laurentides',J7J:'Laurentides',J7K:'Laurentides',J7L:'Laurentides',
+  J7M:'Laurentides',J7N:'Laurentides',J7P:'Laurentides',J7R:'Laurentides',J7S:'Laurentides',J7T:'Laurentides',
+  J7V:'Laurentides',J7W:'Laurentides',J7X:'Laurentides',J7Y:'Laurentides',J7Z:'Laurentides',
+  J8A:'Laurentides',J8B:'Laurentides',J8C:'Laurentides',J8E:'Laurentides',J8G:'Laurentides',J8H:'Laurentides',J8K:'Laurentides',
+  J0H:'Montérégie',J0L:'Montérégie',J0S:'Montérégie',J3A:'Montérégie',J3B:'Montérégie',J3E:'Montérégie',J3G:'Montérégie',
+  J3H:'Montérégie',J3L:'Montérégie',J3M:'Montérégie',J3N:'Montérégie',J3P:'Montérégie',J3R:'Montérégie',J3T:'Montérégie',
+  J3V:'Montérégie',J3X:'Montérégie',J3Y:'Montérégie',J3Z:'Montérégie',J4B:'Montérégie',J4G:'Montérégie',J4H:'Montérégie',
+  J4J:'Montérégie',J4K:'Montérégie',J4L:'Montérégie',J4M:'Montérégie',J4N:'Montérégie',J4P:'Montérégie',J4R:'Montérégie',
+  J4S:'Montérégie',J4T:'Montérégie',J4V:'Montérégie',J4W:'Montérégie',J4X:'Montérégie',J4Y:'Montérégie',J4Z:'Montérégie',
+  J5A:'Montérégie',J5B:'Montérégie',J5C:'Montérégie',J5J:'Montérégie',J5K:'Montérégie',J5M:'Montérégie',J5N:'Montérégie',
+  J0A:'Centre-du-Québec',J0C:'Centre-du-Québec',J0G:'Centre-du-Québec',J1A:'Centre-du-Québec',
+  J2A:'Centre-du-Québec',J2B:'Centre-du-Québec',J2C:'Centre-du-Québec',J2E:'Centre-du-Québec',J2G:'Centre-du-Québec',
+  J2H:'Centre-du-Québec',J2K:'Centre-du-Québec',J2L:'Centre-du-Québec',J2M:'Centre-du-Québec',J2N:'Centre-du-Québec',
+  J2R:'Centre-du-Québec',J2S:'Centre-du-Québec',J2T:'Centre-du-Québec',G0P:'Centre-du-Québec',G0Z:'Centre-du-Québec',
+}
+
+function detecterRegionParFSA(codePostal: string): string | null {
+  const fsa = codePostal.replace(/\s/g, '').toUpperCase().slice(0, 3)
+  return FSA_TO_REGION[fsa] || null
+}
+
 export default function InscriptionPage() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState<'form' | 'success'>('form')
@@ -137,6 +241,7 @@ export default function InscriptionPage() {
   const villeInputRef = useRef<HTMLInputElement>(null)
   const villeDropdownRef = useRef<HTMLDivElement>(null)
   const villeDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const [regionNonDetectee, setRegionNonDetectee] = useState(false)
 
   const router = useRouter()
   const supabase = createClient()
@@ -343,18 +448,39 @@ export default function InscriptionPage() {
     debounceRef.current = setTimeout(() => searchAddress(value), 300)
   }
 
-  const lookupRegionFromVille = async (ville: string) => {
-    if (!ville) return
+  const lookupRegionFromVille = async (ville: string, codePostalFallback?: string): Promise<boolean> => {
+    if (!ville) return false
+
+    // Stratégie 1 : table municipalites_qc
     const { data } = await supabase
       .from('municipalites_qc')
       .select('region_administrative')
       .ilike('municipalite', ville)
       .limit(1)
       .single()
-    if (data) {
+
+    if (data?.region_administrative) {
       setFormData(prev => ({ ...prev, region: data.region_administrative }))
+      setRegionNonDetectee(false)
       if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+      return true
     }
+
+    // Stratégie 2 : FSA du code postal (arrondissements, villes fusionnées)
+    const cp = codePostalFallback || ''
+    if (cp.length >= 3) {
+      const regionFSA = detecterRegionParFSA(cp)
+      if (regionFSA) {
+        setFormData(prev => ({ ...prev, region: regionFSA }))
+        setRegionNonDetectee(false)
+        if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+        return true
+      }
+    }
+
+    // Aucune détection → afficher le sélecteur manuel
+    setRegionNonDetectee(true)
+    return false
   }
 
   const selectAddress = (feature: MapboxFeature) => {
@@ -378,7 +504,19 @@ export default function InscriptionPage() {
     if (codePostal && fieldErrors.code_postal) setFieldErrors(prev => ({ ...prev, code_postal: '' }))
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
-    if (ville) lookupRegionFromVille(ville)
+    if (ville) {
+      lookupRegionFromVille(ville, codePostal || formData.code_postal)
+    } else if (codePostal || formData.code_postal) {
+      const cp = codePostal || formData.code_postal
+      const regionFSA = detecterRegionParFSA(cp)
+      if (regionFSA) {
+        setFormData(prev => ({ ...prev, region: regionFSA }))
+        setRegionNonDetectee(false)
+        if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+      } else {
+        setRegionNonDetectee(true)
+      }
+    }
   }
 
   const searchVille = async (query: string) => {
@@ -405,6 +543,7 @@ export default function InscriptionPage() {
 
   const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string }) => {
     setFormData(prev => ({ ...prev, ville: suggestion.municipalite, region: suggestion.region_administrative }))
+    setRegionNonDetectee(false)
     setShowVilleSuggestions(false)
     setVilleSuggestions([])
     if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
@@ -426,7 +565,7 @@ export default function InscriptionPage() {
     const codePostalRegex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i
     if (!formData.code_postal.trim()) errors.code_postal = 'Le code postal est obligatoire'
     else if (!codePostalRegex.test(formData.code_postal.trim())) errors.code_postal = 'Format invalide (ex: J1H 1A1)'
-    if (!formData.region) errors.region = 'La région est requise — sélectionnez votre ville'
+    if (!formData.region) errors.region = 'La région est requise — sélectionnez votre ville ou choisissez-la manuellement'
     // Accepte "Aucune" comme option valide, ou au moins une organisation doit être sélectionnée
     if (selectedOrgIds.length === 0 && !newOrgName.trim()) errors.organisations = 'Veuillez sélectionner au moins une option'
     if (!formData.confirm_18) errors.confirm_18 = 'Vous devez confirmer avoir 18 ans ou plus'
@@ -764,18 +903,85 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                     setFormData(prev => ({ ...prev, code_postal: val }))
                     if (fieldErrors.code_postal) setFieldErrors(prev => ({ ...prev, code_postal: '' }))
                   }}
+                  onBlur={(e) => {
+                    const cp = e.target.value.trim()
+                    if (cp.length >= 3 && !formData.region) {
+                      const r = detecterRegionParFSA(cp)
+                      if (r) {
+                        setFormData(prev => ({ ...prev, region: r }))
+                        setRegionNonDetectee(false)
+                        if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+                      } else if (cp.length >= 6) {
+                        setRegionNonDetectee(true)
+                      }
+                    }
+                  }}
                   placeholder="Ex: J1H 1A1"
                   maxLength={7}
                   style={fieldErrors.code_postal ? { ...inputErrorStyle, textTransform: 'uppercase' } : { ...inputStyle, textTransform: 'uppercase' }}
                 />
                 {fieldErrors.code_postal && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.code_postal}</p>}
               </div>
-              <div>
-                <label style={labelStyle}>Région administrative {requiredStar}</label>
-                <input type="text" value={formData.region} readOnly style={{ ...inputStyle, backgroundColor: formData.region ? '#f0fdf4' : '#f3f4f6', cursor: 'not-allowed', borderColor: formData.region ? '#86efac' : (fieldErrors.region ? '#dc2626' : '#d1d5db'), borderWidth: fieldErrors.region ? '2px' : '1px' }} placeholder="Détectée automatiquement selon la ville" />
-                {formData.region && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>✓ Détectée automatiquement</p>}
-                {fieldErrors.region && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.region}</p>}
-              </div>
+              {/* Région — auto-détectée ou sélecteur manuel si non détectée */}
+              {regionNonDetectee && !formData.region ? (
+                <div>
+                  <div style={{
+                    background: '#fff8e1', border: '1px solid #ffd166', borderRadius: '6px',
+                    padding: '7px 11px', marginBottom: '7px', fontSize: '12px', color: '#7a5c00',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                  }}>
+                    <span>⚠️</span>
+                    <span>Région non détectée automatiquement — veuillez la sélectionner.</span>
+                  </div>
+                  <label style={labelStyle}>Région administrative <span style={{ color: '#dc2626' }}>*</span></label>
+                  <select
+                    value={formData.region}
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, region: e.target.value }))
+                      if (e.target.value) {
+                        setRegionNonDetectee(false)
+                        if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+                      }
+                    }}
+                    style={{
+                      ...inputStyle,
+                      border: '1.5px solid #e74c3c',
+                      color: formData.region ? '#111827' : '#9ca3af',
+                    }}
+                  >
+                    <option value="">— Sélectionner une région —</option>
+                    {REGIONS_QUEBEC.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  {fieldErrors.region && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.region}</p>}
+                </div>
+              ) : (
+                <div>
+                  <label style={labelStyle}>Région administrative {requiredStar}</label>
+                  {formData.region ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ ...inputStyle, flex: 1, backgroundColor: '#f0fdf4', borderColor: '#86efac', color: '#111827', cursor: 'default' }}>
+                        {formData.region}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setRegionNonDetectee(true); setFormData(prev => ({ ...prev, region: '' })) }}
+                        style={{ padding: '8px 10px', fontSize: '12px', color: '#6b7280', background: 'none', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 }}
+                        title="Modifier la région"
+                      >✏️ Modifier</button>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={formData.region}
+                      readOnly
+                      style={{ ...inputStyle, backgroundColor: '#f3f4f6', cursor: 'not-allowed', borderColor: fieldErrors.region ? '#dc2626' : '#d1d5db', borderWidth: fieldErrors.region ? '2px' : '1px' }}
+                      placeholder="Détectée automatiquement selon la ville"
+                    />
+                  )}
+                  {formData.region && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>✓ Détectée automatiquement</p>}
+                  {fieldErrors.region && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.region}</p>}
+                </div>
+              )}
             </div>
           </div>
 
