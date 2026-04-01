@@ -18,6 +18,7 @@ const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 interface Reserviste {
   id: number
   benevole_id: string
+  role?: string
   prenom: string
   nom: string
   email: string
@@ -1298,19 +1299,12 @@ export default function ProfilPage() {
       }
     }
 
-    // Valider le code postal (non obligatoire pour les partenaires)
-    const isPartenaire = reserviste.role === 'partenaire'
+    // Valider le code postal
     const codePostalRegex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i
-    if (!isPartenaire) {
-      if (!profilData.code_postal.trim()) {
-        setSaveMessage({ type: 'error', text: 'Le code postal est obligatoire. Sélectionnez votre adresse dans la liste pour le remplir automatiquement.' })
-        return
-      } else if (!codePostalRegex.test(profilData.code_postal.trim())) {
-        setSaveMessage({ type: 'error', text: 'Le code postal est invalide. Format attendu : J1H 1A1' })
-        return
-      }
-    } else if (profilData.code_postal.trim() && !codePostalRegex.test(profilData.code_postal.trim())) {
-      // Partenaire a saisi un code postal mais il est invalide
+    if (!profilData.code_postal.trim()) {
+      setSaveMessage({ type: 'error', text: 'Le code postal est obligatoire. Sélectionnez votre adresse dans la liste pour le remplir automatiquement.' })
+      return
+    } else if (!codePostalRegex.test(profilData.code_postal.trim())) {
       setSaveMessage({ type: 'error', text: 'Le code postal est invalide. Format attendu : J1H 1A1' })
       return
     }
@@ -1877,9 +1871,6 @@ export default function ProfilPage() {
           )}
         </Section>
 
-        {/* ── 2. Adresse + Contact urgence — masqué pour partenaires ── */}
-        {reserviste?.role !== 'partenaire' && (<>
-
         {/* ── 2. Adresse ── */}
         <Section title="Adresse" icon="📍">
           <div style={{ position: 'relative', marginBottom: '16px' }}>
@@ -2004,7 +1995,7 @@ export default function ProfilPage() {
 
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-                Code postal {reserviste?.role !== 'partenaire' ? '*' : ''}
+                Code postal *
               </label>
               <input
                 type="text"
@@ -2140,8 +2131,6 @@ export default function ProfilPage() {
             />
           </div>
         </Section>
-
-        </>)}
 
         {/* ── 4. Santé ── */}
         <Section
