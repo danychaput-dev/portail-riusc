@@ -297,17 +297,33 @@ export default function HomePage() {
   const loadCertificats = async (benevoleId: string) => {
     setLoadingCertificats(true)
     try {
-      const response = await fetch(
-        `https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${benevoleId}`
-      )
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.files) {
-          setCertificats(data.files)
-        }
+      // Lecture depuis formations_benevoles + Storage (remplace webhook n8n/Monday)
+      const { data: formations } = await supabase
+        .from('formations_benevoles')
+        .select('id, nom_formation, certificat_url, date_reussite')
+        .eq('benevole_id', benevoleId)
+        .not('certificat_url', 'is', null)
+
+      if (formations && formations.length > 0) {
+        const filesWithUrls = await Promise.all(
+          formations.map(async (f: any) => {
+            const { data: urlData } = await supabase.storage
+              .from('certificats')
+              .createSignedUrl(f.certificat_url, 3600) // URL valide 1h
+            return {
+              id: f.id,
+              name: f.nom_formation || f.certificat_url.split('/').pop() || 'Certificat',
+              url: urlData?.signedUrl || null,
+            }
+          })
+        )
+        setCertificats(filesWithUrls.filter((f: any) => f.url))
+      } else {
+        setCertificats([])
       }
     } catch (error) {
       console.error('Erreur fetch certificats:', error)
+      setCertificats([])
     }
     setLoadingCertificats(false)
   }
@@ -363,14 +379,13 @@ export default function HomePage() {
         reader.readAsDataURL(file)
       })
 
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+      const response = await fetch('/api/certificat/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
           file_name: file.name,
           file_base64: base64,
-          groupe: reserviste.groupe || null,
           nom_complet: `${reserviste.nom} ${reserviste.prenom}`
         })
       })
@@ -395,6 +410,56 @@ export default function HomePage() {
     }
   }
 
+
+  // ─── Mobilisation — remplace le webhook n8n/Monday ──────────────────────────
+  // Requête directe Supabase : ciblages → vagues → deployments
+  const loadMobilisationStatus = async (benevole_id: string): Promise<MobilisationVague | null> => {
+    try {
+      // Étape 1 : ciblage actif (notifie ou mobilise) au niveau rotation
+      const { data: ciblage } = await supabase
+        .from('ciblages')
+        .select('id, statut, reference_id')
+        .eq('benevole_id', benevole_id)
+        .eq('niveau', 'rotation')
+        .in('statut', ['notifie', 'mobilise'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!ciblage?.reference_id) return null
+
+      // Étape 2 : détails de la vague
+      const { data: vague } = await supabase
+        .from('vagues')
+        .select('id, identifiant, date_debut, date_fin, deployment_id')
+        .eq('id', ciblage.reference_id)
+        .maybeSingle()
+
+      if (!vague) return null
+
+      // Étape 3 : détails du déploiement
+      const { data: deployment } = await supabase
+        .from('deployments')
+        .select('id, nom, lieu')
+        .eq('id', vague.deployment_id)
+        .maybeSingle()
+
+      return {
+        mobilisation_item_id: ciblage.id,
+        vague_id: vague.identifiant,
+        deploiement_nom: deployment?.nom || '',
+        tache: deployment?.nom || '',
+        ville: deployment?.lieu || '',
+        date_debut: vague.date_debut,
+        date_fin: vague.date_fin,
+        horaire: null,
+        statut_confirmation: ciblage.statut === 'mobilise' ? 'Confirmé' : 'En attente',
+      }
+    } catch (e) {
+      console.log('Erreur loadMobilisationStatus:', e)
+      return null
+    }
+  }
   useEffect(() => {
     const loadData = async () => {
       // 🔧 SUPPORT MODE DEBUG
@@ -494,55 +559,6 @@ export default function HomePage() {
         }
       }
 
-  // ─── Mobilisation — remplace le webhook n8n/Monday ──────────────────────────
-  // Requête directe Supabase : ciblages → vagues → deployments
-  const loadMobilisationStatus = async (benevole_id: string): Promise<MobilisationVague | null> => {
-    try {
-      // Étape 1 : ciblage actif (notifie ou mobilise) au niveau rotation
-      const { data: ciblage } = await supabase
-        .from('ciblages')
-        .select('id, statut, reference_id')
-        .eq('benevole_id', benevole_id)
-        .eq('niveau', 'rotation')
-        .in('statut', ['notifie', 'mobilise'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (!ciblage?.reference_id) return null
-
-      // Étape 2 : détails de la vague
-      const { data: vague } = await supabase
-        .from('vagues')
-        .select('id, identifiant, date_debut, date_fin, deployment_id')
-        .eq('id', ciblage.reference_id)
-        .maybeSingle()
-
-      if (!vague) return null
-
-      // Étape 3 : détails du déploiement
-      const { data: deployment } = await supabase
-        .from('deployments')
-        .select('id, nom, lieu')
-        .eq('id', vague.deployment_id)
-        .maybeSingle()
-
-      return {
-        mobilisation_item_id: ciblage.id,
-        vague_id: vague.identifiant,
-        deploiement_nom: deployment?.nom || '',
-        tache: deployment?.nom || '',
-        ville: deployment?.lieu || '',
-        date_debut: vague.date_debut,
-        date_fin: vague.date_fin,
-        horaire: null,
-        statut_confirmation: ciblage.statut === 'mobilise' ? 'Confirmé' : 'En attente',
-      }
-    } catch (e) {
-      console.log('Erreur loadMobilisationStatus:', e)
-      return null
-    }
-  }
 
 
   // Attendre le chargement de l'auth
