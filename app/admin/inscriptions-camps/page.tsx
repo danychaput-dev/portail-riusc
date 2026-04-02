@@ -149,9 +149,11 @@ export default function InscriptionsCampsPage() {
         return m ? parseInt(m[1]) : 999
       }
 
-      // Trier : futurs en haut, passés en bas; dans chaque groupe par numéro décroissant
+      // À venir : ascendant (prochain camp en premier — 9, 10, 11...)
+      // Passés  : descendant (plus récent en premier — 8, 7, 6...)
       campList.sort((a, b) => {
         if (a.isPast !== b.isPast) return a.isPast ? 1 : -1
+        if (!a.isPast) return getCohortNum(a.camp_nom) - getCohortNum(b.camp_nom)
         return getCohortNum(b.camp_nom) - getCohortNum(a.camp_nom)
       })
 
@@ -170,37 +172,47 @@ export default function InscriptionsCampsPage() {
       setSearch('')
       setFilterPresence('tous')
 
+      // Étape 1 — inscriptions du camp
       const { data, error } = await supabase
         .from('inscriptions_camps')
-        .select(`
-          id, benevole_id, prenom_nom, presence, courriel, telephone,
-          camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at,
-          reservistes (region, groupe, remboursement_bottes_date, allergies_alimentaires)
-        `)
+        .select('id, benevole_id, prenom_nom, presence, courriel, telephone, camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at')
         .eq('session_id', selectedCampId)
         .order('prenom_nom')
 
       if (error) { console.error(error); setLoadingInscrits(false); return }
+      if (!data || data.length === 0) { setInscriptions([]); setLoadingInscrits(false); return }
 
-      const flat: Inscription[] = (data || []).map((row: any) => ({
-        id: row.id,
-        benevole_id: row.benevole_id,
-        prenom_nom: row.prenom_nom,
-        presence: row.presence,
-        statut_inscription: row.statut_inscription || 'Inscrit',
-        courriel: row.courriel,
-        telephone: row.telephone,
-        camp_nom: row.camp_nom,
-        camp_dates: row.camp_dates,
-        camp_lieu: row.camp_lieu,
-        sync_status: row.sync_status,
-        monday_item_id: row.monday_item_id,
-        created_at: row.created_at,
-        region: row.reservistes?.region ?? null,
-        groupe: row.reservistes?.groupe ?? null,
-        remboursement_bottes_date: row.reservistes?.remboursement_bottes_date ?? null,
-        allergies_alimentaires: row.reservistes?.allergies_alimentaires ?? null,
-      }))
+      // Étape 2 — données complémentaires des réservistes
+      const benevoleIds = data.map((r: any) => r.benevole_id).filter(Boolean)
+      const { data: resData } = await supabase
+        .from('reservistes')
+        .select('benevole_id, region, groupe, remboursement_bottes_date, allergies_alimentaires')
+        .in('benevole_id', benevoleIds)
+
+      const resMap = new Map((resData || []).map((r: any) => [r.benevole_id, r]))
+
+      const flat: Inscription[] = data.map((row: any) => {
+        const res = resMap.get(row.benevole_id)
+        return {
+          id: row.id,
+          benevole_id: row.benevole_id,
+          prenom_nom: row.prenom_nom,
+          presence: row.presence,
+          statut_inscription: 'Inscrit',
+          courriel: row.courriel,
+          telephone: row.telephone,
+          camp_nom: row.camp_nom,
+          camp_dates: row.camp_dates,
+          camp_lieu: row.camp_lieu,
+          sync_status: row.sync_status,
+          monday_item_id: row.monday_item_id,
+          created_at: row.created_at,
+          region: res?.region ?? null,
+          groupe: res?.groupe ?? null,
+          remboursement_bottes_date: res?.remboursement_bottes_date ?? null,
+          allergies_alimentaires: res?.allergies_alimentaires ?? null,
+        }
+      })
 
       setInscriptions(flat)
       setLoadingInscrits(false)
