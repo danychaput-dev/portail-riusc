@@ -536,6 +536,11 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                       <span style={{ fontSize: '18px' }}>🗂️</span>
                       Validation certificats
                     </a>
+                    <a href="/admin/inscriptions-camps" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <span style={{ fontSize: '18px' }}>🏕️</span>
+                      Inscriptions camps
+                    </a>
                   </>
                 )}
 
