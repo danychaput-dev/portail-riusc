@@ -39,6 +39,8 @@ interface Inscription {
   allergies_alimentaires: string | null
   allergies_autres: string | null
   conditions_medicales: string | null
+  prenom: string | null
+  nom: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -206,7 +208,7 @@ export default function InscriptionsCampsPage() {
       const benevoleIds = data.map((r: any) => r.benevole_id).filter(Boolean)
       const { data: resData } = await supabase
         .from('reservistes')
-        .select('benevole_id, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales')
+        .select('benevole_id, prenom, nom, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales')
         .in('benevole_id', benevoleIds)
 
       const resMap = new Map((resData || []).map((r: any) => [r.benevole_id, r]))
@@ -233,6 +235,8 @@ export default function InscriptionsCampsPage() {
           allergies_alimentaires: res?.allergies_alimentaires ?? null,
           allergies_autres: res?.allergies_autres ?? null,
           conditions_medicales: res?.conditions_medicales ?? null,
+          prenom: res?.prenom ?? null,
+          nom: res?.nom ?? null,
         }
       })
 
@@ -269,21 +273,19 @@ export default function InscriptionsCampsPage() {
           ? `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
           : (i.telephone || '')
         return {
-          'Nom': i.prenom_nom,
-          'Présence': PRESENCE_LABELS[i.presence]?.label || i.presence,
-          'Téléphone': tel,
+          'Nom complet': i.prenom_nom,
+          'Prénom': i.prenom || '',
+          'Nom': i.nom || '',
           'Courriel': i.courriel || '',
-          'District': i.region || '',
           'Allergie alimentaire': i.allergies_alimentaires || '',
           'Allergie autre': i.allergies_autres || '',
           'Condition médicale': i.conditions_medicales || '',
-          'Remboursement bottes': i.remboursement_bottes_date ? 'Oui' : '',
         }
       })
       const ws = XLSX.utils.json_to_sheet(rows)
       ws['!cols'] = [
         { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 30 },
-        { wch: 24 }, { wch: 24 }, { wch: 20 }, { wch: 24 }, { wch: 20 },
+        { wch: 24 }, { wch: 20 }, { wch: 24 },
       ]
       const wb = XLSX.utils.book_new()
       const sheetName = (selectedCamp?.camp_nom || 'Camp')
