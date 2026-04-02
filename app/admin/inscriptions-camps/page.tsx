@@ -664,7 +664,7 @@ function CampItem({ camp, selected, onClick }: { camp: Camp; selected: boolean; 
     </button>
   )
 }
-
+//version à mettre à jour (simple text pour forcer l'update)
 function Badge({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
   return (
     <div style={{ background: bg, borderRadius: 8, padding: '6px 12px', textAlign: 'center', minWidth: 60 }}>
