@@ -326,7 +326,7 @@ export default function InscriptionsCampsPage() {
   }
   function ouvrirSmsModal() {
     if (!selectedCamp) return
-    setSmsMessage(`Bonjour {prenom}! Rappel: vous êtes inscrit(e) au {camp}, {dates} à {lieu}. Confirmez votre présence en répondant OUI ou NON à ce message.`)
+    setSmsMessage(`Bonjour {prenom}! La RIUSC vous rappelle que vous êtes inscrit(e) au {camp}, {dates} à {lieu}. Pour toutes les informations, visitez portail.riusc.ca. Confirmez votre présence en répondant OUI ou NON à ce message.`)
     setSmsResult(null)
     setShowSmsModal(true)
   }
