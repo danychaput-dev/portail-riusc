@@ -752,7 +752,12 @@ export default function InscriptionsCampsPage() {
                     Annuler
                   </button>
                   <button
-                    onClick={envoyerRappelSms}
+                    onClick={() => {
+                      const nb = inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence)).length
+                      if (confirm(`⚠️ Vous êtes sur le point d'envoyer un SMS à ${nb} personnes pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}\n\nCette action est irréversible. Continuer?`)) {
+                        envoyerRappelSms()
+                      }
+                    }}
                     disabled={sendingSms || !smsMessage.trim()}
                     style={{ padding: '9px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0d9488', color: 'white', fontSize: 13, fontWeight: 600, cursor: sendingSms ? 'not-allowed' : 'pointer', opacity: sendingSms ? 0.7 : 1 }}
                   >
