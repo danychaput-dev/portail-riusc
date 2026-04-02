@@ -259,37 +259,52 @@ export default function InscriptionsCampsPage() {
 
   // ── Export Excel ────────────────────────────────────────────────────────────
   async function exportExcel() {
-    const XLSX = (await import('xlsx')).default
-    const rows = filtered.map(i => {
-      const digits = (i.telephone || '').replace(/\D/g, '')
-      const tel = digits.length === 11 && digits[0] === '1'
-        ? `1 ${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`
-        : digits.length === 10
-        ? `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
-        : (i.telephone || '')
-      const presenceLabel = PRESENCE_LABELS[i.presence]?.label || i.presence
-      return {
-        'Nom': i.prenom_nom,
-        'Présence': presenceLabel,
-        'Téléphone': tel,
-        'Courriel': i.courriel || '',
-        'District': i.region || '',
-        'Allergie alimentaire': i.allergies_alimentaires || '',
-        'Allergie autre': i.allergies_autres || '',
-        'Condition médicale': i.conditions_medicales || '',
-        'Remboursement bottes': i.remboursement_bottes_date ? 'Oui' : '',
-      }
-    })
-    const ws = XLSX.utils.json_to_sheet(rows)
-    // Largeurs colonnes
-    ws['!cols'] = [
-      { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 30 },
-      { wch: 24 }, { wch: 24 }, { wch: 20 }, { wch: 24 }, { wch: 20 },
-    ]
-    const wb = XLSX.utils.book_new()
-    const sheetName = (selectedCamp?.camp_nom || 'Camp').replace(' - Camp de qualification', '').slice(0, 31)
-    XLSX.utils.book_append_sheet(wb, ws, sheetName)
-    XLSX.writeFile(wb, `${sheetName.replace(/ /g, '_')}.xlsx`)
+    try {
+      const XLSX = await import('xlsx')
+      const rows = filtered.map(i => {
+        const digits = (i.telephone || '').replace(/\D/g, '')
+        const tel = digits.length === 11 && digits[0] === '1'
+          ? `1 ${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`
+          : digits.length === 10
+          ? `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
+          : (i.telephone || '')
+        return {
+          'Nom': i.prenom_nom,
+          'Présence': PRESENCE_LABELS[i.presence]?.label || i.presence,
+          'Téléphone': tel,
+          'Courriel': i.courriel || '',
+          'District': i.region || '',
+          'Allergie alimentaire': i.allergies_alimentaires || '',
+          'Allergie autre': i.allergies_autres || '',
+          'Condition médicale': i.conditions_medicales || '',
+          'Remboursement bottes': i.remboursement_bottes_date ? 'Oui' : '',
+        }
+      })
+      const ws = XLSX.utils.json_to_sheet(rows)
+      ws['!cols'] = [
+        { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 30 },
+        { wch: 24 }, { wch: 24 }, { wch: 20 }, { wch: 24 }, { wch: 20 },
+      ]
+      const wb = XLSX.utils.book_new()
+      const sheetName = (selectedCamp?.camp_nom || 'Camp')
+        .replace(' - Camp de qualification', '').trim().slice(0, 31)
+      XLSX.utils.book_append_sheet(wb, ws, sheetName)
+
+      // Génération Blob — fiable dans tous les contextes browser
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${sheetName.replace(/ /g, '_')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Export Excel erreur:', err)
+      alert('Erreur lors de l\'export. Voir la console pour les détails.')
+    }
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
