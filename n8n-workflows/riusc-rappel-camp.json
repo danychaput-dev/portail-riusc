@@ -1,0 +1,84 @@
+{
+  "name": "RIUSC - Rappel SMS Camp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "riusc-rappel-camp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Rappel Camp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraire la liste des rappels du payload\nconst body = $input.first().json.body;\nconst rappels = body.rappels || [];\nconst session_id = body.session_id || '';\n\n// Retourner chaque destinataire comme item séparé\nreturn rappels.map(r => ({\n  json: {\n    telephone: r.telephone,\n    message: r.message,\n    session_id: session_id\n  }\n}));"
+      },
+      "id": "split-destinataires",
+      "name": "Séparer destinataires",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "from": "={{ $env.TWILIO_PHONE_NUMBER }}",
+        "to": "={{ $json.telephone }}",
+        "body": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "twilio-send",
+      "name": "Envoyer SMS Twilio",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [720, 300],
+      "credentials": {
+        "twilioApi": {
+          "id": "REMPLACER_PAR_TON_CREDENTIAL_ID",
+          "name": "Twilio RIUSC"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compter les résultats\nconst items = $input.all();\nconst total = items.length;\nconst success = items.filter(i => i.json.sid).length;\nconst errors = total - success;\n\nreturn [{\n  json: {\n    total: total,\n    success: success,\n    errors: errors,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "resume-envoi",
+      "name": "Résumé envoi",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Rappel Camp": {
+      "main": [
+        [{ "node": "Séparer destinataires", "type": "main", "index": 0 }]
+      ]
+    },
+    "Séparer destinataires": {
+      "main": [
+        [{ "node": "Envoyer SMS Twilio", "type": "main", "index": 0 }]
+      ]
+    },
+    "Envoyer SMS Twilio": {
+      "main": [
+        [{ "node": "Résumé envoi", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "RIUSC" },
+    { "name": "SMS" },
+    { "name": "Camps" }
+  ]
+}
