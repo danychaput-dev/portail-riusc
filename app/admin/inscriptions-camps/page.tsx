@@ -32,11 +32,13 @@ interface Inscription {
   sync_status: string
   monday_item_id: string | null
   created_at: string
-  // from reservistes join
+  // from reservistes
   region: string | null
   groupe: string | null
   remboursement_bottes_date: string | null
   allergies_alimentaires: string | null
+  allergies_autres: string | null
+  conditions_medicales: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -204,7 +206,7 @@ export default function InscriptionsCampsPage() {
       const benevoleIds = data.map((r: any) => r.benevole_id).filter(Boolean)
       const { data: resData } = await supabase
         .from('reservistes')
-        .select('benevole_id, region, groupe, remboursement_bottes_date, allergies_alimentaires')
+        .select('benevole_id, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales')
         .in('benevole_id', benevoleIds)
 
       const resMap = new Map((resData || []).map((r: any) => [r.benevole_id, r]))
@@ -229,6 +231,8 @@ export default function InscriptionsCampsPage() {
           groupe: res?.groupe ?? null,
           remboursement_bottes_date: res?.remboursement_bottes_date ?? null,
           allergies_alimentaires: res?.allergies_alimentaires ?? null,
+          allergies_autres: res?.allergies_autres ?? null,
+          conditions_medicales: res?.conditions_medicales ?? null,
         }
       })
 
@@ -253,34 +257,39 @@ export default function InscriptionsCampsPage() {
   const upcomingCamps = camps.filter(c => !c.isPast)
   const pastCamps = camps.filter(c => c.isPast)
 
-  // ── Export CSV ──────────────────────────────────────────────────────────────
-  function exportCSV() {
-    const rows = filtered.filter(i => i.presence === 'confirme')
-    const headers = ['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Allergies']
-    const lines = rows.map(i => {
+  // ── Export Excel ────────────────────────────────────────────────────────────
+  async function exportExcel() {
+    const XLSX = (await import('xlsx')).default
+    const rows = filtered.map(i => {
       const digits = (i.telephone || '').replace(/\D/g, '')
       const tel = digits.length === 11 && digits[0] === '1'
         ? `1 ${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`
         : digits.length === 10
         ? `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
         : (i.telephone || '')
-      return [
-        `"${i.prenom_nom}"`,
-        `"J'y serai"`,
-        `"${tel}"`,
-        `"${i.courriel || ''}"`,
-        `"${i.region || ''}"`,
-        `"${i.allergies_alimentaires || ''}"`,
-      ].join(',')
+      const presenceLabel = PRESENCE_LABELS[i.presence]?.label || i.presence
+      return {
+        'Nom': i.prenom_nom,
+        'Présence': presenceLabel,
+        'Téléphone': tel,
+        'Courriel': i.courriel || '',
+        'District': i.region || '',
+        'Allergie alimentaire': i.allergies_alimentaires || '',
+        'Allergie autre': i.allergies_autres || '',
+        'Condition médicale': i.conditions_medicales || '',
+        'Remboursement bottes': i.remboursement_bottes_date ? 'Oui' : '',
+      }
     })
-    const csv = [headers.join(','), ...lines].join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${selectedCamp?.camp_nom.replace(/ /g, '_') || 'camp'}_confirmés.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const ws = XLSX.utils.json_to_sheet(rows)
+    // Largeurs colonnes
+    ws['!cols'] = [
+      { wch: 28 }, { wch: 16 }, { wch: 16 }, { wch: 30 },
+      { wch: 24 }, { wch: 24 }, { wch: 20 }, { wch: 24 }, { wch: 20 },
+    ]
+    const wb = XLSX.utils.book_new()
+    const sheetName = (selectedCamp?.camp_nom || 'Camp').replace(' - Camp de qualification', '').slice(0, 31)
+    XLSX.utils.book_append_sheet(wb, ws, sheetName)
+    XLSX.writeFile(wb, `${sheetName.replace(/ /g, '_')}.xlsx`)
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -389,14 +398,14 @@ export default function InscriptionsCampsPage() {
                 {filtered.length} participant{filtered.length !== 1 ? 's' : ''}
               </span>
               <button
-                onClick={exportCSV}
+                onClick={exportExcel}
                 style={{
                   padding: '7px 14px', borderRadius: 8, border: '1px solid #1e3a5f',
                   fontSize: 13, background: '#1e3a5f', color: '#fff', cursor: 'pointer',
                   fontWeight: 600, whiteSpace: 'nowrap',
                 }}
               >
-                ↓ Exporter confirmés
+                ↓ Exporter Excel
               </button>
             </div>
           </div>
@@ -412,7 +421,7 @@ export default function InscriptionsCampsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Bottes', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
                       padding: '10px 16px', textAlign: 'left', fontSize: 11,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
@@ -435,9 +444,6 @@ export default function InscriptionsCampsPage() {
                   >
                     <td style={{ padding: '10px 16px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
                       {ins.prenom_nom}
-                      {ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' && (
-                        <span title={`Allergie: ${ins.allergies_alimentaires}`} style={{ marginLeft: 6, fontSize: 14 }}>⚠️</span>
-                      )}
                     </td>
                     <td style={{ padding: '10px 16px' }}>{presenceBadge(ins.presence)}</td>
                     <td style={{ padding: '10px 16px', color: '#374151' }}>
@@ -468,6 +474,17 @@ export default function InscriptionsCampsPage() {
                         ? <span style={{ color: '#065f46', fontWeight: 600 }}>✓</span>
                         : <span style={{ color: '#d1d5db' }}>—</span>
                       }
+                    </td>
+                    <td style={{ padding: '10px 16px', color: ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
+                      {ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? ins.allergies_alimentaires : '—'}
+                    </td>
+                    <td style={{ padding: '10px 16px', color: ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
+                      {ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? ins.allergies_autres : '—'}
+                    </td>
+                    <td style={{ padding: '10px 16px', color: ins.conditions_medicales && ins.conditions_medicales !== 'Aucun' ? '#7f1d1d' : '#d1d5db', fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {ins.conditions_medicales && ins.conditions_medicales !== 'Aucun'
+                        ? <span title={ins.conditions_medicales}>{ins.conditions_medicales}</span>
+                        : '—'}
                     </td>
                     {isAdmin && (
                       <td style={{ padding: '10px 16px', textAlign: 'center' }}>
