@@ -370,12 +370,14 @@ export default function InscriptionsCampsPage() {
   return (
     <>
       <PortailHeader />
-      <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0' }}>
+          <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
 
       {/* ── Colonne gauche : liste des camps ─────────────────────────────── */}
       <aside style={{
-        width: 280,
-        minWidth: 280,
+        width: 220,
+        minWidth: 220,
         background: '#fff',
         borderRight: '1px solid #e5e7eb',
         overflowY: 'auto',
@@ -494,20 +496,20 @@ export default function InscriptionsCampsPage() {
         )}
 
         {/* Tableau */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 16px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '0 0 16px' }}>
           {loadingInscrits ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Chargement des participants...</div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>Aucun participant trouvé</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', position: 'sticky', top: 0, zIndex: 1 }}>
                   {['Nom', 'Présence', 'Inscrit le', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
-                      padding: '10px 16px', textAlign: 'left', fontSize: 11,
+                      padding: '8px 10px', textAlign: 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
-                      letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb',
+                      letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
                       whiteSpace: 'nowrap',
                     }}>
                       {h}
@@ -524,10 +526,10 @@ export default function InscriptionsCampsPage() {
                       borderBottom: '1px solid #f3f4f6',
                     }}
                   >
-                    <td style={{ padding: '10px 16px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
                       {ins.prenom_nom}
                     </td>
-                    <td style={{ padding: '10px 16px' }}>
+                    <td style={{ padding: '8px 10px' }}>
                       {isAdmin ? (
                         <div>
                           <select
@@ -564,12 +566,12 @@ export default function InscriptionsCampsPage() {
                         </div>
                       ) : presenceBadge(ins.presence)}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                    <td style={{ padding: '8px 10px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                       {ins.created_at
                         ? new Date(ins.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
                         : '—'}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#374151' }}>
+                    <td style={{ padding: '8px 10px', color: '#374151' }}>
                       {ins.telephone ? (
                         <a href={`tel:${ins.telephone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
                           {(() => {
@@ -584,33 +586,33 @@ export default function InscriptionsCampsPage() {
                         </a>
                       ) : <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ins.courriel ? (
                         <a href={`mailto:${ins.courriel}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{ins.courriel}</a>
                       ) : <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 10px', color: '#6b7280', whiteSpace: 'nowrap' }}>
                       {ins.region || <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
-                    <td style={{ padding: '10px 16px', color: '#6b7280', textAlign: 'center' }}>
+                    <td style={{ padding: '8px 10px', color: '#6b7280', textAlign: 'center' }}>
                       {ins.remboursement_bottes_date
                         ? <span style={{ color: '#065f46', fontWeight: 600 }}>✓</span>
                         : <span style={{ color: '#d1d5db' }}>—</span>
                       }
                     </td>
-                    <td style={{ padding: '10px 16px', color: ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
+                    <td style={{ padding: '8px 10px', color: ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
                       {ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? ins.allergies_alimentaires : '—'}
                     </td>
-                    <td style={{ padding: '10px 16px', color: ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
+                    <td style={{ padding: '8px 10px', color: ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
                       {ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? ins.allergies_autres : '—'}
                     </td>
-                    <td style={{ padding: '10px 16px', color: ins.conditions_medicales && ins.conditions_medicales !== 'Aucun' ? '#7f1d1d' : '#d1d5db', fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '8px 10px', color: ins.conditions_medicales && ins.conditions_medicales !== 'Aucun' ? '#7f1d1d' : '#d1d5db', fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ins.conditions_medicales && ins.conditions_medicales !== 'Aucun'
                         ? <span title={ins.conditions_medicales}>{ins.conditions_medicales}</span>
                         : '—'}
                     </td>
                     {isAdmin && (
-                      <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                         <button
                           onClick={() => router.push(`/admin/reservistes?benevole_id=${ins.benevole_id}`)}
                           title="Voir le profil"
@@ -634,6 +636,8 @@ export default function InscriptionsCampsPage() {
         </div>
       </main>
     </div>
+        </div>
+      </div>
     </>
   )
 }
@@ -646,7 +650,7 @@ function CampItem({ camp, selected, onClick }: { camp: Camp; selected: boolean; 
       onClick={onClick}
       style={{
         display: 'block', width: '100%', textAlign: 'left',
-        padding: '10px 16px', border: 'none', cursor: 'pointer',
+        padding: '8px 10px', border: 'none', cursor: 'pointer',
         background: selected ? '#eff6ff' : 'transparent',
         borderLeft: selected ? '3px solid #1e3a5f' : '3px solid transparent',
         transition: 'background 0.15s',
@@ -664,7 +668,7 @@ function CampItem({ camp, selected, onClick }: { camp: Camp; selected: boolean; 
     </button>
   )
 }
-//version à mettre à jour (simple text pour forcer l'update)
+
 function Badge({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
   return (
     <div style={{ background: bg, borderRadius: 8, padding: '6px 12px', textAlign: 'center', minWidth: 60 }}>
