@@ -143,10 +143,16 @@ export default function InscriptionsCampsPage() {
         isPast: isCampPast(c.camp_dates),
       }))
 
-      // Trier : passés en bas, futurs en haut; par dates décroissantes dans chaque groupe
+      // Extraire le numéro de cohorte pour tri numérique
+      const getCohortNum = (campNom: string): number => {
+        const m = campNom.match(/Cohorte\s+(\d+)/i)
+        return m ? parseInt(m[1]) : 999
+      }
+
+      // Trier : futurs en haut, passés en bas; dans chaque groupe par numéro décroissant
       campList.sort((a, b) => {
         if (a.isPast !== b.isPast) return a.isPast ? 1 : -1
-        return b.camp_dates.localeCompare(a.camp_dates)
+        return getCohortNum(b.camp_nom) - getCohortNum(a.camp_nom)
       })
 
       setCamps(campList)
@@ -430,7 +436,7 @@ function CampItem({ camp, selected, onClick }: { camp: Camp; selected: boolean; 
       }}
     >
       <div style={{ fontSize: 13, fontWeight: selected ? 700 : 500, color: selected ? '#1e3a5f' : '#374151', lineHeight: 1.3 }}>
-        {camp.camp_nom.replace('Cohorte ', 'C').replace(' - Camp de qualification', '')}
+        {camp.camp_nom.replace(' - Camp de qualification', '').trim()}
       </div>
       <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{camp.camp_dates}</div>
       <div style={{ display: 'flex', gap: 6, marginTop: 5 }}>
