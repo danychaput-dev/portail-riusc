@@ -67,6 +67,30 @@ export async function POST(req: NextRequest) {
       replyMessage = 'Nous avons pris note de votre absence. Merci de nous avoir avisé.'
     } else {
       replyMessage = 'Merci pour votre message. Veuillez répondre OUI pour confirmer ou NON pour annuler.'
+
+      // Notifier les admins qu'un participant a envoyé une réponse non standard
+      const { data: inscription } = await supabaseAdmin
+        .from('inscriptions_camps')
+        .select('prenom_nom, camp_nom, camp_dates')
+        .eq('id', rappel.inscription_id)
+        .single()
+
+      try {
+        await fetch('https://n8n.aqbrs.ca/webhook/riusc-alerte-reponse-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telephone: from,
+            message_recu: body.trim(),
+            prenom_nom: inscription?.prenom_nom || 'Inconnu',
+            camp_nom: inscription?.camp_nom || '',
+            camp_dates: inscription?.camp_dates || '',
+            date_reponse: new Date().toISOString(),
+          }),
+        })
+      } catch (e) {
+        console.error('n8n alerte reponse SMS:', e)
+      }
     }
   } else {
     replyMessage = 'Merci pour votre message. Si vous avez des questions, contactez-nous à info@aqbrs.ca.'

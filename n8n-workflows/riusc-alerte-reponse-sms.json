@@ -1,0 +1,52 @@
+{
+  "name": "RIUSC - Alerte réponse SMS non standard",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "riusc-alerte-reponse-sms",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-alerte",
+      "name": "Webhook Alerte",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "sendTo": "dany.chaput@aqbrs.ca",
+        "subject": "=📱 Réponse SMS à traiter - {{ $json.body.prenom_nom }}",
+        "message": "=<h3>Réponse SMS non standard reçue</h3><p><strong>Participant:</strong> {{ $json.body.prenom_nom }}</p><p><strong>Téléphone:</strong> {{ $json.body.telephone }}</p><p><strong>Message reçu:</strong> « {{ $json.body.message_recu }} »</p><p><strong>Camp:</strong> {{ $json.body.camp_nom }} — {{ $json.body.camp_dates }}</p><p><strong>Date:</strong> {{ $json.body.date_reponse }}</p><hr><p><em>Cette personne a reçu un rappel SMS et a répondu autre chose que OUI ou NON. Un suivi manuel est requis.</em></p>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Envoyer alerte email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [480, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REMPLACER_PAR_TON_CREDENTIAL_GMAIL",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Alerte": {
+      "main": [
+        [{ "node": "Envoyer alerte email", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "RIUSC" },
+    { "name": "SMS" },
+    { "name": "Alertes" }
+  ]
+}
