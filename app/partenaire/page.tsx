@@ -232,7 +232,7 @@ export default function PartenairePage() {
             {demandes.length === 0 ? (
               <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
                 Aucune demande pour le moment.<br />
-                <button onClick={() => setOnglet('nouvelle')} style={{ marginTop: '12px', padding: '8px 18px', backgroundColor: C, color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                <button onClick={() => setOnglet('processus')} style={{ marginTop: '12px', padding: '8px 18px', backgroundColor: C, color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
                   Soumettre une première demande →
                 </button>
               </div>
