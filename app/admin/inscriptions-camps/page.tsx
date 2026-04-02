@@ -41,6 +41,7 @@ interface Inscription {
   conditions_medicales: string | null
   prenom: string | null
   nom: string | null
+  presence_updated_at: string | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -197,7 +198,7 @@ export default function InscriptionsCampsPage() {
       // Étape 1 — inscriptions du camp
       const { data, error } = await supabase
         .from('inscriptions_camps')
-        .select('id, benevole_id, prenom_nom, presence, courriel, telephone, camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at')
+        .select('id, benevole_id, prenom_nom, presence, courriel, telephone, camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at, presence_updated_at')
         .eq('session_id', selectedCampId)
         .order('prenom_nom')
 
@@ -229,6 +230,7 @@ export default function InscriptionsCampsPage() {
           sync_status: row.sync_status,
           monday_item_id: row.monday_item_id,
           created_at: row.created_at,
+          presence_updated_at: row.presence_updated_at ?? null,
           region: res?.region ?? null,
           groupe: res?.groupe ?? null,
           remboursement_bottes_date: res?.remboursement_bottes_date ?? null,
@@ -266,19 +268,49 @@ export default function InscriptionsCampsPage() {
   // ── Mettre à jour la présence ───────────────────────────────────────────────
   async function updatePresence(inscriptionId: string, newPresence: string) {
     setUpdatingId(inscriptionId)
+    const inscription = inscriptions.find(i => i.id === inscriptionId)
+    if (!inscription) { setUpdatingId(null); return }
+
+    const now = new Date().toISOString()
+
+    // Mise à jour de la présence + date de modification
     const { error } = await supabase
       .from('inscriptions_camps')
-      .update({ presence: newPresence })
+      .update({ presence: newPresence, presence_updated_at: now })
       .eq('id', inscriptionId)
 
     if (error) {
       console.error('Erreur mise à jour présence:', error)
       alert('Erreur lors de la mise à jour.')
-    } else {
-      setInscriptions(prev =>
-        prev.map(i => i.id === inscriptionId ? { ...i, presence: newPresence } : i)
-      )
+      setUpdatingId(null)
+      return
     }
+
+    // Log du changement
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: adminRes } = await supabase
+      .from('reservistes')
+      .select('prenom, nom')
+      .eq('user_id', user?.id || '')
+      .single()
+    const modifiePar = adminRes ? `${adminRes.prenom} ${adminRes.nom}` : 'Admin'
+
+    await supabase.from('inscriptions_camps_logs').insert({
+      inscription_id: inscriptionId,
+      benevole_id: inscription.benevole_id,
+      session_id: selectedCampId,
+      prenom_nom: inscription.prenom_nom,
+      presence_avant: inscription.presence,
+      presence_apres: newPresence,
+      modifie_par: modifiePar,
+    })
+
+    setInscriptions(prev =>
+      prev.map(i => i.id === inscriptionId
+        ? { ...i, presence: newPresence, presence_updated_at: now }
+        : i
+      )
+    )
     setUpdatingId(null)
   }
   async function exportExcel() {
@@ -483,32 +515,39 @@ export default function InscriptionsCampsPage() {
                     </td>
                     <td style={{ padding: '10px 16px' }}>
                       {isAdmin ? (
-                        <select
-                          value={ins.presence}
-                          disabled={updatingId === ins.id}
-                          onChange={e => updatePresence(ins.id, e.target.value)}
-                          style={{
-                            padding: '2px 8px',
-                            borderRadius: 20,
-                            border: 'none',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: updatingId === ins.id ? 'wait' : 'pointer',
-                            color: PRESENCE_LABELS[ins.presence]?.color || '#374151',
-                            background: PRESENCE_LABELS[ins.presence]?.bg || '#f3f4f6',
-                            appearance: 'none',
-                            WebkitAppearance: 'none',
-                            paddingRight: 20,
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'right 6px center',
-                          }}
-                        >
-                          <option value="confirme">J&apos;y serai</option>
-                          <option value="absent">Je n&apos;y serai pas</option>
-                          <option value="incertain">Incertain</option>
-                          <option value="annule">Annulé</option>
-                        </select>
+                        <div>
+                          <select
+                            value={ins.presence}
+                            disabled={updatingId === ins.id}
+                            onChange={e => updatePresence(ins.id, e.target.value)}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: 20,
+                              border: 'none',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: updatingId === ins.id ? 'wait' : 'pointer',
+                              color: PRESENCE_LABELS[ins.presence]?.color || '#374151',
+                              background: PRESENCE_LABELS[ins.presence]?.bg || '#f3f4f6',
+                              appearance: 'none',
+                              WebkitAppearance: 'none',
+                              paddingRight: 20,
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                              backgroundRepeat: 'no-repeat',
+                              backgroundPosition: 'right 6px center',
+                            }}
+                          >
+                            <option value="confirme">J&apos;y serai</option>
+                            <option value="absent">Je n&apos;y serai pas</option>
+                            <option value="incertain">Incertain</option>
+                            <option value="annule">Annulé</option>
+                          </select>
+                          {ins.presence_updated_at && (
+                            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                              Modifié {new Date(ins.presence_updated_at).toLocaleDateString('fr-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
+                        </div>
                       ) : presenceBadge(ins.presence)}
                     </td>
                     <td style={{ padding: '10px 16px', color: '#374151' }}>
@@ -605,7 +644,7 @@ function CampItem({ camp, selected, onClick }: { camp: Camp; selected: boolean; 
     </button>
   )
 }
-//forcer la mise à jour
+
 function Badge({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
   return (
     <div style={{ background: bg, borderRadius: 8, padding: '6px 12px', textAlign: 'center', minWidth: 60 }}>
