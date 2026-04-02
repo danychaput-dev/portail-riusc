@@ -74,12 +74,25 @@ export default function PartenairePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      // Chercher par email
-      const { data: res } = await supabase
+      // Chercher par user_id (plus fiable) avec fallback email
+      let res = null
+      const { data: resByUserId } = await supabase
         .from('reservistes')
         .select('benevole_id, prenom, nom, email, role')
-        .ilike('email', user.email || '')
-        .single()
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (resByUserId) {
+        res = resByUserId
+      } else {
+        // Fallback par email
+        const { data: resByEmail } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, role')
+          .ilike('email', user.email || '')
+          .maybeSingle()
+        res = resByEmail
+      }
 
       if (!res || res.role !== 'partenaire') { router.push('/'); return }
       setPartenaire(res)
