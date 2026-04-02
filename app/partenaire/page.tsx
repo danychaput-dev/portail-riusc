@@ -67,7 +67,7 @@ export default function PartenairePage() {
   const [organismes, setOrganismes]   = useState<Organisme[]>([])
   const [demandes, setDemandes]       = useState<Demande[]>([])
   const [deploiements, setDeploiements] = useState<Deploiement[]>([])
-  const [onglet, setOnglet]           = useState<'demandes' | 'deploiements' | 'nouvelle'>('demandes')
+  const [onglet, setOnglet]           = useState<'demandes' | 'deploiements' | 'processus'>('demandes')
 
   // Formulaire nouvelle demande
   const [form, setForm]               = useState({ organisme: '', type_mission: '', type_mission_detail: '', nb_personnes: '1', date_debut: '', date_fin: '', contact_nom: '', contact_titre: '', contact_telephone: '', contact_email: '', priorite: 'Normale' })
@@ -210,12 +210,53 @@ export default function PartenairePage() {
           </div>
         </div>
 
+        {/* Navigation rapide */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <a
+            href="/dashboard"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '14px 20px', backgroundColor: 'white', borderRadius: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0',
+              textDecoration: 'none', color: C, fontWeight: '600', fontSize: '14px',
+              transition: 'box-shadow 0.15s',
+            }}
+            onMouseOver={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
+            onMouseOut={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
+          >
+            <span style={{ fontSize: '22px' }}>📊</span>
+            <div>
+              <div>Tableau de bord</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: '400' }}>Statistiques RIUSC</div>
+            </div>
+          </a>
+
+          <a
+            href="/admin/inscriptions-camps"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '14px 20px', backgroundColor: 'white', borderRadius: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0',
+              textDecoration: 'none', color: C, fontWeight: '600', fontSize: '14px',
+              transition: 'box-shadow 0.15s',
+            }}
+            onMouseOver={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
+            onMouseOut={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
+          >
+            <span style={{ fontSize: '22px' }}>🏕️</span>
+            <div>
+              <div>Inscriptions camps</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: '400' }}>Participants et présences</div>
+            </div>
+          </a>
+        </div>
+
         {/* Onglets */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '0' }}>
           {([
             { key: 'demandes',      label: `📋 Mes demandes (${demandes.length})` },
             { key: 'deploiements',  label: `🚁 Déploiements (${deploiements.length})` },
-            { key: 'nouvelle',      label: '➕ Nouvelle demande' },
+            { key: 'processus',     label: '📄 Soumettre une demande' },
           ] as const).map(o => (
             <button
               key={o.key}
@@ -321,22 +362,53 @@ export default function PartenairePage() {
           </div>
         )}
 
-        {/* Onglet Nouvelle demande */}
-        {onglet === 'nouvelle' && (
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '28px' }}>
-            <h2 style={{ margin: '0 0 20px 0', fontSize: '16px', fontWeight: '700', color: C }}>Nouvelle demande d&apos;intervention</h2>
+        {/* Onglet Processus de demande */}
+        {onglet === 'processus' && (
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '32px' }}>
+            <h2 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '700', color: C }}>Soumettre une demande de mobilisation</h2>
+            <p style={{ margin: '0 0 28px 0', fontSize: '13px', color: '#6b7280' }}>
+              Les demandes de déploiement de réservistes RIUSC s&apos;effectuent via votre formulaire interne.
+            </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-              {/* Organisme */}
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Organisme demandeur *</label>
-                {organismes.length === 1 ? (
-                  <input value={form.organisme} readOnly style={{ width: '100%', padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', backgroundColor: '#f8fafc', boxSizing: 'border-box' as const }} />
-                ) : (
-                  <select value={form.organisme} onChange={e => setForm(f => ({ ...f, organisme: e.target.value }))}
-                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }}>
-                    <option value="">Sélectionner…</option>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ width: '32px', height: '32px', backgroundColor: C, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>1</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '4px' }}>Remplir votre formulaire de mobilisation</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>Complétez votre gabarit Excel interne (Numéro d&apos;intervention, lieu, dates, effectifs requis, tâches).</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ width: '32px', height: '32px', backgroundColor: C, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>2</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '4px' }}>Transmettre le fichier à l&apos;AQBRS</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                    Envoyez votre formulaire complété par courriel à&nbsp;
+                    <a href="mailto:riusc@aqbrs.ca" style={{ color: C, fontWeight: '600' }}>riusc@aqbrs.ca</a>.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ width: '32px', height: '32px', backgroundColor: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>3</div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b', marginBottom: '4px' }}>L&apos;AQBRS traite et confirme la demande</div>
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>Votre demande apparaîtra dans l&apos;onglet <strong>Mes demandes</strong> dès qu&apos;elle sera enregistrée dans notre système.</div>
+                </div>
+              </div>
+
+            </div>
+
+            <div style={{ marginTop: '24px', padding: '14px 18px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', fontSize: '13px', color: '#1e40af' }}>
+              <strong>Délai de traitement habituel :</strong> 24 à 72 heures selon la date de rendez-vous demandée.
+              Pour toute urgence, contactez-nous directement au <strong>(819) 555-0000</strong>.
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
                     {organismes.map(o => <option key={o.id} value={o.nom}>{o.nom}</option>)}
                   </select>
                 )}
@@ -403,62 +475,9 @@ export default function PartenairePage() {
                 <p style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Contact sur le terrain</p>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Nom du contact *</label>
-                <input value={form.contact_nom} onChange={e => setForm(f => ({ ...f, contact_nom: e.target.value }))}
-                  placeholder="Prénom Nom"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Titre / fonction</label>
-                <input value={form.contact_titre} onChange={e => setForm(f => ({ ...f, contact_titre: e.target.value }))}
-                  placeholder="Ex: Coordonnateur terrain"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Téléphone</label>
-                <input value={form.contact_telephone} onChange={e => setForm(f => ({ ...f, contact_telephone: e.target.value }))}
-                  placeholder="(418) 555-0000"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Courriel contact</label>
-                <input type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))}
-                  placeholder={partenaire.email}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-            </div>
-
-            {submitMsg && !submitMsg.startsWith('✅') && (
-              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', fontSize: '13px', color: '#dc2626' }}>{submitMsg}</div>
-            )}
-
-            <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setOnglet('demandes')}
-                style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
-                Annuler
-              </button>
-              <button onClick={soumettreDemande} disabled={submitting}
-                style={{ padding: '10px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1 }}>
-                {submitting ? 'Envoi…' : 'Soumettre la demande'}
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* Footer */}
-        <div style={{ marginTop: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ marginTop: '24px' }}>
           <span style={{ fontSize: '12px', color: '#94a3b8' }}>Portail RIUSC — AQBRS</span>
-          <a
-            href="/dashboard"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: C, textDecoration: 'none', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-          >
-            📈 Statistiques RIUSC
-          </a>
         </div>
 
       </main>
