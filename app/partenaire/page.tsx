@@ -94,7 +94,7 @@ export default function PartenairePage() {
 
       // Pré-remplir organisme dans le formulaire
       if (orgList.length === 1) {
-        setForm(f => ({ ...f, organisme: orgList[0].nom }))
+        // organisme unique — mémorisé pour usage futur si nécessaire
       }
 
       // Demandes de cet organisme
