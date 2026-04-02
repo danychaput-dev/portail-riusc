@@ -271,6 +271,10 @@ export default function InscriptionsCampsPage() {
   const pastCamps = camps.filter(c => c.isPast)
 
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [showSmsModal, setShowSmsModal] = useState(false)
+  const [smsMessage, setSmsMessage] = useState('')
+  const [sendingSms, setSendingSms] = useState(false)
+  const [smsResult, setSmsResult] = useState<{ nb_envoyes: number; nb_sans_telephone: number } | null>(null)
 
   // ── Mettre à jour la présence ───────────────────────────────────────────────
   async function updatePresence(inscriptionId: string, newPresence: string) {
@@ -320,6 +324,35 @@ export default function InscriptionsCampsPage() {
     )
     setUpdatingId(null)
   }
+  function ouvrirSmsModal() {
+    if (!selectedCamp) return
+    setSmsMessage(`Bonjour {prenom}! Rappel: vous êtes inscrit(e) au {camp}, {dates} à {lieu}. Confirmez votre présence en répondant OUI ou NON à ce message.`)
+    setSmsResult(null)
+    setShowSmsModal(true)
+  }
+
+  async function envoyerRappelSms() {
+    if (!selectedCampId || !smsMessage) return
+    setSendingSms(true)
+    try {
+      const res = await fetch('/api/camp/rappel-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: selectedCampId, message: smsMessage }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setSmsResult({ nb_envoyes: json.nb_envoyes, nb_sans_telephone: json.nb_sans_telephone })
+      } else {
+        alert(json.error || 'Erreur lors de l\'envoi')
+      }
+    } catch (e) {
+      console.error('Erreur envoi SMS:', e)
+      alert('Erreur de connexion')
+    }
+    setSendingSms(false)
+  }
+
   async function exportExcel() {
     try {
       const XLSX = await import('xlsx')
@@ -481,6 +514,18 @@ export default function InscriptionsCampsPage() {
               <span style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280', alignSelf: 'center' }}>
                 {filtered.length} participant{filtered.length !== 1 ? 's' : ''}
               </span>
+              {isAdmin && !selectedCamp?.isPast && (
+                <button
+                  onClick={ouvrirSmsModal}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8, border: '1px solid #0d9488',
+                    fontSize: 13, background: '#0d9488', color: '#fff', cursor: 'pointer',
+                    fontWeight: 600, whiteSpace: 'nowrap',
+                  }}
+                >
+                  📱 Envoyer rappel SMS
+                </button>
+              )}
               <button
                 onClick={exportExcel}
                 style={{
@@ -638,6 +683,87 @@ export default function InscriptionsCampsPage() {
     </div>
         </div>
       </div>
+      {/* ── Modal SMS ─────────────────────────────────────────────────── */}
+      {showSmsModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={e => { if (e.target === e.currentTarget && !sendingSms) setShowSmsModal(false) }}
+        >
+          <div style={{ backgroundColor: 'white', borderRadius: 16, padding: 28, width: 520, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#1e3a5f' }}>
+              📱 Envoyer un rappel SMS
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b' }}>
+              {selectedCamp?.camp_nom} — {selectedCamp?.camp_dates}
+            </p>
+
+            {smsResult ? (
+              <div style={{ padding: 20, textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#065f46', marginBottom: 8 }}>
+                  {smsResult.nb_envoyes} SMS envoyé{smsResult.nb_envoyes !== 1 ? 's' : ''}
+                </div>
+                {smsResult.nb_sans_telephone > 0 && (
+                  <div style={{ fontSize: 13, color: '#d97706' }}>
+                    {smsResult.nb_sans_telephone} participant{smsResult.nb_sans_telephone !== 1 ? 's' : ''} sans téléphone (non contactés)
+                  </div>
+                )}
+                <button
+                  onClick={() => setShowSmsModal(false)}
+                  style={{ marginTop: 20, padding: '9px 24px', borderRadius: 8, border: 'none', backgroundColor: '#1e3a5f', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Fermer
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                    Message
+                    <span style={{ fontWeight: 400, color: '#94a3b8', marginLeft: 8 }}>
+                      Variables: {'{prenom}'} {'{camp}'} {'{dates}'} {'{lieu}'}
+                    </span>
+                  </label>
+                  <textarea
+                    value={smsMessage}
+                    onChange={e => setSmsMessage(e.target.value)}
+                    rows={4}
+                    style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+                  />
+                  <div style={{ marginTop: 4, fontSize: 11, color: '#94a3b8', textAlign: 'right' }}>
+                    {smsMessage.length} caractères · ~{Math.ceil(smsMessage.length / 160)} SMS par destinataire
+                  </div>
+                </div>
+
+                <div style={{ padding: '10px 14px', backgroundColor: '#fffbeb', borderRadius: 8, marginBottom: 16, fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>
+                  <strong>Aperçu :</strong> {smsMessage
+                    .replace('{prenom}', 'Charles')
+                    .replace('{camp}', selectedCamp?.camp_nom || '')
+                    .replace('{dates}', selectedCamp?.camp_dates || '')
+                    .replace('{lieu}', selectedCamp?.camp_lieu || '')}
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowSmsModal(false)}
+                    disabled={sendingSms}
+                    style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={envoyerRappelSms}
+                    disabled={sendingSms || !smsMessage.trim()}
+                    style={{ padding: '9px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0d9488', color: 'white', fontSize: 13, fontWeight: 600, cursor: sendingSms ? 'not-allowed' : 'pointer', opacity: sendingSms ? 0.7 : 1 }}
+                  >
+                    {sendingSms ? '⟳ Envoi en cours…' : `📱 Envoyer aux ${inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence)).length} inscrits`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
