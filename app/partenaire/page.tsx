@@ -69,11 +69,6 @@ export default function PartenairePage() {
   const [deploiements, setDeploiements] = useState<Deploiement[]>([])
   const [onglet, setOnglet]           = useState<'demandes' | 'deploiements' | 'processus'>('demandes')
 
-  // Formulaire nouvelle demande
-  const [form, setForm]               = useState({ organisme: '', type_mission: '', type_mission_detail: '', nb_personnes: '1', date_debut: '', date_fin: '', contact_nom: '', contact_titre: '', contact_telephone: '', contact_email: '', priorite: 'Normale' })
-  const [submitting, setSubmitting]   = useState(false)
-  const [submitMsg, setSubmitMsg]     = useState('')
-
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -136,49 +131,6 @@ export default function PartenairePage() {
     }
     init()
   }, [])
-
-  const soumettreDemande = async () => {
-    if (!form.organisme || !form.type_mission || !form.date_debut || !form.contact_nom) {
-      setSubmitMsg('Veuillez remplir tous les champs obligatoires.')
-      return
-    }
-    setSubmitting(true)
-    setSubmitMsg('')
-
-    // Générer identifiant DEM-###
-    const { count } = await supabase.from('demandes').select('id', { count: 'exact', head: true })
-    const identifiant = `DEM-${String((count || 0) + 1).padStart(3, '0')}`
-
-    const { error } = await supabase.from('demandes').insert({
-      identifiant,
-      organisme: form.organisme,
-      organisme_detail: form.type_mission_detail,
-      type_mission: form.type_mission,
-      type_mission_detail: form.type_mission_detail,
-      nb_personnes_requis: parseInt(form.nb_personnes) || 1,
-      date_debut: form.date_debut,
-      date_fin_estimee: form.date_fin || null,
-      contact_nom: form.contact_nom,
-      contact_titre: form.contact_titre,
-      contact_telephone: form.contact_telephone,
-      contact_email: form.contact_email || partenaire?.email,
-      priorite: form.priorite,
-      statut: 'Nouvelle',
-    })
-
-    if (error) {
-      setSubmitMsg('Erreur lors de la soumission. Veuillez réessayer.')
-    } else {
-      setSubmitMsg('✅ Demande soumise avec succès ! L\'équipe RIUSC en a été notifiée.')
-      setOnglet('demandes')
-      // Rafraîchir les demandes
-      const orgNoms = organismes.map(o => o.nom)
-      const { data: dem } = await supabase.from('demandes').select('id, identifiant, organisme, type_mission, nb_personnes_requis, date_debut, date_fin_estimee, statut, created_at').in('organisme', orgNoms).order('created_at', { ascending: false }).limit(50)
-      setDemandes(dem || [])
-      setForm(f => ({ ...f, type_mission: '', type_mission_detail: '', nb_personnes: '1', date_debut: '', date_fin: '', contact_nom: '', contact_titre: '', contact_telephone: '', priorite: 'Normale' }))
-    }
-    setSubmitting(false)
-  }
 
   if (loading) return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -277,11 +229,6 @@ export default function PartenairePage() {
         {/* Onglet Demandes */}
         {onglet === 'demandes' && (
           <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-            {submitMsg && (
-              <div style={{ padding: '14px 20px', backgroundColor: '#f0fdf4', borderBottom: '1px solid #bbf7d0', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>
-                {submitMsg}
-              </div>
-            )}
             {demandes.length === 0 ? (
               <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>
                 Aucune demande pour le moment.<br />
@@ -407,73 +354,6 @@ export default function PartenairePage() {
             </div>
           </div>
         )}
-
-        {/* Footer */}
-                    {organismes.map(o => <option key={o.id} value={o.nom}>{o.nom}</option>)}
-                  </select>
-                )}
-              </div>
-
-              {/* Type mission */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Type de mission *</label>
-                <select value={form.type_mission} onChange={e => setForm(f => ({ ...f, type_mission: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }}>
-                  <option value="">Sélectionner…</option>
-                  <option>Recherche et sauvetage</option>
-                  <option>Évacuation</option>
-                  <option>Support logistique</option>
-                  <option>Centre d&apos;hébergement</option>
-                  <option>Soutien psychosocial</option>
-                  <option>Communication</option>
-                  <option>Autre</option>
-                </select>
-              </div>
-
-              {/* Priorité */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Priorité</label>
-                <select value={form.priorite} onChange={e => setForm(f => ({ ...f, priorite: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }}>
-                  <option>Normale</option>
-                  <option>Urgente</option>
-                  <option>Critique</option>
-                </select>
-              </div>
-
-              {/* Nb personnes */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Nombre de personnes requises *</label>
-                <input type="number" min="1" value={form.nb_personnes} onChange={e => setForm(f => ({ ...f, nb_personnes: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-              {/* Date début */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Date de début *</label>
-                <input type="date" value={form.date_debut} onChange={e => setForm(f => ({ ...f, date_debut: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-              {/* Date fin */}
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Date de fin estimée</label>
-                <input type="date" value={form.date_fin} onChange={e => setForm(f => ({ ...f, date_fin: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const }} />
-              </div>
-
-              {/* Détails mission */}
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Détails supplémentaires</label>
-                <textarea value={form.type_mission_detail} onChange={e => setForm(f => ({ ...f, type_mission_detail: e.target.value }))} rows={3}
-                  placeholder="Décrivez la nature de l'intervention, les compétences spécifiques requises, etc."
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, resize: 'vertical' as const }} />
-              </div>
-
-              {/* Séparateur contact */}
-              <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '4px' }}>
-                <p style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '600', color: '#64748b' }}>Contact sur le terrain</p>
-              </div>
 
         {/* Footer */}
         <div style={{ marginTop: '24px' }}>
