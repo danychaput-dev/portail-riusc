@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -90,7 +91,9 @@ function isCampPast(campDates: string): boolean {
 
 export default function InscriptionsCampsPage() {
   const supabase = createClient()
+  const router = useRouter()
 
+  const [isAdmin, setIsAdmin] = useState(false)
   const [camps, setCamps] = useState<Camp[]>([])
   const [selectedCampId, setSelectedCampId] = useState<string | null>(null)
   const [inscriptions, setInscriptions] = useState<Inscription[]>([])
@@ -98,6 +101,21 @@ export default function InscriptionsCampsPage() {
   const [loadingInscrits, setLoadingInscrits] = useState(false)
   const [search, setSearch] = useState('')
   const [filterPresence, setFilterPresence] = useState<string>('tous')
+
+  // ── Détecter si admin ──────────────────────────────────────────────────────
+  useEffect(() => {
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: res } = await supabase
+        .from('reservistes')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+      setIsAdmin(res?.role === 'admin' || res?.role === 'coordonnateur')
+    }
+    checkRole()
+  }, [])
 
   // ── Charger tous les camps ──────────────────────────────────────────────────
   useEffect(() => {
@@ -235,6 +253,36 @@ export default function InscriptionsCampsPage() {
   const upcomingCamps = camps.filter(c => !c.isPast)
   const pastCamps = camps.filter(c => c.isPast)
 
+  // ── Export CSV ──────────────────────────────────────────────────────────────
+  function exportCSV() {
+    const rows = filtered.filter(i => i.presence === 'confirme')
+    const headers = ['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Allergies']
+    const lines = rows.map(i => {
+      const digits = (i.telephone || '').replace(/\D/g, '')
+      const tel = digits.length === 11 && digits[0] === '1'
+        ? `1 ${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`
+        : digits.length === 10
+        ? `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
+        : (i.telephone || '')
+      return [
+        `"${i.prenom_nom}"`,
+        `"J'y serai"`,
+        `"${tel}"`,
+        `"${i.courriel || ''}"`,
+        `"${i.region || ''}"`,
+        `"${i.allergies_alimentaires || ''}"`,
+      ].join(',')
+    })
+    const csv = [headers.join(','), ...lines].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${selectedCamp?.camp_nom.replace(/ /g, '_') || 'camp'}_confirmés.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
@@ -340,6 +388,16 @@ export default function InscriptionsCampsPage() {
               <span style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280', alignSelf: 'center' }}>
                 {filtered.length} participant{filtered.length !== 1 ? 's' : ''}
               </span>
+              <button
+                onClick={exportCSV}
+                style={{
+                  padding: '7px 14px', borderRadius: 8, border: '1px solid #1e3a5f',
+                  fontSize: 13, background: '#1e3a5f', color: '#fff', cursor: 'pointer',
+                  fontWeight: 600, whiteSpace: 'nowrap',
+                }}
+              >
+                ↓ Exporter confirmés
+              </button>
             </div>
           </div>
         )}
@@ -354,8 +412,8 @@ export default function InscriptionsCampsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Bottes', 'Sync', ''].map(h => (
-                    <th key={h} style={{
+                  {['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Bottes', ...(isAdmin ? [''] : [])].map((h, i) => (
+                    <th key={i} style={{
                       padding: '10px 16px', textAlign: 'left', fontSize: 11,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
                       letterSpacing: '0.05em', borderBottom: '1px solid #e5e7eb',
@@ -385,7 +443,15 @@ export default function InscriptionsCampsPage() {
                     <td style={{ padding: '10px 16px', color: '#374151' }}>
                       {ins.telephone ? (
                         <a href={`tel:${ins.telephone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
-                          {ins.telephone.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2-$3')}
+                          {(() => {
+                            const digits = ins.telephone.replace(/\D/g, '')
+                            if (digits.length === 11 && digits[0] === '1') {
+                              return `1 ${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`
+                            } else if (digits.length === 10) {
+                              return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
+                            }
+                            return ins.telephone
+                          })()}
                         </a>
                       ) : <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
@@ -403,25 +469,23 @@ export default function InscriptionsCampsPage() {
                         : <span style={{ color: '#d1d5db' }}>—</span>
                       }
                     </td>
-                    <td style={{ padding: '10px 16px' }}>
-                      {ins.sync_status === 'synced'
-                        ? <span style={{ fontSize: 11, color: '#065f46', background: '#d1fae5', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Synced</span>
-                        : <span style={{ fontSize: 11, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>Pending</span>
-                      }
-                    </td>
-                    <td style={{ padding: '10px 16px' }}>
-                      {ins.monday_item_id && (
-                        <a
-                          href={`https://aqbrs.monday.com/boards/18272025168/pulses/${ins.monday_item_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11, color: '#6b7280', textDecoration: 'none' }}
-                          title="Voir dans Monday"
+                    {isAdmin && (
+                      <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => router.push(`/admin/reservistes?benevole_id=${ins.benevole_id}`)}
+                          title="Voir le profil"
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: '#6b7280', fontSize: 16, padding: '2px 6px',
+                            borderRadius: 4, transition: 'color 0.15s',
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.color = '#1e3a5f')}
+                          onMouseOut={e => (e.currentTarget.style.color = '#6b7280')}
                         >
-                          ↗
-                        </a>
-                      )}
-                    </td>
+                          →
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
