@@ -261,7 +261,26 @@ export default function InscriptionsCampsPage() {
   const upcomingCamps = camps.filter(c => !c.isPast)
   const pastCamps = camps.filter(c => c.isPast)
 
-  // ── Export Excel ────────────────────────────────────────────────────────────
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  // ── Mettre à jour la présence ───────────────────────────────────────────────
+  async function updatePresence(inscriptionId: string, newPresence: string) {
+    setUpdatingId(inscriptionId)
+    const { error } = await supabase
+      .from('inscriptions_camps')
+      .update({ presence: newPresence })
+      .eq('id', inscriptionId)
+
+    if (error) {
+      console.error('Erreur mise à jour présence:', error)
+      alert('Erreur lors de la mise à jour.')
+    } else {
+      setInscriptions(prev =>
+        prev.map(i => i.id === inscriptionId ? { ...i, presence: newPresence } : i)
+      )
+    }
+    setUpdatingId(null)
+  }
   async function exportExcel() {
     try {
       const XLSX = await import('xlsx')
@@ -462,7 +481,36 @@ export default function InscriptionsCampsPage() {
                     <td style={{ padding: '10px 16px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
                       {ins.prenom_nom}
                     </td>
-                    <td style={{ padding: '10px 16px' }}>{presenceBadge(ins.presence)}</td>
+                    <td style={{ padding: '10px 16px' }}>
+                      {isAdmin ? (
+                        <select
+                          value={ins.presence}
+                          disabled={updatingId === ins.id}
+                          onChange={e => updatePresence(ins.id, e.target.value)}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 20,
+                            border: 'none',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: updatingId === ins.id ? 'wait' : 'pointer',
+                            color: PRESENCE_LABELS[ins.presence]?.color || '#374151',
+                            background: PRESENCE_LABELS[ins.presence]?.bg || '#f3f4f6',
+                            appearance: 'none',
+                            WebkitAppearance: 'none',
+                            paddingRight: 20,
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                            backgroundRepeat: 'no-repeat',
+                            backgroundPosition: 'right 6px center',
+                          }}
+                        >
+                          <option value="confirme">J&apos;y serai</option>
+                          <option value="absent">Je n&apos;y serai pas</option>
+                          <option value="incertain">Incertain</option>
+                          <option value="annule">Annulé</option>
+                        </select>
+                      ) : presenceBadge(ins.presence)}
+                    </td>
                     <td style={{ padding: '10px 16px', color: '#374151' }}>
                       {ins.telephone ? (
                         <a href={`tel:${ins.telephone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
