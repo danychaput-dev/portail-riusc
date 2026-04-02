@@ -76,14 +76,17 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-function Card({ title, subtitle, children, fullWidth = false }: {
-  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean
+function Card({ title, subtitle, children, fullWidth = false, action }: {
+  title: string; subtitle?: string; children: React.ReactNode; fullWidth?: boolean; action?: React.ReactNode
 }) {
   return (
     <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, gridColumn: fullWidth ? '1 / -1' : undefined }}>
-      <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${YELLOW}` }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: NAVY }}>{title}</h3>
-        {subtitle && <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>{subtitle}</p>}
+      <div style={{ marginBottom: 20, paddingBottom: 12, borderBottom: `2px solid ${YELLOW}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: NAVY }}>{title}</h3>
+          {subtitle && <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>{subtitle}</p>}
+        </div>
+        {action && <div>{action}</div>}
       </div>
       {children}
     </div>
@@ -401,7 +404,22 @@ export default function DashboardPublicPage() {
             {/* ── Ligne 4 : Camps ── */}
             {stats.campsData.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <Card title="Camps de qualification — Résultats par cohorte">
+                <Card
+                  title="Camps de qualification — Résultats par cohorte"
+                  action={retourHref ? (
+                    <a
+                      href="/admin/inscriptions-camps"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        color: NAVY, border: `1px solid ${BORDER}`, textDecoration: 'none',
+                        backgroundColor: WHITE, whiteSpace: 'nowrap' as const,
+                      }}
+                    >
+                      🏕️ Voir les inscriptions
+                    </a>
+                  ) : undefined}
+                >
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                       <thead>
