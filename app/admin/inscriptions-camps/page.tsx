@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import PortailHeader from '@/app/components/PortailHeader'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ export default function InscriptionsCampsPage() {
   const router = useRouter()
 
   const [isAdmin, setIsAdmin] = useState(false)
+  const [retourHref, setRetourHref] = useState('/')
   const [camps, setCamps] = useState<Camp[]>([])
   const [selectedCampId, setSelectedCampId] = useState<string | null>(null)
   const [inscriptions, setInscriptions] = useState<Inscription[]>([])
@@ -117,7 +119,12 @@ export default function InscriptionsCampsPage() {
         .select('role')
         .eq('user_id', user.id)
         .single()
-      setIsAdmin(res?.role === 'admin' || res?.role === 'coordonnateur')
+      if (res?.role === 'admin' || res?.role === 'coordonnateur') {
+        setIsAdmin(true)
+        setRetourHref('/admin')
+      } else if (res?.role === 'partenaire') {
+        setRetourHref('/partenaire')
+      }
     }
     checkRole()
   }, [])
@@ -360,9 +367,10 @@ export default function InscriptionsCampsPage() {
     }
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
+    <>
+      <PortailHeader />
+      <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
 
       {/* ── Colonne gauche : liste des camps ─────────────────────────────── */}
       <aside style={{
@@ -375,6 +383,12 @@ export default function InscriptionsCampsPage() {
         flexDirection: 'column',
       }}>
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #e5e7eb' }}>
+          <button
+            onClick={() => router.push(retourHref)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, padding: '0 0 10px 0', fontWeight: 500 }}
+          >
+            ← Retour
+          </button>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e3a5f' }}>Camps</h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b7280' }}>
             {upcomingCamps.length} à venir · {pastCamps.length} passés
@@ -489,7 +503,7 @@ export default function InscriptionsCampsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['Nom', 'Présence', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {['Nom', 'Présence', 'Inscrit le', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
                       padding: '10px 16px', textAlign: 'left', fontSize: 11,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
@@ -549,6 +563,11 @@ export default function InscriptionsCampsPage() {
                           )}
                         </div>
                       ) : presenceBadge(ins.presence)}
+                    </td>
+                    <td style={{ padding: '10px 16px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
+                      {ins.created_at
+                        ? new Date(ins.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
+                        : '—'}
                     </td>
                     <td style={{ padding: '10px 16px', color: '#374151' }}>
                       {ins.telephone ? (
@@ -615,6 +634,7 @@ export default function InscriptionsCampsPage() {
         </div>
       </main>
     </div>
+    </>
   )
 }
 
