@@ -652,9 +652,7 @@ export default function HomePage() {
       } // Fin du else (auth normale)
       
       if (reservisteData) {
-        setReserviste(reservisteData)
-
-        // Redirections par rôle
+        // Redirections par rôle — AVANT setReserviste pour éviter le flash
         if (reservisteData.role === 'adjoint') {
           router.push('/admin/reservistes')
           return
@@ -663,6 +661,8 @@ export default function HomePage() {
           router.push('/partenaire')
           return
         }
+
+        setReserviste(reservisteData)
         
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id
