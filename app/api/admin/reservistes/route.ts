@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import * as XLSX from 'xlsx'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,8 +58,8 @@ export async function GET(req: NextRequest) {
 
   const reservistes = data || []
 
-  if (format === 'csv') {
-    const headers = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.']
+  if (format === 'xlsx') {
+    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.']
     const rows = reservistes.map(r => [
       r.prenom || '',
       r.nom || '',
@@ -76,14 +77,20 @@ export async function GET(req: NextRequest) {
       r.antecedents_date_verification || '',
       r.antecedents_date_expiration || ''
     ])
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    const bom = '\uFEFF'
-    return new NextResponse(bom + csvContent, {
+    const ws = XLSX.utils.aoa_to_sheet([entetes, ...rows])
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 16 }, { wch: 28 }, { wch: 14 }, { wch: 14 },
+      { wch: 30 }, { wch: 16 }, { wch: 20 }, { wch: 10 }, { wch: 18 },
+      { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 14 }
+    ]
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: entetes.length - 1 } }) }
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Réservistes')
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+    return new NextResponse(buf, {
       headers: {
-        'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': `attachment; filename="reservistes-${new Date().toISOString().slice(0,10)}.csv"`
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="reservistes-${new Date().toISOString().slice(0,10)}.xlsx"`
       }
     })
   }

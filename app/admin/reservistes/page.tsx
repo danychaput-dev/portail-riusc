@@ -117,9 +117,9 @@ export default function ReservistesPage() {
     setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
   }
 
-  const exporter = async (format: 'csv') => {
+  const exporter = async () => {
     setExporting(true)
-    const params = new URLSearchParams({ format })
+    const params = new URLSearchParams({ format: 'xlsx' })
     if (recherche) params.set('recherche', recherche)
     if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
     const res  = await fetch(`/api/admin/reservistes?${params}`)
@@ -127,7 +127,7 @@ export default function ReservistesPage() {
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = `reservistes-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `reservistes-${new Date().toISOString().slice(0, 10)}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
     setExporting(false)
@@ -200,7 +200,7 @@ export default function ReservistesPage() {
             </span>
           </div>
           <button
-            onClick={() => exporter('csv')}
+            onClick={() => exporter()}
             disabled={exporting || data.length === 0}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px',
@@ -210,7 +210,7 @@ export default function ReservistesPage() {
               opacity: data.length === 0 ? 0.5 : 1
             }}
           >
-            {exporting ? '⟳ Export…' : '⬇ Exporter CSV'}
+            {exporting ? '⟳ Export…' : '⬇ Exporter Excel'}
           </button>
         </div>
 
