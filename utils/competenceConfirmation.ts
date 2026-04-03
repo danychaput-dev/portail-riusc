@@ -5,7 +5,6 @@ import { COMPETENCE_CERTIFICAT_MAP } from './competenceCertificatConfig';
 
 export interface CertificatAssocie {
   id: string;                    // UUID Supabase
-  monday_item_id: number | null;
   nom_formation: string;
   certificat_url: string | null;
   date_reussite: string | null;

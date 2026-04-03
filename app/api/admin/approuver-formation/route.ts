@@ -16,29 +16,11 @@ async function verifierAdmin(benevole_id: string): Promise<boolean> {
   return data?.role === 'admin'
 }
 
-async function moveToApprouve(itemId: string) {
-  const query = `
-    mutation {
-      move_item_to_group(item_id: ${itemId}, group_id: "new_group") {
-        id
-      }
-    }
-  `
-  await fetch('https://api.monday.com/v2', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: process.env.MONDAY_API_KEY!,
-    },
-    body: JSON.stringify({ query }),
-  })
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const {
-      benevole_id, monday_item_id, nom_complet, nom_formation,
+      benevole_id, nom_complet, nom_formation,
       date_reussite, date_expiration, certificat_url,
       initiation_sc_completee, admin_benevole_id
     } = body
@@ -49,7 +31,6 @@ export async function POST(request: NextRequest) {
 
     const { error } = await supabaseAdmin.from('formations_benevoles').insert({
       benevole_id,
-      monday_item_id,
       nom_complet,
       nom_formation,
       date_reussite,
@@ -58,14 +39,10 @@ export async function POST(request: NextRequest) {
       initiation_sc_completee,
       resultat: 'Réussi',
       etat_validite: 'À jour',
-      source: 'admin_monday_review',
+      source: 'admin_review',
     })
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-    if (monday_item_id) {
-      moveToApprouve(monday_item_id).catch(() => {})
-    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {

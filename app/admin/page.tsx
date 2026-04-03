@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
         supabase.from('deploiements_actifs').select('id', { count: 'exact', head: true }),
         supabase.from('reservistes').select('remboursement_bottes_date').eq('statut', 'Actif').eq('groupe', 'Approuvé'),
         supabase.from('reservistes').select('antecedents_statut').eq('statut', 'Actif').eq('groupe', 'Approuvé'),
-        supabase.from('formations_benevoles').select('id', { count: 'exact', head: true }).eq('resultat', 'En attente').not('certificat_url', 'is', null).is('date_reussite', null).is('monday_item_id', null),
+        supabase.from('formations_benevoles').select('id', { count: 'exact', head: true }).eq('resultat', 'En attente').not('certificat_url', 'is', null).is('date_reussite', null),
         supabase.from('community_last_seen').select('last_seen_at').eq('user_id', user.id).maybeSingle(),
       ])
 
