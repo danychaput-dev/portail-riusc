@@ -96,7 +96,7 @@ export async function GET(req: NextRequest) {
     if (organisme === 'AQBRS' || organisme.includes('AQBRS')) {
       reservistes = reservistes.filter(r => {
         const orgs = orgMap[r.benevole_id] || []
-        return orgs.some(o => o.includes('AQBRS')) || orgs.length === 0
+        return orgs.some(o => o.includes('AQBRS'))
       })
     } else if (organisme === 'sans_org') {
       reservistes = reservistes.filter(r => !orgMap[r.benevole_id])
