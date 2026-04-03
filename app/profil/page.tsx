@@ -1788,11 +1788,14 @@ export default function ProfilPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0 24px' }}>
             <div>
               <TextInput
-                label="Téléphone principal"
+                label="Cellulaire"
                 value={profilData.telephone}
                 onChange={v => setProfilData(prev => ({ ...prev, telephone: formatPhoneDisplay(v) }))}
                 placeholder="(555) 123-4567"
               />
+              <div style={{ color: '#6b7280', fontSize: '11px', marginTop: '4px' }}>
+                Utilisé pour les rappels SMS (camps, déploiements). Assurez-vous que ce soit un numéro de cellulaire.
+              </div>
               {profilData.telephone && !isValidNorthAmericanPhone(profilData.telephone) && (
                 <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '4px' }}>
                   ⚠ Numéro invalide — entrez un numéro canadien à 10 chiffres
@@ -1800,7 +1803,7 @@ export default function ProfilPage() {
               )}
             </div>
             <TextInput
-              label="Téléphone secondaire"
+              label="Téléphone maison (optionnel)"
               value={profilData.telephone_secondaire}
               onChange={v => setProfilData(prev => ({ ...prev, telephone_secondaire: formatPhoneDisplay(v) }))}
               placeholder="(555) 987-6543"
