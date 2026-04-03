@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import PortailHeader from '@/app/components/PortailHeader'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -210,7 +211,6 @@ export default function DashboardPublicPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [retourHref, setRetourHref] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const isMobile = useIsMobile()
 
@@ -221,17 +221,14 @@ export default function DashboardPublicPage() {
       .catch(() => { setError(true); setLoading(false) })
   }, [])
 
-  // Détecter si l'utilisateur est connecté et son rôle pour afficher le bouton retour
+  // Détecter si l'utilisateur est admin pour les drill-downs
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
       supabase.from('reservistes').select('role').eq('user_id', user.id).single().then(({ data }) => {
         if (!data) return
-        if (data.role === 'admin' || data.role === 'coordonnateur') { setRetourHref('/admin'); setIsAdmin(true) }
-        else if (data.role === 'adjoint') { setRetourHref('/admin/reservistes'); setIsAdmin(true) }
-        else if (data.role === 'partenaire') setRetourHref('/partenaire')
-        else setRetourHref('/')
+        if (['admin', 'coordonnateur', 'adjoint'].includes(data.role)) setIsAdmin(true)
       })
     })
   }, [])
@@ -260,30 +257,7 @@ export default function DashboardPublicPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: BG }}>
 
-      {/* ── En-tête ── */}
-      <div style={{ backgroundColor: NAVY, borderBottom: `3px solid ${YELLOW}`, padding: isMobile ? '12px 16px' : '16px 24px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {retourHref && (
-              <button
-                onClick={() => router.push(retourHref)}
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, color: WHITE, fontSize: 13, fontWeight: 600, padding: '6px 14px', cursor: 'pointer', whiteSpace: 'nowrap' as const }}
-              >
-                ← Retour
-              </button>
-            )}
-            <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: WHITE }}>Tableau de bord — RIUSC</h1>
-              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Réserve d&apos;intervention d&apos;urgence en sécurité civile du Québec</p>
-            </div>
-          </div>
-          {stats && (
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>
-              Mis à jour le {new Date(stats.updatedAt).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })} à {new Date(stats.updatedAt).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}
-            </p>
-          )}
-        </div>
-      </div>
+      <PortailHeader subtitle="Tableau de bord" />
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '16px 12px' : '32px 24px' }}>
         {loading && <div style={{ padding: 80, textAlign: 'center', color: MUTED, fontSize: 16 }}>Chargement des données…</div>}
@@ -291,6 +265,11 @@ export default function DashboardPublicPage() {
 
         {stats && (
           <>
+            {stats.updatedAt && (
+              <p style={{ margin: 0, marginBottom: 16, fontSize: 12, color: MUTED, textAlign: 'right' }}>
+                Mis à jour le {new Date(stats.updatedAt).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })} à {new Date(stats.updatedAt).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
             {/* ── Badges ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
               <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" onClick={drill({ groupes: 'Approuvé,Intérêt,Partenaires,Formation incomplète,Responsable,Retrait temporaire', label: 'Tous les réservistes inscrits' })} />
@@ -440,7 +419,7 @@ export default function DashboardPublicPage() {
               <div style={{ marginBottom: 20 }}>
                 <Card
                   title="Camps de qualification — Résultats par cohorte"
-                  action={retourHref ? (
+                  action={isAdmin ? (
                     <a
                       href="/admin/inscriptions-camps"
                       style={{
