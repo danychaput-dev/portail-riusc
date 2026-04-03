@@ -357,6 +357,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                   </div>
                   <a
                     href="mailto:support@riusc.ca?subject=Aide%20-%20Portail%20RIUSC"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     style={{ display: 'block', marginTop: '10px', textAlign: 'center', fontSize: '13px', color: '#2563eb', textDecoration: 'none', padding: '7px', borderRadius: '6px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff' }}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
