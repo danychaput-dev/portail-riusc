@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
+import CampInfoBlocs from '@/app/components/CampInfoBlocs'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -893,20 +894,7 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                 : "Souhaitez-vous vous inscrire à un camp de qualification maintenant ? Vous pourrez aussi le faire plus tard depuis votre portail."}
             </p>
 
-            <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', marginBottom: '16px', borderLeft: '4px solid #1e3a5f' }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f', marginBottom: '8px' }}>Informations importantes</div>
-              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#374151', lineHeight: '1.8' }}>
-                <li>Horaire : <strong>8h30 à 16h30</strong> les deux jours (samedi et dimanche)</li>
-                <li>Les repas du midi et les collations sont fournis</li>
-                <li>Le stationnement est disponible sur place</li>
-                <li>Le dimanche, une activité extérieure d&apos;environ 75 minutes implique la manipulation de sacs de sable — prévoir des vêtements adaptés à la météo et qui peuvent se salir</li>
-                <li>Un <strong>5 à 7</strong> suivra la journée du samedi — vous êtes invités à venir partager et discuter (à vos frais)</li>
-              </ul>
-            </div>
-
-            <div style={{ backgroundColor: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', borderLeft: '4px solid #16a34a', fontSize: '13px', color: '#065f46', lineHeight: '1.6' }}>
-              📱 <strong>Rappel par SMS :</strong> Vous recevrez un texto de rappel avant le camp. Assurez-vous que votre numéro de cellulaire ci-dessus est valide.
-            </div>
+            <CampInfoBlocs showProfilLink={false} />
 
             {loadingSessions ? (
               <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>Chargement des camps disponibles...</div>
