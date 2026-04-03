@@ -840,31 +840,6 @@ export default function ProfilPage() {
           return
         }
 
-        // Sync vers Monday via webhook
-        await fetch(n8nUrl('/webhook/riusc-sync-profil'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            prenom: dossier.prenom,
-            nom: dossier.nom,
-            email: dossier.email,
-            telephone: cleanPhoneForSave(profilData.telephone),
-            telephone_secondaire: cleanPhoneForSave(profilData.telephone_secondaire),
-            date_naissance: dossier.date_naissance,
-            adresse: [profilData.adresse, profilData.code_postal].filter(Boolean).join(', '),
-            code_postal: profilData.code_postal,
-            ville: profilData.ville,
-            region: profilData.region,
-            latitude: profilData.latitude,
-            longitude: profilData.longitude,
-            contact_urgence_nom: profilData.contact_urgence_nom,
-            contact_urgence_telephone: cleanPhoneForSave(profilData.contact_urgence_telephone),
-            contact_urgence_lien: profilData.contact_urgence_lien,
-            contact_urgence_courriel: profilData.contact_urgence_courriel,
-          })
-        })
-
         setOriginalProfilData({ ...profilData })
       }
 
@@ -914,48 +889,6 @@ export default function ProfilPage() {
           setSaving(false)
           return
         }
-
-        // Fire-and-forget sync vers Monday
-        fetch(n8nUrl('/webhook/riusc-update-dossier'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            dossier: {
-              prenom: dossier.prenom,
-              nom: dossier.nom,
-              email: dossier.email,
-              date_naissance: dossier.date_naissance,
-              grandeur_bottes: dossier.grandeur_bottes,
-              profession: dossier.profession,
-              j_ai_18_ans: dossier.j_ai_18_ans,
-              allergies_alimentaires: dossier.allergies_alimentaires,
-              allergies_autres: dossier.allergies_autres,
-              problemes_sante: dossier.problemes_sante,
-              groupe_sanguin: dossier.groupe_sanguin && GROUPE_SANGUIN_MAP[dossier.groupe_sanguin] ? [GROUPE_SANGUIN_MAP[dossier.groupe_sanguin]] : [],
-              competence_rs: dossier.competence_rs,
-              certificat_premiers_soins: dossier.certificat_premiers_soins,
-              date_expiration_certificat: dossier.date_expiration_certificat,
-              vehicule_tout_terrain: dossier.vehicule_tout_terrain,
-              navire_marin: dossier.navire_marin,
-              permis_conduire: dossier.permis_conduire,
-              disponible_covoiturage: dossier.disponible_covoiturage,
-              satp_drone: dossier.satp_drone,
-              equipe_canine: dossier.equipe_canine,
-              competences_securite: dossier.competences_securite,
-              competences_sauvetage: dossier.competences_sauvetage,
-              certification_csi: dossier.certification_csi,
-              communication: dossier.communication,
-              cartographie_sig: dossier.cartographie_sig,
-              operation_urgence: dossier.operation_urgence,
-              experience_urgence_detail: dossier.experience_urgence_detail,
-              autres_competences: dossier.autres_competences,
-              commentaire: dossier.commentaire,
-              confidentialite: dossier.confidentialite,
-              consentement_antecedents: dossier.consentement_antecedents,
-            }
-          })
-        }).catch(() => {}) // fire-and-forget
 
         setOriginalDossier({ ...dossier })
 
