@@ -1,4 +1,5 @@
-const API_TOKEN = "Bearer eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjQ2NDY3NDUzNSwiYWFpIjoxMSwidWlkIjo3MDg2NTA0MywiaWFkIjoiMjAyNS0wMS0yOVQwMTo0NTozMi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6Mjc0NTk4NTAsInJnbiI6InVzZTEifQ.U0ufF892D9vLZWIBlmSsVpVX_IwkTFSnlDAuyvMWn9U";
+require('dotenv').config({ path: '.env.local' });
+const API_TOKEN = `Bearer ${process.env.MONDAY_API_TOKEN}`;
 const BOARD_ID = 8252978837;
 const DATE_COLUMN_ID = "date_mm1a7c49";
 const EMAIL_COLUMN_ID = "e_mail_mkmch8yp";

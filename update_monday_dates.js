@@ -1,4 +1,5 @@
-const API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJ0aWQiOjQ2NDY3NDUzNSwiYWFpIjoxMSwidWlkIjo3MDg2NTA0MywiaWFkIjoiMjAyNS0wMS0yOVQwMTo0NTozMi4wMDBaIiwicGVyIjoibWU6d3JpdGUiLCJhY3RpZCI6Mjc0NTk4NTAsInJnbiI6InVzZTEifQ.U0ufF892D9vLZWIBlmSsVpVX_IwkTFSnlDAuyvMWn9U"; // Remplacez par votre token Monday.com
+require('dotenv').config({ path: '.env.local' });
+const API_TOKEN = process.env.MONDAY_API_TOKEN; // Token Monday.com depuis .env.local
 const BOARD_ID = 8252978837;
 const COLUMN_ID = "date_mm1a9qdh";
 const DATE_VALUE = "2026-02-18";
