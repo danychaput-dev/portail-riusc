@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
@@ -61,7 +61,15 @@ function badgeAntecedents(statut: string | null, dateExpir: string | null) {
   return { couleur: '#d97706', bg: '#fffbeb', label: 'En attente' }
 }
 
-export default function ReservistesPage() {
+export default function ReservistesPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6b7280' }}>Chargement...</div>}>
+      <ReservistesPage />
+    </Suspense>
+  )
+}
+
+function ReservistesPage() {
   const supabase = createClient()
   const router   = useRouter()
   const searchParams = useSearchParams()
