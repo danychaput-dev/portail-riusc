@@ -404,7 +404,7 @@ export default function DashboardPublicPage() {
                     { label: '7 derniers jours',   value: stats.last7d,   color: stats.last7d   > 0 ? NAVY  : MUTED, jours: 7 },
                     { label: '30 derniers jours',  value: stats.last30d,  color: stats.last30d  > 0 ? NAVY  : MUTED, jours: 30 },
                   ].map((s, i) => (
-                    <div key={i} onClick={drill({ inscrit_depuis: String(s.jours), label: `Nouvelles inscriptions — ${s.label.toLowerCase()}` })}
+                    <div key={i} onClick={drill({ inscrit_depuis: String(s.jours), groupes: 'Approuvé,Intérêt,Partenaires,Formation incomplète,Responsable,Retrait temporaire', label: `Nouvelles inscriptions — ${s.label.toLowerCase()}` })}
                       style={{ cursor: isAdmin ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s' }}
                       onMouseOver={e => { if (isAdmin) e.currentTarget.style.backgroundColor = '#f0f4f8' }}
                       onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
@@ -480,7 +480,9 @@ export default function DashboardPublicPage() {
                                 return <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center', color: MUTED }}>—</td>
                               }
                               const canDrill = isAdmin && camp.session_id && val != null && (val as number) > 0
-                              const campDrill = canDrill ? () => router.push(drillUrl({ camp_session: camp.session_id!, label: `Cohorte ${camp.cohort} — ${col.label} (${camp.ville || ''})` })) : undefined
+                              const drillParams: Record<string, string> = { camp_session: camp.session_id!, label: `Cohorte ${camp.cohort} — ${col.label} (${camp.ville || ''})` }
+                              if (col.key !== 'inscrits') drillParams.camp_statut = col.key
+                              const campDrill = canDrill ? () => router.push(drillUrl(drillParams)) : undefined
                               if (col.key === 'qualifie') {
                                 return (
                                   <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center' }}>

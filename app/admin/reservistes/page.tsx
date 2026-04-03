@@ -80,9 +80,12 @@ function ReservistesPage() {
   const urlRegion      = searchParams.get('region')
   const urlAntecedents = searchParams.get('antecedents')
   const urlBottes      = searchParams.get('bottes')
+  const urlInscritDepuis = searchParams.get('inscrit_depuis')
+  const urlCampSession = searchParams.get('camp_session')
+  const urlCampStatut  = searchParams.get('camp_statut')
   const urlLabel       = searchParams.get('label')
   const urlFrom        = searchParams.get('from')
-  const hasUrlFilters  = !!(urlOrganisme || urlRegion || urlAntecedents || urlBottes || urlFrom)
+  const hasUrlFilters  = !!(urlOrganisme || urlRegion || urlAntecedents || urlBottes || urlInscritDepuis || urlCampSession || urlFrom)
 
   const defaultGroupes = urlGroupes
     ? urlGroupes.split(',').map(g => g.trim()).filter(Boolean)
@@ -129,6 +132,9 @@ function ReservistesPage() {
       if (urlRegion) params.set('region', urlRegion)
       if (urlAntecedents) params.set('antecedents', urlAntecedents)
       if (urlBottes) params.set('bottes', urlBottes)
+      if (urlInscritDepuis) params.set('inscrit_depuis', urlInscritDepuis)
+      if (urlCampSession) params.set('camp_session', urlCampSession)
+      if (urlCampStatut) params.set('camp_statut', urlCampStatut)
       const res = await fetch(`/api/admin/reservistes?${params}`)
       const json = await res.json()
       const sorted = (json.data || []).sort((a: any, b: any) => a.nom.localeCompare(b.nom, 'fr'))
