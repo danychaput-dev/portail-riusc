@@ -11,86 +11,15 @@ import PortailHeader from './components/PortailHeader'
 import { logEvent, logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from './components/CampInfoBlocs'
 import { n8nUrl } from '@/utils/n8n'
-// ajout text pour redeploiement
-interface DeploiementActif {
-  id: string;
-  deploiement_id: string;
-  nom_deploiement: string;
-  nom_sinistre?: string;
-  nom_demande?: string;
-  organisme?: string;
-  date_debut: string;
-  date_fin: string | null;
-  lieu?: string;
-  statut: string;
-  type_incident?: string;
-}
-interface Reserviste {
-  benevole_id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  photo_url?: string;
-  groupe?: string;
-  consent_photos?: boolean;
-  allergies_alimentaires?: string;
-  allergies_autres?: string;
-}
-
-interface CampInfo {
-  nom: string;
-  dates: string;
-  site: string;
-  location: string;
-}
-
-interface CampStatus {
-  is_certified: boolean;
-  has_inscription: boolean;
-  session_id: string | null;
-  camp: CampInfo | null;
-  lien_inscription: string | null;
-}
-
-interface SessionCamp {
-  session_id: string;
-  nom: string;
-  dates: string;
-  site: string;
-  location: string;
-}
-
-interface SelectionStatus {
-  statut: 'Sélectionné' | 'Non sélectionné' | 'En attente' | null;
-  deploiement: {
-    nom: string;
-    lieu: string;
-    date_depart: string;
-    heure_rassemblement: string;
-    point_rassemblement: string;
-    duree: string;
-    consignes: string[];
-  } | null;
-}
-
-interface MobilisationVague {
-  mobilisation_item_id: string
-  vague_id: string
-  deploiement_nom: string
-  tache: string
-  ville: string
-  date_debut: string
-  date_fin: string | null
-  horaire: string | null
-  statut_confirmation: string
-}
-
-interface CertificatFile {
-  id: string;
-  name: string;
-  url?: string;
-}
+import type {
+  Reserviste, DeploiementActif, CampStatus,
+  SessionCamp, SelectionStatus, MobilisationVague, CertificatFile,
+} from '@/types'
+import {
+  DEMO_RESERVISTE_INTERET, DEMO_RESERVISTE_APPROUVE, DEMO_DEPLOIEMENTS,
+  DEMO_CAMP_STATUS, DEMO_CAMP_STATUS_INSCRIT, DEMO_CERTIFICATS,
+  DEMO_SELECTION_APPROUVE, DEMO_SESSIONS, DEMO_SESSION_CAPACITIES,
+} from './demo-data'
 
 export default function HomePage() {
   const [user, setUser] = useState<any>(null)
@@ -152,65 +81,6 @@ export default function HomePage() {
   const { user: authUser, loading: authLoading } = useAuth()
 
   const isApproved = reserviste?.groupe === 'Approuvé'
-
-  // ========== DONNÉES DÉMO ==========
-  const DEMO_RESERVISTE_INTERET: Reserviste = {
-    benevole_id: 'DEMO-001',
-    prenom: 'Marie-Ève',
-    nom: 'Tremblay',
-    email: 'marie-eve.tremblay@example.com',
-    telephone: '4185551234',
-    groupe: 'Intérêt',
-  }
-
-  const DEMO_RESERVISTE_APPROUVE: Reserviste = {
-    ...DEMO_RESERVISTE_INTERET,
-    groupe: 'Approuvé',
-  }
-
-  const DEMO_DEPLOIEMENTS: DeploiementActif[] = [
-    {
-      id: 'demo-dep-1',
-      deploiement_id: 'demo-dep-1',
-      nom_deploiement: 'Inondations printanières - Gatineau',
-      nom_sinistre: 'Inondations printanières 2026',
-      organisme: 'Ville de Gatineau',
-      date_debut: '2026-03-15',
-      date_fin: null,
-      lieu: 'Gatineau, secteur Hull',
-      statut: 'actif',
-      type_incident: 'Inondation',
-    },
-  ]
-
-  const DEMO_CAMP_STATUS: CampStatus = {
-    is_certified: false,
-    has_inscription: false,
-    session_id: null,
-    camp: null,
-    lien_inscription: null,
-  }
-
-  const DEMO_CAMP_STATUS_INSCRIT: CampStatus = {
-    is_certified: true,
-    has_inscription: false,
-    session_id: null,
-    camp: null,
-    lien_inscription: null,
-  }
-
-  const DEMO_CERTIFICATS: CertificatFile[] = [
-    {
-      id: 'demo-cert-1',
-      name: 'Certificat_Sinitier_Tremblay_Marie-Eve.pdf',
-      url: '#',
-    },
-  ]
-
-  const DEMO_SELECTION_APPROUVE: SelectionStatus = {
-    statut: null,
-    deploiement: null,
-  }
 
   // Fonction pour appliquer le mode démo selon le groupe
   const applyDemoData = (groupe: 'Intérêt' | 'Approuvé') => {
@@ -784,37 +654,32 @@ export default function HomePage() {
       setConditionsMedicales('')
       setConsentementPhoto(false)
       setLoadingDossier(false)
-      setSessionsDisponibles([
-        { session_id: 'demo-s1', nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' },
-        { session_id: 'demo-s2', nom: 'Cohorte 9 - Camp de qualification', dates: '24-25 mai 2026', site: 'Base de plein air de Val-Cartier', location: 'Shannon, Québec' },
-      ])
-      setSessionCapacities({
-        'demo-s1': { inscrits: 18, capacite: 25, attente: 0, attente_max: 5, places_restantes: 7, statut: 'ouvert' },
-        'demo-s2': { inscrits: 24, capacite: 25, attente: 2, attente_max: 5, places_restantes: 1, statut: 'ouvert' },
-      })
+      setSessionsDisponibles(DEMO_SESSIONS)
+      setSessionCapacities(DEMO_SESSION_CAPACITIES)
       setLoadingSessions(false)
       return
     }
     
-    // Charger les données du dossier depuis Monday/n8n
+    // Charger les données du dossier depuis Supabase (réserviste déjà en mémoire ou requête directe)
     if (reserviste?.benevole_id) {
       setLoadingDossier(true)
       try {
-        const dossierResponse = await fetch(n8nUrl(`/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`))
-        if (dossierResponse.ok) {
-          const dossierData = await dossierResponse.json()
-          if (dossierData.success && dossierData.dossier) {
-            setAllergiesAlimentaires(dossierData.dossier.allergies_alimentaires || '')
-            setAutresAllergies(dossierData.dossier.allergies_autres || '')
-            setConditionsMedicales(dossierData.dossier.problemes_sante || '')
-          }
+        const { data: dossierData } = await supabase
+          .from('reservistes')
+          .select('allergies_alimentaires, allergies_autres, problemes_sante')
+          .eq('benevole_id', reserviste.benevole_id)
+          .single()
+        if (dossierData) {
+          setAllergiesAlimentaires(dossierData.allergies_alimentaires || '')
+          setAutresAllergies(dossierData.allergies_autres || '')
+          setConditionsMedicales(dossierData.problemes_sante || '')
         }
       } catch (error) {
         console.error('Erreur chargement dossier:', error)
       }
       setLoadingDossier(false)
     }
-    
+
     setConsentementPhoto(reserviste?.consent_photos || false)
 
     // Charger les sessions et capacités
@@ -881,19 +746,12 @@ export default function HomePage() {
     setInscriptionError(null)
     
     try {
-      // Sauvegarder les allergies dans le dossier en parallèle
-      fetch(n8nUrl('/webhook/riusc-update-dossier'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          dossier: {
-            allergies_alimentaires: allergiesAlimentaires || '',
-            allergies_autres: autresAllergies || '',
-            problemes_sante: conditionsMedicales || ''
-          }
-        })
-      }).catch(e => console.error('Erreur update dossier allergies:', e))
+      // Sauvegarder les allergies dans Supabase en parallèle (fire-and-forget)
+      supabase.from('reservistes').update({
+        allergies_alimentaires: allergiesAlimentaires || null,
+        allergies_autres: autresAllergies || null,
+        problemes_sante: conditionsMedicales || null,
+      }).eq('benevole_id', reserviste.benevole_id)
 
       const capInfo = sessionCapacities[selectedSessionId]
       const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
