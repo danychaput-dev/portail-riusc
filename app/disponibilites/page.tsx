@@ -7,60 +7,8 @@ import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { logPageVisit } from '@/utils/logEvent';
 import { isDemoActive, DEMO_RESERVISTE, DEMO_USER, DEMO_DEPLOIEMENTS, DEMO_DISPONIBILITES } from '@/utils/demoMode';
-
-interface Disponibilite {
-  id: string;
-  monday_item_id: string;
-  benevole_id: string;
-  deploiement_id: string;
-  nom_deploiement: string;
-  nom_sinistre?: string;
-  nom_demande?: string;
-  organisme_demande?: string;
-  date_debut: string;
-  date_fin: string;
-  statut: string;
-  statut_version: string;
-  commentaire?: string;
-  transport?: string;
-  envoye_le: string;
-  repondu_le: string;
-  user_id: string;
-}
-
-interface DeploiementActif {
-  id: string;
-  deploiement_id: string;
-  nom_deploiement: string;
-  nom_sinistre?: string;
-  nom_demande?: string;
-  organisme?: string;
-  date_debut: string;
-  date_fin: string;
-  lieu?: string;
-  statut: string;
-}
-
-interface Reserviste {
-  benevole_id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  photo_url?: string;
-}
-
-interface CiblageReponse {
-  id: string;
-  benevole_id: string;
-  deploiement_id: string;
-  statut_envoi: string;
-  date_disponible_debut?: string;
-  date_disponible_fin?: string;
-  transport?: string;
-  commentaires?: string;
-  nom_deploiement?: string;
-  nom_sinistre?: string;
-}
+import type { Reserviste, Disponibilite, DeploiementActif, CiblageReponse } from '@/types';
+import { StatusBadge } from '@/app/components/ui';
 
 export default function DisponibilitesPage() {
   const supabase = createClient();
@@ -408,14 +356,10 @@ export default function DisponibilitesPage() {
                                     : `Du ${formatDateCourt(dispo.date_debut)} au ${formatDateCourt(dispo.date_fin)}`}
                                 </span>
                               )}
-                              <span style={{
-                                display: 'inline-block', padding: '3px 10px',
-                                backgroundColor: dispo.statut === 'Disponible' ? '#d1fae5' : dispo.statut === 'En attente' ? '#fef3c7' : '#fee2e2',
-                                color: dispo.statut === 'Disponible' ? '#065f46' : dispo.statut === 'En attente' ? '#92400e' : '#991b1b',
-                                borderRadius: '6px', fontSize: '12px', fontWeight: '600'
-                              }}>
-                                {dispo.statut === 'Disponible' ? '✅ Disponible' : dispo.statut === 'En attente' ? '⏳ En attente' : '❌ ' + dispo.statut}
-                              </span>
+                              <StatusBadge
+                                status={dispo.statut === 'Disponible' ? 'success' : dispo.statut === 'En attente' ? 'warning' : 'error'}
+                                label={dispo.statut === 'Disponible' ? '✅ Disponible' : dispo.statut === 'En attente' ? '⏳ En attente' : '❌ ' + dispo.statut}
+                              />
                               {dispo.transport && (
                                 <span style={{ fontSize: '13px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                   🚗 {labelTransport(dispo.transport)}
