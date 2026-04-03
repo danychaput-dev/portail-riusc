@@ -114,6 +114,14 @@ export default function AdminDashboardPage() {
       statut: 'actif',
     },
     {
+      titre: 'Inscriptions camps',
+      description: 'Gérer les inscriptions, présences et rappels SMS pour les camps de qualification',
+      icone: '🏕️',
+      href: '/admin/inscriptions-camps',
+      couleur: '#059669',
+      statut: 'actif',
+    },
+    {
       titre: 'Dashboard public',
       description: 'Vue publique des statistiques RIUSC — inscrits, antécédents, bottes, cohortes',
       icone: '📈',
