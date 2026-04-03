@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { n8nUrl } from '@/utils/n8n'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
 
   // Envoyer à n8n pour dispatch Twilio
   try {
-    await fetch('https://n8n.aqbrs.ca/webhook/riusc-rappel-camp', {
+    await fetch(n8nUrl('/webhook/riusc-rappel-camp'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

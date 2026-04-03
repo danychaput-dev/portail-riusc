@@ -6,6 +6,7 @@ import { useEffect, useState, Suspense } from 'react'
 import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
 import { isDemoActive, DEMO_RESERVISTE, DEMO_DEPLOIEMENTS } from '@/utils/demoMode'
+import { n8nUrl } from '@/utils/n8n'
 
 interface DeploiementInfo {
   deploiement_id: string;
@@ -149,7 +150,7 @@ function SoumettreContent() {
     }
 
     try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-disponibilite', {
+      const response = await fetch(n8nUrl('/webhook/riusc-disponibilite'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

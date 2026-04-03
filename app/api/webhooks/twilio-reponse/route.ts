@@ -2,6 +2,7 @@
 // Webhook appelé par Twilio quand un participant répond au SMS de rappel
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { n8nUrl } from '@/utils/n8n'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
         .single()
 
       try {
-        await fetch('https://n8n.aqbrs.ca/webhook/riusc-alerte-reponse-sms', {
+        await fetch(n8nUrl('/webhook/riusc-alerte-reponse-sms'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

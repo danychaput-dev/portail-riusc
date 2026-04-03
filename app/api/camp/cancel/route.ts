@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { n8nUrl } from '@/utils/n8n'
 
 export async function POST(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const response = await fetch(
-      `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${benevoleId}&action=cancel`,
+      n8nUrl(`/webhook/camp-status?benevole_id=${benevoleId}&action=cancel`),
       { method: 'POST' }
     )
 

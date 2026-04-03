@@ -6,6 +6,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from '@/app/components/CampInfoBlocs'
+import { n8nUrl } from '@/utils/n8n'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -242,7 +243,7 @@ export default function InscriptionPage() {
     }
 
     // Charger les capacités
-    fetch('https://n8n.aqbrs.ca/webhook/camp-capacity')
+    fetch(n8nUrl('/webhook/camp-capacity'))
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.success && data.sessions) {
@@ -457,7 +458,7 @@ export default function InscriptionPage() {
         } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
       }
 
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-inscription', {
+      const response = await fetch(n8nUrl('/webhook/riusc-inscription'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean,
@@ -538,7 +539,7 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           const capInfo = sessionSel?.monday_id ? sessionCapacities[sessionSel.monday_id] : null
           const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
           
-          const campResponse = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+          const campResponse = await fetch(n8nUrl('/webhook/inscription-camp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

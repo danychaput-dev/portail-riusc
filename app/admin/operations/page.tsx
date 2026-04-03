@@ -6,6 +6,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
+import { n8nUrl } from '@/utils/n8n'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -571,7 +572,7 @@ export default function OperationsPage() {
     setSendingNotif(true)
     await supabase.from('ciblages').update({statut:'notifie',updated_at:new Date().toISOString()}).in('id',toNotify)
     try {
-      await fetch('https://n8n.aqbrs.ca/webhook/riusc-envoi-ciblage-portail', {
+      await fetch(n8nUrl('/webhook/riusc-envoi-ciblage-portail'), {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ deployment_id:depId, ciblage_ids:toNotify, message_override:msgNotif, type_envoi:'disponibilites' }),
       })
@@ -614,7 +615,7 @@ export default function OperationsPage() {
     if (!depId || !vagues.length) return
     setSendingMobil(true)
     try {
-      await fetch('https://n8n.aqbrs.ca/webhook/riusc-envoi-mobilisation-portail', {
+      await fetch(n8nUrl('/webhook/riusc-envoi-mobilisation-portail'), {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' }),
       })

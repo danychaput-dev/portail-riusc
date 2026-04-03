@@ -10,6 +10,7 @@ import ImpersonateBanner from './components/ImpersonateBanner'
 import PortailHeader from './components/PortailHeader'
 import { logEvent, logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from './components/CampInfoBlocs'
+import { n8nUrl } from '@/utils/n8n'
 
 interface DeploiementActif {
   id: string;
@@ -482,8 +483,8 @@ export default function HomePage() {
             // Charger tout en parallèle
             const bid = userData.benevole_id
             const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
-              fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+              fetch(n8nUrl(`/webhook/selection-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
               supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
               checkSinitier(bid),
@@ -668,8 +669,8 @@ export default function HomePage() {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id
         const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
-          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/selection-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+          fetch(n8nUrl(`/webhook/selection-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
           supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
           checkSinitier(bid),
@@ -795,7 +796,7 @@ export default function HomePage() {
     if (reserviste?.benevole_id) {
       setLoadingDossier(true)
       try {
-        const dossierResponse = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`)
+        const dossierResponse = await fetch(n8nUrl(`/webhook/riusc-get-dossier?benevole_id=${reserviste.benevole_id}`))
         if (dossierResponse.ok) {
           const dossierData = await dossierResponse.json()
           if (dossierData.success && dossierData.dossier) {
@@ -815,8 +816,8 @@ export default function HomePage() {
     // Charger les sessions et capacités
     try {
       const [sessionsResp, capacityResp] = await Promise.allSettled([
-        fetch('https://n8n.aqbrs.ca/webhook/sessions-camps'),
-        fetch('https://n8n.aqbrs.ca/webhook/camp-capacity')
+        fetch(n8nUrl('/webhook/sessions-camps')),
+        fetch(n8nUrl('/webhook/camp-capacity'))
       ])
       
       if (sessionsResp.status === 'fulfilled' && sessionsResp.value.ok) {
@@ -877,7 +878,7 @@ export default function HomePage() {
     
     try {
       // Sauvegarder les allergies dans le dossier en parallèle
-      fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+      fetch(n8nUrl('/webhook/riusc-update-dossier'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -893,7 +894,7 @@ export default function HomePage() {
       const capInfo = sessionCapacities[selectedSessionId]
       const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
       
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+      const response = await fetch(n8nUrl('/webhook/inscription-camp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -953,7 +954,7 @@ export default function HomePage() {
     
     try {
       const response = await fetch(
-        `https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`,
+        n8nUrl(`/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`),
         { method: 'POST' }
       )
       
@@ -1399,7 +1400,7 @@ export default function HomePage() {
                   onClick={async () => {
                     setConfirmingMobilisation(true)
                     try {
-                      await fetch('https://n8n.aqbrs.ca/webhook/confirmer-mobilisation', {
+                      await fetch(n8nUrl('/webhook/confirmer-mobilisation'), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

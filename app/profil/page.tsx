@@ -9,6 +9,7 @@ import { useAuth } from '@/utils/useAuth'
 import ImpersonateBanner from '@/app/components/ImpersonateBanner'
 import { logPageVisit } from '@/utils/logEvent'
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
+import { n8nUrl } from '@/utils/n8n'
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoiYXFicnMiLCJhIjoiY21sN2g0YW5hMG84NDNlb2EwdmI5NWZ0ayJ9.jsxH3ei2CqtShV8MrJ47XA'
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -1265,7 +1266,7 @@ export default function ProfilPage() {
     setTestNotifLoading(true)
     setTestNotifResult(null)
     try {
-      const res = await fetch('https://n8n.aqbrs.ca/webhook/test-notification-reserviste', {
+      const res = await fetch(n8nUrl('/webhook/test-notification-reserviste'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prenom, nom, email, telephone }),
@@ -1361,7 +1362,7 @@ export default function ProfilPage() {
         }
 
         // Sync vers Monday via webhook
-        await fetch('https://n8n.aqbrs.ca/webhook/riusc-sync-profil', {
+        await fetch(n8nUrl('/webhook/riusc-sync-profil'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1433,7 +1434,7 @@ export default function ProfilPage() {
         }
 
         // Fire-and-forget sync vers Monday
-        fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+        fetch(n8nUrl('/webhook/riusc-update-dossier'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
 import { logPageVisit } from '@/utils/logEvent'
+import { n8nUrl } from '@/utils/n8n'
 
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 
@@ -501,7 +502,7 @@ export default function DossierPage() {
 
       // Charger dossier depuis n8n/Monday
       try {
-        const response = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`)
+        const response = await fetch(n8nUrl(`/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`))
         if (response.ok) {
           const data = await response.json()
           if (data.success && data.dossier) {
@@ -564,7 +565,7 @@ export default function DossierPage() {
     try {
       // ── Dossier principal (Monday via n8n) ──────────────────────────────────
       if (hasChanges) {
-        const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-update-dossier', {
+        const response = await fetch(n8nUrl('/webhook/riusc-update-dossier'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

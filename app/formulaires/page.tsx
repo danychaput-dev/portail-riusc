@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER, DEMO_FORMATIONS } from '@/utils/demoMode';
+import { n8nUrl } from '@/utils/n8n';
 
 interface Reserviste {
   benevole_id: string;
@@ -182,8 +183,8 @@ function FormationContent() {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
             const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
-              fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-              fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+              fetch(n8nUrl(`/webhook/riusc-get-certificats?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+              fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
@@ -302,8 +303,8 @@ function FormationContent() {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
         const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
-          fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
-          fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${bid}`).then(r => r.ok ? r.json() : null),
+          fetch(n8nUrl(`/webhook/riusc-get-certificats?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+          fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
@@ -372,7 +373,7 @@ function FormationContent() {
       return;
     }
     try {
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/sessions-camps');
+      const response = await fetch(n8nUrl('/webhook/sessions-camps'));
       if (response.ok) { const data = await response.json(); if (data.success && data.sessions) setSessionsDisponibles(data.sessions); }
     } catch (e) { setInscriptionError('Impossible de charger les camps disponibles'); }
     setLoadingSessions(false);
@@ -402,7 +403,7 @@ function FormationContent() {
 
       if (updateError) console.error('Erreur sauvegarde allergies:', updateError);
 
-      const response = await fetch('https://n8n.aqbrs.ca/webhook/inscription-camp', {
+      const response = await fetch(n8nUrl('/webhook/inscription-camp'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
@@ -429,7 +430,7 @@ function FormationContent() {
     if (isDemoActive()) { setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null }); return; }
     setCancellingInscription(true);
     try {
-      const response = await fetch(`https://n8n.aqbrs.ca/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`, { method: 'POST' });
+      const response = await fetch(n8nUrl(`/webhook/camp-status?benevole_id=${reserviste.benevole_id}&action=cancel`), { method: 'POST' });
       if (response.ok) window.location.reload();
       else alert("Erreur lors de l'annulation. Veuillez réessayer.");
     } catch (e) { alert("Erreur lors de l'annulation. Veuillez réessayer."); }
@@ -535,7 +536,7 @@ function FormationContent() {
           reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        const response = await fetch('https://n8n.aqbrs.ca/webhook/riusc-upload-certificat', {
+        const response = await fetch(n8nUrl('/webhook/riusc-upload-certificat'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             benevole_id: reserviste.benevole_id,
@@ -552,7 +553,7 @@ function FormationContent() {
             setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
             await supabase.from('formations_benevoles').update({ certificat_url: data.url || file.name }).eq('id', uploadingForFormationId);
           } else {
-            const res2 = await fetch(`https://n8n.aqbrs.ca/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`);
+            const res2 = await fetch(n8nUrl(`/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`));
             if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
           }
         } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
