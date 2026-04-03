@@ -83,6 +83,7 @@ export default function InscriptionPage() {
     nom: '',
     email: '',
     telephone: '',
+    telephone_secondaire: '',
     adresse: '',
     ville: '',
     code_postal: '',
@@ -459,7 +460,7 @@ export default function InscriptionPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean,
-          telephone: isTestPhone ? null : phoneClean, adresse: formData.adresse,
+          telephone: isTestPhone ? null : phoneClean, telephone_secondaire: formData.telephone_secondaire ? cleanPhoneForSave(formData.telephone_secondaire) : null, adresse: formData.adresse,
           ville: formData.ville, code_postal: formData.code_postal.trim().toUpperCase(), region: formData.region, latitude: formData.latitude,
           longitude: formData.longitude,
           groupe_rs: formData.groupe_rs.length > 0 ? formData.groupe_rs.join(', ') : '',
@@ -714,9 +715,14 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                 {fieldErrors.emailConfirm && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.emailConfirm}</p>}
               </div>
               <div>
-                <label style={labelStyle}>Téléphone mobile {requiredStar}</label>
+                <label style={labelStyle}>Cellulaire {requiredStar}</label>
                 <input type="tel" value={formData.telephone} onChange={(e) => handleInputChange('telephone', e.target.value)} onBlur={handlePhoneBlur} style={fieldErrors.telephone ? inputErrorStyle : inputStyle} placeholder="(514) 123-4567" />
+                <p style={{ color: '#6b7280', fontSize: '11px', margin: '4px 0 0 0' }}>Utilisé pour les rappels SMS (camps, déploiements)</p>
                 {fieldErrors.telephone && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.telephone}</p>}
+              </div>
+              <div>
+                <label style={labelStyle}>Téléphone maison (optionnel)</label>
+                <input type="tel" value={formData.telephone_secondaire || ''} onChange={(e) => handleInputChange('telephone_secondaire', e.target.value)} style={inputStyle} placeholder="(514) 987-6543" />
               </div>
             </div>
           </div>
@@ -882,10 +888,25 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           <div style={{...sectionStyle, border: campId ? '2px solid #059669' : 'none', backgroundColor: campId ? '#f0fdf4' : 'white'}}>
             <h3 style={sectionTitleStyle}>Camp de qualification {campId && <span style={{color: '#059669', fontSize: '14px', fontWeight: 'normal'}}>• Recommandé</span>}</h3>
             <p style={sectionDescStyle}>
-              {campId 
-                ? "Vous êtes arrivé ici pour un camp spécifique. Sélectionnez-le ci-dessous ou choisissez un autre camp disponible." 
+              {campId
+                ? "Vous êtes arrivé ici pour un camp spécifique. Sélectionnez-le ci-dessous ou choisissez un autre camp disponible."
                 : "Souhaitez-vous vous inscrire à un camp de qualification maintenant ? Vous pourrez aussi le faire plus tard depuis votre portail."}
             </p>
+
+            <div style={{ backgroundColor: '#eff6ff', padding: '16px', borderRadius: '8px', marginBottom: '16px', borderLeft: '4px solid #1e3a5f' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f', marginBottom: '8px' }}>Informations importantes</div>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#374151', lineHeight: '1.8' }}>
+                <li>Horaire : <strong>8h30 à 16h30</strong> les deux jours (samedi et dimanche)</li>
+                <li>Les repas du midi et les collations sont fournis</li>
+                <li>Le stationnement est disponible sur place</li>
+                <li>Le dimanche, une activité extérieure d&apos;environ 75 minutes implique la manipulation de sacs de sable — prévoir des vêtements adaptés à la météo et qui peuvent se salir</li>
+                <li>Un <strong>5 à 7</strong> suivra la journée du samedi — vous êtes invités à venir partager et discuter (à vos frais)</li>
+              </ul>
+            </div>
+
+            <div style={{ backgroundColor: '#f0fdf4', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', borderLeft: '4px solid #16a34a', fontSize: '13px', color: '#065f46', lineHeight: '1.6' }}>
+              📱 <strong>Rappel par SMS :</strong> Vous recevrez un texto de rappel avant le camp. Assurez-vous que votre numéro de cellulaire ci-dessus est valide.
+            </div>
 
             {loadingSessions ? (
               <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>Chargement des camps disponibles...</div>
