@@ -46,6 +46,7 @@ interface CampData {
   no_show: number | null
   qualifie: number | null
   passe: boolean
+  session_id?: string
 }
 
 interface Stats {
@@ -399,11 +400,15 @@ export default function DashboardPublicPage() {
               <Card title="Nouvelles inscriptions">
                 <div style={{ display: 'flex', gap: 40, borderBottom: `1px solid ${BORDER}`, paddingBottom: 16, marginBottom: 16, flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Dernières 24h',      value: stats.last24h,  color: stats.last24h  > 0 ? GREEN : MUTED },
-                    { label: '7 derniers jours',   value: stats.last7d,   color: stats.last7d   > 0 ? NAVY  : MUTED },
-                    { label: '30 derniers jours',  value: stats.last30d,  color: stats.last30d  > 0 ? NAVY  : MUTED },
+                    { label: 'Dernières 24h',      value: stats.last24h,  color: stats.last24h  > 0 ? GREEN : MUTED, jours: 1 },
+                    { label: '7 derniers jours',   value: stats.last7d,   color: stats.last7d   > 0 ? NAVY  : MUTED, jours: 7 },
+                    { label: '30 derniers jours',  value: stats.last30d,  color: stats.last30d  > 0 ? NAVY  : MUTED, jours: 30 },
                   ].map((s, i) => (
-                    <div key={i}>
+                    <div key={i} onClick={drill({ inscrit_depuis: String(s.jours), label: `Nouvelles inscriptions — ${s.label.toLowerCase()}` })}
+                      style={{ cursor: isAdmin ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s' }}
+                      onMouseOver={e => { if (isAdmin) e.currentTarget.style.backgroundColor = '#f0f4f8' }}
+                      onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
                       <div style={{ fontSize: 28, fontWeight: 700, color: s.color, lineHeight: 1 }}>{s.value}</div>
                       <div style={{ fontSize: 12, color: MUTED, marginTop: 3 }}>{s.label}</div>
                     </div>
@@ -474,15 +479,23 @@ export default function DashboardPublicPage() {
                               if (!camp.passe && col.key !== 'inscrits') {
                                 return <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center', color: MUTED }}>—</td>
                               }
+                              const canDrill = isAdmin && camp.session_id && val != null && (val as number) > 0
+                              const campDrill = canDrill ? () => router.push(drillUrl({ camp_session: camp.session_id!, label: `Cohorte ${camp.cohort} — ${col.label} (${camp.ville || ''})` })) : undefined
                               if (col.key === 'qualifie') {
                                 return (
                                   <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                    <span style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontWeight: 600, fontSize: 13 }}>{val}</span>
+                                    <span onClick={campDrill} style={{ display: 'inline-block', backgroundColor: '#dcfce7', color: GREEN, padding: '2px 12px', borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: campDrill ? 'pointer' : 'default' }}
+                                      onMouseOver={e => { if (campDrill) e.currentTarget.style.backgroundColor = '#bbf7d0' }}
+                                      onMouseOut={e => { e.currentTarget.style.backgroundColor = '#dcfce7' }}
+                                    >{val}</span>
                                   </td>
                                 )
                               }
                               return (
-                                <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                <td key={col.key} onClick={campDrill} style={{ padding: '12px 16px', textAlign: 'center', cursor: campDrill ? 'pointer' : 'default' }}
+                                  onMouseOver={e => { if (campDrill) e.currentTarget.style.backgroundColor = '#f0f4f8' }}
+                                  onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                                >
                                   <span style={{ fontWeight: 600, color: col.color }}>{val ?? '—'}</span>
                                 </td>
                               )

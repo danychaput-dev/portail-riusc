@@ -39,6 +39,9 @@ export async function GET(req: NextRequest) {
   const region       = searchParams.get('region')
   const antecedents  = searchParams.get('antecedents')
   const bottes       = searchParams.get('bottes')
+  const inscritDepuis = searchParams.get('inscrit_depuis')
+  const campSession  = searchParams.get('camp_session')
+  const campStatut   = searchParams.get('camp_statut')
 
   let query = supabaseAdmin
     .from('reservistes')
@@ -74,13 +77,40 @@ export async function GET(req: NextRequest) {
     query = query.is('remboursement_bottes_date', null)
   }
 
+  // Filtre par période d'inscription (24h, 7j, 30j)
+  if (inscritDepuis) {
+    const now = new Date()
+    const jours = parseInt(inscritDepuis)
+    if (!isNaN(jours)) {
+      const depuis = new Date(now.getTime() - jours * 86400000).toISOString()
+      query = query.or(`monday_created_at.gte.${depuis},created_at.gte.${depuis}`)
+    }
+  }
+
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Filtre organisme côté serveur (nécessite jointure)
-  const organisme = searchParams.get('organisme')
+  // Filtre par camp (nécessite jointure avec inscriptions_camps)
   let reservistes = data || []
+  const organisme = searchParams.get('organisme')
 
+  if (campSession) {
+    const { data: inscriptions } = await supabaseAdmin
+      .from('inscriptions_camps')
+      .select('benevole_id, statut_inscription')
+      .eq('session_id', campSession)
+
+    if (inscriptions) {
+      const benevoleIds = new Set(
+        campStatut
+          ? inscriptions.filter(i => i.statut_inscription === campStatut).map(i => i.benevole_id)
+          : inscriptions.map(i => i.benevole_id)
+      )
+      reservistes = reservistes.filter(r => benevoleIds.has(r.benevole_id))
+    }
+  }
+
+  // Filtre organisme côté serveur (nécessite jointure)
   if (organisme) {
     const { data: orgLinks } = await supabaseAdmin
       .from('reserviste_organisations')

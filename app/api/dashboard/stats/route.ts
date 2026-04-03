@@ -28,6 +28,7 @@ interface CampEntry {
   no_show: number | null
   qualifie: number | null
   passe: boolean
+  session_id?: string
 }
 
 export async function GET() {
@@ -212,10 +213,11 @@ export async function GET() {
       futurMap[key].inscrits++
     }
 
-    const campsFuturs: CampEntry[] = Object.values(futurMap).map(f => ({
+    const campsFuturs: CampEntry[] = Object.entries(futurMap).map(([sessionId, f]) => ({
       cohort: f.cohort, dates: f.dates, ville: f.ville, inscrits: f.inscrits,
       informe_absence: null, attendues: null, no_show: null, qualifie: null,
       passe: false,
+      session_id: sessionId,
     }))
 
     const campsData = [...CAMPS_HISTORIQUES, ...campsFuturs]
