@@ -8,85 +8,11 @@ import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER, DEMO_FORMATIONS } from '@/utils/demoMode';
 import CampInfoBlocs from '@/app/components/CampInfoBlocs';
 import { n8nUrl } from '@/utils/n8n';
-
-interface Reserviste {
-  benevole_id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  telephone?: string;
-  photo_url?: string;
-  groupe?: string;
-  date_naissance?: string;
-  adresse?: string;
-  ville?: string;
-  region?: string;
-  contact_urgence_nom?: string;
-  contact_urgence_telephone?: string;
-  allergies_alimentaires?: string;
-  allergies_autres?: string;
-  conditions_medicales?: string;
-  consent_photo?: boolean;
-  antecedents_statut?: string;
-  antecedents_date_verification?: string;
-  antecedents_date_expiration?: string;
-  monday_created_at?: string;
-}
-
-interface CampInfo {
-  nom: string;
-  dates: string;
-  site: string;
-  location: string;
-}
-
-interface CampStatus {
-  is_certified: boolean;
-  has_inscription: boolean;
-  session_id: string | null;
-  camp: CampInfo | null;
-  lien_inscription: string | null;
-}
-
-interface SessionCamp {
-  session_id: string;
-  nom: string;
-  dates: string;
-  site: string;
-  location: string;
-}
-
-interface CertificatFile {
-  id: string;
-  name: string;
-  url?: string;
-}
-
-interface DocumentOfficiel {
-  id: number;
-  benevole_id: string;
-  type_document: string;
-  titre: string;
-  nom_fichier: string;
-  chemin_storage: string;
-}
-
-interface Formation {
-  id: string;
-  nom: string;
-  catalogue: string;
-  session: string;
-  role: string;
-  resultat: string;
-  etat_validite: string;
-  date_reussite: string | null;
-  date_expiration: string | null;
-  commentaire: string;
-  has_fichier?: boolean;
-  fichiers?: { name: string; url: string | null }[];
-  source?: string;
-  certificat_requis?: boolean;
-}
+import type {
+  Reserviste, CampStatus, SessionCamp, CertificatFile,
+  DocumentOfficiel, Formation,
+} from '@/types';
+import { DEMO_SESSIONS } from './demo-data-formation';
 
 function FormationContent() {
   const supabase = createClient();
@@ -157,7 +83,7 @@ function FormationContent() {
 
   const isApproved = reserviste?.groupe === 'Approuvé';
 
-  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photo, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, monday_created_at';
+  const selectFields = 'benevole_id, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, allergies_alimentaires, allergies_autres, conditions_medicales, consent_photos, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, monday_created_at';
 
   useEffect(() => { loadData(); }, []);
 
@@ -378,13 +304,10 @@ function FormationContent() {
     setModalAllergiesAlim(reserviste?.allergies_alimentaires || '');
     setModalAllergiesAutres(reserviste?.allergies_autres || '');
     setModalConditions(reserviste?.conditions_medicales || '');
-    setModalConsentPhoto(reserviste?.consent_photo || false);
+    setModalConsentPhoto(reserviste?.consent_photos || false);
     // 🎯 MODE DÉMO
     if (isDemoActive()) {
-      setSessionsDisponibles([
-        { session_id: 'demo-s1', nom: 'Cohorte 8 - Camp de qualification', dates: '12-13 avril 2026', site: 'Centre de formation de Nicolet', location: 'Nicolet, Québec' },
-        { session_id: 'demo-s2', nom: 'Cohorte 9 - Camp de qualification', dates: '24-25 mai 2026', site: 'Base de plein air de Val-Cartier', location: 'Shannon, Québec' },
-      ]);
+      setSessionsDisponibles(DEMO_SESSIONS);
       setLoadingSessions(false);
       return;
     }
@@ -398,7 +321,7 @@ function FormationContent() {
 
   const handleSubmitInscription = async () => {
     if (!reserviste || !selectedSessionId) { setInscriptionError('Veuillez sélectionner un camp'); return; }
-    if (!reserviste.consent_photo && !modalConsentPhoto) { setInscriptionError('Veuillez accepter le consentement photo/vidéo pour continuer.'); return; }
+    if (!reserviste.consent_photos && !modalConsentPhoto) { setInscriptionError('Veuillez accepter le consentement photo/vidéo pour continuer.'); return; }
     // 🎯 MODE DÉMO
     if (isDemoActive()) {
       setInscriptionLoading(true);
@@ -413,7 +336,7 @@ function FormationContent() {
           allergies_alimentaires: modalAllergiesAlim || null,
           allergies_autres: modalAllergiesAutres || null,
           conditions_medicales: modalConditions || null,
-          consent_photo: modalConsentPhoto
+          consent_photos: modalConsentPhoto
         })
         .eq('benevole_id', reserviste.benevole_id);
 
@@ -431,7 +354,7 @@ function FormationContent() {
           allergies_alimentaires: modalAllergiesAlim || null,
           allergies_autres: modalAllergiesAutres || null,
           conditions_medicales: modalConditions || null,
-          consent_photo: modalConsentPhoto
+          consent_photos: modalConsentPhoto
         })
       });
       const data = await response.json();
@@ -813,7 +736,7 @@ function FormationContent() {
                   </div>
                 </div>
 
-                {!reserviste?.consent_photo && (
+                {!reserviste?.consent_photos && (
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer', padding: '16px', backgroundColor: modalConsentPhoto ? '#f0fdf4' : '#f9fafb', border: modalConsentPhoto ? '1px solid #86efac' : '1px solid #e5e7eb', borderRadius: '8px' }}>
                       <input type="checkbox" checked={modalConsentPhoto} onChange={(e) => setModalConsentPhoto(e.target.checked)} style={{ marginTop: '2px', width: '18px', height: '18px', flexShrink: 0 }} />
@@ -830,8 +753,8 @@ function FormationContent() {
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
-                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reserviste?.consent_photo && !modalConsentPhoto)}
-                    style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photo && !modalConsentPhoto)) ? 'not-allowed' : 'pointer' }}>
+                  <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions || (!reserviste?.consent_photos && !modalConsentPhoto)}
+                    style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photos && !modalConsentPhoto)) ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId || (!reserviste?.consent_photos && !modalConsentPhoto)) ? 'not-allowed' : 'pointer' }}>
                     {inscriptionLoading ? 'Traitement...' : campStatus?.has_inscription ? 'Confirmer la modification' : 'Confirmer mon inscription'}
                   </button>
                 </div>
@@ -1024,7 +947,7 @@ function FormationContent() {
                           <div style={{ display: 'flex', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
                             {certificats.map((cert) => (
                               <div key={cert.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                <a href={cert.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
+                                <a href={cert.url || undefined} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', textDecoration: 'none', fontWeight: '500' }}>
                                   📄 {cert.name}
                                 </a>
                                 {/* Certificats Monday — lecture seule, pas de suppression */}

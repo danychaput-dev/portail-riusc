@@ -221,7 +221,7 @@ export interface Formation {
 
 /** Fichier de certificat */
 export interface CertificatFile {
-  id: string
+  id?: string
   name: string
   url?: string | null
 }
