@@ -93,20 +93,26 @@ function Card({ title, subtitle, children, fullWidth = false, action }: {
   )
 }
 
-function StatCard({ value, label, color = NAVY }: { value: number; label: string; color?: string }) {
+function StatCard({ value, label, color = NAVY, onClick }: { value: number; label: string; color?: string; onClick?: () => void }) {
   return (
-    <div style={{ backgroundColor: WHITE, borderRadius: 12, padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}` }}>
+    <div onClick={onClick} style={{ backgroundColor: WHITE, borderRadius: 12, padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', border: `1px solid ${BORDER}`, cursor: onClick ? 'pointer' : 'default', transition: 'box-shadow 0.15s, transform 0.15s' }}
+      onMouseOver={e => { if (onClick) { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'; e.currentTarget.style.transform = 'translateY(-1px)' } }}
+      onMouseOut={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; e.currentTarget.style.transform = 'none' }}
+    >
       <div style={{ fontSize: 36, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
       <div style={{ fontSize: 13, color: MUTED, marginTop: 4 }}>{label}</div>
     </div>
   )
 }
 
-function Legend({ items }: { items: { label: string; color: string; value: number }[] }) {
+function Legend({ items }: { items: { label: string; color: string; value: number; onClick?: () => void }[] }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', marginTop: 12 }}>
       {items.map((item, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <div key={i} onClick={item.onClick} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: item.onClick ? 'pointer' : 'default', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s' }}
+          onMouseOver={e => { if (item.onClick) e.currentTarget.style.backgroundColor = '#f0f4f8' }}
+          onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+        >
           <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: item.color, flexShrink: 0 }} />
           <span style={{ color: MUTED }}>{item.label}</span>
           <strong style={{ color: NAVY }}>{item.value}</strong>
@@ -116,10 +122,13 @@ function Legend({ items }: { items: { label: string; color: string; value: numbe
   )
 }
 
-function OrgBar({ row, max, color }: { row: { organisme: string; total: number }; max: number; color: string }) {
+function OrgBar({ row, max, color, onClick }: { row: { organisme: string; total: number }; max: number; color: string; onClick?: () => void }) {
   const pct = max > 0 ? Math.round((row.total / max) * 100) : 0
   return (
-    <div>
+    <div onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', padding: '4px 6px', borderRadius: 6, transition: 'background 0.15s' }}
+      onMouseOver={e => { if (onClick) e.currentTarget.style.backgroundColor = '#f0f4f8' }}
+      onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, flexShrink: 0 }} />
@@ -136,12 +145,18 @@ function OrgBar({ row, max, color }: { row: { organisme: string; total: number }
   )
 }
 
-function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves, totalPartenaires }: {
+function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves, totalPartenaires, onDrill }: {
   reservistesQualifies: { organisme: string; total: number }[]
   partenairesOrganismes: { organisme: string; total: number }[]
   totalApprouves: number
   totalPartenaires: number
+  onDrill?: (params: Record<string, string>) => void
 }) {
+  const orgClick = (org: string, groupe: string) => {
+    if (!onDrill) return undefined
+    const orgKey = org.includes('AQBRS') ? 'AQBRS' : org.includes('SOPFEU') ? 'SOPFEU' : org.includes('Croix-Rouge') ? 'Croix-Rouge' : org.includes('MSP') ? 'MSP' : org
+    return () => onDrill({ groupes: groupe, organisme: orgKey, label: `${org} (${groupe === 'Approuvé' ? 'Qualifiés' : 'Partenaires'})` })
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -153,7 +168,7 @@ function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves,
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {reservistesQualifies.map((row, i) => (
-            <OrgBar key={i} row={row} max={totalApprouves} color={i === 0 ? NAVY : '#64748b'} />
+            <OrgBar key={i} row={row} max={totalApprouves} color={i === 0 ? NAVY : '#64748b'} onClick={orgClick(row.organisme, 'Approuvé')} />
           ))}
         </div>
       </div>
@@ -168,7 +183,7 @@ function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves,
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {partenairesOrganismes.map((row, i) => (
-            <OrgBar key={i} row={row} max={totalPartenaires} color={ORG_COLORS[row.organisme] || MUTED} />
+            <OrgBar key={i} row={row} max={totalPartenaires} color={ORG_COLORS[row.organisme] || MUTED} onClick={orgClick(row.organisme, 'Partenaires')} />
           ))}
         </div>
       </div>
@@ -195,6 +210,7 @@ export default function DashboardPublicPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [retourHref, setRetourHref] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const isMobile = useIsMobile()
 
   useEffect(() => {
@@ -211,13 +227,23 @@ export default function DashboardPublicPage() {
       if (!user) return
       supabase.from('reservistes').select('role').eq('user_id', user.id).single().then(({ data }) => {
         if (!data) return
-        if (data.role === 'admin' || data.role === 'coordonnateur') setRetourHref('/admin')
-        else if (data.role === 'adjoint') setRetourHref('/admin/reservistes')
+        if (data.role === 'admin' || data.role === 'coordonnateur') { setRetourHref('/admin'); setIsAdmin(true) }
+        else if (data.role === 'adjoint') { setRetourHref('/admin/reservistes'); setIsAdmin(true) }
         else if (data.role === 'partenaire') setRetourHref('/partenaire')
         else setRetourHref('/')
       })
     })
   }, [])
+
+  // Helper pour construire les URLs de drill-down vers /admin/reservistes
+  function drillUrl(params: Record<string, string>) {
+    const sp = new URLSearchParams({ from: 'dashboard', ...params })
+    return `/admin/reservistes?${sp}`
+  }
+  function drill(params: Record<string, string>) {
+    if (!isAdmin) return undefined
+    return () => router.push(drillUrl(params))
+  }
 
   const maxDaily = stats ? Math.max(...stats.dailyData.map(d => d.count), 1) : 1
   const today = new Date().toISOString().slice(0, 10)
@@ -266,10 +292,10 @@ export default function DashboardPublicPage() {
           <>
             {/* ── Badges ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-              <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" />
-              <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} />
-              <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" />
-              <StatCard value={stats.totalApprouves}   label="Réservistes qualifiés" color={NAVY} />
+              <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" onClick={drill({ groupes: 'Approuvé,Intérêt,Partenaires,Formation incomplète,Responsable,Retrait temporaire', label: 'Tous les réservistes inscrits' })} />
+              <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} onClick={drill({ groupes: 'Intérêt', label: 'Personnes avec intérêt à joindre' })} />
+              <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" onClick={drill({ groupes: 'Partenaires', label: 'Partenaires' })} />
+              <StatCard value={stats.totalApprouves}   label="Réservistes qualifiés" color={NAVY} onClick={drill({ groupes: 'Approuvé', label: 'Réservistes qualifiés' })} />
             </div>
 
             {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
@@ -281,6 +307,7 @@ export default function DashboardPublicPage() {
                   partenairesOrganismes={stats.partenairesOrganismes}
                   totalApprouves={stats.totalApprouves}
                   totalPartenaires={stats.totalPartenaires}
+                  onDrill={isAdmin ? (params) => router.push(drillUrl(params)) : undefined}
                 />
               </Card>
 
@@ -301,7 +328,7 @@ export default function DashboardPublicPage() {
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total }))} />
+                  <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total, onClick: drill({ groupes: 'Intérêt', organisme: d.label === 'AQBRS' ? 'AQBRS' : 'sans_org', label: `Intérêt — ${d.label}` }) }))} />
                 </div>
 
                 {/* Carte 2 : Antécédents */}
@@ -317,7 +344,7 @@ export default function DashboardPublicPage() {
                       <Tooltip formatter={(value: any, name: any) => [value, ANTECEDENTS_LABELS[name] || name]} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total }))} />
+                  <Legend items={stats.antecedentsData.map(d => ({ label: ANTECEDENTS_LABELS[d.statut] || d.statut, color: ANTECEDENTS_COLORS[d.statut] || MUTED, value: d.total, onClick: drill({ groupes: 'Approuvé', antecedents: d.statut, label: `Antécédents — ${ANTECEDENTS_LABELS[d.statut] || d.statut}` }) }))} />
                 </div>
 
                 {/* Carte 3 : Bottes */}
@@ -332,7 +359,7 @@ export default function DashboardPublicPage() {
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <Legend items={stats.bottesData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : BORDER, value: d.total }))} />
+                  <Legend items={stats.bottesData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : BORDER, value: d.total, onClick: drill({ groupes: 'Approuvé', bottes: i === 0 ? 'oui' : 'non', label: `Bottes — ${d.label}` }) }))} />
                 </div>
 
               </div>
@@ -342,7 +369,8 @@ export default function DashboardPublicPage() {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 20 }}>
               <Card title="Géographie — Réservistes qualifiés">
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={stats.parRegionApprouves} barCategoryGap="30%">
+                  <BarChart data={stats.parRegionApprouves} barCategoryGap="30%" style={{ cursor: isAdmin ? 'pointer' : 'default' }}
+                    onClick={isAdmin ? (e: any) => { if (e?.activeLabel) router.push(drillUrl({ groupes: 'Approuvé', region: e.activeLabel, label: `Qualifiés — ${e.activeLabel}` })) } : undefined}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="region" tick={{ fontSize: 9, fill: MUTED }} interval={0} angle={-30} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 11, fill: MUTED }} />
@@ -354,7 +382,8 @@ export default function DashboardPublicPage() {
 
               <Card title="Géographie — Avec intérêt">
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={stats.parRegionInteret} barCategoryGap="30%">
+                  <BarChart data={stats.parRegionInteret} barCategoryGap="30%" style={{ cursor: isAdmin ? 'pointer' : 'default' }}
+                    onClick={isAdmin ? (e: any) => { if (e?.activeLabel) router.push(drillUrl({ groupes: 'Intérêt', region: e.activeLabel, label: `Intérêt — ${e.activeLabel}` })) } : undefined}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="region" tick={{ fontSize: 9, fill: MUTED }} interval={0} angle={-30} textAnchor="end" height={60} />
                     <YAxis tick={{ fontSize: 11, fill: MUTED }} />

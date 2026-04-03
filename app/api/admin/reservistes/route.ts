@@ -33,9 +33,12 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { searchParams } = new URL(req.url)
-  const groupes   = searchParams.get('groupes')
-  const recherche = searchParams.get('recherche') || ''
-  const format    = searchParams.get('format')
+  const groupes      = searchParams.get('groupes')
+  const recherche    = searchParams.get('recherche') || ''
+  const format       = searchParams.get('format')
+  const region       = searchParams.get('region')
+  const antecedents  = searchParams.get('antecedents')
+  const bottes       = searchParams.get('bottes')
 
   let query = supabaseAdmin
     .from('reservistes')
@@ -53,10 +56,57 @@ export async function GET(req: NextRequest) {
     query = query.or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%,ville.ilike.%${recherche}%,telephone.ilike.%${recherche}%`)
   }
 
+  if (region) {
+    query = query.ilike('region', region)
+  }
+
+  if (antecedents) {
+    if (antecedents === 'en_attente') {
+      query = query.or('antecedents_statut.is.null,antecedents_statut.eq.en_attente')
+    } else {
+      query = query.eq('antecedents_statut', antecedents)
+    }
+  }
+
+  if (bottes === 'oui') {
+    query = query.not('remboursement_bottes_date', 'is', null)
+  } else if (bottes === 'non') {
+    query = query.is('remboursement_bottes_date', null)
+  }
+
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const reservistes = data || []
+  // Filtre organisme côté serveur (nécessite jointure)
+  const organisme = searchParams.get('organisme')
+  let reservistes = data || []
+
+  if (organisme) {
+    const { data: orgLinks } = await supabaseAdmin
+      .from('reserviste_organisations')
+      .select('benevole_id, organisations (nom)')
+    const orgMap: Record<string, string[]> = {}
+    for (const link of (orgLinks || [])) {
+      const nom = (link as any).organisations?.nom || ''
+      if (!nom) continue
+      if (!orgMap[link.benevole_id]) orgMap[link.benevole_id] = []
+      orgMap[link.benevole_id].push(nom)
+    }
+
+    if (organisme === 'AQBRS' || organisme.includes('AQBRS')) {
+      reservistes = reservistes.filter(r => {
+        const orgs = orgMap[r.benevole_id] || []
+        return orgs.some(o => o.includes('AQBRS')) || orgs.length === 0
+      })
+    } else if (organisme === 'sans_org') {
+      reservistes = reservistes.filter(r => !orgMap[r.benevole_id])
+    } else {
+      reservistes = reservistes.filter(r => {
+        const orgs = orgMap[r.benevole_id] || []
+        return orgs.some(o => o.includes(organisme))
+      })
+    }
+  }
 
   if (format === 'xlsx') {
     const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.']

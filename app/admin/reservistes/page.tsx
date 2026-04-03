@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 
@@ -64,12 +64,27 @@ function badgeAntecedents(statut: string | null, dateExpir: string | null) {
 export default function ReservistesPage() {
   const supabase = createClient()
   const router   = useRouter()
+  const searchParams = useSearchParams()
+
+  // Filtres avancés depuis URL (dashboard drill-down)
+  const urlGroupes     = searchParams.get('groupes')
+  const urlOrganisme   = searchParams.get('organisme')
+  const urlRegion      = searchParams.get('region')
+  const urlAntecedents = searchParams.get('antecedents')
+  const urlBottes      = searchParams.get('bottes')
+  const urlLabel       = searchParams.get('label')
+  const urlFrom        = searchParams.get('from')
+  const hasUrlFilters  = !!(urlOrganisme || urlRegion || urlAntecedents || urlBottes || urlFrom)
+
+  const defaultGroupes = urlGroupes
+    ? urlGroupes.split(',').map(g => g.trim()).filter(Boolean)
+    : ['Approuvé', 'Intérêt']
 
   const [loading,        setLoading]        = useState(true)
   const [data,           setData]           = useState<Reserviste[]>([])
   const [total,          setTotal]          = useState(0)
   const [recherche,      setRecherche]      = useState('')
-  const [groupesFiltres, setGroupesFiltres] = useState<string[]>(['Approuvé', 'Intérêt'])
+  const [groupesFiltres, setGroupesFiltres] = useState<string[]>(defaultGroupes)
   const [exporting,      setExporting]      = useState(false)
   const [sortAsc,        setSortAsc]        = useState(true)
   const [authorized,     setAuthorized]     = useState(false)
@@ -101,6 +116,11 @@ export default function ReservistesPage() {
       const params = new URLSearchParams()
       if (recherche) params.set('recherche', recherche)
       if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
+      // Filtres avancés depuis URL
+      if (urlOrganisme) params.set('organisme', urlOrganisme)
+      if (urlRegion) params.set('region', urlRegion)
+      if (urlAntecedents) params.set('antecedents', urlAntecedents)
+      if (urlBottes) params.set('bottes', urlBottes)
       const res = await fetch(`/api/admin/reservistes?${params}`)
       const json = await res.json()
       const sorted = (json.data || []).sort((a: any, b: any) => a.nom.localeCompare(b.nom, 'fr'))
@@ -190,10 +210,26 @@ export default function ReservistesPage() {
       <PortailHeader />
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 20px' }}>
 
+        {/* Bandeau filtre dashboard */}
+        {hasUrlFilters && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', padding: '12px 16px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px' }}>
+            <span style={{ fontSize: '14px' }}>🔍</span>
+            <span style={{ fontSize: '14px', color: '#1e40af', fontWeight: '600' }}>
+              {urlLabel || 'Filtre actif depuis le dashboard'}
+            </span>
+            <button
+              onClick={() => router.push(urlFrom === 'dashboard' ? '/dashboard' : '/admin')}
+              style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: '8px', border: '1px solid #93c5fd', backgroundColor: 'white', color: '#1e40af', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              ← Retour au {urlFrom === 'dashboard' ? 'dashboard' : 'panneau admin'}
+            </button>
+          </div>
+        )}
+
         {/* En-tête */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '13px', cursor: 'pointer' }}>← Admin</button>
+            <button onClick={() => router.push(hasUrlFilters && urlFrom === 'dashboard' ? '/dashboard' : '/admin')} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '13px', cursor: 'pointer' }}>← {hasUrlFilters && urlFrom === 'dashboard' ? 'Dashboard' : 'Admin'}</button>
             <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Annuaire des réservistes</h1>
             <span style={{ fontSize: '13px', color: '#6b7280', backgroundColor: '#f1f5f9', padding: '3px 10px', borderRadius: '20px' }}>
               {loading ? '…' : `${total} résultat${total !== 1 ? 's' : ''}`}
