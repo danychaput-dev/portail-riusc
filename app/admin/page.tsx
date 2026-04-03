@@ -13,6 +13,8 @@ interface StatCount {
   bottes_sans: number
   antecedents_verifie: number
   antecedents_attente: number
+  certificats_attente: number
+  messages_non_lus: number
 }
 
 interface Module {
@@ -29,7 +31,7 @@ export default function AdminDashboardPage() {
   const supabase = createClient()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState<StatCount>({ sinistres_actifs: 0, deploiements_actifs: 0, bottes_avec: 0, bottes_sans: 0, antecedents_verifie: 0, antecedents_attente: 0 })
+  const [stats, setStats] = useState<StatCount>({ sinistres_actifs: 0, deploiements_actifs: 0, bottes_avec: 0, bottes_sans: 0, antecedents_verifie: 0, antecedents_attente: 0, certificats_attente: 0, messages_non_lus: 0 })
   const [nomAdmin, setNomAdmin] = useState('')
 
   useEffect(() => {
@@ -41,12 +43,22 @@ export default function AdminDashboardPage() {
       setNomAdmin(res.prenom || '')
 
       // Charger les stats en parallèle
-      const [sinistres, deploiements, bottesRes, antecedentsRes] = await Promise.all([
+      const [sinistres, deploiements, bottesRes, antecedentsRes, certificatsRes, lastSeenRes] = await Promise.all([
         supabase.from('sinistres').select('id', { count: 'exact', head: true }).eq('statut', 'Actif'),
         supabase.from('deploiements_actifs').select('id', { count: 'exact', head: true }),
         supabase.from('reservistes').select('remboursement_bottes_date').eq('statut', 'Actif').eq('groupe', 'Approuvé'),
         supabase.from('reservistes').select('antecedents_statut').eq('statut', 'Actif').eq('groupe', 'Approuvé'),
+        supabase.from('formations_benevoles').select('id', { count: 'exact', head: true }).eq('resultat', 'En attente').not('certificat_url', 'is', null).is('date_reussite', null).is('monday_item_id', null),
+        supabase.from('community_last_seen').select('last_seen_at').eq('user_id', user.id).maybeSingle(),
       ])
+
+      // Compter messages non lus
+      const lastSeenAt = lastSeenRes.data?.last_seen_at || '1970-01-01'
+      const { count: messagesCount } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_deleted', false)
+        .gt('created_at', lastSeenAt)
 
       const approuvesBottes = bottesRes.data || []
       const approuvesAnt = antecedentsRes.data || []
@@ -57,6 +69,8 @@ export default function AdminDashboardPage() {
         bottes_sans: approuvesBottes.filter(r => !r.remboursement_bottes_date).length,
         antecedents_verifie: approuvesAnt.filter(r => r.antecedents_statut === 'verifie').length,
         antecedents_attente: approuvesAnt.filter(r => r.antecedents_statut !== 'verifie').length,
+        certificats_attente: certificatsRes.count || 0,
+        messages_non_lus: messagesCount ?? 0,
       })
       setLoading(false)
     }
@@ -80,7 +94,16 @@ export default function AdminDashboardPage() {
       href: '/admin/certificats',
       couleur: '#059669',
       statut: 'actif',
-      badge: stats.antecedents_attente || undefined,
+      badge: stats.certificats_attente || undefined,
+    },
+    {
+      titre: 'Communauté',
+      description: 'Messages, discussions et activité des réservistes',
+      icone: '💬',
+      href: '/communaute',
+      couleur: '#8b5cf6',
+      statut: 'actif',
+      badge: stats.messages_non_lus || undefined,
     },
     {
       titre: 'Réservistes',

@@ -142,6 +142,10 @@ export default function CommunautePage() {
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [reactionPickerCategory, setReactionPickerCategory] = useState(0);
 
+  /* ── State nouveautés ── */
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+  const [channelUnread, setChannelUnread] = useState<Record<string, number>>({});
+
   /* ── Refs ── */
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -231,6 +235,29 @@ export default function CommunautePage() {
     }
     if (reservisteData) setReserviste(reservisteData);
 
+    // Capturer le last_seen AVANT de le mettre à jour (pour marquer les nouveaux messages)
+    const { data: lastSeenData } = await supabase
+      .from('community_last_seen')
+      .select('last_seen_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const savedLastSeen = lastSeenData?.last_seen_at || '1970-01-01';
+    setLastSeenAt(savedLastSeen);
+
+    // Compter les non-lus par canal
+    const unreadCounts: Record<string, number> = {};
+    await Promise.all(CANAUX.map(async (c) => {
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('canal', c.id)
+        .eq('is_deleted', false)
+        .gt('created_at', savedLastSeen);
+      unreadCounts[c.id] = count ?? 0;
+    }));
+    setChannelUnread(unreadCounts);
+
+    // Maintenant mettre à jour le last_seen
     await supabase.from('community_last_seen').upsert(
       { user_id: user.id, last_seen_at: new Date().toISOString() },
       { onConflict: 'user_id' }
@@ -588,16 +615,22 @@ export default function CommunautePage() {
         <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px 12px', display: 'flex', gap: '8px', overflowX: 'auto', flexShrink: 0 }}>
           <a href="/" style={{ padding: '8px 12px', fontSize: '13px', color: '#6b7280', textDecoration: 'none', flexShrink: 0 }}>{'← Accueil'}</a>
           <div style={{ width: '1px', backgroundColor: '#e5e7eb', flexShrink: 0 }} />
-          {CANAUX.map((c) => (
+          {CANAUX.map((c) => {
+            const unread = channelUnread[c.id] || 0;
+            return (
             <button key={c.id} onClick={() => { setCanal(c.id); setReplyTo(null); setEditingMessage(null); setReactionPickerMsgId(null); }} style={{
-              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: canal === c.id ? '700' : '500', flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: (canal === c.id || unread > 0) ? '700' : '500', flexShrink: 0,
               backgroundColor: canal === c.id ? '#1e3a5f' : '#f3f4f6',
               color: canal === c.id ? 'white' : '#374151',
               transition: 'all 0.15s',
             }}>
               <span>{c.emoji}</span>{c.label}
+              {unread > 0 && canal !== c.id && (
+                <span style={{ backgroundColor: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 6px', fontSize: '10px', fontWeight: '700', marginLeft: '2px' }}>{unread}</span>
+              )}
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -608,16 +641,23 @@ export default function CommunautePage() {
           <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', padding: '8px 16px' }}>{"← Retour à l'accueil"}</a>
             <div style={{ padding: '12px 16px', fontSize: '12px', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Canaux</div>
-            {CANAUX.map((c) => (
+            {CANAUX.map((c) => {
+              const unread = channelUnread[c.id] || 0;
+              return (
               <button key={c.id} onClick={() => { setCanal(c.id); setReplyTo(null); setEditingMessage(null); setReactionPickerMsgId(null); }} style={{
-                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: canal === c.id ? '700' : '500', textAlign: 'left', width: '100%',
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: (canal === c.id || unread > 0) ? '700' : '500', textAlign: 'left', width: '100%',
                 backgroundColor: canal === c.id ? '#1e3a5f' : 'transparent',
                 color: canal === c.id ? 'white' : '#374151',
                 transition: 'all 0.15s',
               }}>
-                <span>{c.emoji}</span>{c.label}
+                <span>{c.emoji}</span>
+                <span style={{ flex: 1 }}>{c.label}</span>
+                {unread > 0 && canal !== c.id && (
+                  <span style={{ backgroundColor: '#ef4444', color: 'white', borderRadius: '10px', padding: '1px 7px', fontSize: '11px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>{unread}</span>
+                )}
               </button>
-            ))}
+              );
+            })}
             <div style={{ marginTop: 'auto', padding: '16px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
               <div style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f', marginBottom: '4px' }}>{'💡 Astuces'}</div>
               <div style={{ fontSize: '12px', color: '#6b7280', lineHeight: 1.7 }}>
@@ -656,7 +696,7 @@ export default function CommunautePage() {
               </div>
             )}
 
-            {messages.filter(msg => !msg.is_deleted).map((msg, idx) => {
+            {messages.filter(msg => !msg.is_deleted).map((msg, idx, filtered) => {
               const showHeader = shouldShowHeader(msg, idx);
               const isMe = reserviste?.benevole_id === msg.benevole_id;
               const replyParent = getReplyParent(msg);
@@ -666,9 +706,21 @@ export default function CommunautePage() {
               const msgReactionGroups = getReactionGroups(msg.id);
               const hasReactions = msgReactionGroups.length > 0;
 
+              // Divider "Nouveaux messages"
+              const isFirstNew = lastSeenAt && msg.created_at > lastSeenAt &&
+                (idx === 0 || filtered[idx - 1].created_at <= lastSeenAt);
+              const showNewDivider = isFirstNew && !isMe;
+
               return (
+                <div key={msg.id}>
+                  {showNewDivider && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '12px 8px', }}>
+                      <div style={{ flex: 1, height: '1px', backgroundColor: '#ef4444' }} />
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#ef4444', whiteSpace: 'nowrap' }}>Nouveaux messages</span>
+                      <div style={{ flex: 1, height: '1px', backgroundColor: '#ef4444' }} />
+                    </div>
+                  )}
                 <div
-                  key={msg.id}
                   style={{
                     padding: showHeader
                       ? (isMobile ? '10px 4px 2px 4px' : '12px 8px 2px 8px')
@@ -924,6 +976,7 @@ export default function CommunautePage() {
                       ><span>🗑️</span> Supprimer</button>
                     </div>
                   )}
+                </div>
                 </div>
               );
             })}
