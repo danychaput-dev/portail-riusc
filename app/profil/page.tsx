@@ -821,6 +821,7 @@ export default function ProfilPage() {
             telephone: cleanPhoneForSave(profilData.telephone),
             telephone_secondaire: cleanPhoneForSave(profilData.telephone_secondaire),
             adresse: profilData.adresse,
+            code_postal: profilData.code_postal,
             ville: profilData.ville,
             region: profilData.region,
             latitude: profilData.latitude,
@@ -872,6 +873,9 @@ export default function ProfilPage() {
         const { error: dossierError } = await supabase
           .from('reservistes')
           .update({
+            prenom: dossier.prenom || null,
+            nom: dossier.nom || null,
+            date_naissance: dossier.date_naissance || null,
             grandeur_bottes: dossier.grandeur_bottes || null,
             profession: dossier.profession || null,
             j_ai_18_ans: dossier.j_ai_18_ans,
