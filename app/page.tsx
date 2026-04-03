@@ -11,7 +11,7 @@ import PortailHeader from './components/PortailHeader'
 import { logEvent, logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from './components/CampInfoBlocs'
 import { n8nUrl } from '@/utils/n8n'
-
+// ajout text pour redeploiement
 interface DeploiementActif {
   id: string;
   deploiement_id: string;
