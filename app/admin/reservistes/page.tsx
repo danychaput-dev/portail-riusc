@@ -338,10 +338,11 @@ function ReservistesPage() {
   const isAdmin = userRole === 'admin'
   const canEmail = ['admin', 'coordonnateur'].includes(userRole)
 
-  // Readiness stats
+  // Readiness stats — calculé sur les Approuvés seulement (seuls les Approuvés peuvent être déployés)
+  const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
   const readinessStats = useMemo(() => {
     const stats = { profil: 0, initiation: 0, camp: 0, antecedents: 0, deployable: 0 }
-    for (const r of rawData) {
+    for (const r of approuves) {
       const rd = getReadiness(r)
       if (rd.profil) stats.profil++
       if (rd.initiation) stats.initiation++
@@ -350,7 +351,7 @@ function ReservistesPage() {
       if (isDeployable(r)) stats.deployable++
     }
     return stats
-  }, [rawData])
+  }, [approuves])
 
   if (!authorized) return null
 
@@ -362,9 +363,10 @@ function ReservistesPage() {
   })
 
   // Columns: [checkbox] Nom Téléphone Courriel Ville Région Bottes Groupe Prêt(3) Antécédents
+  // Colonnes: [cb] Nom Tél Courriel Ville Région Bottes Groupe Prêt Antécédents
   const gridCols = canEmail
-    ? '36px 1.3fr 0.9fr 1.4fr 0.9fr 1fr 70px 90px 120px 110px'
-    : '1.3fr 0.9fr 1.4fr 0.9fr 1fr 70px 90px 120px 110px'
+    ? '36px 1.3fr 0.9fr 1.4fr 0.8fr 0.8fr 80px 100px 120px 140px'
+    : '1.3fr 0.9fr 1.4fr 0.8fr 0.8fr 80px 100px 120px 140px'
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -480,12 +482,12 @@ function ReservistesPage() {
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Déployabilité :</span>
           <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '20px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>
-            {readinessStats.deployable} / {rawData.length} déployables
+            {readinessStats.deployable} / {approuves.length} déployables
           </span>
           <span style={{ color: '#e2e8f0' }}>|</span>
           {READINESS_STEPS.map(step => {
             const count = readinessStats[step.key]
-            const missing = rawData.length - count
+            const missing = approuves.length - count
             const active = filtreReadiness === step.key
             return (
               <button
@@ -538,7 +540,7 @@ function ReservistesPage() {
             <div style={thStyle()} onClick={() => handleSort('bottes')}>
               Bottes{sortArrow('bottes')}
               <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700', marginLeft: '4px' }}>
-                {rawData.filter(r => r.remboursement_bottes_date).length}
+                {approuves.filter(r => r.remboursement_bottes_date).length}
               </span>
             </div>
             <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
@@ -546,9 +548,9 @@ function ReservistesPage() {
               Prêt{sortArrow('readiness')}
             </div>
             <div style={thStyle()} onClick={() => handleSort('antecedents')}>
-              Antéc.{sortArrow('antecedents')}
+              Antécédents{sortArrow('antecedents')}
               <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
-                {rawData.filter(r => r.antecedents_statut === 'verifie').length}
+                {readinessStats.antecedents}
               </span>
             </div>
           </div>
