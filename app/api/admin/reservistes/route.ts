@@ -167,8 +167,11 @@ export async function GET(req: NextRequest) {
         .eq('resultat', 'Réussi')
       for (const f of (formations || [])) {
         if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false }
-        if (f.initiation_sc_completee === true) formationsMap[f.benevole_id].initiation_sc = true
-        if (f.source === 'monday' && f.nom_formation && f.nom_formation.toLowerCase().includes('camp')) formationsMap[f.benevole_id].camp = true
+        const cat = (f.nom_formation || '').toLowerCase()
+        // Initiation SC : même logique que PortailHeader — cherche "initier" dans nom_formation OU flag initiation_sc_completee
+        if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
+        // Camp : même logique que PortailHeader — nom_formation contient "camp" (pas restreint à source monday)
+        if (cat.includes('camp')) formationsMap[f.benevole_id].camp = true
       }
     }
   }
