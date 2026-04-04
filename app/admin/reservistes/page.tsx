@@ -365,8 +365,8 @@ function ReservistesPage() {
   // Columns: [checkbox] Nom Téléphone Courriel Ville Région Bottes Groupe Prêt(3) Antécédents
   // Colonnes: [cb] Nom Tél Courriel Ville Région Bottes Groupe Prêt Antécédents
   const gridCols = canEmail
-    ? '36px 1.3fr 0.9fr 1.4fr 0.8fr 0.8fr 80px 100px 120px 140px'
-    : '1.3fr 0.9fr 1.4fr 0.8fr 0.8fr 80px 100px 120px 140px'
+    ? '36px 1.3fr 0.9fr 1.4fr 0.8fr 0.65fr 90px 100px 120px 150px'
+    : '1.3fr 0.9fr 1.4fr 0.8fr 0.65fr 90px 100px 120px 150px'
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
