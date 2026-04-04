@@ -459,7 +459,19 @@ function ReservistesPage() {
                 {/* Courriel */}
                 <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
                   {r.email
-                    ? <a href={`mailto:${r.email}`} style={{ color: C, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={r.email}>{r.email}</a>
+                    ? <span
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (canEmail) {
+                            setSelectedIds(new Set([r.benevole_id]))
+                            setShowEmailModal(true)
+                          } else {
+                            window.location.href = `mailto:${r.email}`
+                          }
+                        }}
+                        style={{ color: C, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', cursor: 'pointer' }}
+                        title={canEmail ? `Envoyer un courriel à ${r.prenom} ${r.nom}` : r.email}
+                      >{r.email}</span>
                     : <span style={{ color: '#d1d5db' }}>—</span>
                   }
                 </div>
