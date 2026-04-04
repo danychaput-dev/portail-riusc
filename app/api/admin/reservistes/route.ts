@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration')
+    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone')
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')

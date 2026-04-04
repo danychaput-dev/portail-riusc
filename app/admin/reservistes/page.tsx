@@ -40,6 +40,9 @@ interface Reserviste {
   antecedents_statut: string | null
   antecedents_date_verification: string | null
   antecedents_date_expiration: string | null
+  date_naissance: string | null
+  contact_urgence_nom: string | null
+  contact_urgence_telephone: string | null
   initiation_sc: boolean
   camp_complete: boolean
 }
@@ -66,28 +69,41 @@ function badgeAntecedents(statut: string | null, dateExpir: string | null) {
   return { couleur: '#d97706', bg: '#fffbeb', label: 'En attente' }
 }
 
-// Readiness helpers
-type ReadinessKey = 'approuve' | 'antecedents' | 'bottes' | 'formation'
+// Readiness helpers — 4 vrais critères de déployabilité
+type ReadinessKey = 'profil' | 'initiation' | 'camp' | 'antecedents'
 const READINESS_STEPS: { key: ReadinessKey; label: string; short: string; icon: string }[] = [
-  { key: 'approuve',     label: 'Groupe approuvé',    short: 'Grp', icon: '✓' },
-  { key: 'antecedents',  label: 'Antécédents vérifiés', short: 'Ant', icon: '🔍' },
-  { key: 'bottes',       label: 'Bottes remboursées',  short: 'Bot', icon: '🥾' },
-  { key: 'formation',    label: 'Formation complète',  short: 'For', icon: '🎓' },
+  { key: 'profil',       label: 'Profil complet',          short: 'Profil', icon: '👤' },
+  { key: 'initiation',   label: 'Initiation SC complétée', short: 'Init',   icon: '🎓' },
+  { key: 'camp',         label: 'Camp de qualification',    short: 'Camp',   icon: '⛺' },
+  { key: 'antecedents',  label: 'Antécédents vérifiés',    short: 'Antéc',  icon: '🔍' },
 ]
+
+// Colonnes "Prêt" = les 3 premiers (profil, initiation, camp) — antécédents reste en colonne séparée
+const PRET_STEPS = READINESS_STEPS.filter(s => s.key !== 'antecedents')
 
 function getReadiness(r: Reserviste): Record<ReadinessKey, boolean> {
   const antExpire = r.antecedents_date_expiration && new Date(r.antecedents_date_expiration) < new Date()
+  const isProfilComplet = !!(
+    r.prenom && r.nom && r.email && r.telephone &&
+    r.date_naissance && r.adresse && r.ville && r.region &&
+    r.contact_urgence_nom && r.contact_urgence_telephone
+  )
   return {
-    approuve: r.groupe === 'Approuvé',
+    profil: isProfilComplet,
+    initiation: r.initiation_sc === true,
+    camp: r.camp_complete === true,
     antecedents: r.antecedents_statut === 'verifie' && !antExpire,
-    bottes: !!r.remboursement_bottes_date,
-    formation: r.initiation_sc && r.camp_complete,
   }
 }
 
 function readinessCount(r: Reserviste): number {
   const rd = getReadiness(r)
   return Object.values(rd).filter(Boolean).length
+}
+
+function isDeployable(r: Reserviste): boolean {
+  const rd = getReadiness(r)
+  return rd.profil && rd.initiation && rd.camp && rd.antecedents
 }
 
 // Sorting
@@ -324,14 +340,14 @@ function ReservistesPage() {
 
   // Readiness stats
   const readinessStats = useMemo(() => {
-    const stats = { approuve: 0, antecedents: 0, bottes: 0, formation: 0, deployable: 0 }
+    const stats = { profil: 0, initiation: 0, camp: 0, antecedents: 0, deployable: 0 }
     for (const r of rawData) {
       const rd = getReadiness(r)
-      if (rd.approuve) stats.approuve++
+      if (rd.profil) stats.profil++
+      if (rd.initiation) stats.initiation++
+      if (rd.camp) stats.camp++
       if (rd.antecedents) stats.antecedents++
-      if (rd.bottes) stats.bottes++
-      if (rd.formation) stats.formation++
-      if (rd.approuve && rd.antecedents && rd.bottes && rd.formation) stats.deployable++
+      if (isDeployable(r)) stats.deployable++
     }
     return stats
   }, [rawData])
@@ -345,9 +361,10 @@ function ReservistesPage() {
     userSelect: 'none', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap',
   })
 
+  // Columns: [checkbox] Nom Téléphone Courriel Ville Région Bottes Groupe Prêt(3) Antécédents
   const gridCols = canEmail
-    ? '36px 1.4fr 0.8fr 1.6fr 0.7fr 0.8fr 60px 90px 80px 140px'
-    : '1.4fr 0.8fr 1.6fr 0.7fr 0.8fr 60px 90px 80px 140px'
+    ? '36px 1.4fr 0.8fr 1.6fr 0.7fr 0.8fr 60px 80px 110px 90px'
+    : '1.4fr 0.8fr 1.6fr 0.7fr 0.8fr 60px 80px 110px 90px'
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -524,15 +541,15 @@ function ReservistesPage() {
                 {rawData.filter(r => r.remboursement_bottes_date).length}
               </span>
             </div>
+            <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
+            <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>
+              Prêt{sortArrow('readiness')}
+            </div>
             <div style={thStyle()} onClick={() => handleSort('antecedents')}>
               Antéc.{sortArrow('antecedents')}
               <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
                 {rawData.filter(r => r.antecedents_statut === 'verifie').length}
               </span>
-            </div>
-            <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
-            <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>
-              Prêt{sortArrow('readiness')}
             </div>
           </div>
 
@@ -546,7 +563,6 @@ function ReservistesPage() {
             const badgeAnt = badgeAntecedents(r.antecedents_statut, r.antecedents_date_expiration)
             const rd       = getReadiness(r)
             const rdCount  = Object.values(rd).filter(Boolean).length
-            const isDeployable = rdCount === 4
             return (
               <div
                 key={r.benevole_id}
@@ -617,6 +633,41 @@ function ReservistesPage() {
                     </span>
                   )}
                 </div>
+                {/* Groupe */}
+                <div style={{ padding: '11px 10px' }}>
+                  <span style={{
+                    fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
+                    backgroundColor: badge.bg, color: badge.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const
+                  }}>
+                    {badge.label}
+                  </span>
+                </div>
+                {/* Prêt — 3 étapes (profil, initiation, camp) */}
+                <div style={{ padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  {PRET_STEPS.map(step => {
+                    const ok = rd[step.key]
+                    return (
+                      <div
+                        key={step.key}
+                        title={`${step.label}: ${ok ? 'OK' : 'Manquant'}`}
+                        style={{
+                          width: '26px', height: '26px', borderRadius: '6px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '12px',
+                          backgroundColor: ok ? '#f0fdf4' : '#fef2f2',
+                          border: `1px solid ${ok ? '#bbf7d0' : '#fecaca'}`,
+                          color: ok ? '#16a34a' : '#dc2626',
+                          fontWeight: '700',
+                        }}
+                      >
+                        {ok ? '✓' : '✗'}
+                      </div>
+                    )
+                  })}
+                  {isDeployable(r) && (
+                    <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
+                  )}
+                </div>
                 {/* Antécédents */}
                 <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -639,41 +690,6 @@ function ReservistesPage() {
                     </span>
                   )}
                 </div>
-                {/* Groupe */}
-                <div style={{ padding: '11px 10px' }}>
-                  <span style={{
-                    fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
-                    backgroundColor: badge.bg, color: badge.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const
-                  }}>
-                    {badge.label}
-                  </span>
-                </div>
-                {/* Readiness — 4 étapes */}
-                <div style={{ padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                  {READINESS_STEPS.map(step => {
-                    const ok = rd[step.key]
-                    return (
-                      <div
-                        key={step.key}
-                        title={`${step.label}: ${ok ? 'OK' : 'Manquant'}`}
-                        style={{
-                          width: '26px', height: '26px', borderRadius: '6px',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '12px',
-                          backgroundColor: ok ? '#f0fdf4' : '#fef2f2',
-                          border: `1px solid ${ok ? '#bbf7d0' : '#fecaca'}`,
-                          color: ok ? '#16a34a' : '#dc2626',
-                          fontWeight: '700',
-                        }}
-                      >
-                        {ok ? '✓' : '✗'}
-                      </div>
-                    )
-                  })}
-                  {isDeployable && (
-                    <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
-                  )}
-                </div>
               </div>
             )
           })}
@@ -685,7 +701,7 @@ function ReservistesPage() {
         {!loading && data.length > 0 && (
           <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8' }}>
             <span>
-              Légende Prêt : {READINESS_STEPS.map(s => `${s.icon} ${s.short}`).join(' · ')}
+              Légende Prêt : {PRET_STEPS.map(s => `${s.icon} ${s.short}`).join(' · ')}
             </span>
             <span>{total} réserviste{total !== 1 ? 's' : ''} · Données en temps réel</span>
           </div>
