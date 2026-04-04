@@ -111,28 +111,43 @@ export async function GET(req: NextRequest) {
   }
 
   // Filtre organisme côté serveur (nécessite jointure)
+  const orgPrincipale = searchParams.get('org_principale') === 'true'
   if (organisme) {
     const { data: orgLinks } = await supabaseAdmin
       .from('reserviste_organisations')
       .select('benevole_id, organisations (nom)')
-    const orgMap: Record<string, string[]> = {}
+    const orgMapAll: Record<string, string[]> = {}
     for (const link of (orgLinks || [])) {
       const nom = (link as any).organisations?.nom || ''
       if (!nom) continue
-      if (!orgMap[link.benevole_id]) orgMap[link.benevole_id] = []
-      orgMap[link.benevole_id].push(nom)
+      if (!orgMapAll[link.benevole_id]) orgMapAll[link.benevole_id] = []
+      orgMapAll[link.benevole_id].push(nom)
+    }
+
+    // Org principale : même logique que le dashboard (AQBRS prioritaire)
+    const getOrgPrincipale = (benevoleId: string): string => {
+      const orgs = orgMapAll[benevoleId] || []
+      if (orgs.length === 0) return ''
+      const hasAQBRS = orgs.some(o => o.includes('AQBRS'))
+      return hasAQBRS ? orgs.find(o => o.includes('AQBRS'))! : orgs[0]
     }
 
     if (organisme === 'AQBRS' || organisme.includes('AQBRS')) {
       reservistes = reservistes.filter(r => {
-        const orgs = orgMap[r.benevole_id] || []
+        const orgs = orgMapAll[r.benevole_id] || []
         return orgs.some(o => o.includes('AQBRS'))
       })
     } else if (organisme === 'sans_org') {
-      reservistes = reservistes.filter(r => !orgMap[r.benevole_id])
+      reservistes = reservistes.filter(r => !orgMapAll[r.benevole_id])
+    } else if (orgPrincipale) {
+      // Filtre par org principale uniquement (cohérent avec le comptage du dashboard)
+      reservistes = reservistes.filter(r => {
+        const principale = getOrgPrincipale(r.benevole_id)
+        return principale.includes(organisme)
+      })
     } else {
       reservistes = reservistes.filter(r => {
-        const orgs = orgMap[r.benevole_id] || []
+        const orgs = orgMapAll[r.benevole_id] || []
         return orgs.some(o => o.includes(organisme))
       })
     }

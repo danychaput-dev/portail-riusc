@@ -157,7 +157,7 @@ function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves,
   const orgClick = (org: string, groupe: string) => {
     if (!onDrill) return undefined
     const orgKey = org.includes('AQBRS') ? 'AQBRS' : org.includes('SOPFEU') ? 'SOPFEU' : org.includes('Croix-Rouge') ? 'Croix-Rouge' : org.includes('MSP') ? 'MSP' : org
-    return () => onDrill({ groupes: groupe, organisme: orgKey, label: `${org} (${groupe === 'Approuvé' ? 'Qualifiés' : 'Partenaires'})` })
+    return () => onDrill({ groupes: groupe, organisme: orgKey, org_principale: 'true', label: `${org} (${groupe === 'Approuvé' ? 'Qualifiés' : 'Partenaires'})` })
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
