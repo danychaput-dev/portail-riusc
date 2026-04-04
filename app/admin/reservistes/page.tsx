@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 import { formatPhone } from '@/utils/phone'
+import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 
 const C = '#1e3a5f'
 
@@ -107,6 +108,8 @@ function ReservistesPage() {
   const [modalDate,      setModalDate]      = useState('')
   const [modalStatut,    setModalStatut]    = useState('verifie')
   const [modalSaving,    setModalSaving]    = useState(false)
+  const [selectedIds,    setSelectedIds]    = useState<Set<string>>(new Set())
+  const [showEmailModal, setShowEmailModal] = useState(false)
 
   // Auth
   useEffect(() => {
@@ -153,6 +156,24 @@ function ReservistesPage() {
   const toggleGroupe = (g: string) => {
     setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
   }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === data.length) setSelectedIds(new Set())
+    else setSelectedIds(new Set(data.map(r => r.benevole_id)))
+  }
+
+  const getDestinatairesFromSelection = () =>
+    data.filter(r => selectedIds.has(r.benevole_id)).map(r => ({
+      benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom,
+    }))
 
   const exporter = async () => {
     setExporting(true)
@@ -220,13 +241,19 @@ function ReservistesPage() {
 
   const isAdmin = userRole === 'admin'
 
-  // Colonnes dynamiques selon le rôle
-  const gridCols = isAdmin
-    ? '1.8fr 1fr 1.8fr 0.9fr 1fr 70px 120px 90px'
-    : '1.8fr 1fr 1.8fr 0.9fr 1fr 1.2fr 70px 90px'
-  const headers = isAdmin
+  // Colonnes dynamiques selon le rôle (checkbox + colonnes existantes)
+  const canEmail = ['admin', 'coordonnateur'].includes(userRole)
+  const gridCols = canEmail
+    ? (isAdmin
+      ? '36px 1.8fr 1fr 1.8fr 0.9fr 1fr 70px 120px 90px'
+      : '36px 1.8fr 1fr 1.8fr 0.9fr 1fr 1.2fr 70px 90px')
+    : (isAdmin
+      ? '1.8fr 1fr 1.8fr 0.9fr 1fr 70px 120px 90px'
+      : '1.8fr 1fr 1.8fr 0.9fr 1fr 1.2fr 70px 90px')
+  const baseHeaders = isAdmin
     ? ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Région / CP', 'Bottes', 'Antécédents', 'Groupe']
     : ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Bottes', 'Groupe']
+  const headers = canEmail ? ['☐', ...baseHeaders] : baseHeaders
 
   if (!authorized) return null
 
@@ -273,6 +300,27 @@ function ReservistesPage() {
           >
             {exporting ? '⟳ Export…' : '⬇ Exporter Excel'}
           </button>
+          {['admin', 'coordonnateur'].includes(userRole) && (
+            <button
+              onClick={() => {
+                if (selectedIds.size === 0) {
+                  // Sélectionner tous par défaut si rien sélectionné
+                  setSelectedIds(new Set(data.map(r => r.benevole_id)))
+                }
+                setShowEmailModal(true)
+              }}
+              disabled={data.length === 0}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '8px 16px', borderRadius: '8px', border: '1px solid #7c3aed',
+                backgroundColor: 'white', color: '#7c3aed', fontSize: '13px', fontWeight: '600',
+                cursor: data.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: data.length === 0 ? 0.5 : 1
+              }}
+            >
+              ✉️ Envoyer un courriel {selectedIds.size > 0 && `(${selectedIds.size})`}
+            </button>
+          )}
         </div>
 
         {/* Filtres */}
@@ -339,6 +387,7 @@ function ReservistesPage() {
           <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
             {headers.map(h => (
               <div key={h} onClick={() => {
+                if (h === '☐') { toggleSelectAll(); return }
                 if (h !== 'Nom') return
                 const asc = !sortAsc
                 setSortAsc(asc)
@@ -346,8 +395,10 @@ function ReservistesPage() {
                   ? a.nom.localeCompare(b.nom, 'fr')
                   : b.nom.localeCompare(a.nom, 'fr')
                 ))
-              }} style={{ padding: '10px 14px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em', cursor: h === 'Nom' ? 'pointer' : 'default', userSelect: 'none' as const, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {h}
+              }} style={{ padding: h === '☐' ? '10px 8px' : '10px 14px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em', cursor: (h === 'Nom' || h === '☐') ? 'pointer' : 'default', userSelect: 'none' as const, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: h === '☐' ? 'center' : 'flex-start' }}>
+                {h === '☐' ? (
+                  <input type="checkbox" checked={selectedIds.size === data.length && data.length > 0} onChange={toggleSelectAll} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
+                ) : h}
                 {h === 'Nom' && <span style={{ color: '#94a3b8' }}>{sortAsc ? ' ↑' : ' ↓'}</span>}
                 {h === 'Bottes' && (
                   <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#1e3a5f', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
@@ -379,6 +430,12 @@ function ReservistesPage() {
                 onMouseOver={e => (e.currentTarget as HTMLElement).style.backgroundColor = '#f0f5ff'}
                 onMouseOut={e => (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'white' : '#fafafa'}
               >
+                {/* Checkbox sélection */}
+                {canEmail && (
+                  <div style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <input type="checkbox" checked={selectedIds.has(r.benevole_id)} onChange={() => toggleSelect(r.benevole_id)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
+                  </div>
+                )}
                 {/* Nom */}
                 <div style={{ padding: '11px 14px', overflow: 'hidden' }}>
                   <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.nom} {r.prenom}</div>
@@ -544,6 +601,15 @@ function ReservistesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal composition courriel */}
+      {showEmailModal && (
+        <ModalComposeCourriel
+          destinataires={getDestinatairesFromSelection()}
+          onClose={() => setShowEmailModal(false)}
+          onSent={() => setSelectedIds(new Set())}
+        />
       )}
     </div>
   )

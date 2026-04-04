@@ -383,3 +383,55 @@ export interface MapboxFeature {
   center: [number, number]
   context?: Array<{ id: string; text: string }>
 }
+
+// ─── Courriels (Resend) ─────────────────────────────────────────────────────
+
+/** Courriel envoyé à un réserviste (table `courriels`) */
+export interface Courriel {
+  id: string
+  campagne_id?: string | null
+  benevole_id: string
+  from_email: string
+  from_name: string
+  to_email: string
+  subject: string
+  body_html: string
+  resend_id?: string | null
+  statut: 'queued' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed'
+  ouvert_at?: string | null
+  clics_count: number
+  envoye_par: string
+  created_at: string
+}
+
+/** Campagne d'envoi de masse (table `courriel_campagnes`) */
+export interface CourrielCampagne {
+  id: string
+  nom: string
+  subject: string
+  body_html: string
+  total_envoyes: number
+  envoye_par: string
+  created_at: string
+}
+
+/** Événement webhook Resend (table `courriel_events`) */
+export interface CourrielEvent {
+  id: string
+  courriel_id: string
+  event_type: 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained'
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
+/** Configuration email d'un admin (table `admin_email_config`) */
+export interface AdminEmailConfig {
+  id: string
+  user_id: string
+  from_name: string
+  from_email: string
+  signature_html: string
+  reply_to?: string | null
+  created_at: string
+  updated_at: string
+}
