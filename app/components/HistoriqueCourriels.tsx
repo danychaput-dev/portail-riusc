@@ -17,9 +17,10 @@ const STATUT_CONFIG: Record<string, { icon: string; label: string; color: string
 
 interface Props {
   benevoleId: string
+  refreshKey?: number
 }
 
-export default function HistoriqueCourriels({ benevoleId }: Props) {
+export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
   const [courriels, setCourriels] = useState<Courriel[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -32,7 +33,7 @@ export default function HistoriqueCourriels({ benevoleId }: Props) {
       .then(json => setCourriels(json.courriels || []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [benevoleId])
+  }, [benevoleId, refreshKey])
 
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>Chargement des courriels…</div>

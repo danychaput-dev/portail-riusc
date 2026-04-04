@@ -48,6 +48,7 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
   const [newNote, setNewNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [showCompose, setShowCompose] = useState(false)
+  const [historiqueRefreshKey, setHistoriqueRefreshKey] = useState(0)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -196,7 +197,7 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
 
             {/* Onglet Courriels */}
             {onglet === 'courriels' && (
-              <HistoriqueCourriels benevoleId={reserviste.benevole_id} />
+              <HistoriqueCourriels benevoleId={reserviste.benevole_id} refreshKey={historiqueRefreshKey} />
             )}
 
             {/* Onglet Notes */}
@@ -343,7 +344,7 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
       {showCompose && (
         <ModalComposeCourriel
           destinataires={[{ benevole_id: reserviste.benevole_id, email: reserviste.email, prenom: reserviste.prenom, nom: reserviste.nom }]}
-          onClose={() => setShowCompose(false)}
+          onClose={() => { setShowCompose(false); setHistoriqueRefreshKey(k => k + 1) }}
         />
       )}
     </>
