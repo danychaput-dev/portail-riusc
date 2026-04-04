@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
@@ -40,6 +40,8 @@ interface Reserviste {
   antecedents_statut: string | null
   antecedents_date_verification: string | null
   antecedents_date_expiration: string | null
+  initiation_sc: boolean
+  camp_complete: boolean
 }
 
 interface ModalAntecedents {
@@ -62,6 +64,53 @@ function badgeAntecedents(statut: string | null, dateExpir: string | null) {
   if (statut === 'verifie' && expire)  return { couleur: '#dc2626', bg: '#fef2f2', label: 'Expiré' }
   if (statut === 'refuse')             return { couleur: '#dc2626', bg: '#fef2f2', label: 'Refusé' }
   return { couleur: '#d97706', bg: '#fffbeb', label: 'En attente' }
+}
+
+// Readiness helpers
+type ReadinessKey = 'approuve' | 'antecedents' | 'bottes' | 'formation'
+const READINESS_STEPS: { key: ReadinessKey; label: string; short: string; icon: string }[] = [
+  { key: 'approuve',     label: 'Groupe approuvé',    short: 'Grp', icon: '✓' },
+  { key: 'antecedents',  label: 'Antécédents vérifiés', short: 'Ant', icon: '🔍' },
+  { key: 'bottes',       label: 'Bottes remboursées',  short: 'Bot', icon: '🥾' },
+  { key: 'formation',    label: 'Formation complète',  short: 'For', icon: '🎓' },
+]
+
+function getReadiness(r: Reserviste): Record<ReadinessKey, boolean> {
+  const antExpire = r.antecedents_date_expiration && new Date(r.antecedents_date_expiration) < new Date()
+  return {
+    approuve: r.groupe === 'Approuvé',
+    antecedents: r.antecedents_statut === 'verifie' && !antExpire,
+    bottes: !!r.remboursement_bottes_date,
+    formation: r.initiation_sc && r.camp_complete,
+  }
+}
+
+function readinessCount(r: Reserviste): number {
+  const rd = getReadiness(r)
+  return Object.values(rd).filter(Boolean).length
+}
+
+// Sorting
+type SortKey = 'nom' | 'prenom' | 'telephone' | 'email' | 'ville' | 'region' | 'bottes' | 'antecedents' | 'groupe' | 'readiness'
+type SortDir = 'asc' | 'desc'
+
+function sortData(data: Reserviste[], key: SortKey, dir: SortDir): Reserviste[] {
+  return [...data].sort((a, b) => {
+    let cmp = 0
+    switch (key) {
+      case 'nom':          cmp = (a.nom || '').localeCompare(b.nom || '', 'fr'); break
+      case 'prenom':       cmp = (a.prenom || '').localeCompare(b.prenom || '', 'fr'); break
+      case 'telephone':    cmp = (a.telephone || '').localeCompare(b.telephone || ''); break
+      case 'email':        cmp = (a.email || '').localeCompare(b.email || ''); break
+      case 'ville':        cmp = (a.ville || '').localeCompare(b.ville || '', 'fr'); break
+      case 'region':       cmp = (a.region || '').localeCompare(b.region || '', 'fr'); break
+      case 'bottes':       cmp = (a.remboursement_bottes_date ? 1 : 0) - (b.remboursement_bottes_date ? 1 : 0); break
+      case 'antecedents':  cmp = (a.antecedents_statut || '').localeCompare(b.antecedents_statut || ''); break
+      case 'groupe':       cmp = (a.groupe || '').localeCompare(b.groupe || '', 'fr'); break
+      case 'readiness':    cmp = readinessCount(a) - readinessCount(b); break
+    }
+    return dir === 'desc' ? -cmp : cmp
+  })
 }
 
 export default function ReservistesPageWrapper() {
@@ -96,15 +145,17 @@ function ReservistesPage() {
     : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt']
 
   const [loading,        setLoading]        = useState(true)
-  const [data,           setData]           = useState<Reserviste[]>([])
+  const [rawData,        setRawData]        = useState<Reserviste[]>([])
   const [total,          setTotal]          = useState(0)
   const [recherche,      setRecherche]      = useState('')
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(defaultGroupes)
   const [exporting,      setExporting]      = useState(false)
-  const [sortAsc,        setSortAsc]        = useState(true)
+  const [sortKey,        setSortKey]        = useState<SortKey>('nom')
+  const [sortDir,        setSortDir]        = useState<SortDir>('asc')
   const [authorized,     setAuthorized]     = useState(false)
   const [userRole,       setUserRole]       = useState<string>('')
   const [filtreBottes,   setFiltreBottes]   = useState(false)
+  const [filtreReadiness, setFiltreReadiness] = useState<ReadinessKey | null>(null)
   const [modal,          setModal]          = useState<ModalAntecedents | null>(null)
   const [modalDate,      setModalDate]      = useState('')
   const [modalStatut,    setModalStatut]    = useState('verifie')
@@ -136,7 +187,6 @@ function ReservistesPage() {
       const params = new URLSearchParams()
       if (recherche) params.set('recherche', recherche)
       if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
-      // Filtres avancés depuis URL
       if (urlOrganisme) params.set('organisme', urlOrganisme)
       if (urlRegion) params.set('region', urlRegion)
       if (urlAntecedents) params.set('antecedents', urlAntecedents)
@@ -147,13 +197,25 @@ function ReservistesPage() {
       if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
       const res = await fetch(`/api/admin/reservistes?${params}`)
       const json = await res.json()
-      const sorted = (json.data || []).sort((a: any, b: any) => a.nom.localeCompare(b.nom, 'fr'))
-      setData(sorted)
+      setRawData(json.data || [])
       setTotal(json.total || 0)
       setLoading(false)
     }, recherche ? 350 : 0)
     return () => clearTimeout(timer)
   }, [authorized, recherche, groupesFiltres])
+
+  // Sorted + filtered data
+  const data = useMemo(() => {
+    let filtered = rawData
+    if (filtreBottes) filtered = filtered.filter(r => r.remboursement_bottes_date)
+    if (filtreReadiness) {
+      filtered = filtered.filter(r => {
+        const rd = getReadiness(r)
+        return !rd[filtreReadiness] // Show those MISSING this step
+      })
+    }
+    return sortData(filtered, sortKey, sortDir)
+  }, [rawData, filtreBottes, filtreReadiness, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -211,7 +273,7 @@ function ReservistesPage() {
       body: JSON.stringify({ benevole_id, date: newDate }),
     })
     if (res.ok) {
-      setData(prev => prev.map(r =>
+      setRawData(prev => prev.map(r =>
         r.benevole_id === benevole_id ? { ...r, remboursement_bottes_date: newDate } : r
       ))
     }
@@ -233,7 +295,7 @@ function ReservistesPage() {
     })
     if (res.ok) {
       const json = await res.json()
-      setData(prev => prev.map(r =>
+      setRawData(prev => prev.map(r =>
         r.benevole_id === modal.benevole_id
           ? { ...r, antecedents_statut: json.statut, antecedents_date_verification: json.date_verification, antecedents_date_expiration: json.date_expiration }
           : r
@@ -243,28 +305,54 @@ function ReservistesPage() {
     setModalSaving(false)
   }
 
-  const isAdmin = userRole === 'admin'
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
-  // Colonnes dynamiques selon le rôle (checkbox + colonnes existantes)
+  const sortArrow = (key: SortKey) => {
+    if (sortKey !== key) return <span style={{ color: '#d1d5db', marginLeft: '3px' }}>↕</span>
+    return <span style={{ color: C, marginLeft: '3px' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  const isAdmin = userRole === 'admin'
   const canEmail = ['admin', 'coordonnateur'].includes(userRole)
-  const gridCols = canEmail
-    ? (isAdmin
-      ? '36px 1.8fr 1fr 1.8fr 0.9fr 1fr 70px 120px 90px'
-      : '36px 1.8fr 1fr 1.8fr 0.9fr 1fr 1.2fr 70px 90px')
-    : (isAdmin
-      ? '1.8fr 1fr 1.8fr 0.9fr 1fr 70px 120px 90px'
-      : '1.8fr 1fr 1.8fr 0.9fr 1fr 1.2fr 70px 90px')
-  const baseHeaders = isAdmin
-    ? ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Région / CP', 'Bottes', 'Antécédents', 'Groupe']
-    : ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Bottes', 'Groupe']
-  const headers = canEmail ? ['☐', ...baseHeaders] : baseHeaders
+
+  // Readiness stats
+  const readinessStats = useMemo(() => {
+    const stats = { approuve: 0, antecedents: 0, bottes: 0, formation: 0, deployable: 0 }
+    for (const r of rawData) {
+      const rd = getReadiness(r)
+      if (rd.approuve) stats.approuve++
+      if (rd.antecedents) stats.antecedents++
+      if (rd.bottes) stats.bottes++
+      if (rd.formation) stats.formation++
+      if (rd.approuve && rd.antecedents && rd.bottes && rd.formation) stats.deployable++
+    }
+    return stats
+  }, [rawData])
 
   if (!authorized) return null
+
+  // Column header style
+  const thStyle = (clickable = true): React.CSSProperties => ({
+    padding: '10px 10px', fontSize: '11px', fontWeight: '700', color: '#64748b',
+    textTransform: 'uppercase', letterSpacing: '0.04em', cursor: clickable ? 'pointer' : 'default',
+    userSelect: 'none', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap',
+  })
+
+  const gridCols = canEmail
+    ? '36px 1.4fr 0.8fr 1.6fr 0.7fr 0.8fr 60px 90px 80px 140px'
+    : '1.4fr 0.8fr 1.6fr 0.7fr 0.8fr 60px 90px 80px 140px'
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <PortailHeader />
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 20px' }}>
+      <main style={{ margin: '0 auto', padding: '28px 28px' }}>
 
         {/* Bandeau filtre dashboard */}
         {hasUrlFilters && (
@@ -283,52 +371,51 @@ function ReservistesPage() {
         )}
 
         {/* En-tête */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button onClick={() => router.push(hasUrlFilters && urlFrom === 'dashboard' ? '/dashboard' : '/admin')} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '13px', cursor: 'pointer' }}>← {hasUrlFilters && urlFrom === 'dashboard' ? 'Dashboard' : 'Admin'}</button>
             <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Annuaire des réservistes</h1>
             <span style={{ fontSize: '13px', color: '#6b7280', backgroundColor: '#f1f5f9', padding: '3px 10px', borderRadius: '20px' }}>
-              {loading ? '…' : `${total} résultat${total !== 1 ? 's' : ''}`}
+              {loading ? '…' : `${data.length}${data.length !== total ? ` / ${total}` : ''} résultat${total !== 1 ? 's' : ''}`}
             </span>
           </div>
-          <button
-            onClick={() => exporter()}
-            disabled={exporting || data.length === 0}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 16px', borderRadius: '8px', border: `1px solid ${C}`,
-              backgroundColor: 'white', color: C, fontSize: '13px', fontWeight: '600',
-              cursor: (exporting || data.length === 0) ? 'not-allowed' : 'pointer',
-              opacity: data.length === 0 ? 0.5 : 1
-            }}
-          >
-            {exporting ? '⟳ Export…' : '⬇ Exporter Excel'}
-          </button>
-          {['admin', 'coordonnateur'].includes(userRole) && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => {
-                if (selectedIds.size === 0) {
-                  // Sélectionner tous par défaut si rien sélectionné
-                  setSelectedIds(new Set(data.map(r => r.benevole_id)))
-                }
-                setShowEmailModal(true)
-              }}
-              disabled={data.length === 0}
+              onClick={() => exporter()}
+              disabled={exporting || data.length === 0}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '8px 16px', borderRadius: '8px', border: '1px solid #7c3aed',
-                backgroundColor: 'white', color: '#7c3aed', fontSize: '13px', fontWeight: '600',
-                cursor: data.length === 0 ? 'not-allowed' : 'pointer',
+                padding: '8px 16px', borderRadius: '8px', border: `1px solid ${C}`,
+                backgroundColor: 'white', color: C, fontSize: '13px', fontWeight: '600',
+                cursor: (exporting || data.length === 0) ? 'not-allowed' : 'pointer',
                 opacity: data.length === 0 ? 0.5 : 1
               }}
             >
-              ✉️ Envoyer un courriel {selectedIds.size > 0 && `(${selectedIds.size})`}
+              {exporting ? '⟳ Export…' : '⬇ Exporter Excel'}
             </button>
-          )}
+            {canEmail && (
+              <button
+                onClick={() => {
+                  if (selectedIds.size === 0) setSelectedIds(new Set(data.map(r => r.benevole_id)))
+                  setShowEmailModal(true)
+                }}
+                disabled={data.length === 0}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #7c3aed',
+                  backgroundColor: 'white', color: '#7c3aed', fontSize: '13px', fontWeight: '600',
+                  cursor: data.length === 0 ? 'not-allowed' : 'pointer',
+                  opacity: data.length === 0 ? 0.5 : 1
+                }}
+              >
+                ✉️ Envoyer un courriel {selectedIds.size > 0 && `(${selectedIds.size})`}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filtres */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
             <input
               type="text"
@@ -370,61 +457,83 @@ function ReservistesPage() {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setFiltreBottes(f => !f)}
-            style={{
-              padding: '5px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-              border: `1px solid ${filtreBottes ? '#1e3a5f' : '#e2e8f0'}`,
-              backgroundColor: filtreBottes ? '#1e3a5f' : 'white',
-              color: filtreBottes ? 'white' : '#94a3b8',
-              cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' as const,
-              display: 'flex', alignItems: 'center', gap: '6px',
-            }}
-          >
-            🥾 Bottes remboursées
-            <span style={{
-              fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700',
-              backgroundColor: filtreBottes ? 'white' : '#1e3a5f',
-              color: filtreBottes ? '#1e3a5f' : 'white',
-            }}>
-              {data.filter(r => r.remboursement_bottes_date).length}
-            </span>
-          </button>
+        </div>
+
+        {/* Readiness filter bar */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Déployabilité :</span>
+          <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '20px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>
+            {readinessStats.deployable} / {rawData.length} déployables
+          </span>
+          <span style={{ color: '#e2e8f0' }}>|</span>
+          {READINESS_STEPS.map(step => {
+            const count = readinessStats[step.key]
+            const missing = rawData.length - count
+            const active = filtreReadiness === step.key
+            return (
+              <button
+                key={step.key}
+                onClick={() => setFiltreReadiness(active ? null : step.key)}
+                title={active ? 'Retirer le filtre' : `Afficher les ${missing} sans ${step.label.toLowerCase()}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                  border: `1px solid ${active ? '#ef4444' : '#e2e8f0'}`,
+                  backgroundColor: active ? '#fef2f2' : 'white',
+                  color: active ? '#ef4444' : '#64748b',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}
+              >
+                {step.icon} {step.label}
+                <span style={{
+                  fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700',
+                  backgroundColor: active ? '#ef4444' : '#e2e8f0',
+                  color: active ? 'white' : '#64748b',
+                }}>
+                  {missing}
+                </span>
+              </button>
+            )
+          })}
+          {(filtreBottes || filtreReadiness) && (
+            <button onClick={() => { setFiltreBottes(false); setFiltreReadiness(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+              ✕ Réinitialiser
+            </button>
+          )}
         </div>
 
         {/* Tableau */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const }}>
-        <div style={{ minWidth: '900px' }}>
+        <div style={{ minWidth: '1100px' }}>
           {/* En-tête tableau */}
           <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-            {headers.map(h => (
-              <div key={h} onClick={() => {
-                if (h === '☐') { toggleSelectAll(); return }
-                if (h !== 'Nom') return
-                const asc = !sortAsc
-                setSortAsc(asc)
-                setData(prev => [...prev].sort((a, b) => asc
-                  ? a.nom.localeCompare(b.nom, 'fr')
-                  : b.nom.localeCompare(a.nom, 'fr')
-                ))
-              }} style={{ padding: h === '☐' ? '10px 8px' : '10px 14px', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' as const, letterSpacing: '0.05em', cursor: (h === 'Nom' || h === '☐') ? 'pointer' : 'default', userSelect: 'none' as const, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: h === '☐' ? 'center' : 'flex-start' }}>
-                {h === '☐' ? (
-                  <input type="checkbox" checked={selectedIds.size === data.length && data.length > 0} onChange={toggleSelectAll} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
-                ) : h}
-                {h === 'Nom' && <span style={{ color: '#94a3b8' }}>{sortAsc ? ' ↑' : ' ↓'}</span>}
-                {h === 'Bottes' && (
-                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#1e3a5f', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
-                    {data.filter(r => r.remboursement_bottes_date).length}
-                  </span>
-                )}
-                {h === 'Antécédents' && (
-                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
-                    {data.filter(r => r.antecedents_statut === 'verifie').length}
-                  </span>
-                )}
+            {canEmail && (
+              <div style={{ ...thStyle(true), justifyContent: 'center', padding: '10px 8px' }}>
+                <input type="checkbox" checked={selectedIds.size === data.length && data.length > 0} onChange={toggleSelectAll} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
               </div>
-            ))}
+            )}
+            <div style={thStyle()} onClick={() => handleSort('nom')}>Nom{sortArrow('nom')}</div>
+            <div style={thStyle()} onClick={() => handleSort('telephone')}>Téléphone{sortArrow('telephone')}</div>
+            <div style={thStyle()} onClick={() => handleSort('email')}>Courriel{sortArrow('email')}</div>
+            <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
+            <div style={thStyle()} onClick={() => handleSort('region')}>Région{sortArrow('region')}</div>
+            <div style={thStyle()} onClick={() => handleSort('bottes')}>
+              Bottes{sortArrow('bottes')}
+              <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700', marginLeft: '4px' }}>
+                {rawData.filter(r => r.remboursement_bottes_date).length}
+              </span>
+            </div>
+            <div style={thStyle()} onClick={() => handleSort('antecedents')}>
+              Antéc.{sortArrow('antecedents')}
+              <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
+                {rawData.filter(r => r.antecedents_statut === 'verifie').length}
+              </span>
+            </div>
+            <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
+            <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>
+              Prêt{sortArrow('readiness')}
+            </div>
           </div>
 
           {/* Lignes */}
@@ -432,10 +541,12 @@ function ReservistesPage() {
             <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Chargement…</div>
           ) : data.length === 0 ? (
             <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Aucun réserviste trouvé</div>
-          ) : data.filter(r => !filtreBottes || r.remboursement_bottes_date).map((r, i) => {
+          ) : data.map((r, i) => {
             const badge    = badgeGroupe(r.groupe)
             const badgeAnt = badgeAntecedents(r.antecedents_statut, r.antecedents_date_expiration)
-            const adresse  = [r.adresse].filter(Boolean).join(', ')
+            const rd       = getReadiness(r)
+            const rdCount  = Object.values(rd).filter(Boolean).length
+            const isDeployable = rdCount === 4
             return (
               <div
                 key={r.benevole_id}
@@ -450,7 +561,7 @@ function ReservistesPage() {
                   </div>
                 )}
                 {/* Nom */}
-                <div style={{ padding: '11px 14px', overflow: 'hidden' }}>
+                <div style={{ padding: '11px 10px', overflow: 'hidden' }}>
                   <div
                     onClick={(e) => { e.stopPropagation(); if (canEmail) setModalReserviste(r) }}
                     style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
@@ -461,11 +572,11 @@ function ReservistesPage() {
                   )}
                 </div>
                 {/* Téléphone */}
-                <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>
+                <div style={{ padding: '11px 10px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>
                   {r.telephone ? formatPhone(r.telephone) : <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
                 {/* Courriel */}
-                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
+                <div style={{ padding: '11px 10px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
                   {r.email
                     ? <span
                         onClick={(e) => {
@@ -484,64 +595,84 @@ function ReservistesPage() {
                   }
                 </div>
                 {/* Ville */}
-                <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ padding: '11px 10px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {r.ville || <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
-                {/* Adresse (non-admin seulement) ou Région (admin) */}
-                {!isAdmin && (
-                  <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {adresse || <span style={{ color: '#d1d5db' }}>—</span>}
-                  </div>
-                )}
-                {/* Région / CP */}
-                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
+                {/* Région */}
+                <div style={{ padding: '11px 10px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
                   <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.region || <span style={{ color: '#d1d5db' }}>—</span>}</div>
-                  {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>{r.code_postal}</div>}
+                  {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap', fontSize: '10px' }}>{r.code_postal}</div>}
                 </div>
                 {/* Bottes */}
-                <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                   <input
                     type="checkbox"
                     checked={!!r.remboursement_bottes_date}
                     onChange={() => toggleBottes(r.benevole_id, r.remboursement_bottes_date)}
-                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#1e3a5f' }}
+                    style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#1e3a5f' }}
                   />
                   {r.remboursement_bottes_date && (
-                    <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap' }}>
                       {moisAnnee(r.remboursement_bottes_date)}
                     </span>
                   )}
                 </div>
-                {/* Antécédents — admin seulement */}
-                {isAdmin && (
-                  <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '3px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '11px', padding: '2px 7px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
-                        {badgeAnt.label}
-                      </span>
+                {/* Antécédents */}
+                <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
+                      {badgeAnt.label}
+                    </span>
+                    {isAdmin && (
                       <button
                         onClick={() => ouvrirModalAntecedents(r)}
-                        title="Modifier la date de vérification"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#94a3b8', fontSize: '13px', lineHeight: 1 }}
+                        title="Modifier"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: '#94a3b8', fontSize: '12px', lineHeight: 1 }}
                       >
                         ✏️
                       </button>
-                    </div>
-                    {r.antecedents_date_verification && (
-                      <span style={{ fontSize: '10px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
-                        {moisAnnee(r.antecedents_date_verification)}
-                      </span>
                     )}
                   </div>
-                )}
+                  {r.antecedents_date_verification && (
+                    <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
+                      {moisAnnee(r.antecedents_date_verification)}
+                    </span>
+                  )}
+                </div>
                 {/* Groupe */}
-                <div style={{ padding: '11px 14px' }}>
+                <div style={{ padding: '11px 10px' }}>
                   <span style={{
-                    fontSize: '11px', padding: '3px 8px', borderRadius: '20px',
+                    fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
                     backgroundColor: badge.bg, color: badge.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const
                   }}>
                     {badge.label}
                   </span>
+                </div>
+                {/* Readiness — 4 étapes */}
+                <div style={{ padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  {READINESS_STEPS.map(step => {
+                    const ok = rd[step.key]
+                    return (
+                      <div
+                        key={step.key}
+                        title={`${step.label}: ${ok ? 'OK' : 'Manquant'}`}
+                        style={{
+                          width: '26px', height: '26px', borderRadius: '6px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '12px',
+                          backgroundColor: ok ? '#f0fdf4' : '#fef2f2',
+                          border: `1px solid ${ok ? '#bbf7d0' : '#fecaca'}`,
+                          color: ok ? '#16a34a' : '#dc2626',
+                          fontWeight: '700',
+                        }}
+                      >
+                        {ok ? '✓' : '✗'}
+                      </div>
+                    )
+                  })}
+                  {isDeployable && (
+                    <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
+                  )}
                 </div>
               </div>
             )
@@ -552,8 +683,11 @@ function ReservistesPage() {
 
         {/* Footer info */}
         {!loading && data.length > 0 && (
-          <div style={{ marginTop: '12px', textAlign: 'right', fontSize: '12px', color: '#94a3b8' }}>
-            {total} réserviste{total !== 1 ? 's' : ''} · Données en temps réel
+          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8' }}>
+            <span>
+              Légende Prêt : {READINESS_STEPS.map(s => `${s.icon} ${s.short}`).join(' · ')}
+            </span>
+            <span>{total} réserviste{total !== 1 ? 's' : ''} · Données en temps réel</span>
           </div>
         )}
 

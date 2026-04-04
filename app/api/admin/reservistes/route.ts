@@ -153,9 +153,35 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Enrichir avec données de formation (initiation SC + camp)
+  const benevoleIds = reservistes.map(r => r.benevole_id)
+  let formationsMap: Record<string, { initiation_sc: boolean; camp: boolean }> = {}
+  if (benevoleIds.length > 0) {
+    // Fetch par lots de 500 pour éviter la limite Supabase
+    for (let i = 0; i < benevoleIds.length; i += 500) {
+      const batch = benevoleIds.slice(i, i + 500)
+      const { data: formations } = await supabaseAdmin
+        .from('formations_benevoles')
+        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee')
+        .in('benevole_id', batch)
+        .eq('resultat', 'Réussi')
+      for (const f of (formations || [])) {
+        if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false }
+        if (f.initiation_sc_completee === true) formationsMap[f.benevole_id].initiation_sc = true
+        if (f.source === 'monday' && f.nom_formation && f.nom_formation.toLowerCase().includes('camp')) formationsMap[f.benevole_id].camp = true
+      }
+    }
+  }
+
+  const enriched = reservistes.map(r => ({
+    ...r,
+    initiation_sc: formationsMap[r.benevole_id]?.initiation_sc || false,
+    camp_complete: formationsMap[r.benevole_id]?.camp || false,
+  }))
+
   if (format === 'xlsx') {
-    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.']
-    const rows = reservistes.map(r => [
+    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.', 'Initiation SC', 'Camp complété']
+    const rows = enriched.map(r => [
       r.prenom || '',
       r.nom || '',
       r.email || '',
@@ -170,7 +196,9 @@ export async function GET(req: NextRequest) {
       r.remboursement_bottes_date || '',
       r.antecedents_statut || '',
       r.antecedents_date_verification || '',
-      r.antecedents_date_expiration || ''
+      r.antecedents_date_expiration || '',
+      r.initiation_sc ? 'Oui' : 'Non',
+      r.camp_complete ? 'Oui' : 'Non',
     ])
     const ws = XLSX.utils.aoa_to_sheet([entetes, ...rows])
     ws['!cols'] = [
@@ -190,5 +218,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ data: reservistes, total: reservistes.length })
+  return NextResponse.json({ data: enriched, total: enriched.length })
 }
