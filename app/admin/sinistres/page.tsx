@@ -952,7 +952,7 @@ export default function AdminSinistresPage() {
                       <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
                         {selected.type_incident && `${selected.type_incident} · `}
                         {selected.lieu && `${selected.lieu} · `}
-                        Créé le {new Date(selected.created_at).toLocaleDateString('fr-CA')}
+                        {selected.created_at && `Créé le ${new Date(selected.created_at).toLocaleDateString('fr-CA')}`}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
