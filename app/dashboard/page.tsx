@@ -157,7 +157,7 @@ function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves,
   const orgClick = (org: string, groupe: string) => {
     if (!onDrill) return undefined
     // "Réservistes sans groupe assigné" = pas d'organisme → filtre spécial sans_org
-    if (org === 'Réservistes sans groupe assigné') {
+    if (org.includes('sans groupe')) {
       return () => onDrill({ groupes: groupe, organisme: 'sans_org', org_principale: 'true', label: `${org} (Qualifiés)` })
     }
     const orgKey = org.includes('AQBRS') ? 'AQBRS' : org.includes('SOPFEU') ? 'SOPFEU' : org.includes('Croix-Rouge') ? 'Croix-Rouge' : org.includes('MSP') ? 'MSP' : org
