@@ -114,6 +114,14 @@ export default function AdminDashboardPage() {
       statut: 'actif',
     },
     {
+      titre: 'Campagnes courriels',
+      description: 'Historique des envois de masse, taux d\'ouverture et clics',
+      icone: '✉️',
+      href: '/admin/courriels',
+      couleur: '#7c3aed',
+      statut: 'actif',
+    },
+    {
       titre: 'Inscriptions camps',
       description: 'Gérer les inscriptions, présences et rappels SMS pour les camps de qualification',
       icone: '🏕️',
