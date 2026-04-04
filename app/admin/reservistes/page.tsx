@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 import { formatPhone } from '@/utils/phone'
 import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
+import ModalReserviste from '@/app/components/ModalReserviste'
 
 const C = '#1e3a5f'
 
@@ -110,6 +111,8 @@ function ReservistesPage() {
   const [modalSaving,    setModalSaving]    = useState(false)
   const [selectedIds,    setSelectedIds]    = useState<Set<string>>(new Set())
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [modalReserviste, setModalReserviste] = useState<Reserviste | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string>('')
 
   // Auth
   useEffect(() => {
@@ -119,6 +122,7 @@ function ReservistesPage() {
       const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
       if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setUserRole(res.role)
+      setCurrentUserId(user.id)
       setAuthorized(true)
     }
     init()
@@ -447,7 +451,11 @@ function ReservistesPage() {
                 )}
                 {/* Nom */}
                 <div style={{ padding: '11px 14px', overflow: 'hidden' }}>
-                  <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.nom} {r.prenom}</div>
+                  <div
+                    onClick={(e) => { e.stopPropagation(); if (canEmail) setModalReserviste(r) }}
+                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
+                    title={canEmail ? `Ouvrir le dossier de ${r.prenom} ${r.nom}` : undefined}
+                  >{r.nom} {r.prenom}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
                   )}
@@ -630,6 +638,15 @@ function ReservistesPage() {
           destinataires={getDestinatairesFromSelection()}
           onClose={() => setShowEmailModal(false)}
           onSent={() => setSelectedIds(new Set())}
+        />
+      )}
+
+      {/* Modal fiche réserviste (courriels + notes) */}
+      {modalReserviste && (
+        <ModalReserviste
+          reserviste={modalReserviste}
+          currentUserId={currentUserId}
+          onClose={() => setModalReserviste(null)}
         />
       )}
     </div>
