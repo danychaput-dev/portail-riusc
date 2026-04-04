@@ -263,28 +263,8 @@ export function idsToLabels(field: string, ids: number[]): string[] {
   }).filter((label): label is string => label !== null)
 }
 
-/** Formate un numéro de téléphone pour l'affichage */
-export function formatPhoneDisplay(phone: string | null | undefined): string {
-  if (!phone) return ''
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  if (digits.length === 11 && digits[0] === '1') return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  return phone
-}
-
-/** Nettoie un numéro de téléphone pour la sauvegarde (chiffres seulement) */
-export function cleanPhoneForSave(phone: string): string {
-  return phone.replace(/\D/g, '')
-}
-
-/** Valide un numéro de téléphone nord-américain */
-export function isValidNorthAmericanPhone(phone: string): boolean {
-  if (!phone || phone.trim() === '') return true
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) return true
-  if (digits.length === 11 && digits[0] === '1') return true
-  return false
-}
+// Fonctions téléphone — réexportées depuis utils/phone.ts (source unique)
+export { formatPhone as formatPhoneDisplay, normalizePhone as cleanPhoneForSave, isValidPhone as isValidNorthAmericanPhone } from '@/utils/phone'
 
 /** Vérifie si la personne a 18 ans ou plus */
 export function isOlderThan18(dateNaissance: string): boolean {

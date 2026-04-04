@@ -7,39 +7,12 @@ import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from '@/app/components/CampInfoBlocs'
 import { n8nUrl } from '@/utils/n8n'
+import { formatPhone as formatPhoneDisplay, normalizePhone as cleanPhoneForSave } from '@/utils/phone'
+import type { MapboxFeature } from '@/types'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 const AUCUNE_ORG_ID = 'AUCUNE'
-
-interface MapboxFeature {
-  place_name: string;
-  center: [number, number];
-  context?: Array<{
-    id: string;
-    text: string;
-  }>;
-}
-
-function formatPhoneDisplay(phone: string | null | undefined): string {
-  if (!phone) return ''
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-  }
-  if (digits.length === 11 && digits[0] === '1') {
-    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
-  }
-  return phone
-}
-
-function cleanPhoneForSave(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) {
-    return '1' + digits
-  }
-  return digits
-}
 
 const GROUPES_RS = [
   'District 1: Équipe de RS La Grande-Ourse',
@@ -424,7 +397,7 @@ export default function InscriptionPage() {
       errors.emailConfirm = 'Les courriels ne correspondent pas'
     }
     const phoneDigits = cleanPhoneForSave(formData.telephone)
-    if (!phoneDigits || phoneDigits.length !== 11) errors.telephone = 'Numéro de téléphone invalide'
+    if (!phoneDigits || phoneDigits.length !== 10) errors.telephone = 'Numéro de téléphone invalide'
     if (!formData.adresse.trim()) errors.adresse = "L'adresse est requise"
     const codePostalRegex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i
     if (!formData.code_postal.trim()) errors.code_postal = 'Le code postal est obligatoire'

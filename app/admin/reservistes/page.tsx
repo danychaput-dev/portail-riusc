@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
+import { formatPhone } from '@/utils/phone'
 
 const C = '#1e3a5f'
 
@@ -370,12 +371,12 @@ function ReservistesPage() {
                 <div style={{ padding: '11px 14px' }}>
                   <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{r.nom} {r.prenom}</div>
                   {r.telephone_secondaire && (
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Alt: {r.telephone_secondaire}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
                   )}
                 </div>
                 {/* Téléphone */}
                 <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151' }}>
-                  {r.telephone || <span style={{ color: '#d1d5db' }}>—</span>}
+                  {r.telephone ? formatPhone(r.telephone) : <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
                 {/* Courriel */}
                 <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' as const }}>
