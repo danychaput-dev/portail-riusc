@@ -100,6 +100,8 @@ export async function POST(req: NextRequest) {
               subject,
               html: dest.html,
               replyTo,
+              headers: { 'X-Entity-Ref-ID': dest.benevole_id },
+              tags: [{ name: 'source', value: 'portail-riusc' }],
               ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
             }))
           )
@@ -148,6 +150,8 @@ export async function POST(req: NextRequest) {
           subject,
           html: dest.html,
           replyTo,
+          headers: { 'X-Entity-Ref-ID': dest.benevole_id },
+          tags: [{ name: 'source', value: 'portail-riusc' }],
           ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
         })
 
