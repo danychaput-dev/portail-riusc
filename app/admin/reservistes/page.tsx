@@ -212,8 +212,8 @@ function ReservistesPage() {
 
   // Colonnes dynamiques selon le rôle
   const gridCols = isAdmin
-    ? '1.5fr 1fr 1.6fr 1fr 1.4fr 90px 130px 100px'
-    : '1.5fr 1fr 1.6fr 1fr 1.2fr 1.4fr 90px 100px'
+    ? '1.8fr 1fr 1.8fr 0.9fr 1fr 70px 120px 90px'
+    : '1.8fr 1fr 1.8fr 0.9fr 1fr 1.2fr 70px 90px'
   const headers = isAdmin
     ? ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Région / CP', 'Bottes', 'Antécédents', 'Groupe']
     : ['Nom', 'Téléphone', 'Courriel', 'Ville', 'Adresse', 'Région / CP', 'Bottes', 'Groupe']
@@ -323,6 +323,8 @@ function ReservistesPage() {
 
         {/* Tableau */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const }}>
+        <div style={{ minWidth: '900px' }}>
           {/* En-tête tableau */}
           <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
             {headers.map(h => (
@@ -368,37 +370,37 @@ function ReservistesPage() {
                 onMouseOut={e => (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'white' : '#fafafa'}
               >
                 {/* Nom */}
-                <div style={{ padding: '11px 14px' }}>
-                  <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}>{r.nom} {r.prenom}</div>
+                <div style={{ padding: '11px 14px', overflow: 'hidden' }}>
+                  <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.nom} {r.prenom}</div>
                   {r.telephone_secondaire && (
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
                   )}
                 </div>
                 {/* Téléphone */}
-                <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151' }}>
+                <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>
                   {r.telephone ? formatPhone(r.telephone) : <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
                 {/* Courriel */}
-                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', wordBreak: 'break-all' as const }}>
+                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
                   {r.email
-                    ? <a href={`mailto:${r.email}`} style={{ color: C, textDecoration: 'none' }}>{r.email}</a>
+                    ? <a href={`mailto:${r.email}`} style={{ color: C, textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={r.email}>{r.email}</a>
                     : <span style={{ color: '#d1d5db' }}>—</span>
                   }
                 </div>
                 {/* Ville */}
-                <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151' }}>
+                <div style={{ padding: '11px 14px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {r.ville || <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
                 {/* Adresse (non-admin seulement) ou Région (admin) */}
                 {!isAdmin && (
-                  <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151' }}>
+                  <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {adresse || <span style={{ color: '#d1d5db' }}>—</span>}
                   </div>
                 )}
                 {/* Région / CP */}
-                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151' }}>
-                  <div>{r.region || <span style={{ color: '#d1d5db' }}>—</span>}</div>
-                  {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '2px' }}>{r.code_postal}</div>}
+                <div style={{ padding: '11px 14px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
+                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.region || <span style={{ color: '#d1d5db' }}>—</span>}</div>
+                  {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>{r.code_postal}</div>}
                 </div>
                 {/* Bottes */}
                 <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
@@ -448,6 +450,8 @@ function ReservistesPage() {
               </div>
             )
           })}
+        </div>
+        </div>
         </div>
 
         {/* Footer info */}
