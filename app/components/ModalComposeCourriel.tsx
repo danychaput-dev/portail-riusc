@@ -144,7 +144,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                 />
               </div>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse reply-to (optionnel)</label>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse reply-to</label>
                 <input
                   type="email"
                   value={config.reply_to || ''}
@@ -152,6 +152,9 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                   placeholder="dany.chaput@aqbrs.ca"
                   style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
                 />
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                  Par défaut, les réponses arrivent à votre adresse. Changez pour noreply@aqbrs.ca si vous ne souhaitez pas recevoir de réponses.
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Signature HTML</label>

@@ -42,9 +42,9 @@ export async function GET() {
         config: {
           user_id: authUser.id,
           from_name: `${authUser.reserviste.prenom} ${authUser.reserviste.nom}`,
-          from_email: `noreply@${process.env.RESEND_FROM_DOMAIN || 'aqbrs.ca'}`,
+          from_email: authUser.reserviste.email || `noreply@${process.env.RESEND_FROM_DOMAIN || 'aqbrs.ca'}`,
           signature_html: '',
-          reply_to: authUser.reserviste.email || '',
+          reply_to: authUser.reserviste.email || `noreply@${process.env.RESEND_FROM_DOMAIN || 'aqbrs.ca'}`,
         }
       })
     }
