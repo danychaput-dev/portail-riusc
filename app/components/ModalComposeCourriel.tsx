@@ -18,11 +18,18 @@ interface AdminEmailConfig {
   reply_to: string
 }
 
+interface BrouillonPJ {
+  filename: string
+  storage_path: string
+  size: number
+}
+
 interface Brouillon {
   id: string
   subject: string
   body_html: string
   destinataires: Destinataire[]
+  pieces_jointes?: BrouillonPJ[]
   updated_at: string
 }
 
@@ -37,8 +44,10 @@ interface Template {
 }
 
 interface PieceJointe {
-  file: File
+  file: File | null  // null when restored from brouillon
+  filename: string
   base64: string
+  size: number
 }
 
 interface Props {
@@ -110,7 +119,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
           subject,
           body_html: bodyHtml.replace(/\n/g, '<br/>'),
           attachments: attachments.map(a => ({
-            filename: a.file.name,
+            filename: a.filename,
             content: a.base64,
           })),
         }),
@@ -154,6 +163,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
           id: brouillonId || undefined,
           subject, body_html: bodyHtml,
           destinataires,
+          attachments: attachments.map(a => ({ filename: a.filename, base64: a.base64, size: a.size })),
         }),
       })
       const json = await res.json()
@@ -162,11 +172,27 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
     setSavingBrouillon(false)
   }
 
-  const chargerBrouillon = (b: Brouillon) => {
+  const chargerBrouillon = async (b: Brouillon) => {
     setSubject(b.subject || '')
     setBodyHtml(b.body_html || '')
     setBrouillonId(b.id)
+    setAttachments([])
     setPanel('compose')
+    // Charger les fichiers si le brouillon en a
+    if (b.pieces_jointes && b.pieces_jointes.length > 0) {
+      try {
+        const res = await fetch(`/api/admin/courriels/brouillons?id=${b.id}`)
+        const json = await res.json()
+        if (json.fichiers && json.fichiers.length > 0) {
+          setAttachments(json.fichiers.map((f: { filename: string; base64: string; size: number }) => ({
+            file: null,
+            filename: f.filename,
+            base64: f.base64,
+            size: f.size,
+          })))
+        }
+      } catch {}
+    }
   }
 
   const supprimerBrouillon = async (id: string) => {
@@ -258,7 +284,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
         reader.onerror = reject
         reader.readAsDataURL(file)
       })
-      setAttachments(prev => [...prev, { file, base64 }])
+      setAttachments(prev => [...prev, { file, filename: file.name, base64, size: file.size }])
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -355,6 +381,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                     <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{b.subject || '(sans objet)'}</div>
                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                       {new Date(b.updated_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {b.pieces_jointes && b.pieces_jointes.length > 0 && ` · 📎 ${b.pieces_jointes.length}`}
                     </div>
                   </div>
                   <button onClick={() => supprimerBrouillon(b.id)} title="Supprimer" style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>🗑️</button>
@@ -462,7 +489,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                   <input ref={fileInputRef} type="file" multiple onChange={handleFileAttach} style={{ display: 'none' }} />
                   {attachments.length > 0 && (
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      {attachments.length} fichier{attachments.length > 1 ? 's' : ''} ({formatFileSize(attachments.reduce((sum, a) => sum + a.file.size, 0))})
+                      {attachments.length} fichier{attachments.length > 1 ? 's' : ''} ({formatFileSize(attachments.reduce((sum, a) => sum + a.size, 0))})
                     </span>
                   )}
                 </div>
@@ -470,7 +497,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {attachments.map((a, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
-                        📎 {a.file.name} <span style={{ color: '#94a3b8' }}>({formatFileSize(a.file.size)})</span>
+                        📎 {a.filename} <span style={{ color: '#94a3b8' }}>({formatFileSize(a.size)})</span>
                         <button onClick={() => removeAttachment(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}>×</button>
                       </div>
                     ))}
