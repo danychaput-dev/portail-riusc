@@ -128,19 +128,33 @@ export default function HistoriqueCourriels({ benevoleId }: Props) {
             </div>
 
             {/* Contenu expanded */}
-            {isExpanded && c.body_html && (
+            {isExpanded && (
               <div style={{ borderTop: '1px solid #e2e8f0', padding: '14px 14px 14px 42px' }}>
-                <div style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Contenu du courriel
-                </div>
-                <div
-                  style={{
-                    fontSize: '13px', color: '#374151', lineHeight: '1.6',
-                    padding: '12px', backgroundColor: 'white', borderRadius: '8px',
-                    border: '1px solid #e2e8f0', maxHeight: '300px', overflowY: 'auto',
-                  }}
-                  dangerouslySetInnerHTML={{ __html: c.body_html }}
-                />
+                {/* Pièces jointes */}
+                {(c as any).pieces_jointes && (c as any).pieces_jointes.length > 0 && (
+                  <div style={{ marginBottom: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {(c as any).pieces_jointes.map((nom: string, i: number) => (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+                        📎 {nom}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {c.body_html && (
+                  <>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Contenu du courriel
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '13px', color: '#374151', lineHeight: '1.6',
+                        padding: '12px', backgroundColor: 'white', borderRadius: '8px',
+                        border: '1px solid #e2e8f0', maxHeight: '300px', overflowY: 'auto',
+                      }}
+                      dangerouslySetInnerHTML={{ __html: c.body_html }}
+                    />
+                  </>
+                )}
               </div>
             )}
           </div>

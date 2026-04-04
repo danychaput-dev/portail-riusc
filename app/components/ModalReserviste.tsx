@@ -67,41 +67,29 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
     setSavingNote(true)
     try {
       // 1. Créer la note (texte)
+      const contenu = newNote.trim() || `📎 ${pendingFiles.map(f => f.name).join(', ')}`
       const res = await fetch('/api/admin/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          contenu: newNote.trim() || (pendingFiles.length > 0 ? `📎 ${pendingFiles.map(f => f.name).join(', ')}` : ''),
-        }),
+        body: JSON.stringify({ benevole_id: reserviste.benevole_id, contenu }),
       })
       const json = await res.json()
       if (json.ok && json.note) {
-        // 2. Upload des fichiers si présents
-        let fichiers: NoteFichier[] = []
-        if (pendingFiles.length > 0) {
-          const uploadRes = await fetch('/api/admin/notes/fichiers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ note_id: json.note.id }),
-          })
-          const uploadJson = await uploadRes.json()
-
-          if (uploadJson.ok) {
-            // Upload chaque fichier vers le signed URL
-            for (const file of pendingFiles) {
-              const formData = new FormData()
-              formData.append('file', file)
-              formData.append('note_id', json.note.id)
-              formData.append('nom_fichier', file.name)
-              const fRes = await fetch('/api/admin/notes/fichiers/upload', {
-                method: 'POST',
-                body: formData,
-              })
-              const fJson = await fRes.json()
-              if (fJson.ok && fJson.fichier) fichiers.push(fJson.fichier)
-            }
-          }
+        // 2. Upload des fichiers directement
+        const fichiers: NoteFichier[] = []
+        for (const file of pendingFiles) {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('note_id', json.note.id)
+          formData.append('nom_fichier', file.name)
+          try {
+            const fRes = await fetch('/api/admin/notes/fichiers/upload', {
+              method: 'POST',
+              body: formData,
+            })
+            const fJson = await fRes.json()
+            if (fJson.ok && fJson.fichier) fichiers.push(fJson.fichier)
+          } catch {}
         }
 
         setNotes(prev => [{ ...json.note, fichiers }, ...prev])

@@ -69,6 +69,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
   const [templateNom, setTemplateNom] = useState('')
   const [templatePartage, setTemplatePartage] = useState(false)
   const [savingTemplate, setSavingTemplate] = useState(false)
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null)
 
   // Pièces jointes
   const [attachments, setAttachments] = useState<PieceJointe[]>([])
@@ -82,14 +83,12 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
       .catch(() => {})
   }, [])
 
-  // Charger brouillons quand on ouvre le panel
   const loadBrouillons = async () => {
     const res = await fetch('/api/admin/courriels/brouillons')
     const json = await res.json()
     setBrouillons(json.brouillons || [])
   }
 
-  // Charger templates quand on ouvre le panel
   const loadTemplates = async () => {
     const res = await fetch('/api/admin/courriels/templates')
     const json = await res.json()
@@ -119,7 +118,6 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Erreur lors de l\'envoi'); setSending(false); return }
 
-      // Supprimer le brouillon si on avait chargé un
       if (brouillonId) {
         fetch(`/api/admin/courriels/brouillons?id=${brouillonId}`, { method: 'DELETE' }).catch(() => {})
       }
@@ -159,9 +157,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
         }),
       })
       const json = await res.json()
-      if (json.ok) {
-        setBrouillonId(json.brouillon.id)
-      }
+      if (json.ok) setBrouillonId(json.brouillon.id)
     } catch {}
     setSavingBrouillon(false)
   }
@@ -182,36 +178,68 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
   const chargerTemplate = (t: Template) => {
     setSubject(t.subject || '')
     setBodyHtml(t.body_html || '')
+    setEditingTemplateId(t.id)
+    setTemplateNom(t.nom)
+    setTemplatePartage(t.partage)
     setPanel('compose')
+  }
+
+  const ouvrirSaveTemplate = () => {
+    if (!editingTemplateId) {
+      setTemplateNom('')
+      setTemplatePartage(false)
+    }
+    setPanel('save_template')
   }
 
   const sauvegarderTemplate = async () => {
     if (!templateNom.trim()) return
     setSavingTemplate(true)
     try {
-      const res = await fetch('/api/admin/courriels/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nom: templateNom,
-          subject,
-          body_html: bodyHtml,
-          partage: templatePartage,
-        }),
-      })
-      const json = await res.json()
-      if (json.ok) {
-        setTemplateNom('')
-        setTemplatePartage(false)
-        setPanel('compose')
+      if (editingTemplateId) {
+        // Mise à jour du template existant
+        await fetch('/api/admin/courriels/templates', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingTemplateId,
+            nom: templateNom,
+            subject,
+            body_html: bodyHtml,
+            partage: templatePartage,
+          }),
+        })
+      } else {
+        // Nouveau template
+        const res = await fetch('/api/admin/courriels/templates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nom: templateNom,
+            subject,
+            body_html: bodyHtml,
+            partage: templatePartage,
+          }),
+        })
+        const json = await res.json()
+        if (json.ok) setEditingTemplateId(json.template.id)
       }
+      setPanel('compose')
     } catch {}
     setSavingTemplate(false)
+  }
+
+  const sauvegarderCommeNouveauTemplate = async () => {
+    setEditingTemplateId(null)
+    setTemplateNom('')
+    setTemplatePartage(false)
+    setPanel('save_template')
   }
 
   const supprimerTemplate = async (id: string) => {
     await fetch(`/api/admin/courriels/templates?id=${id}`, { method: 'DELETE' })
     setTemplates(prev => prev.filter(t => t.id !== id))
+    if (editingTemplateId === id) setEditingTemplateId(null)
   }
 
   const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -221,8 +249,15 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
         setError(`Le fichier "${file.name}" dépasse 10 Mo`)
         continue
       }
-      const buffer = await file.arrayBuffer()
-      const base64 = Buffer.from(buffer).toString('base64')
+      const base64: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          resolve(result.split(',')[1] || '')
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
       setAttachments(prev => [...prev, { file, base64 }])
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -239,11 +274,11 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
   }
 
   const panelTitle: Record<Panel, string> = {
-    compose: 'Nouveau courriel',
+    compose: editingTemplateId ? `Nouveau courriel (template: ${templateNom})` : 'Nouveau courriel',
     config: 'Configuration courriel',
     brouillons: 'Mes brouillons',
     templates: 'Templates',
-    save_template: 'Sauvegarder comme template',
+    save_template: editingTemplateId ? 'Mettre à jour le template' : 'Sauvegarder comme template',
   }
 
   return (
@@ -255,18 +290,18 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
 
         {/* En-tête */}
         <div style={{ padding: '18px 24px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>✉️</span>
-            <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: C }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <span style={{ fontSize: '20px', flexShrink: 0 }}>✉️</span>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: C, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {panelTitle[panel]}
             </h2>
           </div>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
             {panel === 'compose' && !success && (
               <>
-                <button onClick={() => { loadBrouillons(); setPanel('brouillons') }} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>📄 Brouillons</button>
-                <button onClick={() => { loadTemplates(); setPanel('templates') }} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>📋 Templates</button>
-                <button onClick={() => setPanel('config')} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>⚙️ Signature</button>
+                <button onClick={() => { loadBrouillons(); setPanel('brouillons') }} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>📄 Brouillons</button>
+                <button onClick={() => { loadTemplates(); setPanel('templates') }} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>📋 Templates</button>
+                <button onClick={() => setPanel('config')} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>⚙️ Signature</button>
               </>
             )}
             <button onClick={onClose} disabled={sending} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1, marginLeft: '8px' }}>×</button>
@@ -276,25 +311,25 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
         {/* Corps */}
         <div style={{ padding: '18px 24px', overflowY: 'auto', flex: 1 }}>
 
-          {/* === Panel config signature === */}
+          {/* === Panel config === */}
           {panel === 'config' && config && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Nom d'affichage</label>
-                <input type="text" value={config.from_name} onChange={e => setConfig({ ...config, from_name: e.target.value })} placeholder="Dany Chaput - RIUSC" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Nom d&apos;affichage</label>
+                <input type="text" value={config.from_name} onChange={e => setConfig({ ...config, from_name: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse d'envoi</label>
-                <input type="email" value={config.from_email} onChange={e => setConfig({ ...config, from_email: e.target.value })} placeholder="noreply@aqbrs.ca" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse d&apos;envoi</label>
+                <input type="email" value={config.from_email} onChange={e => setConfig({ ...config, from_email: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse reply-to</label>
-                <input type="email" value={config.reply_to || ''} onChange={e => setConfig({ ...config, reply_to: e.target.value })} placeholder="dany.chaput@aqbrs.ca" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Reply-to</label>
+                <input type="email" value={config.reply_to || ''} onChange={e => setConfig({ ...config, reply_to: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
                 <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>Par défaut, les réponses arrivent à votre adresse. Changez pour noreply@aqbrs.ca si vous ne souhaitez pas recevoir de réponses.</div>
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Signature HTML</label>
-                <textarea value={config.signature_html} onChange={e => setConfig({ ...config, signature_html: e.target.value })} placeholder="<b>Dany Chaput</b><br/>Coordonnateur RIUSC" rows={4} style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'vertical' }} />
+                <textarea value={config.signature_html} onChange={e => setConfig({ ...config, signature_html: e.target.value })} rows={4} style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'vertical' }} />
               </div>
               {config.signature_html && (
                 <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -302,7 +337,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                   <div style={{ fontSize: '13px', color: '#374151' }} dangerouslySetInnerHTML={{ __html: config.signature_html }} />
                 </div>
               )}
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button onClick={() => setPanel('compose')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Retour</button>
                 <button onClick={sauvegarderConfig} disabled={configSaving} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: configSaving ? 'not-allowed' : 'pointer', opacity: configSaving ? 0.7 : 1 }}>{configSaving ? 'Sauvegarde…' : 'Sauvegarder'}</button>
               </div>
@@ -313,9 +348,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
           {panel === 'brouillons' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {brouillons.length === 0 ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                  Aucun brouillon sauvegardé
-                </div>
+                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Aucun brouillon sauvegardé</div>
               ) : brouillons.map(b => (
                 <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
                   <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => chargerBrouillon(b)}>
@@ -324,7 +357,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                       {new Date(b.updated_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
-                  <button onClick={() => supprimerBrouillon(b.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                  <button onClick={() => supprimerBrouillon(b.id)} title="Supprimer" style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>🗑️</button>
                 </div>
               ))}
               <button onClick={() => setPanel('compose')} style={{ marginTop: '8px', padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer', alignSelf: 'flex-start' }}>← Retour</button>
@@ -335,9 +368,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
           {panel === 'templates' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {templates.length === 0 ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                  Aucun template disponible
-                </div>
+                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>Aucun template disponible</div>
               ) : templates.map(t => (
                 <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
                   <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => chargerTemplate(t)}>
@@ -347,14 +378,14 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                     </div>
                     <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t.subject || '(sans objet)'}</div>
                   </div>
-                  <button onClick={() => supprimerTemplate(t.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px' }} title="Supprimer">×</button>
+                  <button onClick={() => supprimerTemplate(t.id)} title="Supprimer" style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '4px' }}>🗑️</button>
                 </div>
               ))}
               <button onClick={() => setPanel('compose')} style={{ marginTop: '8px', padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer', alignSelf: 'flex-start' }}>← Retour</button>
             </div>
           )}
 
-          {/* === Panel sauvegarder template === */}
+          {/* === Panel save template === */}
           {panel === 'save_template' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
@@ -368,9 +399,21 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
               <div style={{ fontSize: '12px', color: '#94a3b8', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                 Objet : <strong>{subject || '(vide)'}</strong>
               </div>
+              {editingTemplateId && (
+                <div style={{ fontSize: '12px', color: '#2563eb', padding: '6px 10px', backgroundColor: '#eff6ff', borderRadius: '8px' }}>
+                  ✏️ Mise à jour du template existant
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                 <button onClick={() => setPanel('compose')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
-                <button onClick={sauvegarderTemplate} disabled={savingTemplate || !templateNom.trim()} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: (savingTemplate || !templateNom.trim()) ? 'not-allowed' : 'pointer', opacity: (savingTemplate || !templateNom.trim()) ? 0.6 : 1 }}>{savingTemplate ? 'Sauvegarde…' : 'Sauvegarder'}</button>
+                {editingTemplateId && (
+                  <button onClick={sauvegarderCommeNouveauTemplate} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                    + Nouveau
+                  </button>
+                )}
+                <button onClick={sauvegarderTemplate} disabled={savingTemplate || !templateNom.trim()} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: (savingTemplate || !templateNom.trim()) ? 'not-allowed' : 'pointer', opacity: (savingTemplate || !templateNom.trim()) ? 0.6 : 1 }}>
+                  {savingTemplate ? 'Sauvegarde…' : editingTemplateId ? 'Mettre à jour' : 'Sauvegarder'}
+                </button>
               </div>
             </div>
           )}
@@ -389,26 +432,19 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                       {d.prenom} {d.nom}
                     </span>
                   ))}
-                  {destinataires.length > 20 && (
-                    <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{destinataires.length - 20} autres</span>
-                  )}
+                  {destinataires.length > 20 && <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{destinataires.length - 20} autres</span>}
                 </div>
               </div>
 
-              {/* Expéditeur */}
               {config && (
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  De : <strong>{config.from_name || 'RIUSC'}</strong> &lt;{config.from_email || 'noreply@aqbrs.ca'}&gt;
-                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>De : <strong>{config.from_name || 'RIUSC'}</strong> &lt;{config.from_email || 'noreply@aqbrs.ca'}&gt;</div>
               )}
 
-              {/* Objet */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Objet</label>
                 <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Objet du courriel" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} autoFocus />
               </div>
 
-              {/* Contenu */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Message</label>
@@ -434,8 +470,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {attachments.map((a, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
-                        📎 {a.file.name}
-                        <span style={{ color: '#94a3b8' }}>({formatFileSize(a.file.size)})</span>
+                        📎 {a.file.name} <span style={{ color: '#94a3b8' }}>({formatFileSize(a.file.size)})</span>
                         <button onClick={() => removeAttachment(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}>×</button>
                       </div>
                     ))}
@@ -443,11 +478,8 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                 )}
               </div>
 
-              {/* Erreur */}
               {error && (
-                <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '13px' }}>
-                  {error}
-                </div>
+                <div style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '13px' }}>{error}</div>
               )}
             </div>
           )}
@@ -461,9 +493,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
               </h3>
               <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
                 {success.envoyes} envoi{success.envoyes > 1 ? 's' : ''} réussi{success.envoyes > 1 ? 's' : ''}
-                {success.echoues > 0 && (
-                  <span style={{ color: '#dc2626' }}>, {success.echoues} échoué{success.echoues > 1 ? 's' : ''}</span>
-                )}
+                {success.echoues > 0 && <span style={{ color: '#dc2626' }}>, {success.echoues} échoué{success.echoues > 1 ? 's' : ''}</span>}
               </p>
             </div>
           )}
@@ -482,8 +512,8 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                   <button onClick={sauvegarderBrouillon} disabled={savingBrouillon || (!subject.trim() && !bodyHtml.trim())} title="Sauvegarder en brouillon" style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: (savingBrouillon || (!subject.trim() && !bodyHtml.trim())) ? 'not-allowed' : 'pointer', opacity: (!subject.trim() && !bodyHtml.trim()) ? 0.4 : 1 }}>
                     {savingBrouillon ? '💾 …' : '💾 Brouillon'}
                   </button>
-                  <button onClick={() => { setTemplateNom(''); setTemplatePartage(false); setPanel('save_template') }} disabled={!subject.trim() && !bodyHtml.trim()} title="Sauvegarder comme template" style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: (!subject.trim() && !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (!subject.trim() && !bodyHtml.trim()) ? 0.4 : 1 }}>
-                    📋 Template
+                  <button onClick={ouvrirSaveTemplate} disabled={!subject.trim() && !bodyHtml.trim()} title={editingTemplateId ? 'Mettre à jour le template' : 'Sauvegarder comme template'} style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: (!subject.trim() && !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (!subject.trim() && !bodyHtml.trim()) ? 0.4 : 1 }}>
+                    {editingTemplateId ? '📋 Maj template' : '📋 Template'}
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>

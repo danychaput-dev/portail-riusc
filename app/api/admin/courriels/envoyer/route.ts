@@ -82,6 +82,8 @@ export async function POST(req: NextRequest) {
       content: Buffer.from(a.content, 'base64'),
     }))
 
+    const attachmentNames = (attachments || []).map((a: any) => a.filename).filter(Boolean)
+
     const resultats: { benevole_id: string; ok: boolean; error?: string }[] = []
 
     // ── Batch API pour envois de masse (lots de 100) ──
@@ -110,6 +112,7 @@ export async function POST(req: NextRequest) {
                 campagne_id, benevole_id: dest.benevole_id,
                 from_email: fromEmail, from_name: fromName, to_email: dest.email,
                 subject, body_html: dest.html, statut: 'failed', envoye_par: user.id,
+                pieces_jointes: attachmentNames,
               })
             }
             continue
@@ -125,6 +128,7 @@ export async function POST(req: NextRequest) {
               from_email: fromEmail, from_name: fromName, to_email: dest.email,
               subject, body_html: dest.html, resend_id: resendId,
               statut: 'sent', envoye_par: user.id,
+              pieces_jointes: attachmentNames,
             })
             resultats.push({ benevole_id: dest.benevole_id, ok: true })
           }
@@ -153,6 +157,7 @@ export async function POST(req: NextRequest) {
             campagne_id, benevole_id: dest.benevole_id,
             from_email: fromEmail, from_name: fromName, to_email: dest.email,
             subject, body_html: dest.html, statut: 'failed', envoye_par: user.id,
+            pieces_jointes: attachmentNames,
           })
         } else {
           await supabaseAdmin.from('courriels').insert({
@@ -160,6 +165,7 @@ export async function POST(req: NextRequest) {
             from_email: fromEmail, from_name: fromName, to_email: dest.email,
             subject, body_html: dest.html, resend_id: emailData?.id || null,
             statut: 'sent', envoye_par: user.id,
+            pieces_jointes: attachmentNames,
           })
           resultats.push({ benevole_id: dest.benevole_id, ok: true })
         }
