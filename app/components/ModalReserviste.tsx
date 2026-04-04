@@ -164,6 +164,13 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
                   ✉️ Écrire
                 </button>
                 <button
+                  onClick={() => setHistoriqueRefreshKey(k => k + 1)}
+                  title="Rafraîchir l'historique"
+                  style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b', fontSize: '14px', cursor: 'pointer', lineHeight: 1 }}
+                >
+                  🔄
+                </button>
+                <button
                   onClick={onClose}
                   style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1, padding: '4px' }}
                 >
