@@ -353,6 +353,39 @@ function ReservistesPage() {
     return stats
   }, [approuves])
 
+  // Détails pour tooltips — ventilation des manquants par critère
+  const readinessDetails = useMemo(() => {
+    const total = approuves.length
+    // Profil complet — quels champs manquent
+    const profilManque = { date_naissance: 0, adresse: 0, ville: 0, region: 0, telephone: 0, contact_urgence_nom: 0, contact_urgence_tel: 0, email: 0, nom: 0, prenom: 0 }
+    for (const r of approuves) {
+      if (!r.date_naissance) profilManque.date_naissance++
+      if (!r.adresse) profilManque.adresse++
+      if (!r.ville) profilManque.ville++
+      if (!r.region) profilManque.region++
+      if (!r.telephone) profilManque.telephone++
+      if (!r.contact_urgence_nom) profilManque.contact_urgence_nom++
+      if (!r.contact_urgence_telephone) profilManque.contact_urgence_tel++
+      if (!r.email) profilManque.email++
+    }
+    const profilLines = [
+      profilManque.date_naissance > 0 && `${profilManque.date_naissance} sans date de naissance`,
+      profilManque.contact_urgence_nom > 0 && `${profilManque.contact_urgence_nom} sans contact d'urgence`,
+      profilManque.adresse > 0 && `${profilManque.adresse} sans adresse`,
+      profilManque.ville > 0 && `${profilManque.ville} sans ville`,
+      profilManque.region > 0 && `${profilManque.region} sans région`,
+      profilManque.telephone > 0 && `${profilManque.telephone} sans téléphone`,
+      profilManque.email > 0 && `${profilManque.email} sans courriel`,
+    ].filter(Boolean)
+    const antManque = total - readinessStats.antecedents
+    return {
+      profil: `${readinessStats.profil}/${total} profils complets\n${profilLines.length > 0 ? 'Manquent :\n' + profilLines.join('\n') : 'Tous les profils sont complets'}`,
+      initiation: `${readinessStats.initiation}/${total} ont complété l'initiation SC\n${total - readinessStats.initiation} n'ont pas encore complété`,
+      camp: `${readinessStats.camp}/${total} ont fait le camp de qualification\n${total - readinessStats.camp} n'ont pas encore fait le camp`,
+      antecedents: `${readinessStats.antecedents}/${total} antécédents vérifiés\n${antManque} en attente de vérification`,
+    }
+  }, [approuves, readinessStats])
+
   if (!authorized) return null
 
   // Column header style
@@ -487,13 +520,12 @@ function ReservistesPage() {
           <span style={{ color: '#e2e8f0' }}>|</span>
           {READINESS_STEPS.map(step => {
             const count = readinessStats[step.key]
-            const missing = approuves.length - count
             const active = filtreReadiness === step.key
             return (
               <button
                 key={step.key}
                 onClick={() => setFiltreReadiness(active ? null : step.key)}
-                title={active ? 'Retirer le filtre' : `Afficher les ${missing} sans ${step.label.toLowerCase()}`}
+                title={readinessDetails[step.key]}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
                   padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
@@ -506,10 +538,10 @@ function ReservistesPage() {
                 {step.icon} {step.label}
                 <span style={{
                   fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700',
-                  backgroundColor: active ? '#ef4444' : '#e2e8f0',
-                  color: active ? 'white' : '#64748b',
+                  backgroundColor: '#16a34a',
+                  color: 'white',
                 }}>
-                  {missing}
+                  {count}
                 </span>
               </button>
             )
