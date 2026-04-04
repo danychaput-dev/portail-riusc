@@ -92,7 +92,7 @@ function ReservistesPage() {
 
   const defaultGroupes = urlGroupes
     ? urlGroupes.split(',').map(g => g.trim()).filter(Boolean)
-    : ['Approuvé', 'Intérêt']
+    : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt']
 
   const [loading,        setLoading]        = useState(true)
   const [data,           setData]           = useState<Reserviste[]>([])
@@ -325,14 +325,23 @@ function ReservistesPage() {
 
         {/* Filtres */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: '240px' }}>
+          <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
             <input
               type="text"
               placeholder="Rechercher par nom, courriel, ville, téléphone…"
               value={recherche}
               onChange={e => handleRecherche(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, outline: 'none' }}
+              style={{ width: '100%', padding: '9px 12px', paddingRight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, outline: 'none' }}
             />
+            {recherche && (
+              <button
+                onClick={() => handleRecherche('')}
+                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9ca3af', lineHeight: 1, padding: '4px' }}
+                title="Effacer la recherche"
+              >
+                ×
+              </button>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Groupe :</span>

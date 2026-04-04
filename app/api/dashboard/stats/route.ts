@@ -86,14 +86,14 @@ export async function GET() {
 
       if (r.groupe === 'Approuvé') {
         let org: string
-        if (!rawOrg) org = 'Membres AQBRS Recherche et Sauvetage'
+        if (!rawOrg) org = 'Réservistes sans groupe assigné'
         else if (isAQBRS) org = 'AQBRS (membres)'
         else org = orgDisplayName(rawOrg)
         approuvesOrgCounts[org] = (approuvesOrgCounts[org] || 0) + 1
       } else if (r.groupe === 'Partenaires' && isAQBRS) {
         // Partenaire avec AQBRS → affiché dans section Réservistes qualifiés
-        approuvesOrgCounts['Membres AQBRS Recherche et Sauvetage'] =
-          (approuvesOrgCounts['Membres AQBRS Recherche et Sauvetage'] || 0) + 1
+        approuvesOrgCounts['Réservistes sans groupe assigné'] =
+          (approuvesOrgCounts['Réservistes sans groupe assigné'] || 0) + 1
       }
     }
     const reservistesQualifies = Object.entries(approuvesOrgCounts)
