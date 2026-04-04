@@ -113,16 +113,22 @@ function FormationContent() {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
             const [certResult, campResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
-              fetch(n8nUrl(`/webhook/riusc-get-certificats?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+              supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
               fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
               supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
             ]);
 
-            // Certificats
-            if (certResult.status === 'fulfilled' && certResult.value?.success && certResult.value.files) {
-              setCertificats(certResult.value.files);
+            // Certificats (lecture directe Supabase — Monday retiré)
+            if (certResult.status === 'fulfilled' && certResult.value?.data) {
+              const certs = certResult.value.data;
+              const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
+                const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
+                const { data: sd } = await supabase.storage.from('certificats').createSignedUrl(url, 3600);
+                return { id: f.id, name: f.nom_formation || 'Certificat', url: sd?.signedUrl };
+              }));
+              setCertificats(filesWithUrls.filter((f: any) => f.url));
             }
             setLoadingCertificats(false);
 
@@ -239,16 +245,22 @@ function FormationContent() {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
         const [certResult, campResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
-          fetch(n8nUrl(`/webhook/riusc-get-certificats?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+          supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
           fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
           supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
         ]);
 
-        // Certificats
-        if (certResult.status === 'fulfilled' && certResult.value?.success && certResult.value.files) {
-          setCertificats(certResult.value.files);
+        // Certificats (lecture directe Supabase — Monday retiré)
+        if (certResult.status === 'fulfilled' && certResult.value?.data) {
+          const certs = certResult.value.data;
+          const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
+            const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
+            const { data: sd } = await supabase.storage.from('certificats').createSignedUrl(url, 3600);
+            return { id: f.id, name: f.nom_formation || 'Certificat', url: sd?.signedUrl };
+          }));
+          setCertificats(filesWithUrls.filter((f: any) => f.url));
         }
         setLoadingCertificats(false);
 
@@ -462,12 +474,7 @@ function FormationContent() {
         }),
       })
 
-      // Synchroniser suppression avec Monday (best-effort)
-      fetch(n8nUrl('/webhook/riusc-supprimer-certificat'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ formation_id: formationId, benevole_id: reserviste.benevole_id })
-      }).catch(() => {})
+      // Monday retiré — suppression gérée par Supabase uniquement
 
       // Mettre à jour l'état local
       setFormations(prev => prev.map(f => f.id === formationId ? { ...f, has_fichier: false, fichiers: [] } : f));
@@ -498,56 +505,53 @@ function FormationContent() {
       return;
     }
     try {
-      // Trouver si c'est une formation portail (sans monday_item_id)
-      const currentFormation = formations.find(f => f.id === uploadingForFormationId);
-      const isPortailFormation = currentFormation && currentFormation.source === 'portail';
-
-      if (isPortailFormation && uploadingForFormationId) {
-        // Upload direct vers Supabase Storage pour formations portail
-        const ext = file.name.split('.').pop() || 'pdf';
-        const filePath = `${reserviste.benevole_id}/${uploadingForFormationId}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from('certificats').upload(filePath, file, { upsert: true });
-        if (uploadError) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + uploadError.message }); }
-        else {
-          // Stocker le path (pas l'URL publique) — on génère un signed URL à l'affichage
-          const certPath = 'storage:' + filePath;
+      // Upload direct vers Supabase Storage (toutes formations, Monday retiré)
+      const ext = file.name.split('.').pop() || 'pdf';
+      const targetId = uploadingForFormationId || crypto.randomUUID();
+      const filePath = `${reserviste.benevole_id}/${targetId}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('certificats').upload(filePath, file, { upsert: true });
+      if (uploadError) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + uploadError.message }); }
+      else {
+        const certPath = 'storage:' + filePath;
+        if (uploadingForFormationId) {
           await supabase.from('formations_benevoles').update({ certificat_url: certPath }).eq('id', uploadingForFormationId);
           const { data: signedData } = await supabase.storage.from('certificats').createSignedUrl(filePath, 3600);
           const signedUrl = signedData?.signedUrl || '#';
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
           setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: signedUrl }] } : f));
-          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
-        }
-      } else {
-        // Upload via webhook n8n pour formations Monday
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve((reader.result as string).split(',')[1]);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-        const response = await fetch(n8nUrl('/webhook/riusc-upload-certificat'), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            file_name: file.name,
-            file_base64: base64,
-            formation_id: uploadingForFormationId || null,
-            formation_nom: uploadingForFormationNom || null
-          })
-        });
-        let data: any = null;
-        try { data = await response.json(); } catch { data = null; }
-        if (response.ok || data?.success || data === 1 || data === '1') {
-          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
-          if (uploadingForFormationId) {
-            setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
-            await supabase.from('formations_benevoles').update({ certificat_url: data.url || file.name }).eq('id', uploadingForFormationId);
-          } else {
-            const res2 = await fetch(n8nUrl(`/webhook/riusc-get-certificats?benevole_id=${reserviste.benevole_id}`));
-            if (res2.ok) { const d2 = await res2.json(); if (d2.success && d2.files) setCertificats(d2.files); }
+        } else {
+          // Upload "S'initier" sans formation_id — passer par l'API route existante
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string).split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          await fetch('/api/certificat/upload', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              benevole_id: reserviste.benevole_id,
+              file_name: file.name,
+              file_base64: base64,
+              nom_complet: `${reserviste.prenom} ${reserviste.nom}`
+            })
+          });
+          // Recharger la liste certificats depuis Supabase
+          const { data: certs } = await supabase
+            .from('formations_benevoles')
+            .select('id, nom_formation, certificat_url, date_reussite')
+            .eq('benevole_id', reserviste.benevole_id)
+            .not('certificat_url', 'is', null);
+          if (certs) {
+            const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
+              const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
+              const { data: sd } = await supabase.storage.from('certificats').createSignedUrl(url, 3600);
+              return { id: f.id, name: f.nom_formation || 'Certificat', url: sd?.signedUrl };
+            }));
+            setCertificats(filesWithUrls.filter((f: any) => f.url));
           }
-        } else { setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" }); }
+        }
+        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
       }
     } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
     setUploadingCertificat(false);
