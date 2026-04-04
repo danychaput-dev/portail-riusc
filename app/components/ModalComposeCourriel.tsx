@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const C = '#1e3a5f'
 
@@ -18,11 +18,36 @@ interface AdminEmailConfig {
   reply_to: string
 }
 
+interface Brouillon {
+  id: string
+  subject: string
+  body_html: string
+  destinataires: Destinataire[]
+  updated_at: string
+}
+
+interface Template {
+  id: string
+  user_id: string
+  nom: string
+  subject: string
+  body_html: string
+  partage: boolean
+  updated_at: string
+}
+
+interface PieceJointe {
+  file: File
+  base64: string
+}
+
 interface Props {
   destinataires: Destinataire[]
   onClose: () => void
   onSent?: (resultats: { envoyes: number; echoues: number }) => void
 }
+
+type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template'
 
 export default function ModalComposeCourriel({ destinataires, onClose, onSent }: Props) {
   const [subject, setSubject] = useState('')
@@ -31,16 +56,45 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ envoyes: number; echoues: number } | null>(null)
   const [config, setConfig] = useState<AdminEmailConfig | null>(null)
-  const [showConfig, setShowConfig] = useState(false)
+  const [panel, setPanel] = useState<Panel>('compose')
   const [configSaving, setConfigSaving] = useState(false)
 
-  // Charger la config email de l'admin
+  // Brouillons
+  const [brouillons, setBrouillons] = useState<Brouillon[]>([])
+  const [brouillonId, setBrouillonId] = useState<string | null>(null)
+  const [savingBrouillon, setSavingBrouillon] = useState(false)
+
+  // Templates
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [templateNom, setTemplateNom] = useState('')
+  const [templatePartage, setTemplatePartage] = useState(false)
+  const [savingTemplate, setSavingTemplate] = useState(false)
+
+  // Pièces jointes
+  const [attachments, setAttachments] = useState<PieceJointe[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Charger config
   useEffect(() => {
     fetch('/api/admin/courriels/config')
       .then(r => r.json())
       .then(json => { if (json.config) setConfig(json.config) })
       .catch(() => {})
   }, [])
+
+  // Charger brouillons quand on ouvre le panel
+  const loadBrouillons = async () => {
+    const res = await fetch('/api/admin/courriels/brouillons')
+    const json = await res.json()
+    setBrouillons(json.brouillons || [])
+  }
+
+  // Charger templates quand on ouvre le panel
+  const loadTemplates = async () => {
+    const res = await fetch('/api/admin/courriels/templates')
+    const json = await res.json()
+    setTemplates(json.templates || [])
+  }
 
   const envoyer = async () => {
     if (!subject.trim()) { setError('L\'objet est requis'); return }
@@ -56,10 +110,19 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
           destinataires,
           subject,
           body_html: bodyHtml.replace(/\n/g, '<br/>'),
+          attachments: attachments.map(a => ({
+            filename: a.file.name,
+            content: a.base64,
+          })),
         }),
       })
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Erreur lors de l\'envoi'); setSending(false); return }
+
+      // Supprimer le brouillon si on avait chargé un
+      if (brouillonId) {
+        fetch(`/api/admin/courriels/brouillons?id=${brouillonId}`, { method: 'DELETE' }).catch(() => {})
+      }
 
       setSuccess({ envoyes: json.envoyes, echoues: json.echoues })
       onSent?.({ envoyes: json.envoyes, echoues: json.echoues })
@@ -80,91 +143,158 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
       })
     } catch {}
     setConfigSaving(false)
-    setShowConfig(false)
+    setPanel('compose')
+  }
+
+  const sauvegarderBrouillon = async () => {
+    setSavingBrouillon(true)
+    try {
+      const res = await fetch('/api/admin/courriels/brouillons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: brouillonId || undefined,
+          subject, body_html: bodyHtml,
+          destinataires,
+        }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setBrouillonId(json.brouillon.id)
+      }
+    } catch {}
+    setSavingBrouillon(false)
+  }
+
+  const chargerBrouillon = (b: Brouillon) => {
+    setSubject(b.subject || '')
+    setBodyHtml(b.body_html || '')
+    setBrouillonId(b.id)
+    setPanel('compose')
+  }
+
+  const supprimerBrouillon = async (id: string) => {
+    await fetch(`/api/admin/courriels/brouillons?id=${id}`, { method: 'DELETE' })
+    setBrouillons(prev => prev.filter(b => b.id !== id))
+    if (brouillonId === id) setBrouillonId(null)
+  }
+
+  const chargerTemplate = (t: Template) => {
+    setSubject(t.subject || '')
+    setBodyHtml(t.body_html || '')
+    setPanel('compose')
+  }
+
+  const sauvegarderTemplate = async () => {
+    if (!templateNom.trim()) return
+    setSavingTemplate(true)
+    try {
+      const res = await fetch('/api/admin/courriels/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nom: templateNom,
+          subject,
+          body_html: bodyHtml,
+          partage: templatePartage,
+        }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setTemplateNom('')
+        setTemplatePartage(false)
+        setPanel('compose')
+      }
+    } catch {}
+    setSavingTemplate(false)
+  }
+
+  const supprimerTemplate = async (id: string) => {
+    await fetch(`/api/admin/courriels/templates?id=${id}`, { method: 'DELETE' })
+    setTemplates(prev => prev.filter(t => t.id !== id))
+  }
+
+  const handleFileAttach = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError(`Le fichier "${file.name}" dépasse 10 Mo`)
+        continue
+      }
+      const buffer = await file.arrayBuffer()
+      const base64 = Buffer.from(buffer).toString('base64')
+      setAttachments(prev => [...prev, { file, base64 }])
+    }
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removeAttachment = (idx: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} o`
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} Ko`
+    return `${(bytes / 1048576).toFixed(1)} Mo`
+  }
+
+  const panelTitle: Record<Panel, string> = {
+    compose: 'Nouveau courriel',
+    config: 'Configuration courriel',
+    brouillons: 'Mes brouillons',
+    templates: 'Templates',
+    save_template: 'Sauvegarder comme template',
   }
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
+      style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '16px' }}
       onClick={e => { if (e.target === e.currentTarget && !sending) onClose() }}
     >
-      <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: showConfig ? '520px' : '640px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '660px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
 
         {/* En-tête */}
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '18px 24px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '20px' }}>✉️</span>
             <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '700', color: C }}>
-              {showConfig ? 'Configuration courriel' : 'Nouveau courriel'}
+              {panelTitle[panel]}
             </h2>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {!showConfig && !success && (
-              <button
-                onClick={() => setShowConfig(true)}
-                style={{ background: 'none', border: 'none', fontSize: '13px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}
-              >
-                ⚙️ Signature
-              </button>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {panel === 'compose' && !success && (
+              <>
+                <button onClick={() => { loadBrouillons(); setPanel('brouillons') }} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>📄 Brouillons</button>
+                <button onClick={() => { loadTemplates(); setPanel('templates') }} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>📋 Templates</button>
+                <button onClick={() => setPanel('config')} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline' }}>⚙️ Signature</button>
+              </>
             )}
-            <button
-              onClick={onClose}
-              disabled={sending}
-              style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}
-            >
-              ×
-            </button>
+            <button onClick={onClose} disabled={sending} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1, marginLeft: '8px' }}>×</button>
           </div>
         </div>
 
         {/* Corps */}
-        <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+        <div style={{ padding: '18px 24px', overflowY: 'auto', flex: 1 }}>
 
           {/* === Panel config signature === */}
-          {showConfig && config && (
+          {panel === 'config' && config && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Nom d'affichage</label>
-                <input
-                  type="text"
-                  value={config.from_name}
-                  onChange={e => setConfig({ ...config, from_name: e.target.value })}
-                  placeholder="Dany Chaput - RIUSC"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                />
+                <input type="text" value={config.from_name} onChange={e => setConfig({ ...config, from_name: e.target.value })} placeholder="Dany Chaput - RIUSC" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse d'envoi</label>
-                <input
-                  type="email"
-                  value={config.from_email}
-                  onChange={e => setConfig({ ...config, from_email: e.target.value })}
-                  placeholder="noreply@aqbrs.ca"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                />
+                <input type="email" value={config.from_email} onChange={e => setConfig({ ...config, from_email: e.target.value })} placeholder="noreply@aqbrs.ca" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Adresse reply-to</label>
-                <input
-                  type="email"
-                  value={config.reply_to || ''}
-                  onChange={e => setConfig({ ...config, reply_to: e.target.value })}
-                  placeholder="dany.chaput@aqbrs.ca"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                />
-                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                  Par défaut, les réponses arrivent à votre adresse. Changez pour noreply@aqbrs.ca si vous ne souhaitez pas recevoir de réponses.
-                </div>
+                <input type="email" value={config.reply_to || ''} onChange={e => setConfig({ ...config, reply_to: e.target.value })} placeholder="dany.chaput@aqbrs.ca" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>Par défaut, les réponses arrivent à votre adresse. Changez pour noreply@aqbrs.ca si vous ne souhaitez pas recevoir de réponses.</div>
               </div>
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Signature HTML</label>
-                <textarea
-                  value={config.signature_html}
-                  onChange={e => setConfig({ ...config, signature_html: e.target.value })}
-                  placeholder="<b>Dany Chaput</b><br/>Coordonnateur RIUSC<br/>dany.chaput@aqbrs.ca"
-                  rows={4}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'vertical' }}
-                />
+                <textarea value={config.signature_html} onChange={e => setConfig({ ...config, signature_html: e.target.value })} placeholder="<b>Dany Chaput</b><br/>Coordonnateur RIUSC" rows={4} style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', fontFamily: 'monospace', boxSizing: 'border-box', resize: 'vertical' }} />
               </div>
               {config.signature_html && (
                 <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -173,25 +303,80 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                 </div>
               )}
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button
-                  onClick={() => setShowConfig(false)}
-                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                  Retour
-                </button>
-                <button
-                  onClick={sauvegarderConfig}
-                  disabled={configSaving}
-                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: configSaving ? 'not-allowed' : 'pointer', opacity: configSaving ? 0.7 : 1 }}
-                >
-                  {configSaving ? 'Sauvegarde…' : 'Sauvegarder'}
-                </button>
+                <button onClick={() => setPanel('compose')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Retour</button>
+                <button onClick={sauvegarderConfig} disabled={configSaving} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: configSaving ? 'not-allowed' : 'pointer', opacity: configSaving ? 0.7 : 1 }}>{configSaving ? 'Sauvegarde…' : 'Sauvegarder'}</button>
+              </div>
+            </div>
+          )}
+
+          {/* === Panel brouillons === */}
+          {panel === 'brouillons' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {brouillons.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  Aucun brouillon sauvegardé
+                </div>
+              ) : brouillons.map(b => (
+                <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
+                  <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => chargerBrouillon(b)}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{b.subject || '(sans objet)'}</div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      {new Date(b.updated_at).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <button onClick={() => supprimerBrouillon(b.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                </div>
+              ))}
+              <button onClick={() => setPanel('compose')} style={{ marginTop: '8px', padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer', alignSelf: 'flex-start' }}>← Retour</button>
+            </div>
+          )}
+
+          {/* === Panel templates === */}
+          {panel === 'templates' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {templates.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  Aucun template disponible
+                </div>
+              ) : templates.map(t => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
+                  <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => chargerTemplate(t)}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{t.nom}</span>
+                      {t.partage && <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#2563eb', fontWeight: '600' }}>Partagé</span>}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>{t.subject || '(sans objet)'}</div>
+                  </div>
+                  <button onClick={() => supprimerTemplate(t.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px' }} title="Supprimer">×</button>
+                </div>
+              ))}
+              <button onClick={() => setPanel('compose')} style={{ marginTop: '8px', padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer', alignSelf: 'flex-start' }}>← Retour</button>
+            </div>
+          )}
+
+          {/* === Panel sauvegarder template === */}
+          {panel === 'save_template' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Nom du template</label>
+                <input type="text" value={templateNom} onChange={e => setTemplateNom(e.target.value)} placeholder="Ex: Notification cahier participant" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} autoFocus />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#374151', cursor: 'pointer' }}>
+                <input type="checkbox" checked={templatePartage} onChange={e => setTemplatePartage(e.target.checked)} style={{ width: 16, height: 16, accentColor: C }} />
+                Partager avec les autres admins/coordonnateurs
+              </label>
+              <div style={{ fontSize: '12px', color: '#94a3b8', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
+                Objet : <strong>{subject || '(vide)'}</strong>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setPanel('compose')} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
+                <button onClick={sauvegarderTemplate} disabled={savingTemplate || !templateNom.trim()} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600', cursor: (savingTemplate || !templateNom.trim()) ? 'not-allowed' : 'pointer', opacity: (savingTemplate || !templateNom.trim()) ? 0.6 : 1 }}>{savingTemplate ? 'Sauvegarde…' : 'Sauvegarder'}</button>
               </div>
             </div>
           )}
 
           {/* === Panel composition === */}
-          {!showConfig && !success && (
+          {panel === 'compose' && !success && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Destinataires */}
               <div>
@@ -205,9 +390,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
                     </span>
                   ))}
                   {destinataires.length > 20 && (
-                    <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>
-                      +{destinataires.length - 20} autres
-                    </span>
+                    <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{destinataires.length - 20} autres</span>
                   )}
                 </div>
               </div>
@@ -222,31 +405,42 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
               {/* Objet */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Objet</label>
-                <input
-                  type="text"
-                  value={subject}
-                  onChange={e => setSubject(e.target.value)}
-                  placeholder="Objet du courriel"
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }}
-                  autoFocus
-                />
+                <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Objet du courriel" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} autoFocus />
               </div>
 
               {/* Contenu */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Message</label>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                    Variables : {'{{ prenom }}'} {'{{ nom }}'}
-                  </span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Variables : {'{{ prenom }}'} {'{{ nom }}'}</span>
                 </div>
-                <textarea
-                  value={bodyHtml}
-                  onChange={e => setBodyHtml(e.target.value)}
-                  placeholder="Bonjour {{ prenom }},&#10;&#10;Votre message ici..."
-                  rows={8}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }}
-                />
+                <textarea value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} placeholder="Bonjour {{ prenom }},&#10;&#10;Votre message ici..." rows={8} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }} />
+              </div>
+
+              {/* Pièces jointes */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <button onClick={() => fileInputRef.current?.click()} style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    📎 Joindre un fichier
+                  </button>
+                  <input ref={fileInputRef} type="file" multiple onChange={handleFileAttach} style={{ display: 'none' }} />
+                  {attachments.length > 0 && (
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                      {attachments.length} fichier{attachments.length > 1 ? 's' : ''} ({formatFileSize(attachments.reduce((sum, a) => sum + a.file.size, 0))})
+                    </span>
+                  )}
+                </div>
+                {attachments.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {attachments.map((a, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+                        📎 {a.file.name}
+                        <span style={{ color: '#94a3b8' }}>({formatFileSize(a.file.size)})</span>
+                        <button onClick={() => removeAttachment(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Erreur */}
@@ -276,37 +470,28 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent }:
         </div>
 
         {/* Pied de page */}
-        {!showConfig && (
-          <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+        {panel === 'compose' && (
+          <div style={{ padding: '14px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
             {success ? (
-              <button
-                onClick={onClose}
-                style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-              >
-                Fermer
-              </button>
+              <div style={{ marginLeft: 'auto' }}>
+                <button onClick={onClose} style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Fermer</button>
+              </div>
             ) : (
               <>
-                <button
-                  onClick={onClose}
-                  disabled={sending}
-                  style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={envoyer}
-                  disabled={sending || !subject.trim() || !bodyHtml.trim()}
-                  style={{
-                    padding: '9px 24px', borderRadius: '8px', border: 'none',
-                    backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600',
-                    cursor: (sending || !subject.trim() || !bodyHtml.trim()) ? 'not-allowed' : 'pointer',
-                    opacity: (sending || !subject.trim() || !bodyHtml.trim()) ? 0.6 : 1,
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                  }}
-                >
-                  {sending ? '⏳ Envoi en cours…' : `📨 Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
-                </button>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button onClick={sauvegarderBrouillon} disabled={savingBrouillon || (!subject.trim() && !bodyHtml.trim())} title="Sauvegarder en brouillon" style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: (savingBrouillon || (!subject.trim() && !bodyHtml.trim())) ? 'not-allowed' : 'pointer', opacity: (!subject.trim() && !bodyHtml.trim()) ? 0.4 : 1 }}>
+                    {savingBrouillon ? '💾 …' : '💾 Brouillon'}
+                  </button>
+                  <button onClick={() => { setTemplateNom(''); setTemplatePartage(false); setPanel('save_template') }} disabled={!subject.trim() && !bodyHtml.trim()} title="Sauvegarder comme template" style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '13px', fontWeight: '600', cursor: (!subject.trim() && !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (!subject.trim() && !bodyHtml.trim()) ? 0.4 : 1 }}>
+                    📋 Template
+                  </button>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={onClose} disabled={sending} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
+                  <button onClick={envoyer} disabled={sending || !subject.trim() || !bodyHtml.trim()} style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: (sending || !subject.trim() || !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !subject.trim() || !bodyHtml.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {sending ? '⏳ Envoi en cours…' : `📨 Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
+                  </button>
+                </div>
               </>
             )}
           </div>

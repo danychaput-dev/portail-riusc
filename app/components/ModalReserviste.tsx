@@ -1,10 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import HistoriqueCourriels from './HistoriqueCourriels'
 import ModalComposeCourriel from './ModalComposeCourriel'
 
 const C = '#1e3a5f'
+
+interface NoteFichier {
+  id: string
+  nom_fichier: string
+  storage_path: string
+  taille?: number
+  type_mime?: string
+}
 
 interface Note {
   id: string
@@ -12,6 +20,7 @@ interface Note {
   auteur_nom: string
   contenu: string
   created_at: string
+  fichiers?: NoteFichier[]
 }
 
 interface Reserviste {
@@ -39,6 +48,8 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
   const [newNote, setNewNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [showCompose, setShowCompose] = useState(false)
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Charger les notes quand on ouvre l'onglet
   useEffect(() => {
@@ -52,18 +63,50 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
   }, [onglet, reserviste.benevole_id])
 
   const ajouterNote = async () => {
-    if (!newNote.trim()) return
+    if (!newNote.trim() && pendingFiles.length === 0) return
     setSavingNote(true)
     try {
+      // 1. Créer la note (texte)
       const res = await fetch('/api/admin/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ benevole_id: reserviste.benevole_id, contenu: newNote }),
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          contenu: newNote.trim() || (pendingFiles.length > 0 ? `📎 ${pendingFiles.map(f => f.name).join(', ')}` : ''),
+        }),
       })
       const json = await res.json()
       if (json.ok && json.note) {
-        setNotes(prev => [json.note, ...prev])
+        // 2. Upload des fichiers si présents
+        let fichiers: NoteFichier[] = []
+        if (pendingFiles.length > 0) {
+          const uploadRes = await fetch('/api/admin/notes/fichiers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note_id: json.note.id }),
+          })
+          const uploadJson = await uploadRes.json()
+
+          if (uploadJson.ok) {
+            // Upload chaque fichier vers le signed URL
+            for (const file of pendingFiles) {
+              const formData = new FormData()
+              formData.append('file', file)
+              formData.append('note_id', json.note.id)
+              formData.append('nom_fichier', file.name)
+              const fRes = await fetch('/api/admin/notes/fichiers/upload', {
+                method: 'POST',
+                body: formData,
+              })
+              const fJson = await fRes.json()
+              if (fJson.ok && fJson.fichier) fichiers.push(fJson.fichier)
+            }
+          }
+        }
+
+        setNotes(prev => [{ ...json.note, fichiers }, ...prev])
         setNewNote('')
+        setPendingFiles([])
       }
     } catch {}
     setSavingNote(false)
@@ -72,6 +115,22 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
   const supprimerNote = async (noteId: string) => {
     const res = await fetch(`/api/admin/notes?id=${noteId}`, { method: 'DELETE' })
     if (res.ok) setNotes(prev => prev.filter(n => n.id !== noteId))
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    setPendingFiles(prev => [...prev, ...files])
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const removePendingFile = (idx: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} o`
+    if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)} Ko`
+    return `${(bytes / 1048576).toFixed(1)} Mo`
   }
 
   const onglets: { key: Onglet; label: string; icon: string }[] = [
@@ -85,7 +144,7 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
         style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
       >
-        <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '600px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '640px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
 
           {/* En-tête avec info réserviste */}
           <div style={{ padding: '20px 24px 0', borderBottom: '1px solid #e2e8f0' }}>
@@ -102,7 +161,7 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
               </div>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <a
-                  href={`/dossier?bid=${reserviste.benevole_id}`}
+                  href={`/dossier?bid=${reserviste.benevole_id}&from=reservistes`}
                   target="_blank"
                   rel="noopener"
                   style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${C}`, backgroundColor: 'white', color: C, fontSize: '12px', fontWeight: '600', textDecoration: 'none', whiteSpace: 'nowrap' }}
@@ -156,28 +215,73 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
             {onglet === 'notes' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Champ nouvelle note */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <textarea
-                    value={newNote}
-                    onChange={e => setNewNote(e.target.value)}
-                    placeholder="Ajouter une note interne..."
-                    rows={2}
-                    style={{ flex: 1, padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ajouterNote() } }}
-                  />
-                  <button
-                    onClick={ajouterNote}
-                    disabled={savingNote || !newNote.trim()}
-                    style={{
-                      padding: '8px 16px', borderRadius: '8px', border: 'none',
-                      backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600',
-                      cursor: (savingNote || !newNote.trim()) ? 'not-allowed' : 'pointer',
-                      opacity: (savingNote || !newNote.trim()) ? 0.5 : 1,
-                      alignSelf: 'flex-end', whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {savingNote ? '...' : 'Ajouter'}
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <textarea
+                      value={newNote}
+                      onChange={e => setNewNote(e.target.value)}
+                      placeholder="Ajouter une note interne..."
+                      rows={2}
+                      style={{ flex: 1, padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ajouterNote() } }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignSelf: 'flex-end' }}>
+                      <button
+                        onClick={ajouterNote}
+                        disabled={savingNote || (!newNote.trim() && pendingFiles.length === 0)}
+                        style={{
+                          padding: '8px 16px', borderRadius: '8px', border: 'none',
+                          backgroundColor: C, color: 'white', fontSize: '13px', fontWeight: '600',
+                          cursor: (savingNote || (!newNote.trim() && pendingFiles.length === 0)) ? 'not-allowed' : 'pointer',
+                          opacity: (savingNote || (!newNote.trim() && pendingFiles.length === 0)) ? 0.5 : 1,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {savingNote ? '...' : 'Ajouter'}
+                      </button>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          padding: '6px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                          backgroundColor: 'white', color: '#64748b', fontSize: '12px',
+                          cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}
+                        title="Joindre un fichier"
+                      >
+                        📎 Fichier
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fichiers en attente */}
+                  {pendingFiles.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {pendingFiles.map((f, i) => (
+                        <div key={i} style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '4px 10px', borderRadius: '8px',
+                          backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0',
+                          fontSize: '12px', color: '#475569',
+                        }}>
+                          📎 {f.name}
+                          <span style={{ color: '#94a3b8' }}>({formatFileSize(f.size)})</span>
+                          <button
+                            onClick={() => removePendingFile(i)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: '14px', padding: '0 2px', lineHeight: 1 }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Liste des notes */}
@@ -215,6 +319,28 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
                         <div style={{ fontSize: '13px', color: '#374151', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
                           {n.contenu}
                         </div>
+                        {/* Fichiers attachés */}
+                        {n.fichiers && n.fichiers.length > 0 && (
+                          <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {n.fichiers.map(f => (
+                              <a
+                                key={f.id}
+                                href={`/api/admin/notes/fichiers/download?id=${f.id}`}
+                                target="_blank"
+                                rel="noopener"
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '4px',
+                                  padding: '4px 10px', borderRadius: '8px',
+                                  backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
+                                  fontSize: '12px', color: '#1e40af', textDecoration: 'none',
+                                }}
+                              >
+                                📎 {f.nom_fichier}
+                                {f.taille && <span style={{ color: '#94a3b8' }}>({formatFileSize(f.taille)})</span>}
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )
                   })

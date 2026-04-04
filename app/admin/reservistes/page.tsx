@@ -408,7 +408,7 @@ function ReservistesPage() {
                   opacity: data.length === 0 ? 0.5 : 1
                 }}
               >
-                ✉️ Envoyer un courriel {selectedIds.size > 0 && `(${selectedIds.size})`}
+                ✉️ Envoyer {selectedIds.size > 1 ? `des courriels (${selectedIds.size})` : `un courriel${selectedIds.size === 1 ? ' (1)' : ''}`}
               </button>
             )}
           </div>

@@ -1,4 +1,5 @@
-// app/api/admin/courriels/historique/route.ts
+// app/api/admin/notes/fichiers/download/route.ts
+// Télécharger un fichier attaché à une note
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
@@ -25,19 +26,33 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const benevole_id = req.nextUrl.searchParams.get('benevole_id')
-    if (!benevole_id) return NextResponse.json({ error: 'benevole_id requis' }, { status: 400 })
+    const id = req.nextUrl.searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 })
 
-    // Utiliser service_role pour que tous les admins voient tous les courriels
-    const { data: courriels, error } = await supabaseAdmin
-      .from('courriels')
-      .select('id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, resend_id, body_html, envoye_par')
-      .eq('benevole_id', benevole_id)
-      .order('created_at', { ascending: false })
+    // Récupérer le fichier dans la DB
+    const { data: fichier } = await supabaseAdmin
+      .from('notes_fichiers')
+      .select('storage_path, nom_fichier, type_mime')
+      .eq('id', id)
+      .single()
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!fichier) return NextResponse.json({ error: 'Fichier introuvable' }, { status: 404 })
 
-    return NextResponse.json({ courriels: courriels || [] })
+    // Télécharger depuis Storage
+    const { data: fileData, error: dlError } = await supabaseAdmin.storage
+      .from('notes-fichiers')
+      .download(fichier.storage_path)
+
+    if (dlError || !fileData) return NextResponse.json({ error: dlError?.message || 'Erreur téléchargement' }, { status: 500 })
+
+    const buffer = Buffer.from(await fileData.arrayBuffer())
+
+    return new NextResponse(buffer, {
+      headers: {
+        'Content-Type': fichier.type_mime || 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${fichier.nom_fichier}"`,
+      },
+    })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

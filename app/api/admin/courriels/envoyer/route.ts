@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const { destinataires, subject, body_html, campagne_nom } = await req.json()
+    const { destinataires, subject, body_html, campagne_nom, attachments } = await req.json()
 
     if (!destinataires || !Array.isArray(destinataires) || destinataires.length === 0) {
       return NextResponse.json({ error: 'Au moins un destinataire requis' }, { status: 400 })
@@ -76,6 +76,12 @@ export async function POST(req: NextRequest) {
       return { ...dest, html }
     })
 
+    // Préparer les pièces jointes Resend (base64 → buffer)
+    const resendAttachments = (attachments || []).map((a: any) => ({
+      filename: a.filename,
+      content: Buffer.from(a.content, 'base64'),
+    }))
+
     const resultats: { benevole_id: string; ok: boolean; error?: string }[] = []
 
     // ── Batch API pour envois de masse (lots de 100) ──
@@ -92,6 +98,7 @@ export async function POST(req: NextRequest) {
               subject,
               html: dest.html,
               replyTo,
+              ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
             }))
           )
 
@@ -137,6 +144,7 @@ export async function POST(req: NextRequest) {
           subject,
           html: dest.html,
           replyTo,
+          ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
         })
 
         if (emailError) {

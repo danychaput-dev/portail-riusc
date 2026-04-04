@@ -1,8 +1,8 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
 import { logPageVisit } from '@/utils/logEvent'
 import { n8nUrl } from '@/utils/n8n'
@@ -427,8 +427,20 @@ function DynamicList({ myIds, allItems, pinnedNoms, newIds, newName, showInput, 
 
 // ─── Page principale ─────────────────────────────────────────────────────────
 
-export default function DossierPage() {
+export default function DossierPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6b7280' }}>Chargement...</div>}>
+      <DossierPage />
+    </Suspense>
+  )
+}
+
+function DossierPage() {
+  const searchParams = useSearchParams()
+  const bidParam = searchParams.get('bid')
+  const fromParam = searchParams.get('from')
   const [user, setUser] = useState<any>(null)
+  const [isViewingOther, setIsViewingOther] = useState(false)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [dossier, setDossier] = useState<DossierData>(DEFAULT_DOSSIER)
   const [originalDossier, setOriginalDossier] = useState<DossierData>(DEFAULT_DOSSIER)
@@ -473,8 +485,26 @@ export default function DossierPage() {
       if (!user) { router.push('/login'); return }
       setUser(user)
 
-      const { data: reservisteData } = await supabase
-        .from('reservistes').select('*').eq('user_id', user.id).single()
+      // Si bid est passé en paramètre, vérifier que l'utilisateur est admin
+      let reservisteData: any = null
+      if (bidParam) {
+        const { data: adminCheck } = await supabase
+          .from('reservistes').select('role').eq('user_id', user.id).single()
+        if (adminCheck && ['admin', 'coordonnateur'].includes(adminCheck.role)) {
+          const { data: targetRes } = await supabase
+            .from('reservistes').select('*').eq('benevole_id', bidParam).single()
+          if (targetRes) {
+            reservisteData = targetRes
+            setIsViewingOther(true)
+          }
+        }
+      }
+      // Sinon, charger le profil de l'utilisateur connecté
+      if (!reservisteData) {
+        const { data: ownRes } = await supabase
+          .from('reservistes').select('*').eq('user_id', user.id).single()
+        reservisteData = ownRes
+      }
       if (!reservisteData) { router.push('/'); return }
       setReserviste(reservisteData)
 
@@ -683,7 +713,30 @@ export default function DossierPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
 
-      <PortailHeader subtitle="Mon dossier réserviste" />
+      <PortailHeader subtitle={isViewingOther ? `Dossier de ${reserviste?.prenom} ${reserviste?.nom}` : 'Mon dossier réserviste'} />
+
+      {/* Bandeau consultation admin */}
+      {isViewingOther && (
+        <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px', borderRadius: '8px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+            <span style={{ fontSize: '13px', color: '#1e40af', fontWeight: '600' }}>
+              👁️ Vous consultez le dossier de {reserviste?.prenom} {reserviste?.nom}
+            </span>
+            <button
+              onClick={() => {
+                if (fromParam === 'reservistes') {
+                  router.push('/admin/reservistes')
+                } else {
+                  window.close()
+                }
+              }}
+              style={{ marginLeft: 'auto', padding: '5px 14px', borderRadius: '8px', border: '1px solid #93c5fd', backgroundColor: 'white', color: '#1e40af', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              ← Retour aux réservistes
+            </button>
+          </div>
+        </div>
+      )}
 
       {saveMessage && (
         <div style={{ maxWidth: '860px', margin: '16px auto 0', padding: '0 24px' }}>
@@ -695,7 +748,11 @@ export default function DossierPage() {
 
       <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ marginBottom: '24px' }}>
-          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
+          {isViewingOther ? (
+            <a href="/admin/reservistes" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour aux réservistes</a>
+          ) : (
+            <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
+          )}
         </div>
 
         {/* ── 1. Identité ── */}
