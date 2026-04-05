@@ -352,8 +352,8 @@ export default function HomePage() {
             
             // Charger tout en parallèle
             const bid = userData.benevole_id
-            const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
-              supabase.from('formations_benevoles').select('id').eq('benevole_id', bid).ilike('nom_formation', '%camp de qualification%').eq('resultat', 'Réussi').limit(1).then(({ data }) => data && data.length > 0 ? { is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null } : null),
+            const [campFormResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
+              supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               fetch(n8nUrl(`/webhook/selection-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
               supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
@@ -361,12 +361,12 @@ export default function HomePage() {
               loadMobilisationStatus(bid)
             ])
 
-            // Camp status (depuis Supabase formations_benevoles)
-            if (campResult.status === 'fulfilled' && campResult.value) {
-              setCampStatus(campResult.value)
-            } else {
-              setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null })
-            }
+            // Camp status — détecté à partir des formations RPC (bypass RLS)
+            const campForms = campFormResult.status === 'fulfilled' ? campFormResult.value?.data : null
+            const hasCampQualif = (campForms || []).some((f: any) =>
+              (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
+            )
+            setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null })
             setLoadingCamp(false)
 
             // Selection status
@@ -544,8 +544,8 @@ export default function HomePage() {
         
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id
-        const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
-          fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+        const [campFormResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
+          supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           fetch(n8nUrl(`/webhook/selection-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
           loadCertificats(bid),
           supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
@@ -553,10 +553,12 @@ export default function HomePage() {
           loadMobilisationStatus(bid)
         ])
 
-        // Camp status
-        if (campResult.status === 'fulfilled' && campResult.value) {
-          setCampStatus(campResult.value)
-        }
+        // Camp status — détecté à partir des formations RPC (bypass RLS)
+        const campForms = campFormResult.status === 'fulfilled' ? campFormResult.value?.data : null
+        const hasCampQualif = (campForms || []).some((f: any) =>
+          (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
+        )
+        setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null })
         setLoadingCamp(false)
 
         // Selection status

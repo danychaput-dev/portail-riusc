@@ -182,9 +182,8 @@ function FormationContent() {
           if (userData.benevole_id) {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
-            const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+            const [certResult, formResult, docsResult] = await Promise.allSettled([
               supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
-              supabase.from('formations_benevoles').select('id').eq('benevole_id', bid).ilike('nom_formation', '%camp de qualification%').eq('resultat', 'Réussi').limit(1),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
@@ -201,19 +200,19 @@ function FormationContent() {
             }
             setLoadingCertificats(false);
 
-            // Camp status (depuis Supabase formations_benevoles)
-            if (campResult.status === 'fulfilled' && campResult.value?.data?.length > 0) {
-              setCampStatus({ is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
-            } else {
-              setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
-            }
-            setLoadingCamp(false);
-
-            // Formations (from Supabase RPC)
-            if (formResult.status === 'fulfilled' && formResult.value?.data) {
-              setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
+            // Formations (from Supabase RPC — bypass RLS)
+            const formData = formResult.status === 'fulfilled' ? formResult.value?.data : null;
+            if (formData) {
+              setFormations(await mapFormationsWithSignedUrls(formData));
             }
             setLoadingFormations(false);
+
+            // Camp status — détecté à partir des formations RPC
+            const hasCampQualif = (formData || []).some((f: any) =>
+              (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
+            );
+            setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+            setLoadingCamp(false);
 
             // Documents officiels + signed URLs
             if (docsResult.status === 'fulfilled') {
@@ -310,9 +309,8 @@ function FormationContent() {
       if (reservisteData.benevole_id) {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
-        const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
+        const [certResult, formResult, docsResult] = await Promise.allSettled([
           supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
-          supabase.from('formations_benevoles').select('id').eq('benevole_id', bid).ilike('nom_formation', '%camp de qualification%').eq('resultat', 'Réussi').limit(1),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
@@ -329,19 +327,19 @@ function FormationContent() {
         }
         setLoadingCertificats(false);
 
-        // Camp status (depuis Supabase formations_benevoles)
-        if (campResult.status === 'fulfilled' && campResult.value?.data?.length > 0) {
-          setCampStatus({ is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
-        } else {
-          setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
-        }
-        setLoadingCamp(false);
-
-        // Formations (from Supabase RPC)
-        if (formResult.status === 'fulfilled' && formResult.value?.data) {
-          setFormations(await mapFormationsWithSignedUrls(formResult.value.data));
+        // Formations (from Supabase RPC — bypass RLS)
+        const formData = formResult.status === 'fulfilled' ? formResult.value?.data : null;
+        if (formData) {
+          setFormations(await mapFormationsWithSignedUrls(formData));
         }
         setLoadingFormations(false);
+
+        // Camp status — détecté à partir des formations RPC
+        const hasCampQualif = (formData || []).some((f: any) =>
+          (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
+        );
+        setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        setLoadingCamp(false);
 
         // Documents officiels + signed URLs
         if (docsResult.status === 'fulfilled') {
