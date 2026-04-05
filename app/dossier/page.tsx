@@ -485,18 +485,20 @@ function DossierPage() {
       if (!user) { router.push('/login'); return }
       setUser(user)
 
-      // Si bid est passé en paramètre, vérifier que l'utilisateur est admin
+      // Si bid est passé en paramètre, charger via API admin (service_role, bypass RLS)
       let reservisteData: any = null
       if (bidParam) {
-        const { data: adminCheck } = await supabase
-          .from('reservistes').select('role').eq('user_id', user.id).single()
-        if (adminCheck && ['admin', 'coordonnateur'].includes(adminCheck.role)) {
-          const { data: targetRes } = await supabase
-            .from('reservistes').select('*').eq('benevole_id', bidParam).single()
-          if (targetRes) {
-            reservisteData = targetRes
-            setIsViewingOther(true)
+        try {
+          const res = await fetch(`/api/admin/reserviste-detail?bid=${bidParam}`)
+          if (res.ok) {
+            const json = await res.json()
+            if (json.reserviste) {
+              reservisteData = json.reserviste
+              setIsViewingOther(true)
+            }
           }
+        } catch (e) {
+          console.error('[Dossier] Erreur chargement bid:', e)
         }
       }
       // Sinon, charger le profil de l'utilisateur connecté
@@ -508,7 +510,8 @@ function DossierPage() {
       if (!reservisteData) { router.push('/'); return }
       setReserviste(reservisteData)
 
-      if (reservisteData.groupe !== 'Approuvé') { router.push('/'); return }
+      // Seuls les Approuvés accèdent à leur propre dossier — les admins peuvent voir tous les dossiers via bid
+      if (!bidParam && reservisteData.groupe !== 'Approuvé') { router.push('/'); return }
 
       logPageVisit('/dossier')
       setLoading(false)
