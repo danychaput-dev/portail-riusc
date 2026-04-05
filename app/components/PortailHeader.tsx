@@ -8,6 +8,7 @@ import ImpersonateBanner from './ImpersonateBanner'
 import ImpersonateModal from './ImpersonateModal'
 import { useAuth } from '@/utils/useAuth'
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
+import { n8nUrl } from '@/utils/n8n'
 
 interface Reserviste {
   benevole_id: string
@@ -205,9 +206,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           const hasCert = formations.some(f => (f.nom_formation || '').toLowerCase().includes('initier'))
           setHasCertificats(hasCert)
 
-          // Camp réussi = source monday + nom_formation contient "camp"
-          const campReussi = formations.some(f => f.nom_formation?.toLowerCase().includes('camp') && f.resultat === 'Réussi')
-          setCampStatus({ is_certified: campReussi })
+          // Camp — vérifier Supabase (toutes cohortes « Camp de qualification »)
+          const campReussiSupabase = formations.some(f => f.nom_formation?.toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi')
+          setCampStatus({ is_certified: campReussiSupabase })
         }
 
         // Ciblages actifs (seulement pertinent pour Approuvé)

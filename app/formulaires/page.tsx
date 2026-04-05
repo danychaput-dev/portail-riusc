@@ -184,7 +184,7 @@ function FormationContent() {
             const bid = userData.benevole_id;
             const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
               supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
-              fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+              supabase.from('formations_benevoles').select('id').eq('benevole_id', bid).ilike('nom_formation', '%camp de qualification%').eq('resultat', 'Réussi').limit(1),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
@@ -201,9 +201,11 @@ function FormationContent() {
             }
             setLoadingCertificats(false);
 
-            // Camp status
-            if (campResult.status === 'fulfilled' && campResult.value) {
-              setCampStatus(campResult.value);
+            // Camp status (depuis Supabase formations_benevoles)
+            if (campResult.status === 'fulfilled' && campResult.value?.data?.length > 0) {
+              setCampStatus({ is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+            } else {
+              setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
             }
             setLoadingCamp(false);
 
@@ -310,7 +312,7 @@ function FormationContent() {
         const bid = reservisteData.benevole_id;
         const [certResult, campResult, formResult, docsResult] = await Promise.allSettled([
           supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
-          fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+          supabase.from('formations_benevoles').select('id').eq('benevole_id', bid).ilike('nom_formation', '%camp de qualification%').eq('resultat', 'Réussi').limit(1),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
@@ -327,9 +329,11 @@ function FormationContent() {
         }
         setLoadingCertificats(false);
 
-        // Camp status
-        if (campResult.status === 'fulfilled' && campResult.value) {
-          setCampStatus(campResult.value);
+        // Camp status (depuis Supabase formations_benevoles)
+        if (campResult.status === 'fulfilled' && campResult.value?.data?.length > 0) {
+          setCampStatus({ is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        } else {
+          setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
         }
         setLoadingCamp(false);
 

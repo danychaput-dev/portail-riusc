@@ -353,7 +353,7 @@ export default function HomePage() {
             // Charger tout en parallèle
             const bid = userData.benevole_id
             const [campResult, selectionResult, certResult, ciblagesResult, sinitierResult, mobilisationResult] = await Promise.allSettled([
-              fetch(n8nUrl(`/webhook/camp-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
+              supabase.from('formations_benevoles').select('id').eq('benevole_id', bid).ilike('nom_formation', '%camp de qualification%').eq('resultat', 'Réussi').limit(1).then(({ data }) => data && data.length > 0 ? { is_certified: true, has_inscription: false, session_id: null, camp: null, lien_inscription: null } : null),
               fetch(n8nUrl(`/webhook/selection-status?benevole_id=${bid}`)).then(r => r.ok ? r.json() : null),
               loadCertificats(bid),
               supabase.rpc('get_ciblages_by_benevole_id', { target_benevole_id: bid }),
@@ -361,9 +361,11 @@ export default function HomePage() {
               loadMobilisationStatus(bid)
             ])
 
-            // Camp status
+            // Camp status (depuis Supabase formations_benevoles)
             if (campResult.status === 'fulfilled' && campResult.value) {
               setCampStatus(campResult.value)
+            } else {
+              setCampStatus({ is_certified: false, has_inscription: false, session_id: null, camp: null, lien_inscription: null })
             }
             setLoadingCamp(false)
 
