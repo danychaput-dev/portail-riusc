@@ -271,11 +271,22 @@ function ReservistesPage() {
   }, [rawData])
 
   // Liste des groupes de recherche uniques pour le filtre
+  const GROUPES_RS_SUPPLEMENTAIRES = [
+    'District 1: Équipe de recherche et sauvetage La Grande-Ourse',
+    'District 3: Recherche Sauvetage Tourville',
+    'District 6: Sauvetage Baie-D\'Urfé',
+    'District 6: Pointe-Claire Volunteer Rescue Unit',
+    'District 6: S&R Balise Beacon R&S',
+    'District 7: SAR 360',
+    'District 8: Recherche et sauvetage du Témiscamingue R.E.S.Tem',
+    'District 9: Groupe de recherche Manicouagan',
+  ]
   const groupesRSUniques = useMemo(() => {
     const set = new Set<string>()
     for (const r of rawData) {
       if (r.groupe_recherche) set.add(r.groupe_recherche)
     }
+    for (const g of GROUPES_RS_SUPPLEMENTAIRES) set.add(g)
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
   }, [rawData])
 
