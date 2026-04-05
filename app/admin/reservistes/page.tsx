@@ -49,6 +49,7 @@ interface Reserviste {
   camp_inscrit: boolean
   org_principale: string
   groupe_aqbrs: string
+  groupe_recherche: string | null
 }
 
 interface ModalAntecedents {
@@ -111,7 +112,7 @@ function isDeployable(r: Reserviste): boolean {
 }
 
 // Sorting
-type SortKey = 'nom' | 'prenom' | 'telephone' | 'email' | 'ville' | 'region' | 'organisme' | 'bottes' | 'antecedents' | 'groupe' | 'readiness'
+type SortKey = 'nom' | 'prenom' | 'telephone' | 'email' | 'ville' | 'region' | 'organisme' | 'groupe_recherche' | 'bottes' | 'antecedents' | 'groupe' | 'readiness'
 type SortDir = 'asc' | 'desc'
 
 function sortData(data: Reserviste[], key: SortKey, dir: SortDir): Reserviste[] {
@@ -125,6 +126,7 @@ function sortData(data: Reserviste[], key: SortKey, dir: SortDir): Reserviste[] 
       case 'ville':        cmp = (a.ville || '').localeCompare(b.ville || '', 'fr'); break
       case 'region':       cmp = (a.region || '').localeCompare(b.region || '', 'fr'); break
       case 'organisme':   cmp = (a.org_principale || '').localeCompare(b.org_principale || '', 'fr'); break
+      case 'groupe_recherche': cmp = (a.groupe_recherche || '').localeCompare(b.groupe_recherche || '', 'fr'); break
       case 'bottes':       cmp = (a.remboursement_bottes_date ? 1 : 0) - (b.remboursement_bottes_date ? 1 : 0); break
       case 'antecedents':  cmp = (a.antecedents_statut || '').localeCompare(b.antecedents_statut || ''); break
       case 'groupe':       cmp = (a.groupe || '').localeCompare(b.groupe || '', 'fr'); break
@@ -181,6 +183,7 @@ function ReservistesPage() {
   const [userRole,       setUserRole]       = useState<string>('')
   const [filtreBottes,   setFiltreBottes]   = useState(false)
   const [filtreOrganisme, setFiltreOrganisme] = useState<string>('')
+  const [filtreGroupeRS, setFiltreGroupeRS] = useState<string>('')
   // Filtres readiness 3 états : null (off) → 'has' (ceux qui l'ont) → 'missing' (ceux à qui ça manque) → null
   type FilterState = 'has' | 'missing' | null
   const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, antecedents: null })
@@ -202,6 +205,7 @@ function ReservistesPage() {
     setGroupesFiltres(defaultGroupes)
     setRecherche('')
     setFiltreOrganisme('')
+    setFiltreGroupeRS('')
     setFiltreBottes(false)
     setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null })
     setFiltreDeployable(null)
@@ -266,11 +270,21 @@ function ReservistesPage() {
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
   }, [rawData])
 
+  // Liste des groupes de recherche uniques pour le filtre
+  const groupesRSUniques = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of rawData) {
+      if (r.groupe_recherche) set.add(r.groupe_recherche)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
+  }, [rawData])
+
   // Sorted + filtered data
   const data = useMemo(() => {
     let filtered = rawData
     if (filtreBottes) filtered = filtered.filter(r => r.remboursement_bottes_date)
     if (filtreOrganisme) filtered = filtered.filter(r => (r.org_principale || '').includes(filtreOrganisme))
+    if (filtreGroupeRS) filtered = filtered.filter(r => (r.groupe_recherche || '') === filtreGroupeRS)
     // Appliquer tous les filtres readiness actifs (combinés = AND)
     for (const key of Object.keys(filtresReadiness) as ReadinessKey[]) {
       const state = filtresReadiness[key]
@@ -281,7 +295,7 @@ function ReservistesPage() {
     if (filtreDeployable === 'has') filtered = filtered.filter(r => isDeployable(r))
     if (filtreDeployable === 'missing') filtered = filtered.filter(r => !isDeployable(r))
     return sortData(filtered, sortKey, sortDir)
-  }, [rawData, filtreBottes, filtreOrganisme, filtresReadiness, filtreDeployable, sortKey, sortDir])
+  }, [rawData, filtreBottes, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -492,8 +506,8 @@ function ReservistesPage() {
 
   // Columns: [checkbox] Nom Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
   const gridCols = canEmail
-    ? '36px 1.2fr 0.8fr 1.3fr 0.7fr 0.55fr 0.7fr 80px 90px 120px 140px'
-    : '1.2fr 0.8fr 1.3fr 0.7fr 0.55fr 0.7fr 80px 90px 120px 140px'
+    ? '36px 1.2fr 0.8fr 1.3fr 0.7fr 0.55fr 0.7fr 0.7fr 80px 90px 120px 140px'
+    : '1.2fr 0.8fr 1.3fr 0.7fr 0.55fr 0.7fr 0.7fr 80px 90px 120px 140px'
 
   return (
     <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -666,8 +680,8 @@ function ReservistesPage() {
               </button>
             )
           })}
-          {(filtreBottes || filtreOrganisme || hasAnyReadinessFilter) && (
-            <button onClick={() => { setFiltreBottes(false); setFiltreOrganisme(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+          {(filtreBottes || filtreOrganisme || filtreGroupeRS || hasAnyReadinessFilter) && (
+            <button onClick={() => { setFiltreBottes(false); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
               ✕ Réinitialiser
             </button>
           )}
@@ -678,7 +692,7 @@ function ReservistesPage() {
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginBottom: '16px' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const, display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ minWidth: '1100px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ minWidth: '1280px', display: 'flex', flexDirection: 'column', flex: 1 }}>
           {/* En-tête tableau — figé en haut (ne défile pas) */}
           <div style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
             {/* Ligne 1 : Titres */}
@@ -694,6 +708,7 @@ function ReservistesPage() {
               <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
               <div style={thStyle()} onClick={() => handleSort('region')}>Région{sortArrow('region')}</div>
               <div style={thStyle()} onClick={() => handleSort('organisme')}>Organisme{sortArrow('organisme')}</div>
+              <div style={thStyle()} onClick={() => handleSort('groupe_recherche')}>Groupe RS{sortArrow('groupe_recherche')}</div>
               <div style={thStyle()} onClick={() => handleSort('bottes')}>Bottes{sortArrow('bottes')}</div>
               <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
               <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>Prêt{sortArrow('readiness')}</div>
@@ -712,10 +727,21 @@ function ReservistesPage() {
                 <select
                   value={filtreOrganisme}
                   onChange={e => setFiltreOrganisme(e.target.value)}
-                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreOrganisme ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreOrganisme ? '#eff6ff' : 'white', color: filtreOrganisme ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', maxWidth: '100%' }}
+                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreOrganisme ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreOrganisme ? '#eff6ff' : 'white', color: filtreOrganisme ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', minWidth: '160px', maxWidth: '300px' }}
                 >
                   <option value="">Tous</option>
-                  {organismesUniques.map(o => <option key={o} value={o}>{o.length > 20 ? o.slice(0, 18) + '…' : o}</option>)}
+                  {organismesUniques.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+              {/* Groupe RS — filtre dropdown */}
+              <div style={thSubStyle}>
+                <select
+                  value={filtreGroupeRS}
+                  onChange={e => setFiltreGroupeRS(e.target.value)}
+                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreGroupeRS ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreGroupeRS ? '#eff6ff' : 'white', color: filtreGroupeRS ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', minWidth: '120px', maxWidth: '260px' }}
+                >
+                  <option value="">Tous</option>
+                  {groupesRSUniques.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               {/* Bottes — count (adaptatif aux filtres) */}
@@ -849,9 +875,15 @@ function ReservistesPage() {
                   <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.org_principale || ''}>
                     {r.org_principale ? (
                       r.org_principale.includes('AQBRS') ? (
-                        <span style={{ color: '#1e3a5f', fontWeight: 600 }}>{r.groupe_aqbrs || r.org_principale}</span>
+                        <span style={{ color: '#374151' }}>{r.groupe_aqbrs || r.org_principale}</span>
                       ) : r.org_principale
                     ) : <span style={{ color: '#d1d5db' }}>—</span>}
+                  </div>
+                </div>
+                {/* Groupe RS */}
+                <div style={{ padding: '11px 10px', fontSize: '11px', color: '#374151', overflow: 'hidden' }}>
+                  <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.groupe_recherche || ''}>
+                    {r.groupe_recherche || <span style={{ color: '#d1d5db' }}>—</span>}
                   </div>
                 </div>
                 {/* Bottes */}

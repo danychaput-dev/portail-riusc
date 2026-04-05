@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete')
+    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche')
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
@@ -223,7 +223,7 @@ export async function GET(req: NextRequest) {
   })
 
   if (format === 'xlsx') {
-    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Organisme', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.', 'Initiation SC', 'Camp complété']
+    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Organisme', 'Groupe RS', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.', 'Initiation SC', 'Camp complété']
     const rows = enriched.map(r => [
       r.prenom || '',
       r.nom || '',
@@ -235,6 +235,7 @@ export async function GET(req: NextRequest) {
       r.region || '',
       r.code_postal || '',
       r.org_principale || '',
+      r.groupe_recherche || '',
       r.groupe || '',
       r.statut || '',
       r.remboursement_bottes_date || '',
