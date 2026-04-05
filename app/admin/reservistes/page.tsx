@@ -419,12 +419,16 @@ function ReservistesPage() {
 
   if (!authorized) return null
 
-  // Column header style
+  // Column header style — 2 lignes : titre en haut, détails en bas
   const thStyle = (clickable = true): React.CSSProperties => ({
-    padding: '10px 10px', fontSize: '11px', fontWeight: '700', color: '#64748b',
+    padding: '6px 10px 2px', fontSize: '11px', fontWeight: '700', color: '#64748b',
     textTransform: 'uppercase', letterSpacing: '0.04em', cursor: clickable ? 'pointer' : 'default',
     userSelect: 'none', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap',
   })
+  const thSubStyle: React.CSSProperties = {
+    padding: '0 10px 6px', fontSize: '10px', color: '#94a3b8', fontWeight: '600',
+    display: 'flex', alignItems: 'center', gap: '3px',
+  }
 
   // Columns: [checkbox] Nom Téléphone Courriel Ville Région Bottes Groupe Prêt(3) Antécédents
   // Colonnes: [cb] Nom Tél Courriel Ville Région Bottes Groupe Prêt Antécédents
@@ -610,33 +614,82 @@ function ReservistesPage() {
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const }}>
         <div style={{ minWidth: '1100px' }}>
-          {/* En-tête tableau */}
-          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-            {canEmail && (
-              <div style={{ ...thStyle(true), justifyContent: 'center', padding: '10px 8px' }}>
-                <input type="checkbox" checked={selectedIds.size === data.length && data.length > 0} onChange={toggleSelectAll} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
+          {/* En-tête tableau — 2 lignes : titres + sous-ligne (counts, checkboxes) */}
+          <div style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+            {/* Ligne 1 : Titres */}
+            <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
+              {canEmail && (
+                <div style={{ ...thStyle(true), justifyContent: 'center', padding: '8px 8px 2px' }}>
+                  <input type="checkbox" checked={selectedIds.size === data.length && data.length > 0} onChange={toggleSelectAll} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
+                </div>
+              )}
+              <div style={thStyle()} onClick={() => handleSort('nom')}>Nom{sortArrow('nom')}</div>
+              <div style={thStyle()} onClick={() => handleSort('telephone')}>Téléphone{sortArrow('telephone')}</div>
+              <div style={thStyle()} onClick={() => handleSort('email')}>Courriel{sortArrow('email')}</div>
+              <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
+              <div style={thStyle()} onClick={() => handleSort('region')}>Région{sortArrow('region')}</div>
+              <div style={thStyle()} onClick={() => handleSort('bottes')}>Bottes{sortArrow('bottes')}</div>
+              <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
+              <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>Prêt{sortArrow('readiness')}</div>
+              <div style={thStyle()} onClick={() => handleSort('antecedents')}>Antécédents{sortArrow('antecedents')}</div>
+            </div>
+            {/* Ligne 2 : Counts + Checkboxes de filtre */}
+            <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
+              {canEmail && <div />}
+              <div /> {/* Nom */}
+              <div /> {/* Téléphone */}
+              <div /> {/* Courriel */}
+              <div /> {/* Ville */}
+              <div /> {/* Région */}
+              {/* Bottes — count */}
+              <div style={thSubStyle}>
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700' }}>
+                  {approuves.filter(r => r.remboursement_bottes_date).length}
+                </span>
               </div>
-            )}
-            <div style={thStyle()} onClick={() => handleSort('nom')}>Nom{sortArrow('nom')}</div>
-            <div style={thStyle()} onClick={() => handleSort('telephone')}>Téléphone{sortArrow('telephone')}</div>
-            <div style={thStyle()} onClick={() => handleSort('email')}>Courriel{sortArrow('email')}</div>
-            <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
-            <div style={thStyle()} onClick={() => handleSort('region')}>Région{sortArrow('region')}</div>
-            <div style={thStyle()} onClick={() => handleSort('bottes')}>
-              Bottes{sortArrow('bottes')}
-              <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700', marginLeft: '4px' }}>
-                {approuves.filter(r => r.remboursement_bottes_date).length}
-              </span>
-            </div>
-            <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
-            <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>
-              Prêt{sortArrow('readiness')}
-            </div>
-            <div style={thStyle()} onClick={() => handleSort('antecedents')}>
-              Antécédents{sortArrow('antecedents')}
-              <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700', marginLeft: '4px' }}>
-                {readinessStats.antecedents}
-              </span>
+              <div /> {/* Groupe */}
+              {/* Prêt — 3 checkboxes filtre */}
+              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '2px', padding: '0 4px 6px' }}>
+                {PRET_STEPS.map(step => {
+                  const state = filtresReadiness[step.key]
+                  const isActive = state !== null
+                  return (
+                    <button
+                      key={step.key}
+                      onClick={() => toggleReadinessFilter(step.key)}
+                      title={`${step.label}\n${state === null ? 'Cliquer → montrer ceux qui l\'ont' : state === 'has' ? 'Cliquer → montrer manquants' : 'Cliquer → retirer filtre'}`}
+                      style={{
+                        fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                        border: `1px solid ${state === 'has' ? '#16a34a' : state === 'missing' ? '#ef4444' : '#d1d5db'}`,
+                        backgroundColor: state === 'has' ? '#f0fdf4' : state === 'missing' ? '#fef2f2' : 'white',
+                        color: state === 'has' ? '#16a34a' : state === 'missing' ? '#ef4444' : '#94a3b8',
+                        cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                      }}
+                    >
+                      {step.key === 'profil' ? 'P' : step.key === 'initiation' ? 'I' : 'C'}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Antécédents — count + bouton filtre */}
+              <div style={{ ...thSubStyle, gap: '4px' }}>
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700' }}>
+                  {readinessStats.antecedents}
+                </span>
+                <button
+                  onClick={() => toggleReadinessFilter('antecedents')}
+                  title={`Antécédents vérifiés\n${filtresReadiness.antecedents === null ? 'Cliquer → montrer vérifiés' : filtresReadiness.antecedents === 'has' ? 'Cliquer → montrer manquants' : 'Cliquer → retirer filtre'}`}
+                  style={{
+                    fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                    border: `1px solid ${filtresReadiness.antecedents === 'has' ? '#16a34a' : filtresReadiness.antecedents === 'missing' ? '#ef4444' : '#d1d5db'}`,
+                    backgroundColor: filtresReadiness.antecedents === 'has' ? '#f0fdf4' : filtresReadiness.antecedents === 'missing' ? '#fef2f2' : 'white',
+                    color: filtresReadiness.antecedents === 'has' ? '#16a34a' : filtresReadiness.antecedents === 'missing' ? '#ef4444' : '#94a3b8',
+                    cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                  }}
+                >
+                  A
+                </button>
+              </div>
             </div>
           </div>
 
