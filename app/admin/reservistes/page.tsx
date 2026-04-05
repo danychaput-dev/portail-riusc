@@ -147,7 +147,7 @@ function ReservistesPage() {
   const router   = useRouter()
   const searchParams = useSearchParams()
 
-  // Filtres avancés depuis URL (dashboard drill-down)
+  // Filtres avancés depuis URL (dashboard drill-down) — stockés en state pour fiabilité
   const urlGroupes     = searchParams.get('groupes')
   const urlOrganisme   = searchParams.get('organisme')
   const urlRegion      = searchParams.get('region')
@@ -160,6 +160,9 @@ function ReservistesPage() {
   const urlLabel       = searchParams.get('label')
   const urlFrom        = searchParams.get('from')
   const hasUrlFilters  = !!(urlOrganisme || urlRegion || urlAntecedents || urlBottes || urlInscritDepuis || urlCampSession || urlFrom)
+
+  // Sérialiser les params URL en string stable pour les dépendances du useEffect
+  const urlParamsKey = searchParams.toString()
 
   const defaultGroupes = urlGroupes
     ? urlGroupes.split(',').map(g => g.trim()).filter(Boolean)
@@ -230,7 +233,7 @@ function ReservistesPage() {
       setLoading(false)
     }, recherche ? 350 : 0)
     return () => clearTimeout(timer)
-  }, [authorized, recherche, groupesFiltres])
+  }, [authorized, recherche, groupesFiltres, urlParamsKey])
 
   // Cycle 3 états : null → has → missing → null
   const cycleFilter = (current: FilterState): FilterState =>
@@ -493,6 +496,7 @@ function ReservistesPage() {
             <span style={{ fontSize: '14px' }}>🔍</span>
             <span style={{ fontSize: '14px', color: '#1e40af', fontWeight: '600' }}>
               {urlLabel || 'Filtre actif depuis le dashboard'}
+              {urlCampSession && <span style={{ fontWeight: 400, fontSize: '12px', marginLeft: '8px', color: '#3b82f6' }}>(session: {urlCampSession})</span>}
             </span>
             <button
               onClick={() => router.push(urlFrom === 'dashboard' ? '/dashboard' : '/admin')}
