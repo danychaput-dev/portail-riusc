@@ -373,6 +373,7 @@ export interface DossierData {
   consentement_antecedents: boolean
   preference_tache: string
   preference_tache_commentaire: string
+  groupe_recherche: string
 }
 
 // ─── Geocodage ──────────────────────────────────────────────────────────────

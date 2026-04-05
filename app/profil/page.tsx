@@ -79,8 +79,10 @@ export default function ProfilPage() {
     consentement_antecedents: false,
     preference_tache: 'aucune',
     preference_tache_commentaire: '',
+    groupe_recherche: '',
   })
   const [originalDossier, setOriginalDossier] = useState<DossierData>(dossier)
+  const [groupesRS, setGroupesRS] = useState<string[]>([])
 
   // États pour les champs Profil (Supabase)
   const [profilData, setProfilData] = useState({
@@ -229,13 +231,16 @@ export default function ProfilPage() {
               consentement_antecedents: d.consentement_antecedents || false,
               preference_tache: d.preference_tache || 'aucune',
               preference_tache_commentaire: d.preference_tache_commentaire || '',
+              groupe_recherche: d.groupe_recherche || '',
             }
             setDossier(loaded)
             setOriginalDossier(loaded)
 
-            // Charger organisations et langues
+            // Charger organisations, langues et groupes RS
             const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
             setAllOrgs(orgsData || [])
+            const { data: grsData } = await supabase.from('groupes_recherche').select('nom').eq('actif', true).order('nom')
+            setGroupesRS((grsData || []).map(g => g.nom))
             const { data: languesData } = await supabase.from('langues').select('id, nom').order('nom')
             setAllLangues(languesData || [])
 
@@ -289,7 +294,7 @@ export default function ProfilPage() {
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
-            preference_tache: 'aucune', preference_tache_commentaire: '',
+            preference_tache: 'aucune', preference_tache_commentaire: '', groupe_recherche: '',
           })
           setOriginalDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
@@ -300,7 +305,7 @@ export default function ProfilPage() {
             satp_drone: [], equipe_canine: [], competences_securite: [], competences_sauvetage: [],
             certification_csi: [], communication: [], cartographie_sig: [], operation_urgence: [],
             experience_urgence_detail: '', autres_competences: '', commentaire: '', confidentialite: true, consentement_antecedents: true,
-            preference_tache: 'aucune', preference_tache_commentaire: '',
+            preference_tache: 'aucune', preference_tache_commentaire: '', groupe_recherche: '',
           })
           logPageVisit('/profil')
           // Charger organisations et langues fictives pour démo
@@ -466,9 +471,14 @@ export default function ProfilPage() {
         consentement_antecedents: d.consentement_antecedents || false,
         preference_tache: d.preference_tache || 'aucune',
         preference_tache_commentaire: d.preference_tache_commentaire || '',
+        groupe_recherche: d.groupe_recherche || '',
       }
       setDossier(loaded)
       setOriginalDossier(loaded)
+
+      // Charger groupes RS
+      const { data: grsData } = await supabase.from('groupes_recherche').select('nom').eq('actif', true).order('nom')
+      setGroupesRS((grsData || []).map(g => g.nom))
 
       // Backfill AQBRS si compétence RS remplie
       if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
@@ -880,6 +890,7 @@ export default function ProfilPage() {
             consentement_antecedents: dossier.consentement_antecedents,
             preference_tache: dossier.preference_tache || 'aucune',
             preference_tache_commentaire: dossier.preference_tache_commentaire || null,
+            groupe_recherche: dossier.groupe_recherche || null,
           })
           .eq('id', reserviste.id)
 
@@ -2076,6 +2087,25 @@ export default function ProfilPage() {
             selected={dossier.competence_rs}
             onChange={v => updateDossier('competence_rs', v)}
           />
+        </Section>
+        )}
+
+        {/* ── Groupe de recherche (visible seulement si AQBRS sélectionné) ── */}
+        {((myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || (myOrgIds.includes('demo-org-aqbrs') && !removedOrgIds.includes('demo-org-aqbrs')) || newOrgIds.includes(AQBRS_ORG_ID)) && (
+        <Section title="Groupe de recherche et sauvetage" icon="🏔️">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>
+              Membre d&apos;un groupe de Recherche et Sauvetage de l&apos;AQBRS
+            </label>
+            <select
+              value={dossier.groupe_recherche}
+              onChange={e => updateDossier('groupe_recherche', e.target.value)}
+              style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '14px', color: '#374151', backgroundColor: 'white' }}
+            >
+              <option value="">Aucun / Non applicable</option>
+              {groupesRS.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
         </Section>
         )}
 

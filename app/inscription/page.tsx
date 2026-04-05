@@ -14,29 +14,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 const AUCUNE_ORG_ID = 'AUCUNE'
 
-const GROUPES_RS = [
-  'District 1: Équipe de RS La Grande-Ourse',
-  'District 1: EBRES du KRTB',
-  'District 2: Sauvetage Région 02',
-  'District 3: Recherche et Sauvetage Québec-Métro (RSQM)',
-  'District 3: Recherche Sauvetage Tourville',
-  'District 4: Eurêka Recherche et sauvetage',
-  'District 4: SIUCQ Drummondville',
-  'District 4: SIUCQ MRC Arthabaska',
-  'District 4: SIUSQ Division Mauricie',
-  'District 4: Sauvetage Mauricie K9',
-  'District 5: Recherche Sauvetage Estrie',
-  "District 6: Sauvetage Baie-D'Urfé",
-  'District 6: Ambulance St-Jean - Div. 971 Laval',
-  'District 6: Québec Secours',
-  'District 6: Pointe-Claire Rescue',
-  'District 6: Recherche Sauvetage Laurentides Lanaudière',
-  'District 6: S&R Balise Beacon R&S',
-  'District 7: Sauvetage Bénévole Outaouais',
-  'District 7: SAR 360',
-  'District 8: Recherche et sauvetage du Témiscamingue R.E.S.Tem',
-  'District 9: Groupe de recherche Manicouagan'
-]
+// Les groupes RS sont chargés depuis la table groupes_recherche
 
 interface Organisation {
   id: string
@@ -72,6 +50,10 @@ export default function InscriptionPage() {
     consent_confidentialite: false,
     consent_antecedents: false
   })
+
+  // ─── Groupes de recherche ────────────────────────────────────────────────────
+  const [groupesRS, setGroupesRS] = useState<string[]>([])
+  // ────────────────────────────────────────────────────────────────────────────
 
   // ─── Organisations ──────────────────────────────────────────────────────────
   const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
@@ -139,7 +121,16 @@ export default function InscriptionPage() {
       setAllOrgs(data || [])
       setLoadingOrgs(false)
     }
+    const fetchGroupesRS = async () => {
+      const { data } = await supabase
+        .from('groupes_recherche')
+        .select('nom')
+        .eq('actif', true)
+        .order('nom')
+      setGroupesRS((data || []).map(g => g.nom))
+    }
     fetchOrgs()
+    fetchGroupesRS()
   }, [])
 
   // Liste statique des camps 2026 (au lieu de charger depuis Monday.com) Ca marche tu ?
@@ -487,6 +478,14 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           await supabase.from('reserviste_organisations').insert(
             orgIdsToLink.map(organisation_id => ({ benevole_id: newBenevoleId, organisation_id }))
           )
+        }
+
+        // Sauvegarder le groupe de recherche dans reservistes
+        if (formData.groupe_rs.length > 0) {
+          await supabase
+            .from('reservistes')
+            .update({ groupe_recherche: formData.groupe_rs[0] })
+            .eq('benevole_id', newBenevoleId)
         }
       }
 
@@ -844,7 +843,7 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
               <h3 style={sectionTitleStyle}>Membre d&apos;un groupe de Recherche et Sauvetage de l&apos;AQBRS</h3>
               <p style={sectionDescStyle}>Sélectionnez votre groupe si applicable.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '280px', overflowY: 'auto', padding: '2px 0' }}>
-                {GROUPES_RS.map(groupe => (
+                {groupesRS.map(groupe => (
                   <label key={groupe} style={checkboxRowStyle(formData.groupe_rs.includes(groupe))}>
                     <input
                       type="checkbox"

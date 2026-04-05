@@ -270,25 +270,21 @@ function ReservistesPage() {
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
   }, [rawData])
 
-  // Liste des groupes de recherche uniques pour le filtre
-  const GROUPES_RS_SUPPLEMENTAIRES = [
-    'District 1: Équipe de recherche et sauvetage La Grande-Ourse',
-    'District 3: Recherche Sauvetage Tourville',
-    'District 6: Sauvetage Baie-D\'Urfé',
-    'District 6: Pointe-Claire Volunteer Rescue Unit',
-    'District 6: S&R Balise Beacon R&S',
-    'District 7: SAR 360',
-    'District 8: Recherche et sauvetage du Témiscamingue R.E.S.Tem',
-    'District 9: Groupe de recherche Manicouagan',
-  ]
+  // Liste des groupes de recherche depuis Supabase
+  const [groupesRSTable, setGroupesRSTable] = useState<string[]>([])
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('groupes_recherche').select('nom').eq('actif', true).order('nom')
+      .then(({ data }) => setGroupesRSTable((data || []).map(g => g.nom)))
+  }, [])
   const groupesRSUniques = useMemo(() => {
     const set = new Set<string>()
+    for (const g of groupesRSTable) set.add(g)
     for (const r of rawData) {
       if (r.groupe_recherche) set.add(r.groupe_recherche)
     }
-    for (const g of GROUPES_RS_SUPPLEMENTAIRES) set.add(g)
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
-  }, [rawData])
+  }, [rawData, groupesRSTable])
 
   // Sorted + filtered data
   const data = useMemo(() => {
