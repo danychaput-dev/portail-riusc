@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
   const inscritDepuis = searchParams.get('inscrit_depuis')
   const campSession  = searchParams.get('camp_session')
   const campStatut   = searchParams.get('camp_statut')
+  const statut       = searchParams.get('statut')
 
   let query = supabaseAdmin
     .from('reservistes')
@@ -49,6 +50,10 @@ export async function GET(req: NextRequest) {
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
+
+  if (statut) {
+    query = query.eq('statut', statut)
+  }
 
   if (groupes) {
     const liste = groupes.split(',').map(g => g.trim()).filter(Boolean)
@@ -151,6 +156,11 @@ export async function GET(req: NextRequest) {
       })
     } else if (organisme === 'sans_org') {
       reservistes = reservistes.filter(r => !orgMapAll[r.benevole_id])
+    } else if (organisme === 'autres_org') {
+      reservistes = reservistes.filter(r => {
+        const orgs = orgMapAll[r.benevole_id] || []
+        return orgs.length > 0 && !orgs.some(o => o.includes('AQBRS'))
+      })
     } else if (orgPrincipale) {
       reservistes = reservistes.filter(r => {
         const principale = getOrgPrincipale(r.benevole_id)

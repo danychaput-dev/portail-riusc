@@ -243,7 +243,7 @@ export default function DashboardPublicPage() {
 
   // Helper pour construire les URLs de drill-down vers /admin/reservistes
   function drillUrl(params: Record<string, string>) {
-    const sp = new URLSearchParams({ from: 'dashboard', ...params })
+    const sp = new URLSearchParams({ from: 'dashboard', statut: 'Actif', ...params })
     return `/admin/reservistes?${sp}`
   }
   function drill(params: Record<string, string>) {
@@ -316,7 +316,7 @@ export default function DashboardPublicPage() {
                       <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
-                  <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : AMBER, value: d.total, onClick: drill({ groupes: 'Intérêt', organisme: d.label === 'AQBRS' ? 'AQBRS' : 'sans_org', label: `Intérêt — ${d.label}` }) }))} />
+                  <Legend items={stats.interetData.map((d, i) => ({ label: d.label, color: i === 0 ? NAVY : i === 1 ? AMBER : '#94a3b8', value: d.total, onClick: drill({ groupes: 'Intérêt', organisme: d.label === 'AQBRS' ? 'AQBRS' : d.label === 'Public' ? 'sans_org' : 'autres_org', label: `Intérêt — ${d.label}` }) }))} />
                 </div>
 
                 {/* Carte 2 : Antécédents */}
