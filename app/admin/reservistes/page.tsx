@@ -186,6 +186,8 @@ function ReservistesPage() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [modalReserviste, setModalReserviste] = useState<Reserviste | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
+  // Menu contextuel (right-click)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
 
   // Auth
   useEffect(() => {
@@ -310,6 +312,28 @@ function ReservistesPage() {
     a.click()
     URL.revokeObjectURL(url)
     setExporting(false)
+  }
+
+  // Fermer le menu contextuel au clic ou scroll
+  useEffect(() => {
+    const close = () => setContextMenu(null)
+    window.addEventListener('click', close)
+    window.addEventListener('scroll', close, true)
+    return () => { window.removeEventListener('click', close); window.removeEventListener('scroll', close, true) }
+  }, [])
+
+  const emprunterIdentite = async (r: Reserviste) => {
+    const res = await fetch('/api/impersonate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_id: r.benevole_id }),
+    })
+    const json = await res.json()
+    if (json.success) {
+      window.open('/', '_blank')
+    } else {
+      alert(json.error || 'Erreur lors de l\'emprunt d\'identité')
+    }
   }
 
   const toggleBottes = async (benevole_id: string, currentDate: string | null) => {
@@ -726,8 +750,14 @@ function ReservistesPage() {
                 <div style={{ padding: '11px 10px', overflow: 'hidden' }}>
                   <div
                     onClick={(e) => { e.stopPropagation(); if (canEmail) setModalReserviste(r) }}
+                    onContextMenu={(e) => {
+                      if (!canEmail) return
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setContextMenu({ x: e.clientX, y: e.clientY, reserviste: r })
+                    }}
                     style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
-                    title={canEmail ? `Ouvrir le dossier de ${r.prenom} ${r.nom}` : undefined}
+                    title={canEmail ? `Clic: fiche · Clic droit: actions rapides` : undefined}
                   >{r.nom} {r.prenom}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
@@ -953,6 +983,68 @@ function ReservistesPage() {
         </div>
       )}
 
+      {/* Menu contextuel (right-click sur nom) */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999,
+            backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e2e8f0',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '6px 0', minWidth: '200px',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div style={{ padding: '6px 14px', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            {contextMenu.reserviste.prenom} {contextMenu.reserviste.nom}
+          </div>
+          <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+          <button
+            onClick={() => { setModalReserviste(contextMenu.reserviste); setContextMenu(null) }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ fontSize: '14px' }}>📋</span> Ouvrir la fiche
+          </button>
+          <button
+            onClick={() => {
+              window.open(`/dossier?bid=${contextMenu.reserviste.benevole_id}&from=reservistes`, '_blank')
+              setContextMenu(null)
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ fontSize: '14px' }}>👤</span> Voir le profil
+          </button>
+          <button
+            onClick={() => {
+              setSelectedIds(new Set([contextMenu.reserviste.benevole_id]))
+              setSelectedDestinataires(new Map([[contextMenu.reserviste.benevole_id, { benevole_id: contextMenu.reserviste.benevole_id, email: contextMenu.reserviste.email, prenom: contextMenu.reserviste.prenom, nom: contextMenu.reserviste.nom }]]))
+              setShowEmailModal(true)
+              setContextMenu(null)
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ fontSize: '14px' }}>✉️</span> Envoyer un courriel
+          </button>
+          {isAdmin && (
+            <>
+              <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+              <button
+                onClick={() => { emprunterIdentite(contextMenu.reserviste); setContextMenu(null) }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#d97706', textAlign: 'left' }}
+                onMouseOver={e => (e.currentTarget.style.backgroundColor = '#fffbeb')}
+                onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <span style={{ fontSize: '14px' }}>🎭</span> Emprunt d{"'"}identité
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Modal composition courriel */}
       {showEmailModal && (
         <ModalComposeCourriel
@@ -967,6 +1059,7 @@ function ReservistesPage() {
         <ModalReserviste
           reserviste={modalReserviste}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
           onClose={() => setModalReserviste(null)}
         />
       )}

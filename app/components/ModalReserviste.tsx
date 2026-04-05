@@ -36,12 +36,13 @@ interface Reserviste {
 interface Props {
   reserviste: Reserviste
   currentUserId?: string
+  isAdmin?: boolean
   onClose: () => void
 }
 
 type Onglet = 'courriels' | 'notes'
 
-export default function ModalReserviste({ reserviste, currentUserId, onClose }: Props) {
+export default function ModalReserviste({ reserviste, currentUserId, isAdmin, onClose }: Props) {
   const [onglet, setOnglet] = useState<Onglet>('courriels')
   const [notes, setNotes] = useState<Note[]>([])
   const [loadingNotes, setLoadingNotes] = useState(false)
@@ -50,7 +51,29 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
   const [showCompose, setShowCompose] = useState(false)
   const [historiqueRefreshKey, setHistoriqueRefreshKey] = useState(0)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [impersonating, setImpersonating] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const emprunterIdentite = async () => {
+    if (!confirm(`Emprunter l'identité de ${reserviste.prenom} ${reserviste.nom} ?\n\nVous serez redirigé vers le portail en tant que cette personne.`)) return
+    setImpersonating(true)
+    try {
+      const res = await fetch('/api/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benevole_id: reserviste.benevole_id }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        window.open('/', '_blank')
+      } else {
+        alert(json.error || 'Erreur lors de l\'emprunt d\'identité')
+      }
+    } catch {
+      alert('Erreur réseau')
+    }
+    setImpersonating(false)
+  }
 
   // Charger les notes quand on ouvre l'onglet
   useEffect(() => {
@@ -157,6 +180,16 @@ export default function ModalReserviste({ reserviste, currentUserId, onClose }: 
                 >
                   Voir le profil
                 </a>
+                {isAdmin && (
+                  <button
+                    onClick={emprunterIdentite}
+                    disabled={impersonating}
+                    title={`Voir le portail en tant que ${reserviste.prenom} ${reserviste.nom}`}
+                    style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #d97706', backgroundColor: '#fffbeb', color: '#d97706', fontSize: '12px', fontWeight: '600', cursor: impersonating ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: impersonating ? 0.6 : 1 }}
+                  >
+                    {impersonating ? '⏳' : '🎭'} Emprunt
+                  </button>
+                )}
                 <button
                   onClick={() => setShowCompose(true)}
                   style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', backgroundColor: '#7c3aed', color: 'white', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}
