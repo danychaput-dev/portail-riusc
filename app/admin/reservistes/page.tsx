@@ -46,6 +46,7 @@ interface Reserviste {
   initiation_sc: boolean
   camp_complete: boolean
   certifs_en_attente: number
+  camp_inscrit: boolean
 }
 
 interface ModalAntecedents {
@@ -711,6 +712,11 @@ function ReservistesPage() {
                       if (!r.email) manque.push('courriel')
                       detail = `Profil incomplet\nManque: ${manque.join(', ')}`
                     }
+                    // Camp inscrit mais pas complété → jaune
+                    const campInscrit = step.key === 'camp' && !ok && r.camp_inscrit
+                    if (campInscrit) {
+                      detail = 'Camp non complété — inscrit à un camp à venir'
+                    }
                     return (
                       <div
                         key={step.key}
@@ -719,9 +725,9 @@ function ReservistesPage() {
                           width: '26px', height: '26px', borderRadius: '6px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '12px',
-                          backgroundColor: ok ? '#f0fdf4' : '#fef2f2',
-                          border: `1px solid ${ok ? '#bbf7d0' : '#fecaca'}`,
-                          color: ok ? '#16a34a' : '#dc2626',
+                          backgroundColor: ok ? '#f0fdf4' : campInscrit ? '#fffbeb' : '#fef2f2',
+                          border: `1px solid ${ok ? '#bbf7d0' : campInscrit ? '#fde68a' : '#fecaca'}`,
+                          color: ok ? '#16a34a' : campInscrit ? '#d97706' : '#dc2626',
                           fontWeight: '700',
                         }}
                       >

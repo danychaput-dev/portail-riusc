@@ -176,11 +176,24 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Inscriptions camps à venir (pour afficher X jaune au lieu de X rouge)
+  let campInscritSet = new Set<string>()
+  if (benevoleIds.length > 0) {
+    const { data: inscriptions } = await supabaseAdmin
+      .from('inscriptions_camps')
+      .select('benevole_id')
+      .in('benevole_id', benevoleIds)
+    if (inscriptions) {
+      campInscritSet = new Set(inscriptions.map(i => i.benevole_id))
+    }
+  }
+
   const enriched = reservistes.map(r => ({
     ...r,
     initiation_sc: formationsMap[r.benevole_id]?.initiation_sc || false,
     camp_complete: formationsMap[r.benevole_id]?.camp || false,
     certifs_en_attente: formationsMap[r.benevole_id]?.certifs_en_attente || 0,
+    camp_inscrit: !formationsMap[r.benevole_id]?.camp && campInscritSet.has(r.benevole_id),
   }))
 
   if (format === 'xlsx') {
