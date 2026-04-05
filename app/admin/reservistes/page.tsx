@@ -173,7 +173,10 @@ function ReservistesPage() {
   const [authorized,     setAuthorized]     = useState(false)
   const [userRole,       setUserRole]       = useState<string>('')
   const [filtreBottes,   setFiltreBottes]   = useState(false)
-  const [filtreReadiness, setFiltreReadiness] = useState<ReadinessKey | null>(null)
+  // Filtres readiness 3 états : null (off) → 'has' (ceux qui l'ont) → 'missing' (ceux à qui ça manque) → null
+  type FilterState = 'has' | 'missing' | null
+  const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, antecedents: null })
+  const [filtreDeployable, setFiltreDeployable] = useState<FilterState>(null)
   const [modal,          setModal]          = useState<ModalAntecedents | null>(null)
   const [modalDate,      setModalDate]      = useState('')
   const [modalStatut,    setModalStatut]    = useState('verifie')
@@ -223,18 +226,31 @@ function ReservistesPage() {
     return () => clearTimeout(timer)
   }, [authorized, recherche, groupesFiltres])
 
+  // Cycle 3 états : null → has → missing → null
+  const cycleFilter = (current: FilterState): FilterState =>
+    current === null ? 'has' : current === 'has' ? 'missing' : null
+
+  const toggleReadinessFilter = (key: ReadinessKey) => {
+    setFiltresReadiness(prev => ({ ...prev, [key]: cycleFilter(prev[key]) }))
+  }
+
+  const hasAnyReadinessFilter = Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null
+
   // Sorted + filtered data
   const data = useMemo(() => {
     let filtered = rawData
     if (filtreBottes) filtered = filtered.filter(r => r.remboursement_bottes_date)
-    if (filtreReadiness) {
-      filtered = filtered.filter(r => {
-        const rd = getReadiness(r)
-        return !rd[filtreReadiness] // Show those MISSING this step
-      })
+    // Appliquer tous les filtres readiness actifs (combinés = AND)
+    for (const key of Object.keys(filtresReadiness) as ReadinessKey[]) {
+      const state = filtresReadiness[key]
+      if (state === 'has') filtered = filtered.filter(r => getReadiness(r)[key])
+      if (state === 'missing') filtered = filtered.filter(r => !getReadiness(r)[key])
     }
+    // Filtre déployable
+    if (filtreDeployable === 'has') filtered = filtered.filter(r => isDeployable(r))
+    if (filtreDeployable === 'missing') filtered = filtered.filter(r => !isDeployable(r))
     return sortData(filtered, sortKey, sortDir)
-  }, [rawData, filtreBottes, filtreReadiness, sortKey, sortDir])
+  }, [rawData, filtreBottes, filtresReadiness, filtreDeployable, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -529,43 +545,62 @@ function ReservistesPage() {
           </div>
         </div>
 
-        {/* Readiness filter bar */}
+        {/* Readiness filter bar — pastilles 3 états : neutre → vert (a) → rouge (manque) → neutre */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Déployabilité :</span>
-          <span style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '20px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>
-            {readinessStats.deployable} / {approuves.length} déployables
-          </span>
+          {/* Pastille Déployable — aussi cliquable 3 états */}
+          <button
+            onClick={() => setFiltreDeployable(cycleFilter(filtreDeployable))}
+            title={`${readinessStats.deployable}/${approuves.length} déployables\nCliquer pour filtrer : ${filtreDeployable === null ? 'montrer les déployables' : filtreDeployable === 'has' ? 'montrer les non-déployables' : 'retirer le filtre'}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700',
+              border: `1px solid ${filtreDeployable === 'has' ? '#16a34a' : filtreDeployable === 'missing' ? '#ef4444' : '#bbf7d0'}`,
+              backgroundColor: filtreDeployable === 'has' ? '#f0fdf4' : filtreDeployable === 'missing' ? '#fef2f2' : '#f0fdf4',
+              color: filtreDeployable === 'has' ? '#16a34a' : filtreDeployable === 'missing' ? '#ef4444' : '#16a34a',
+              cursor: 'pointer', transition: 'all 0.15s',
+            }}
+          >
+            {filtreDeployable === 'has' ? '✓' : filtreDeployable === 'missing' ? '✗' : ''} {readinessStats.deployable} / {approuves.length} déployables
+          </button>
           <span style={{ color: '#e2e8f0' }}>|</span>
           {READINESS_STEPS.map(step => {
             const count = readinessStats[step.key]
-            const active = filtreReadiness === step.key
+            const missing = approuves.length - count
+            const state = filtresReadiness[step.key]
+            // Couleurs selon l'état
+            const colors = state === 'has'
+              ? { border: '#16a34a', bg: '#f0fdf4', text: '#16a34a', badgeBg: '#16a34a', badgeText: 'white', badgeCount: count }
+              : state === 'missing'
+              ? { border: '#ef4444', bg: '#fef2f2', text: '#ef4444', badgeBg: '#ef4444', badgeText: 'white', badgeCount: missing }
+              : { border: '#e2e8f0', bg: 'white', text: '#64748b', badgeBg: '#16a34a', badgeText: 'white', badgeCount: count }
             return (
               <button
                 key={step.key}
-                onClick={() => setFiltreReadiness(active ? null : step.key)}
-                title={readinessDetails[step.key]}
+                onClick={() => toggleReadinessFilter(step.key)}
+                title={`${readinessDetails[step.key]}\n\nCliquer pour filtrer : ${state === null ? 'ceux qui l\'ont' : state === 'has' ? 'ceux à qui ça manque' : 'retirer le filtre'}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
                   padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                  border: `1px solid ${active ? '#ef4444' : '#e2e8f0'}`,
-                  backgroundColor: active ? '#fef2f2' : 'white',
-                  color: active ? '#ef4444' : '#64748b',
+                  border: `1px solid ${colors.border}`,
+                  backgroundColor: colors.bg,
+                  color: colors.text,
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
               >
-                {step.icon} {step.label}
+                {state === 'has' && '✓ '}{state === 'missing' && '✗ '}{step.icon} {step.label}
                 <span style={{
                   fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700',
-                  backgroundColor: '#16a34a',
-                  color: 'white',
+                  backgroundColor: colors.badgeBg,
+                  color: colors.badgeText,
                 }}>
-                  {count}
+                  {colors.badgeCount}
                 </span>
               </button>
             )
           })}
-          {(filtreBottes || filtreReadiness) && (
-            <button onClick={() => { setFiltreBottes(false); setFiltreReadiness(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+          {(filtreBottes || hasAnyReadinessFilter) && (
+            <button onClick={() => { setFiltreBottes(false); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
               ✕ Réinitialiser
             </button>
           )}
