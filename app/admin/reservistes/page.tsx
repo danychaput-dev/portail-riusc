@@ -467,9 +467,12 @@ function ReservistesPage() {
     : '1.3fr 0.9fr 1.4fr 0.8fr 0.65fr 90px 100px 120px 150px'
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <PortailHeader />
-      <main style={{ margin: '0 auto', padding: '28px 28px' }}>
+      <main style={{ margin: '0 auto', padding: '0 28px', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+
+      {/* Zone fixe : filtres + readiness (ne défile pas) */}
+      <div style={{ flexShrink: 0, paddingTop: '28px' }}>
 
         {/* Bandeau filtre dashboard */}
         {hasUrlFilters && (
@@ -639,13 +642,15 @@ function ReservistesPage() {
             </button>
           )}
         </div>
+      </div>{/* Fin zone fixe */}
 
-        {/* Tableau */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const }}>
-        <div style={{ minWidth: '1100px' }}>
-          {/* En-tête tableau — 2 lignes : titres + sous-ligne (counts, checkboxes) */}
-          <div style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+        {/* Tableau — zone scrollable */}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginBottom: '16px' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ minWidth: '1100px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          {/* En-tête tableau — figé en haut (ne défile pas) */}
+          <div style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
             {/* Ligne 1 : Titres */}
             <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
               {canEmail && (
@@ -723,7 +728,8 @@ function ReservistesPage() {
             </div>
           </div>
 
-          {/* Lignes */}
+          {/* Lignes — zone qui défile */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
             <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Chargement…</div>
           ) : data.length === 0 ? (
@@ -894,19 +900,11 @@ function ReservistesPage() {
               </div>
             )
           })}
-        </div>
-        </div>
-        </div>
-
-        {/* Footer info */}
-        {!loading && data.length > 0 && (
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8' }}>
-            <span>
-              Légende Prêt : {PRET_STEPS.map(s => `${s.icon} ${s.short}`).join(' · ')}
-            </span>
-            <span>{total} réserviste{total !== 1 ? 's' : ''} · Données en temps réel</span>
-          </div>
-        )}
+          </div>{/* Fin lignes scrollables */}
+        </div>{/* Fin minWidth */}
+        </div>{/* Fin overflowX */}
+        </div>{/* Fin carte blanche */}
+        </div>{/* Fin zone scrollable */}
 
       </main>
 
