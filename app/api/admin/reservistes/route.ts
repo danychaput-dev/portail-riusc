@@ -94,11 +94,20 @@ export async function GET(req: NextRequest) {
   let reservistes = data || []
   const organisme = searchParams.get('organisme')
 
+  let _campDebug: any = null
   if (campSession) {
     const { data: inscriptions, error: campError } = await supabaseAdmin
       .from('inscriptions_camps')
       .select('benevole_id, statut_inscription')
       .eq('session_id', campSession)
+
+    _campDebug = {
+      session_id: campSession,
+      error: campError?.message || null,
+      inscriptions_count: inscriptions?.length ?? 'null',
+      sample: (inscriptions || []).slice(0, 3),
+      reservistes_avant_filtre: reservistes.length,
+    }
 
     if (campError) {
       console.error('Erreur filtre camp_session:', campError.message, '| session_id:', campSession)
@@ -112,6 +121,7 @@ export async function GET(req: NextRequest) {
         : inscriptionsList.map(i => i.benevole_id)
     )
     reservistes = reservistes.filter(r => benevoleIds.has(r.benevole_id))
+    _campDebug.reservistes_apres_filtre = reservistes.length
   }
 
   // Charger les organismes pour TOUS les réservistes (pour colonne + filtre)
@@ -252,5 +262,5 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ data: enriched, total: enriched.length })
+  return NextResponse.json({ data: enriched, total: enriched.length, ...(_campDebug ? { _campDebug } : {}) })
 }
