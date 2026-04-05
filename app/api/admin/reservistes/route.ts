@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
         const cat = (f.nom_formation || '').toLowerCase()
         if (f.resultat === 'Réussi') {
           if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
-          if (cat === 'camp de qualification') formationsMap[f.benevole_id].camp = true
+          if (cat.includes('camp de qualification')) formationsMap[f.benevole_id].camp = true
         } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
           formationsMap[f.benevole_id].certifs_en_attente++
         }

@@ -50,11 +50,11 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!reservistes?.length) return NextResponse.json({ error: 'Aucun réserviste' }, { status: 404 })
 
-  // 2. Réservistes qui ont DÉJÀ un camp réussi dans Supabase (match exact, pas de doublons)
+  // 2. Réservistes qui ont DÉJÀ un camp réussi dans Supabase (toutes cohortes incluses)
   const { data: existing } = await supabaseAdmin
     .from('formations_benevoles')
     .select('benevole_id')
-    .ilike('nom_formation', 'camp de qualification')
+    .ilike('nom_formation', '%camp de qualification%')
     .eq('resultat', 'Réussi')
 
   const dejaOk = new Set((existing || []).map(e => e.benevole_id))
