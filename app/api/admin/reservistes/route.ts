@@ -153,25 +153,25 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Enrichir avec données de formation (initiation SC + camp)
+  // Enrichir avec données de formation (initiation SC + camp + certificats en attente)
   const benevoleIds = reservistes.map(r => r.benevole_id)
-  let formationsMap: Record<string, { initiation_sc: boolean; camp: boolean }> = {}
+  let formationsMap: Record<string, { initiation_sc: boolean; camp: boolean; certifs_en_attente: number }> = {}
   if (benevoleIds.length > 0) {
-    // Fetch par lots de 500 pour éviter la limite Supabase
     for (let i = 0; i < benevoleIds.length; i += 500) {
       const batch = benevoleIds.slice(i, i + 500)
       const { data: formations } = await supabaseAdmin
         .from('formations_benevoles')
         .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee')
         .in('benevole_id', batch)
-        .eq('resultat', 'Réussi')
       for (const f of (formations || [])) {
-        if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false }
+        if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0 }
         const cat = (f.nom_formation || '').toLowerCase()
-        // Initiation SC : même logique que PortailHeader — cherche "initier" dans nom_formation OU flag initiation_sc_completee
-        if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
-        // Camp : même logique que PortailHeader — nom_formation contient "camp" (pas restreint à source monday)
-        if (cat.includes('camp')) formationsMap[f.benevole_id].camp = true
+        if (f.resultat === 'Réussi') {
+          if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
+          if (cat.includes('camp')) formationsMap[f.benevole_id].camp = true
+        } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
+          formationsMap[f.benevole_id].certifs_en_attente++
+        }
       }
     }
   }
@@ -180,6 +180,7 @@ export async function GET(req: NextRequest) {
     ...r,
     initiation_sc: formationsMap[r.benevole_id]?.initiation_sc || false,
     camp_complete: formationsMap[r.benevole_id]?.camp || false,
+    certifs_en_attente: formationsMap[r.benevole_id]?.certifs_en_attente || 0,
   }))
 
   if (format === 'xlsx') {

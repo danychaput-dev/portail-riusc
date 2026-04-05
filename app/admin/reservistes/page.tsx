@@ -45,6 +45,7 @@ interface Reserviste {
   contact_urgence_telephone: string | null
   initiation_sc: boolean
   camp_complete: boolean
+  certifs_en_attente: number
 }
 
 interface ModalAntecedents {
@@ -693,14 +694,27 @@ function ReservistesPage() {
                     {badge.label}
                   </span>
                 </div>
-                {/* Prêt — 3 étapes (profil, initiation, camp) */}
+                {/* Prêt — 3 étapes (profil, initiation, camp) + indicateur certifs en attente */}
                 <div style={{ padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                   {PRET_STEPS.map(step => {
                     const ok = rd[step.key]
+                    // Détails au survol selon le critère
+                    let detail = `${step.label}: ${ok ? 'OK' : 'Manquant'}`
+                    if (step.key === 'profil' && !ok) {
+                      const manque = []
+                      if (!r.date_naissance) manque.push('date de naissance')
+                      if (!r.contact_urgence_nom || !r.contact_urgence_telephone) manque.push('contact d\'urgence')
+                      if (!r.adresse) manque.push('adresse')
+                      if (!r.ville) manque.push('ville')
+                      if (!r.region) manque.push('région')
+                      if (!r.telephone) manque.push('téléphone')
+                      if (!r.email) manque.push('courriel')
+                      detail = `Profil incomplet\nManque: ${manque.join(', ')}`
+                    }
                     return (
                       <div
                         key={step.key}
-                        title={`${step.label}: ${ok ? 'OK' : 'Manquant'}`}
+                        title={detail}
                         style={{
                           width: '26px', height: '26px', borderRadius: '6px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -715,6 +729,12 @@ function ReservistesPage() {
                       </div>
                     )
                   })}
+                  {r.certifs_en_attente > 0 && (
+                    <span
+                      style={{ fontSize: '11px', marginLeft: '2px' }}
+                      title={`${r.certifs_en_attente} certificat${r.certifs_en_attente > 1 ? 's' : ''} en attente d'approbation`}
+                    >🟡</span>
+                  )}
                   {isDeployable(r) && (
                     <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
                   )}
