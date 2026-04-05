@@ -92,6 +92,74 @@ function NiveauSearch({ supabase, onMessage }: { supabase: any; onMessage: any }
   )
 }
 
+function MotDePasseSante({ onMessage }: { onMessage: (msg: { type: 'success' | 'error'; text: string } | null) => void }) {
+  const [mdp, setMdp] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [showMdp, setShowMdp] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/config?key=mot_de_passe_sante')
+      .then(r => r.json())
+      .then(json => { setMdp(json.valeur || ''); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  const sauvegarder = async () => {
+    setSaving(true)
+    const res = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'mot_de_passe_sante', valeur: mdp }),
+    })
+    const json = await res.json()
+    if (json.ok) {
+      onMessage({ type: 'success', text: 'Mot de passe santé mis à jour' })
+    } else {
+      onMessage({ type: 'error', text: 'Erreur lors de la sauvegarde' })
+    }
+    setSaving(false)
+    setTimeout(() => onMessage(null), 3000)
+  }
+
+  return (
+    <div>
+      <p style={{ margin: '0 0 10px', fontSize: '12px', color: '#6b7280' }}>
+        Ce mot de passe protège la section Santé dans le dossier des réservistes. Les admins et coordonnateurs doivent le saisir pour consulter les infos médicales d{"'"}un autre réserviste.
+      </p>
+      {loading ? (
+        <span style={{ fontSize: '12px', color: '#9ca3af' }}>Chargement...</span>
+      ) : (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: '280px' }}>
+            <input
+              type={showMdp ? 'text' : 'password'}
+              value={mdp}
+              onChange={e => setMdp(e.target.value)}
+              placeholder="Définir le mot de passe..."
+              style={{ width: '100%', padding: '8px 36px 8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+            />
+            <button
+              onClick={() => setShowMdp(!showMdp)}
+              style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', color: '#6b7280' }}
+              title={showMdp ? 'Masquer' : 'Afficher'}
+            >
+              {showMdp ? '🙈' : '👁️'}
+            </button>
+          </div>
+          <button
+            onClick={sauvegarder}
+            disabled={saving}
+            style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
+          >
+            {saving ? '⏳' : '💾 Sauvegarder'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminUtilisateursPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -281,6 +349,16 @@ export default function AdminUtilisateursPage() {
           </div>
           <div style={{ padding: '16px 20px' }}>
             <NiveauSearch supabase={supabase} onMessage={setMessage} />
+          </div>
+        </div>
+
+        {/* Mot de passe santé */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden', marginBottom: '24px' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }}>
+            <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#1e3a5f' }}>🔒 Mot de passe — Section santé</h2>
+          </div>
+          <div style={{ padding: '16px 20px' }}>
+            <MotDePasseSante onMessage={setMessage} />
           </div>
         </div>
 

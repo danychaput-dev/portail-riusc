@@ -449,6 +449,33 @@ function DossierPage() {
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
 
+  // ─── Protection section santé ───────────────────────────────────────────────
+  const [santeUnlocked, setSanteUnlocked] = useState(false)
+  const [santeMdpInput, setSanteMdpInput] = useState('')
+  const [santeMdpError, setSanteMdpError] = useState(false)
+  const [santeMdpLoading, setSanteMdpLoading] = useState(false)
+
+  const verifierMdpSante = async () => {
+    setSanteMdpLoading(true)
+    setSanteMdpError(false)
+    try {
+      const res = await fetch('/api/admin/verifier-mdp-sante', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mot_de_passe: santeMdpInput }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setSanteUnlocked(true)
+      } else {
+        setSanteMdpError(true)
+      }
+    } catch {
+      setSanteMdpError(true)
+    }
+    setSanteMdpLoading(false)
+  }
+
   // ─── Organisations ──────────────────────────────────────────────────────────
   const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
   const [myOrgIds, setMyOrgIds] = useState<string[]>([])
@@ -779,39 +806,83 @@ function DossierPage() {
         </Section>
 
         {/* ── 2. Santé ── */}
-        <Section
-          title="Santé"
-          icon="🏥"
-          description="Informations médicales de base pour assurer votre sécurité et celle de votre équipe lors des déploiements."
-          confidential
-        >
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Groupe sanguin</label>
-            <select value={dossier.groupe_sanguin} onChange={e => updateDossier('groupe_sanguin', e.target.value)}
-              style={{ padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', backgroundColor: 'white', minWidth: '160px' }}>
-              <option value="">— Sélectionner —</option>
-              {GROUPES_SANGUIN.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
+        {/* Si on consulte le dossier d'un autre → section verrouillée par mot de passe */}
+        {isViewingOther && !santeUnlocked ? (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', paddingBottom: '10px', borderBottom: '2px solid #1e3a5f' }}>
+              <span style={{ fontSize: '20px' }}>🏥</span>
+              <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '600', color: '#1e3a5f' }}>Santé</h2>
+            </div>
+            <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '24px', textAlign: 'center' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
+              <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '600', color: '#1e3a5f' }}>Information confidentielle</p>
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280' }}>Entrez le mot de passe pour accéder aux informations médicales de ce réserviste.</p>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                <input
+                  type="password"
+                  value={santeMdpInput}
+                  onChange={e => { setSanteMdpInput(e.target.value); setSanteMdpError(false) }}
+                  onKeyDown={e => e.key === 'Enter' && verifierMdpSante()}
+                  placeholder="Mot de passe..."
+                  style={{
+                    padding: '8px 14px', border: `1px solid ${santeMdpError ? '#fca5a5' : '#d1d5db'}`, borderRadius: '8px',
+                    fontSize: '13px', outline: 'none', width: '200px',
+                    backgroundColor: santeMdpError ? '#fef2f2' : 'white',
+                  }}
+                />
+                <button
+                  onClick={verifierMdpSante}
+                  disabled={santeMdpLoading || !santeMdpInput}
+                  style={{
+                    padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none',
+                    borderRadius: '8px', fontSize: '13px', fontWeight: '600',
+                    cursor: santeMdpLoading || !santeMdpInput ? 'not-allowed' : 'pointer',
+                    opacity: santeMdpLoading || !santeMdpInput ? 0.6 : 1,
+                  }}
+                >
+                  {santeMdpLoading ? '⏳' : '🔓 Déverrouiller'}
+                </button>
+              </div>
+              {santeMdpError && (
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#dc2626' }}>Mot de passe incorrect</p>
+              )}
+            </div>
           </div>
-          <TextArea
-            label="Allergies alimentaires"
-            value={dossier.allergies_alimentaires}
-            onChange={v => updateDossier('allergies_alimentaires', v)}
-            placeholder="Ex: Noix, arachides, fruits de mer..."
-          />
-          <TextArea
-            label="Autres allergies"
-            value={dossier.allergies_autres}
-            onChange={v => updateDossier('allergies_autres', v)}
-            placeholder="Ex: Latex, pollen, médicaments..."
-          />
-          <TextArea
-            label="Problèmes de santé ou conditions médicales"
-            value={dossier.problemes_sante}
-            onChange={v => updateDossier('problemes_sante', v)}
-            placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
-          />
-        </Section>
+        ) : (
+          <Section
+            title="Santé"
+            icon="🏥"
+            description="Informations médicales de base pour assurer votre sécurité et celle de votre équipe lors des déploiements."
+            confidential
+          >
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Groupe sanguin</label>
+              <select value={dossier.groupe_sanguin} onChange={e => updateDossier('groupe_sanguin', e.target.value)}
+                style={{ padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#111827', backgroundColor: 'white', minWidth: '160px' }}>
+                <option value="">— Sélectionner —</option>
+                {GROUPES_SANGUIN.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <TextArea
+              label="Allergies alimentaires"
+              value={dossier.allergies_alimentaires}
+              onChange={v => updateDossier('allergies_alimentaires', v)}
+              placeholder="Ex: Noix, arachides, fruits de mer..."
+            />
+            <TextArea
+              label="Autres allergies"
+              value={dossier.allergies_autres}
+              onChange={v => updateDossier('allergies_autres', v)}
+              placeholder="Ex: Latex, pollen, médicaments..."
+            />
+            <TextArea
+              label="Problèmes de santé ou conditions médicales"
+              value={dossier.problemes_sante}
+              onChange={v => updateDossier('problemes_sante', v)}
+              placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
+            />
+          </Section>
+        )}
 
         {/* ── 3. Organisations d'appartenance ── */}
         <Section
