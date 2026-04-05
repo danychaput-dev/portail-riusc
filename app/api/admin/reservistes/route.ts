@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone')
+    .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete')
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
@@ -168,7 +168,7 @@ export async function GET(req: NextRequest) {
         const cat = (f.nom_formation || '').toLowerCase()
         if (f.resultat === 'Réussi') {
           if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
-          if (cat.includes('camp')) formationsMap[f.benevole_id].camp = true
+          if (cat === 'camp de qualification') formationsMap[f.benevole_id].camp = true
         } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
           formationsMap[f.benevole_id].certifs_en_attente++
         }
@@ -176,28 +176,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Inscriptions camps — deux usages :
-  // 1. presence='confirme' → camp complété (même logique que n8n camp-status)
-  // 2. inscrit sans camp complété → X jaune
-  let campConfirmeSet = new Set<string>()
+  // Inscriptions camps — pour afficher X jaune (inscrit mais pas encore certifié)
   let campInscritSet = new Set<string>()
   if (benevoleIds.length > 0) {
     const { data: inscriptions } = await supabaseAdmin
       .from('inscriptions_camps')
-      .select('benevole_id, presence')
+      .select('benevole_id')
       .in('benevole_id', benevoleIds)
     if (inscriptions) {
-      for (const ins of inscriptions) {
-        if (ins.presence === 'confirme') campConfirmeSet.add(ins.benevole_id)
-        campInscritSet.add(ins.benevole_id)
-      }
+      campInscritSet = new Set(inscriptions.map(i => i.benevole_id))
     }
   }
 
   const enriched = reservistes.map(r => {
-    const fromFormations = formationsMap[r.benevole_id]?.camp || false
-    const fromInscriptions = campConfirmeSet.has(r.benevole_id)
-    const campComplete = fromFormations || fromInscriptions
+    const campComplete = (r as any).camp_qualif_complete === true || formationsMap[r.benevole_id]?.camp || false
     return {
       ...r,
       initiation_sc: formationsMap[r.benevole_id]?.initiation_sc || false,
