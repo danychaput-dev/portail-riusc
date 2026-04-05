@@ -20,9 +20,36 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non auth' }, { status: 403 })
 
-  const nom = req.nextUrl.searchParams.get('nom') || 'Fourier'
+  const action = req.nextUrl.searchParams.get('action') || 'noms'
 
-  // Trouver le réserviste
+  if (action === 'noms') {
+    // Liste tous les nom_formation distincts qui contiennent "camp"
+    const { data: formations } = await supabaseAdmin
+      .from('formations_benevoles')
+      .select('nom_formation, resultat, source')
+      .ilike('nom_formation', '%camp%')
+
+    // Grouper par nom_formation + résultat
+    const counts: Record<string, { total: number; sources: Set<string> }> = {}
+    for (const f of (formations || [])) {
+      const key = `${f.nom_formation} [${f.resultat}]`
+      if (!counts[key]) counts[key] = { total: 0, sources: new Set() }
+      counts[key].total++
+      if (f.source) counts[key].sources.add(f.source)
+    }
+
+    const summary = Object.entries(counts)
+      .sort((a, b) => b[1].total - a[1].total)
+      .map(([key, v]) => ({ nom_resultat: key, total: v.total, sources: [...v.sources] }))
+
+    return NextResponse.json({
+      total_formations_avec_camp: formations?.length || 0,
+      detail: summary,
+    })
+  }
+
+  // action=reserviste&nom=Fourier — debug un réserviste spécifique
+  const nom = req.nextUrl.searchParams.get('nom') || 'Fourier'
   const { data: reserviste } = await supabaseAdmin
     .from('reservistes')
     .select('benevole_id, prenom, nom')
@@ -33,13 +60,11 @@ export async function GET(req: NextRequest) {
 
   const results = []
   for (const r of reserviste) {
-    // Toutes ses formations
     const { data: formations } = await supabaseAdmin
       .from('formations_benevoles')
       .select('*')
       .eq('benevole_id', r.benevole_id)
 
-    // Toutes ses inscriptions camps
     const { data: inscriptions } = await supabaseAdmin
       .from('inscriptions_camps')
       .select('*')
@@ -49,12 +74,6 @@ export async function GET(req: NextRequest) {
       reserviste: r,
       formations: formations || [],
       inscriptions_camps: inscriptions || [],
-      detection: {
-        camp_via_nom: formations?.some(f => (f.nom_formation || '').toLowerCase().includes('camp') && f.resultat === 'Réussi'),
-        camp_via_presence: inscriptions?.some(i => i.presence === 'confirme'),
-        initiation_via_nom: formations?.some(f => (f.nom_formation || '').toLowerCase().includes('initier') && f.resultat === 'Réussi'),
-        initiation_via_flag: formations?.some(f => f.initiation_sc_completee === true),
-      }
     })
   }
 
