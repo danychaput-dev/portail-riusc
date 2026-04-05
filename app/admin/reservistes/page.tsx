@@ -676,10 +676,10 @@ function ReservistesPage() {
               <div /> {/* Courriel */}
               <div /> {/* Ville */}
               <div /> {/* Région */}
-              {/* Bottes — count */}
+              {/* Bottes — count (adaptatif aux filtres) */}
               <div style={thSubStyle}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700' }}>
-                  {rawData.filter(r => r.remboursement_bottes_date).length}
+                  {data.filter(r => r.remboursement_bottes_date).length}
                 </span>
               </div>
               <div /> {/* Groupe */}
@@ -706,10 +706,10 @@ function ReservistesPage() {
                   )
                 })}
               </div>
-              {/* Antécédents — count + bouton filtre */}
+              {/* Antécédents — count (adaptatif aux filtres) + bouton filtre */}
               <div style={{ ...thSubStyle, gap: '4px' }}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700' }}>
-                  {readinessStats.antecedents}
+                  {data.filter(r => r.antecedents_statut === 'verifie').length}
                 </span>
                 <button
                   onClick={() => toggleReadinessFilter('antecedents')}

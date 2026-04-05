@@ -114,11 +114,12 @@ export async function GET() {
 
     const parOrganisme = [...reservistesQualifies, ...partenairesOrganismes]
 
-    // ── Intérêt: public vs AQBRS ──────────────────────────────────────────────
+    // ── Intérêt: public vs membres d'un organisme ─────────────────────────────
     const interetData = [
       { label: 'Public', total: (reservistes || []).filter(r => r.groupe === 'Intérêt' && !orgMap[r.benevole_id]).length },
-      { label: 'AQBRS',  total: (reservistes || []).filter(r => r.groupe === 'Intérêt' && !!orgMap[r.benevole_id]).length },
-    ]
+      { label: 'AQBRS',  total: (reservistes || []).filter(r => r.groupe === 'Intérêt' && (orgMap[r.benevole_id] || '').includes('AQBRS')).length },
+      { label: 'Autres organismes', total: (reservistes || []).filter(r => r.groupe === 'Intérêt' && !!orgMap[r.benevole_id] && !(orgMap[r.benevole_id] || '').includes('AQBRS')).length },
+    ].filter(d => d.total > 0)
 
     // ── Répartition géographique ──────────────────────────────────────────────
     const buildRegionData = (groupe: string) => {
