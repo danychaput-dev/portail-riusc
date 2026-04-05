@@ -95,19 +95,23 @@ export async function GET(req: NextRequest) {
   const organisme = searchParams.get('organisme')
 
   if (campSession) {
-    const { data: inscriptions } = await supabaseAdmin
+    const { data: inscriptions, error: campError } = await supabaseAdmin
       .from('inscriptions_camps')
       .select('benevole_id, statut_inscription')
       .eq('session_id', campSession)
 
-    if (inscriptions) {
-      const benevoleIds = new Set(
-        campStatut
-          ? inscriptions.filter(i => i.statut_inscription === campStatut).map(i => i.benevole_id)
-          : inscriptions.map(i => i.benevole_id)
-      )
-      reservistes = reservistes.filter(r => benevoleIds.has(r.benevole_id))
+    if (campError) {
+      console.error('Erreur filtre camp_session:', campError.message, '| session_id:', campSession)
     }
+
+    // Filtrer même si inscriptions est vide (0 inscrits = 0 résultats)
+    const inscriptionsList = inscriptions || []
+    const benevoleIds = new Set(
+      campStatut
+        ? inscriptionsList.filter(i => i.statut_inscription === campStatut).map(i => i.benevole_id)
+        : inscriptionsList.map(i => i.benevole_id)
+    )
+    reservistes = reservistes.filter(r => benevoleIds.has(r.benevole_id))
   }
 
   // Charger les organismes pour TOUS les réservistes (pour colonne + filtre)

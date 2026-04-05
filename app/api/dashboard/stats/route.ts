@@ -162,15 +162,17 @@ export async function GET() {
       const d = r.monday_created_at || r.created_at
       return d ? new Date(d).getTime() : null
     }
-    const last24h = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY }).length
-    const last7d  = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY }).length
-    const last30d = (reservistes || []).filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY }).length
+    // Exclure "Retrait temporaire" des compteurs d'inscription
+    const reservistesSansRetrait = (reservistes || []).filter(r => r.groupe !== 'Retrait temporaire')
+    const last24h = reservistesSansRetrait.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY }).length
+    const last7d  = reservistesSansRetrait.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY }).length
+    const last30d = reservistesSansRetrait.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY }).length
 
     const dailyCounts: Record<string, number> = {}
     for (let i = 29; i >= 0; i--) {
       dailyCounts[formatDate(new Date(now - i * DAY))] = 0
     }
-    for (const r of reservistes || []) {
+    for (const r of reservistesSansRetrait) {
       const d = r.monday_created_at || r.created_at
       if (!d) continue
       const day = formatDate(new Date(d))
@@ -225,7 +227,7 @@ export async function GET() {
       .sort((a, b) => a.cohort - b.cohort)
 
     return NextResponse.json({
-      totalInscrits:    reservistes?.length || 0,
+      totalInscrits:    (reservistes || []).filter(r => r.groupe !== 'Retrait temporaire').length,
       totalInteret:     groupeCounts['Intérêt']     || 0,
       totalApprouves:   groupeCounts['Approuvé']    || 0,
       totalPartenaires: groupeCounts['Partenaires'] || 0,

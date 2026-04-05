@@ -196,6 +196,16 @@ function ReservistesPage() {
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
 
+  // Synchroniser groupesFiltres quand les URL params changent (navigation client-side depuis dashboard)
+  useEffect(() => {
+    setGroupesFiltres(defaultGroupes)
+    setRecherche('')
+    setFiltreOrganisme('')
+    setFiltreBottes(false)
+    setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null })
+    setFiltreDeployable(null)
+  }, [urlParamsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auth
   useEffect(() => {
     const init = async () => {
