@@ -67,9 +67,21 @@ export async function POST(req: NextRequest) {
       campagne_id = campagne.id
     }
 
+    // Convertir les URLs texte en liens cliquables <a href> (pour le Click Tracking Resend)
+    // Ignore les URLs déjà dans href="..." ou src="..."
+    const linkifyUrls = (text: string): string => {
+      return text.replace(
+        /(href=["']|src=["'])?(https?:\/\/[^\s<>"']+)/g,
+        (match, prefix, url) => {
+          if (prefix) return match  // Déjà dans un attribut HTML — ne pas toucher
+          return `<a href="${url}" target="_blank">${url}</a>`
+        }
+      )
+    }
+
     // Préparer les courriels avec variables remplacées
     const prepared = destinataires.map((dest: any) => {
-      let html = body_html
+      let html = linkifyUrls(body_html)
         .replace(/\{\{\s*prenom\s*\}\}/gi, dest.prenom || '')
         .replace(/\{\{\s*nom\s*\}\}/gi, dest.nom || '')
       if (signature) html += `<br/><br/>--<br/>${signature}`
