@@ -177,6 +177,7 @@ function ReservistesPage() {
   const [modalStatut,    setModalStatut]    = useState('verifie')
   const [modalSaving,    setModalSaving]    = useState(false)
   const [selectedIds,    setSelectedIds]    = useState<Set<string>>(new Set())
+  const [selectedDestinataires, setSelectedDestinataires] = useState<Map<string, { benevole_id: string; email: string; prenom: string; nom: string }>>(new Map())
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [modalReserviste, setModalReserviste] = useState<Reserviste | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
@@ -245,17 +246,29 @@ function ReservistesPage() {
       if (next.has(id)) next.delete(id); else next.add(id)
       return next
     })
+    // Garder les infos du destinataire pour l'envoi (même après changement de recherche)
+    setSelectedDestinataires(prev => {
+      const next = new Map(prev)
+      if (next.has(id)) { next.delete(id) } else {
+        const r = data.find(r => r.benevole_id === id)
+        if (r) next.set(id, { benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom })
+      }
+      return next
+    })
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === data.length) setSelectedIds(new Set())
-    else setSelectedIds(new Set(data.map(r => r.benevole_id)))
+    if (selectedIds.size === data.length) {
+      setSelectedIds(new Set())
+      setSelectedDestinataires(new Map())
+    } else {
+      setSelectedIds(new Set(data.map(r => r.benevole_id)))
+      setSelectedDestinataires(new Map(data.map(r => [r.benevole_id, { benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom }])))
+    }
   }
 
   const getDestinatairesFromSelection = () =>
-    data.filter(r => selectedIds.has(r.benevole_id)).map(r => ({
-      benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom,
-    }))
+    Array.from(selectedDestinataires.values())
 
   const exporter = async () => {
     setExporting(true)
@@ -448,7 +461,10 @@ function ReservistesPage() {
             {canEmail && (
               <button
                 onClick={() => {
-                  if (selectedIds.size === 0) setSelectedIds(new Set(data.map(r => r.benevole_id)))
+                  if (selectedIds.size === 0) {
+                    setSelectedIds(new Set(data.map(r => r.benevole_id)))
+                    setSelectedDestinataires(new Map(data.map(r => [r.benevole_id, { benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom }])))
+                  }
                   setShowEmailModal(true)
                 }}
                 disabled={data.length === 0}
@@ -503,8 +519,8 @@ function ReservistesPage() {
                 {opt.label}
               </button>
             ))}
-            {groupesFiltres.length > 0 && (
-              <button onClick={() => setGroupesFiltres([])} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+            {(groupesFiltres.length > 0 || recherche) && (
+              <button onClick={() => { setGroupesFiltres([]); setRecherche('') }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
                 Tout effacer
               </button>
             )}
@@ -633,6 +649,7 @@ function ReservistesPage() {
                           e.stopPropagation()
                           if (canEmail) {
                             setSelectedIds(new Set([r.benevole_id]))
+                            setSelectedDestinataires(new Map([[r.benevole_id, { benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom }]]))
                             setShowEmailModal(true)
                           } else {
                             window.location.href = `mailto:${r.email}`
