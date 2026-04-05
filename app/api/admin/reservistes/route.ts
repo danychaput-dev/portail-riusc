@@ -110,28 +110,36 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Filtre organisme côté serveur (nécessite jointure)
+  // Charger les organismes pour TOUS les réservistes (pour colonne + filtre)
+  const { data: orgLinks } = await supabaseAdmin
+    .from('reserviste_organisations')
+    .select('benevole_id, organisations (nom)')
+  const orgMapAll: Record<string, string[]> = {}
+  for (const link of (orgLinks || [])) {
+    const nom = (link as any).organisations?.nom || ''
+    if (!nom) continue
+    if (!orgMapAll[link.benevole_id]) orgMapAll[link.benevole_id] = []
+    orgMapAll[link.benevole_id].push(nom)
+  }
+
+  // Org principale : AQBRS prioritaire, sinon premier organisme
+  const getOrgPrincipale = (benevoleId: string): string => {
+    const orgs = orgMapAll[benevoleId] || []
+    if (orgs.length === 0) return ''
+    const hasAQBRS = orgs.some(o => o.includes('AQBRS'))
+    return hasAQBRS ? orgs.find(o => o.includes('AQBRS'))! : orgs[0]
+  }
+
+  // Groupe AQBRS (sous-groupe de l'organisme AQBRS)
+  const getGroupeAQBRS = (benevoleId: string): string => {
+    const orgs = orgMapAll[benevoleId] || []
+    const aqbrs = orgs.find(o => o.includes('AQBRS'))
+    return aqbrs || ''
+  }
+
+  // Filtre organisme côté serveur
   const orgPrincipale = searchParams.get('org_principale') === 'true'
   if (organisme) {
-    const { data: orgLinks } = await supabaseAdmin
-      .from('reserviste_organisations')
-      .select('benevole_id, organisations (nom)')
-    const orgMapAll: Record<string, string[]> = {}
-    for (const link of (orgLinks || [])) {
-      const nom = (link as any).organisations?.nom || ''
-      if (!nom) continue
-      if (!orgMapAll[link.benevole_id]) orgMapAll[link.benevole_id] = []
-      orgMapAll[link.benevole_id].push(nom)
-    }
-
-    // Org principale : même logique que le dashboard (AQBRS prioritaire)
-    const getOrgPrincipale = (benevoleId: string): string => {
-      const orgs = orgMapAll[benevoleId] || []
-      if (orgs.length === 0) return ''
-      const hasAQBRS = orgs.some(o => o.includes('AQBRS'))
-      return hasAQBRS ? orgs.find(o => o.includes('AQBRS'))! : orgs[0]
-    }
-
     if (organisme === 'AQBRS' || organisme.includes('AQBRS')) {
       reservistes = reservistes.filter(r => {
         const orgs = orgMapAll[r.benevole_id] || []
@@ -140,7 +148,6 @@ export async function GET(req: NextRequest) {
     } else if (organisme === 'sans_org') {
       reservistes = reservistes.filter(r => !orgMapAll[r.benevole_id])
     } else if (orgPrincipale) {
-      // Filtre par org principale uniquement (cohérent avec le comptage du dashboard)
       reservistes = reservistes.filter(r => {
         const principale = getOrgPrincipale(r.benevole_id)
         return principale.includes(organisme)
@@ -196,11 +203,13 @@ export async function GET(req: NextRequest) {
       camp_complete: campComplete,
       certifs_en_attente: formationsMap[r.benevole_id]?.certifs_en_attente || 0,
       camp_inscrit: !campComplete && campInscritSet.has(r.benevole_id),
+      org_principale: getOrgPrincipale(r.benevole_id),
+      groupe_aqbrs: getGroupeAQBRS(r.benevole_id),
     }
   })
 
   if (format === 'xlsx') {
-    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.', 'Initiation SC', 'Camp complété']
+    const entetes = ['Prénom', 'Nom', 'Courriel', 'Téléphone', 'Téléphone 2', 'Adresse', 'Ville', 'Région', 'Code postal', 'Organisme', 'Groupe', 'Statut', 'Remb. bottes', 'Antéc. statut', 'Antéc. date vérif.', 'Antéc. date expir.', 'Initiation SC', 'Camp complété']
     const rows = enriched.map(r => [
       r.prenom || '',
       r.nom || '',
@@ -211,6 +220,7 @@ export async function GET(req: NextRequest) {
       r.ville || '',
       r.region || '',
       r.code_postal || '',
+      r.org_principale || '',
       r.groupe || '',
       r.statut || '',
       r.remboursement_bottes_date || '',
