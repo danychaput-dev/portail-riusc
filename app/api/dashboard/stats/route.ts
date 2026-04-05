@@ -188,10 +188,13 @@ export async function GET() {
       { cohort: 8, dates: '14–15 mars 2026',        ville: 'Sainte-Catherine', inscrits: 75, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
     ]
 
-    // Camps futurs depuis DB (inscrits seulement)
+    // Camps futurs depuis DB (inscrits seulement — réservistes actifs hors Retrait temporaire)
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
-      .select('camp_nom, camp_dates, camp_lieu, session_id')
+      .select('benevole_id, camp_nom, camp_dates, camp_lieu, session_id')
+
+    // Set des benevole_id actifs (hors Retrait temporaire) pour filtrer les inscriptions
+    const activeIds = new Set(reservistesSansRetrait.map(r => r.benevole_id))
 
     // Grouper par session_id uniquement (ignore les variations de camp_lieu)
     // Pour la ville, extraire depuis camp_nom (ex: "Cohorte 10 - Camp de qualification - Québec")
@@ -202,6 +205,7 @@ export async function GET() {
 
     const futurMap: Record<string, { cohort: number; dates: string; ville: string; inscrits: number }> = {}
     for (const c of campsRaw || []) {
+      if (!activeIds.has(c.benevole_id)) continue
       const cohortNum = extractCohort(c.camp_nom || '')
       if (CAMPS_HISTORIQUES.some(h => h.cohort === cohortNum)) continue
       const key = c.session_id || 'inconnu'
