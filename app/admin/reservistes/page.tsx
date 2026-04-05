@@ -369,27 +369,33 @@ function ReservistesPage() {
   const isAdmin = userRole === 'admin'
   const canEmail = ['admin', 'coordonnateur'].includes(userRole)
 
-  // Readiness stats — calculé sur les Approuvés seulement (seuls les Approuvés peuvent être déployés)
+  // Readiness stats — calculé sur rawData (déjà filtré par groupes sélectionnés)
+  // Déployable reste sur Approuvés seulement
   const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
   const readinessStats = useMemo(() => {
     const stats = { profil: 0, initiation: 0, camp: 0, antecedents: 0, deployable: 0 }
-    for (const r of approuves) {
+    for (const r of rawData) {
       const rd = getReadiness(r)
       if (rd.profil) stats.profil++
       if (rd.initiation) stats.initiation++
       if (rd.camp) stats.camp++
       if (rd.antecedents) stats.antecedents++
+    }
+    // Déployable = seulement les Approuvés qui ont tout
+    for (const r of approuves) {
       if (isDeployable(r)) stats.deployable++
     }
     return stats
-  }, [approuves])
+  }, [rawData, approuves])
+
+  const baseTotal = rawData.length
 
   // Détails pour tooltips — ventilation des manquants par critère
   const readinessDetails = useMemo(() => {
-    const total = approuves.length
+    const total = baseTotal
     // Profil complet — quels champs manquent
     const profilManque = { date_naissance: 0, adresse: 0, ville: 0, region: 0, telephone: 0, contact_urgence_nom: 0, contact_urgence_tel: 0, email: 0, nom: 0, prenom: 0 }
-    for (const r of approuves) {
+    for (const r of rawData) {
       if (!r.date_naissance) profilManque.date_naissance++
       if (!r.adresse) profilManque.adresse++
       if (!r.ville) profilManque.ville++
@@ -415,7 +421,7 @@ function ReservistesPage() {
       camp: `${readinessStats.camp}/${total} ont fait le camp de qualification\n${total - readinessStats.camp} n'ont pas encore fait le camp`,
       antecedents: `${readinessStats.antecedents}/${total} antécédents vérifiés\n${antManque} en attente de vérification`,
     }
-  }, [approuves, readinessStats])
+  }, [rawData, baseTotal, readinessStats])
 
   if (!authorized) return null
 
@@ -570,7 +576,7 @@ function ReservistesPage() {
           <span style={{ color: '#e2e8f0' }}>|</span>
           {READINESS_STEPS.map(step => {
             const count = readinessStats[step.key]
-            const missing = approuves.length - count
+            const missing = baseTotal - count
             const state = filtresReadiness[step.key]
             // Couleurs selon l'état
             const colors = state === 'has'
@@ -644,7 +650,7 @@ function ReservistesPage() {
               {/* Bottes — count */}
               <div style={thSubStyle}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700' }}>
-                  {approuves.filter(r => r.remboursement_bottes_date).length}
+                  {rawData.filter(r => r.remboursement_bottes_date).length}
                 </span>
               </div>
               <div /> {/* Groupe */}
