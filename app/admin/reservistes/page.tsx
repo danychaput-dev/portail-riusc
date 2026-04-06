@@ -50,6 +50,7 @@ interface Reserviste {
   org_principale: string
   groupe_aqbrs: string
   groupe_recherche: string | null
+  responsable_groupe: boolean
 }
 
 interface ModalAntecedents {
