@@ -38,9 +38,10 @@ export interface Vue {
 interface Props {
   currentFilters: VueFiltres
   onLoadView: (filtres: VueFiltres) => void
+  resetKey?: number
 }
 
-export default function SavedViewsBar({ currentFilters, onLoadView }: Props) {
+export default function SavedViewsBar({ currentFilters, onLoadView, resetKey }: Props) {
   const [vues, setVues] = useState<Vue[]>([])
   const [loading, setLoading] = useState(true)
   const [activeVueId, setActiveVueId] = useState<string | null>(null)
@@ -74,6 +75,11 @@ export default function SavedViewsBar({ currentFilters, onLoadView }: Props) {
   }, [])
 
   useEffect(() => { fetchVues() }, [fetchVues])
+
+  // Désactiver la vue active quand le parent signale un changement manuel de filtres
+  useEffect(() => {
+    if (resetKey !== undefined && resetKey > 0) setActiveVueId(null)
+  }, [resetKey])
 
   // Close context menu on click outside
   useEffect(() => {

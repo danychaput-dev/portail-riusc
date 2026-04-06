@@ -179,6 +179,7 @@ function ReservistesPage() {
   const [total,          setTotal]          = useState(0)
   const [recherche,      setRecherche]      = useState('')
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(defaultGroupes)
+  const [viewResetKey, setViewResetKey] = useState(0)
   const [exporting,      setExporting]      = useState(false)
   const [sortKey,        setSortKey]        = useState<SortKey>('nom')
   const [sortDir,        setSortDir]        = useState<SortDir>('asc')
@@ -325,6 +326,7 @@ function ReservistesPage() {
   const handleRecherche = (val: string) => setRecherche(val)
 
   const toggleGroupe = (g: string, shiftKey = false) => {
+    setViewResetKey(k => k + 1)
     if (shiftKey) {
       // Shift+clic = multi-sélection (ajouter/retirer)
       setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
@@ -678,7 +680,7 @@ function ReservistesPage() {
         </div>
 
         {/* Vues sauvegardées — compact dans l'en-tête */}
-        <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} />
+        <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} resetKey={viewResetKey} />
 
         {/* Filtres */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '12px', flexWrap: 'nowrap', alignItems: 'center' }}>
@@ -719,7 +721,7 @@ function ReservistesPage() {
             ))}
             <span style={{ width: '80px', flexShrink: 0, display: 'inline-flex' }}>
               {(groupesFiltres.length > 0 || recherche) && (
-                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                   Tout effacer
                 </button>
               )}
