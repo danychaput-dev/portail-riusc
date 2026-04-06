@@ -86,14 +86,14 @@ export async function GET() {
 
       if (r.groupe === 'Approuvé') {
         let org: string
-        if (!rawOrg) org = 'Membres AQBRS Recherche et Sauvetage'
-        else if (isAQBRS) org = 'Réservistes sans groupe assigné'
+        if (!rawOrg) org = 'Réservistes sans groupe assigné'
+        else if (isAQBRS) org = 'Membres AQBRS Recherche et Sauvetage'
         else org = orgDisplayName(rawOrg)
         approuvesOrgCounts[org] = (approuvesOrgCounts[org] || 0) + 1
       } else if (r.groupe === 'Partenaires' && isAQBRS) {
         // Partenaire avec AQBRS → affiché dans section Réservistes qualifiés
-        approuvesOrgCounts['Réservistes sans groupe assigné'] =
-          (approuvesOrgCounts['Réservistes sans groupe assigné'] || 0) + 1
+        approuvesOrgCounts['Membres AQBRS Recherche et Sauvetage'] =
+          (approuvesOrgCounts['Membres AQBRS Recherche et Sauvetage'] || 0) + 1
       }
     }
     const reservistesQualifies = Object.entries(approuvesOrgCounts)
@@ -191,7 +191,8 @@ export async function GET() {
     // Camps futurs depuis DB (inscrits seulement — réservistes actifs hors Retrait temporaire)
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
-      .select('benevole_id, camp_nom, camp_dates, camp_lieu, session_id')
+      .select('benevole_id, camp_nom, camp_dates, camp_lieu, session_id, presence')
+      .neq('presence', 'annule')
 
     // Set des benevole_id actifs (hors Retrait temporaire) pour filtrer les inscriptions
     const activeIds = new Set(reservistesSansRetrait.map(r => r.benevole_id))

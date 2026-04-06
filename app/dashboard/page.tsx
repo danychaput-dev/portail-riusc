@@ -156,12 +156,12 @@ function OrgTable({ reservistesQualifies, partenairesOrganismes, totalApprouves,
 }) {
   const orgClick = (org: string, groupe: string) => {
     if (!onDrill) return undefined
-    // "Membres AQBRS Recherche et Sauvetage" = réservistes sans org assignée
-    if (org.includes('Membres AQBRS')) {
+    // "Réservistes sans groupe assigné" = réservistes sans org assignée
+    if (org.includes('sans groupe')) {
       return () => onDrill({ groupes: groupe, organisme: 'sans_org', org_principale: 'true', label: `${org} (Qualifiés)` })
     }
-    // "Réservistes sans groupe assigné" = ceux avec AQBRS comme org
-    if (org.includes('sans groupe')) {
+    // "Membres AQBRS Recherche et Sauvetage" = ceux avec AQBRS comme org
+    if (org.includes('Membres AQBRS')) {
       return () => onDrill({ groupes: groupe, organisme: 'AQBRS', org_principale: 'true', label: `${org} (Qualifiés)` })
     }
     const orgKey = org.includes('AQBRS') ? 'AQBRS' : org.includes('SOPFEU') ? 'SOPFEU' : org.includes('Croix-Rouge') ? 'Croix-Rouge' : org.includes('MSP') ? 'MSP' : org
