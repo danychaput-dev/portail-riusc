@@ -587,12 +587,14 @@ export default function CampagnesPage() {
                                       </div>
                                     </div>
                                     {/* Réponses en fil (retrait) */}
-                                    {d.reponses && d.reponses.map(rep => (
-                                      <div key={rep.id} style={{ borderTop: '1px solid #f3f4f6', backgroundColor: '#f8fafc', padding: '10px 12px 10px 36px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                    {d.reponses && d.reponses.map(rep => {
+                                      const isRepNonLu = rep.statut === 'recu'
+                                      return (
+                                      <div key={rep.id} style={{ borderTop: `1px solid ${isRepNonLu ? '#fbbf24' : '#f3f4f6'}`, backgroundColor: isRepNonLu ? '#fffdf5' : '#f8fafc', padding: '10px 12px 10px 36px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                                         <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>↳</span>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: isRepNonLu ? '700' : '600', color: isRepNonLu ? '#92400e' : '#1e40af' }}>
                                               📨 Réponse de {rep.from_name || rep.from_email}
                                             </span>
                                             {reponseStatutBadge(rep.statut)}
@@ -636,7 +638,8 @@ export default function CampagnesPage() {
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
+                                      )
+                                    })}
                                   </div>
                                 ))}
                               </div>
@@ -699,14 +702,15 @@ export default function CampagnesPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {filteredIndiv.map(c => {
                   const isOpen = selectedIndiv === c.id
+                  const hasUnread = c.reponses?.some(r => r.statut === 'recu')
                   return (
-                    <div key={c.id} style={{ backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                    <div key={c.id} style={{ backgroundColor: hasUnread ? '#fffdf5' : 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', border: hasUnread ? '1px solid #fbbf24' : '1px solid transparent' }}>
                       {/* Ligne résumé — cliquable */}
                       <div
                         onClick={() => setSelectedIndiv(isOpen ? null : c.id)}
                         style={{ padding: '14px 16px', cursor: 'pointer', display: 'grid', gridTemplateColumns: '1fr 1fr 100px 130px 70px 40px', gap: '8px', alignItems: 'center', transition: 'background-color 0.1s' }}
-                        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f9fafb')}
-                        onMouseOut={e => (e.currentTarget.style.backgroundColor = 'white')}
+                        onMouseOver={e => (e.currentTarget.style.backgroundColor = hasUnread ? '#fffbeb' : '#f9fafb')}
+                        onMouseOut={e => (e.currentTarget.style.backgroundColor = hasUnread ? '#fffdf5' : 'white')}
                       >
                         <div>
                           <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '13px' }}>{c.nom_complet}</div>
@@ -768,10 +772,12 @@ export default function CampagnesPage() {
                               <div style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.03em' }}>
                                 💬 {c.reponses.length} réponse{c.reponses.length > 1 ? 's' : ''}
                               </div>
-                              {c.reponses.map((rep: ReponseInline) => (
-                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: '3px solid #bfdbfe', paddingLeft: '14px', marginBottom: '10px' }}>
+                              {c.reponses.map((rep: ReponseInline) => {
+                                const isNonLu = rep.statut === 'recu'
+                                return (
+                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: `3px solid ${isNonLu ? '#fbbf24' : '#bfdbfe'}`, paddingLeft: '14px', marginBottom: '10px', backgroundColor: isNonLu ? '#fffdf5' : 'transparent', borderRadius: isNonLu ? '0 8px 8px 0' : undefined, padding: isNonLu ? '10px 14px 10px 14px' : undefined, paddingLeft: '14px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: isNonLu ? '700' : '600', color: isNonLu ? '#92400e' : '#1e40af' }}>
                                       📨 {rep.from_name || rep.from_email}
                                     </span>
                                     {reponseStatutBadge(rep.statut)}
@@ -816,7 +822,8 @@ export default function CampagnesPage() {
                                     </button>
                                   </div>
                                 </div>
-                              ))}
+                                )
+                              })}
                             </div>
                           )}
                         </div>
