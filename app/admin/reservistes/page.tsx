@@ -13,6 +13,7 @@ const C = '#1e3a5f'
 const GROUPES_OPTIONS = [
   { val: 'Approuvé',           label: 'Approuvé',            couleur: '#22c55e', bg: '#f0fdf4' },
   { val: 'Intérêt',            label: 'Intérêt',             couleur: '#f59e0b', bg: '#fffbeb' },
+  { val: 'Partenaires',        label: 'Partenaires',         couleur: '#4a7b65', bg: '#f0fdf4' },
   { val: 'Retrait temporaire', label: 'Retrait temporaire',  couleur: '#ef4444', bg: '#fef2f2' },
 ]
 
