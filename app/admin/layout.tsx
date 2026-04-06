@@ -10,13 +10,14 @@ interface SidebarStats {
   sinistres_actifs: number
   certificats_attente: number
   messages_non_lus: number
+  courriels_reponses_non_lues: number
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const router = useRouter()
   const [authorized, setAuthorized] = useState(false)
-  const [stats, setStats] = useState<SidebarStats>({ sinistres_actifs: 0, certificats_attente: 0, messages_non_lus: 0 })
+  const [stats, setStats] = useState<SidebarStats>({ sinistres_actifs: 0, certificats_attente: 0, messages_non_lus: 0, courriels_reponses_non_lues: 0 })
 
   useEffect(() => {
     const init = async () => {
@@ -40,10 +41,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           .eq('is_deleted', false)
           .gt('created_at', lastSeenAt)
 
+        // Compter les réponses inbound non lues (défensif si table pas encore créée)
+        let reponsesNonLues = 0
+        try {
+          const repRes = await fetch('/api/admin/courriels/reponses?statut=recu&limit=200')
+          const repJson = await repRes.json()
+          reponsesNonLues = (repJson.reponses || []).length
+        } catch {}
+
         setStats({
           sinistres_actifs: sinistres.count || 0,
           certificats_attente: certificats.count || 0,
           messages_non_lus: messagesCount ?? 0,
+          courriels_reponses_non_lues: reponsesNonLues,
         })
       } catch {}
     }

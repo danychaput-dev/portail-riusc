@@ -186,6 +186,10 @@ export default function CampagnesPage() {
   const [indivDateFrom, setIndivDateFrom] = useState('')
   const [indivDateTo, setIndivDateTo] = useState('')
 
+  // ─── Réponses non lues ───
+  const [reponsesNonLues, setReponsesNonLues] = useState(0)
+  const [showOnlyWithReplies, setShowOnlyWithReplies] = useState(false)
+
   // ─── Reply statut management ───
   const [updatingStatut, setUpdatingStatut] = useState<string | null>(null)
 
@@ -213,6 +217,12 @@ export default function CampagnesPage() {
       .then(json => setCampagnes(json.campagnes || []))
       .catch(() => {})
       .finally(() => setLoading(false))
+
+    // Compter les réponses non lues
+    fetch('/api/admin/courriels/reponses?statut=recu&limit=200')
+      .then(r => r.json())
+      .then(json => setReponsesNonLues((json.reponses || []).length))
+      .catch(() => {})
   }, [authorized])
 
   // ─── Load individuels quand on switch d'onglet ───
@@ -238,6 +248,10 @@ export default function CampagnesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reponse_id: reponseId, statut: newStatut }),
       })
+      // Décrémenter le compteur si on marque une réponse "recu" comme autre chose
+      if (newStatut !== 'recu') {
+        setReponsesNonLues(c => Math.max(0, c - 1))
+      }
       // Mettre à jour le statut dans les données inline (campagnes + individuels)
       setCampagneDetail(prev => {
         if (!prev) return prev
@@ -284,14 +298,20 @@ export default function CampagnesPage() {
 
   // ─── Filtrage individuels ───
   const filteredIndiv = useMemo(() => {
-    if (!indivSearch) return individuels
-    const s = indivSearch.toLowerCase()
-    return individuels.filter(c =>
-      (c.nom_complet || '').toLowerCase().includes(s) ||
-      (c.to_email || '').toLowerCase().includes(s) ||
-      (c.subject || '').toLowerCase().includes(s)
-    )
-  }, [individuels, indivSearch])
+    let list = individuels
+    if (showOnlyWithReplies) {
+      list = list.filter(c => c.reponses && c.reponses.length > 0)
+    }
+    if (indivSearch) {
+      const s = indivSearch.toLowerCase()
+      list = list.filter(c =>
+        (c.nom_complet || '').toLowerCase().includes(s) ||
+        (c.to_email || '').toLowerCase().includes(s) ||
+        (c.subject || '').toLowerCase().includes(s)
+      )
+    }
+    return list
+  }, [individuels, indivSearch, showOnlyWithReplies])
 
   // ─── Reply helpers ───
   const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string) => {
@@ -333,6 +353,31 @@ export default function CampagnesPage() {
           <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Courriels</h1>
         </div>
       </div>
+
+        {/* Bandeau réponses non lues */}
+        {reponsesNonLues > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 16px',
+            marginBottom: '16px', borderRadius: '10px',
+            backgroundColor: '#fffbeb', border: '1px solid #fbbf24',
+          }}>
+            <span style={{ fontSize: '16px' }}>📨</span>
+            <span style={{ fontSize: '13px', color: '#92400e', fontWeight: '600', flex: 1 }}>
+              {reponsesNonLues} réponse{reponsesNonLues > 1 ? 's' : ''} non lue{reponsesNonLues > 1 ? 's' : ''}
+            </span>
+            <button
+              onClick={() => { setShowOnlyWithReplies(!showOnlyWithReplies); setActiveTab('individuels') }}
+              style={{
+                padding: '5px 14px', fontSize: '12px', fontWeight: '600',
+                borderRadius: '6px', border: '1px solid #f59e0b', cursor: 'pointer',
+                backgroundColor: showOnlyWithReplies ? '#f59e0b' : 'white',
+                color: showOnlyWithReplies ? 'white' : '#92400e',
+              }}
+            >
+              {showOnlyWithReplies ? '✕ Voir tous' : 'Voir les réponses'}
+            </button>
+          </div>
+        )}
 
         {/* Onglets */}
         <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', gap: '4px' }}>

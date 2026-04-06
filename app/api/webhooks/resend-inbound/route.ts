@@ -115,8 +115,13 @@ export async function POST(req: NextRequest) {
     // Identifier le courriel original via l'adresse reply+{id}@
     const courrielId = extractCourrielIdFromAddress(toAddresses)
 
-    // Récupérer le contenu complet de l'email
-    const content = await fetchEmailContent(resendEmailId)
+    // Récupérer le contenu de l'email :
+    // 1) D'abord depuis le payload webhook (Resend inbound inclut html/text)
+    // 2) Fallback vers l'API Resend si absent du payload
+    let content = { html: data.html || null, text: data.text || null }
+    if (!content.html && !content.text && resendEmailId) {
+      content = await fetchEmailContent(resendEmailId)
+    }
 
     // Résoudre le benevole_id depuis le courriel original ou depuis l'adresse from
     let benevoleId: string | null = null
