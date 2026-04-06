@@ -96,22 +96,41 @@ export async function POST(req: NextRequest) {
 
     const attachmentNames = (attachments || []).map((a: any) => a.filename).filter(Boolean)
 
+    // Domaine inbound pour Reply-To dynamique (reply+{courriel_id}@reply.aqbrs.ca)
+    const inboundDomain = process.env.RESEND_INBOUND_DOMAIN || 'reply.aqbrs.ca'
+
     const resultats: { benevole_id: string; ok: boolean; error?: string }[] = []
 
     // ── Batch API pour envois de masse (lots de 100) ──
+    // Note: en batch, on pré-crée les IDs pour le Reply-To dynamique
     if (prepared.length > 1) {
       const BATCH_SIZE = 100
       for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
         const batch = prepared.slice(i, i + BATCH_SIZE)
 
+        // Pré-créer les enregistrements courriels pour obtenir les IDs (pour le Reply-To)
+        const preInserts = await Promise.all(
+          batch.map(async (dest: any) => {
+            const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
+              campagne_id, benevole_id: dest.benevole_id,
+              from_email: fromEmail, from_name: fromName, to_email: dest.email,
+              subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
+              pieces_jointes: attachmentNames,
+            }).select('id').single()
+            if (insertErr) console.error('❌ Erreur pré-insert courriel:', insertErr.message, 'pour', dest.email)
+            else console.log('✅ Pré-insert OK:', row?.id, '→ Reply-To: reply+' + row?.id + '@' + inboundDomain)
+            return { ...dest, courriel_id: row?.id }
+          })
+        )
+
         try {
           const { data: batchResult, error: batchError } = await resend.batch.send(
-            batch.map((dest: any) => ({
+            preInserts.map((dest: any) => ({
               from: `${fromName} <${fromEmail}>`,
               to: [dest.email],
               subject,
               html: dest.html,
-              replyTo,
+              replyTo: dest.courriel_id ? `reply+${dest.courriel_id}@${inboundDomain}` : replyTo,
               headers: { 'X-Entity-Ref-ID': dest.benevole_id },
               tags: [{ name: 'source', value: 'portail-riusc' }],
               ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
@@ -120,48 +139,60 @@ export async function POST(req: NextRequest) {
 
           if (batchError) {
             // Batch entier échoué — marquer tous comme failed
-            for (const dest of batch) {
+            for (const dest of preInserts) {
               resultats.push({ benevole_id: dest.benevole_id, ok: false, error: batchError.message })
-              await supabaseAdmin.from('courriels').insert({
-                campagne_id, benevole_id: dest.benevole_id,
-                from_email: fromEmail, from_name: fromName, to_email: dest.email,
-                subject, body_html: dest.html, statut: 'failed', envoye_par: user.id,
-                pieces_jointes: attachmentNames,
-              })
+              if (dest.courriel_id) {
+                await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', dest.courriel_id)
+              }
             }
             continue
           }
 
-          // Batch réussi — enregistrer chaque courriel avec son resend_id
+          // Batch réussi — mettre à jour avec resend_id
           const batchData = batchResult?.data || []
-          for (let j = 0; j < batch.length; j++) {
-            const dest = batch[j]
+          for (let j = 0; j < preInserts.length; j++) {
+            const dest = preInserts[j]
             const resendId = batchData[j]?.id || null
-            await supabaseAdmin.from('courriels').insert({
-              campagne_id, benevole_id: dest.benevole_id,
-              from_email: fromEmail, from_name: fromName, to_email: dest.email,
-              subject, body_html: dest.html, resend_id: resendId,
-              statut: 'sent', envoye_par: user.id,
-              pieces_jointes: attachmentNames,
-            })
+            if (dest.courriel_id) {
+              await supabaseAdmin.from('courriels').update({
+                resend_id: resendId, statut: 'sent',
+              }).eq('id', dest.courriel_id)
+            }
             resultats.push({ benevole_id: dest.benevole_id, ok: true })
           }
         } catch (err: any) {
-          for (const dest of batch) {
+          for (const dest of preInserts) {
             resultats.push({ benevole_id: dest.benevole_id, ok: false, error: err.message })
+            if (dest.courriel_id) {
+              await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', dest.courriel_id)
+            }
           }
         }
       }
     } else {
       // ── Envoi individuel ──
       const dest = prepared[0]
+
+      // Pré-créer l'enregistrement pour obtenir l'ID (Reply-To dynamique)
+      const { data: preRow, error: preInsertErr } = await supabaseAdmin.from('courriels').insert({
+        campagne_id, benevole_id: dest.benevole_id,
+        from_email: fromEmail, from_name: fromName, to_email: dest.email,
+        subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
+        pieces_jointes: attachmentNames,
+      }).select('id').single()
+      if (preInsertErr) console.error('❌ Erreur pré-insert courriel individuel:', preInsertErr.message)
+      const courrielId = preRow?.id
+
+      const dynamicReplyTo = courrielId ? `reply+${courrielId}@${inboundDomain}` : replyTo
+      console.log('📧 Reply-To pour', dest.email, ':', dynamicReplyTo, '(courrielId:', courrielId, ', inboundDomain:', inboundDomain, ')')
+
       try {
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: `${fromName} <${fromEmail}>`,
           to: [dest.email],
           subject,
           html: dest.html,
-          replyTo,
+          replyTo: dynamicReplyTo,
           headers: { 'X-Entity-Ref-ID': dest.benevole_id },
           tags: [{ name: 'source', value: 'portail-riusc' }],
           ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
@@ -169,24 +200,22 @@ export async function POST(req: NextRequest) {
 
         if (emailError) {
           resultats.push({ benevole_id: dest.benevole_id, ok: false, error: emailError.message })
-          await supabaseAdmin.from('courriels').insert({
-            campagne_id, benevole_id: dest.benevole_id,
-            from_email: fromEmail, from_name: fromName, to_email: dest.email,
-            subject, body_html: dest.html, statut: 'failed', envoye_par: user.id,
-            pieces_jointes: attachmentNames,
-          })
+          if (courrielId) {
+            await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
+          }
         } else {
-          await supabaseAdmin.from('courriels').insert({
-            campagne_id, benevole_id: dest.benevole_id,
-            from_email: fromEmail, from_name: fromName, to_email: dest.email,
-            subject, body_html: dest.html, resend_id: emailData?.id || null,
-            statut: 'sent', envoye_par: user.id,
-            pieces_jointes: attachmentNames,
-          })
+          if (courrielId) {
+            await supabaseAdmin.from('courriels').update({
+              resend_id: emailData?.id || null, statut: 'sent',
+            }).eq('id', courrielId)
+          }
           resultats.push({ benevole_id: dest.benevole_id, ok: true })
         }
       } catch (err: any) {
         resultats.push({ benevole_id: dest.benevole_id, ok: false, error: err.message })
+        if (courrielId) {
+          await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
+        }
       }
     }
 
