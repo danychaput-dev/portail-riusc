@@ -1096,7 +1096,7 @@ function ReservistesPage() {
           </button>
           <button
             onClick={() => {
-              window.open(`/dossier?bid=${contextMenu.reserviste.benevole_id}&from=reservistes`, '_blank')
+              window.open(`/profil?bid=${contextMenu.reserviste.benevole_id}&from=reservistes`, '_blank')
               setContextMenu(null)
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}

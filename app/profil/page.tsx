@@ -1,8 +1,8 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react'
 import ImageCropper from '@/app/components/ImageCropper'
 import PortailHeader from '@/app/components/PortailHeader'
 import { useAuth } from '@/utils/useAuth'
@@ -20,10 +20,23 @@ import {
   formatPhoneDisplay, cleanPhoneForSave, isValidNorthAmericanPhone, isOlderThan18,
 } from './constants'
 
+// ─── Wrapper Suspense (pour useSearchParams) ────────────────────────────────
+
+export default function ProfilPageWrapper() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#6b7280' }}>Chargement...</div>}>
+      <ProfilPage />
+    </Suspense>
+  )
+}
+
 // ─── Composant principal ────────────────────────────────────────────────────
 
-export default function ProfilPage() {
+function ProfilPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const bidParam = searchParams.get('bid')
+  const fromParam = searchParams.get('from')
   const supabase = createClient()
 
   // Hook d'authentification avec support emprunt
@@ -32,7 +45,35 @@ export default function ProfilPage() {
   // États généraux
   const [user, setUser] = useState<any>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
+  const [isViewingOther, setIsViewingOther] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  // Protection section santé (quand admin consulte un autre réserviste)
+  const [santeUnlocked, setSanteUnlocked] = useState(false)
+  const [santeMdpInput, setSanteMdpInput] = useState('')
+  const [santeMdpError, setSanteMdpError] = useState(false)
+  const [santeMdpLoading, setSanteMdpLoading] = useState(false)
+
+  const verifierMdpSante = async () => {
+    setSanteMdpLoading(true)
+    setSanteMdpError(false)
+    try {
+      const res = await fetch('/api/admin/verifier-mdp-sante', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mot_de_passe: santeMdpInput }),
+      })
+      const json = await res.json()
+      if (json.ok) {
+        setSanteUnlocked(true)
+      } else {
+        setSanteMdpError(true)
+      }
+    } catch {
+      setSanteMdpError(true)
+    }
+    setSanteMdpLoading(false)
+  }
   const [saving, setSaving] = useState(false)
   const [testNotifLoading, setTestNotifLoading] = useState(false)
   const [testNotifResult, setTestNotifResult] = useState<'success' | 'error' | null>(null)
@@ -148,7 +189,107 @@ export default function ProfilPage() {
     const loadData = async () => {
       // Attendre que l'auth soit chargée
       if (authLoading) return
-      
+
+      // 👁️ MODE ADMIN — consultation du profil d'un autre réserviste via ?bid=
+      if (bidParam) {
+        try {
+          const res = await fetch(`/api/admin/reserviste-detail?bid=${bidParam}`)
+          if (res.ok) {
+            const json = await res.json()
+            if (json.reserviste) {
+              const d = json.reserviste
+              setUser({ id: `admin_view_${d.benevole_id}`, email: d.email })
+              setReserviste(d)
+              setIsViewingOther(true)
+
+              setProfilData({
+                telephone: formatPhoneDisplay(d.telephone || ''),
+                telephone_secondaire: formatPhoneDisplay(d.telephone_secondaire || ''),
+                adresse: d.adresse || '',
+                ville: d.ville || '',
+                code_postal: d.code_postal || '',
+                region: d.region || '',
+                latitude: d.latitude || null,
+                longitude: d.longitude || null,
+                contact_urgence_nom: d.contact_urgence_nom || '',
+                contact_urgence_telephone: formatPhoneDisplay(d.contact_urgence_telephone || ''),
+                contact_urgence_lien: d.contact_urgence_lien || '',
+                contact_urgence_courriel: d.contact_urgence_courriel || '',
+              })
+              setOriginalProfilData({
+                telephone: formatPhoneDisplay(d.telephone || ''),
+                telephone_secondaire: formatPhoneDisplay(d.telephone_secondaire || ''),
+                adresse: d.adresse || '',
+                ville: d.ville || '',
+                code_postal: d.code_postal || '',
+                region: d.region || '',
+                latitude: d.latitude || null,
+                longitude: d.longitude || null,
+                contact_urgence_nom: d.contact_urgence_nom || '',
+                contact_urgence_telephone: formatPhoneDisplay(d.contact_urgence_telephone || ''),
+                contact_urgence_lien: d.contact_urgence_lien || '',
+                contact_urgence_courriel: d.contact_urgence_courriel || '',
+              })
+
+              const loaded: DossierData = {
+                prenom: d.prenom || '', nom: d.nom || '', email: d.email || '',
+                date_naissance: d.date_naissance || '', grandeur_bottes: d.grandeur_bottes || '',
+                profession: d.profession || '', j_ai_18_ans: d.j_ai_18_ans || false,
+                allergies_alimentaires: d.allergies_alimentaires || '', allergies_autres: d.allergies_autres || '',
+                problemes_sante: d.problemes_sante || '', groupe_sanguin: d.groupe_sanguin || '',
+                competence_rs: labelsToIds('competence_rs', d.competence_rs),
+                certificat_premiers_soins: labelsToIds('certificat_premiers_soins', d.certificat_premiers_soins),
+                date_expiration_certificat: d.date_expiration_certificat || '',
+                vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
+                navire_marin: labelsToIds('navire_marin', d.navire_marin),
+                permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
+                disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
+                satp_drone: labelsToIds('satp_drone', d.satp_drone),
+                equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
+                competences_securite: labelsToIds('competences_securite', d.competences_securite),
+                competences_sauvetage: labelsToIds('competences_sauvetage', d.competences_sauvetage),
+                certification_csi: labelsToIds('certification_csi', d.certification_csi),
+                communication: labelsToIds('communication', d.communication),
+                cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
+                operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
+                experience_urgence_detail: d.experience_urgence_detail || '',
+                autres_competences: d.autres_competences || '',
+                commentaire: d.commentaire || '', confidentialite: d.confidentialite || false,
+                consentement_antecedents: d.consentement_antecedents || false,
+                preference_tache: d.preference_tache || 'aucune',
+                preference_tache_commentaire: d.preference_tache_commentaire || '',
+                groupe_recherche: d.groupe_recherche || '',
+              }
+              setDossier(loaded)
+              setOriginalDossier(loaded)
+
+              // Charger organisations, langues, groupes RS
+              const { data: orgsData } = await supabase.from('organisations').select('id, nom').order('nom')
+              setAllOrgs(orgsData || [])
+              const { data: grsData } = await supabase.from('groupes_recherche').select('nom').eq('actif', true).order('nom')
+              setGroupesRS((grsData || []).map(g => g.nom))
+              const { data: languesData } = await supabase.from('langues').select('id, nom').order('nom')
+              setAllLangues(languesData || [])
+
+              // Charger orgs/langues liées (via service_role API)
+              const { data: myOrgsData } = await supabase
+                .from('reserviste_organisations').select('organisation_id').eq('benevole_id', d.benevole_id)
+              setMyOrgIds((myOrgsData || []).map((r: any) => r.organisation_id))
+
+              const { data: myLanguesData } = await supabase
+                .from('reserviste_langues').select('langue_id').eq('benevole_id', d.benevole_id)
+              setMyLangueIds((myLanguesData || []).map((r: any) => r.langue_id))
+
+              logPageVisit('/profil')
+              setLoading(false)
+              return
+            }
+          }
+        } catch (e) {
+          console.error('[Profil] Erreur chargement bid:', e)
+        }
+      }
+
       // 🔧 SUPPORT MODE DEBUG
       if (typeof window !== 'undefined') {
         const debugMode = localStorage.getItem('debug_mode')
@@ -1143,14 +1284,40 @@ export default function ProfilPage() {
         </div>
       )}
 
-      <PortailHeader subtitle="Mon profil" />
+      <PortailHeader subtitle={isViewingOther ? `Profil de ${reserviste?.prenom} ${reserviste?.nom}` : 'Mon profil'} />
 
-      <ImpersonateBanner />
+      {isViewingOther ? (
+        <div style={{ backgroundColor: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '10px 24px' }}>
+          <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: '#1e40af', fontWeight: '500' }}>
+              👁️ Vous consultez le profil de <strong>{reserviste?.prenom} {reserviste?.nom}</strong>
+            </span>
+            <button
+              onClick={() => {
+                if (fromParam === 'reservistes') {
+                  router.push('/admin/reservistes')
+                } else {
+                  window.close()
+                }
+              }}
+              style={{ fontSize: '13px', color: '#1e40af', background: 'none', border: '1px solid #93c5fd', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer' }}
+            >
+              ← Retour
+            </button>
+          </div>
+        </div>
+      ) : (
+        <ImpersonateBanner />
+      )}
 
 
       <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ marginBottom: '24px' }}>
-          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
+          {isViewingOther ? (
+            <a href="/admin/reservistes" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour aux réservistes</a>
+          ) : (
+            <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>
+          )}
         </div>
 
         {/* ── 1. Identité & Photo ── */}
@@ -1563,6 +1730,39 @@ export default function ProfilPage() {
         </Section>
 
         {/* ── 4. Santé ── */}
+        {isViewingOther && !santeUnlocked ? (
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', paddingBottom: '10px', borderBottom: '2px solid #1e3a5f' }}>
+              <span style={{ fontSize: '20px' }}>🏥</span>
+              <h2 style={{ margin: 0, fontSize: '17px', fontWeight: '600', color: '#1e3a5f' }}>Santé</h2>
+            </div>
+            <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e5e7eb', padding: '24px', textAlign: 'center' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
+              <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: '600', color: '#1e3a5f' }}>Information confidentielle</p>
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6b7280' }}>Entrez le mot de passe pour accéder aux informations médicales de ce réserviste.</p>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                <input
+                  type="password"
+                  value={santeMdpInput}
+                  onChange={e => { setSanteMdpInput(e.target.value); setSanteMdpError(false) }}
+                  onKeyDown={e => e.key === 'Enter' && verifierMdpSante()}
+                  placeholder="Mot de passe..."
+                  style={{ padding: '8px 12px', border: santeMdpError ? '1px solid #dc2626' : '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '200px' }}
+                />
+                <button
+                  onClick={verifierMdpSante}
+                  disabled={santeMdpLoading || !santeMdpInput}
+                  style={{ padding: '8px 16px', backgroundColor: santeMdpLoading ? '#9ca3af' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: santeMdpLoading ? 'wait' : 'pointer' }}
+                >
+                  {santeMdpLoading ? '⏳' : '🔓 Déverrouiller'}
+                </button>
+              </div>
+              {santeMdpError && (
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#dc2626' }}>Mot de passe incorrect</p>
+              )}
+            </div>
+          </div>
+        ) : (
         <Section
           title="Santé"
           icon="🏥"
@@ -1610,6 +1810,7 @@ export default function ProfilPage() {
             placeholder="Conditions dont l'équipe devrait être informée lors d'un déploiement..."
           />
         </Section>
+        )}
 
         {/* ── 6. Premiers soins ── */}
         <Section title="Certifications premiers soins" icon="🩹">
@@ -2297,7 +2498,7 @@ export default function ProfilPage() {
         </div>
       </main>
 
-      <ImpersonateBanner position="bottom" />
+      {!isViewingOther && <ImpersonateBanner position="bottom" />}
     </div>
   )
 }

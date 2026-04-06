@@ -173,7 +173,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
               </div>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <a
-                  href={`/dossier?bid=${reserviste.benevole_id}&from=reservistes`}
+                  href={`/profil?bid=${reserviste.benevole_id}&from=reservistes`}
                   target="_blank"
                   rel="noopener"
                   style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${C}`, backgroundColor: 'white', color: C, fontSize: '12px', fontWeight: '600', textDecoration: 'none', whiteSpace: 'nowrap' }}
