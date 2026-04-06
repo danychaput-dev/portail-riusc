@@ -280,7 +280,7 @@ export default function DashboardPublicPage() {
             )}
             {/* ── Badges ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-              <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" onClick={drill({ groupes: 'Approuvé,Intérêt,Partenaires,Formation incomplète', label: 'Tous les réservistes inscrits' })} />
+              <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" onClick={drill({ groupes: 'Approuvé,Intérêt,Partenaires', label: 'Tous les réservistes inscrits' })} />
               <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} onClick={drill({ groupes: 'Intérêt', label: 'Personnes avec intérêt à joindre' })} />
               <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" onClick={drill({ groupes: 'Partenaires', label: 'Partenaires' })} />
               <StatCard value={stats.totalApprouves}   label="Réservistes qualifiés" color={NAVY} onClick={drill({ groupes: 'Approuvé', label: 'Réservistes qualifiés' })} />
@@ -391,7 +391,7 @@ export default function DashboardPublicPage() {
                     { label: '7 derniers jours',   value: stats.last7d,   color: stats.last7d   > 0 ? NAVY  : MUTED, jours: 7 },
                     { label: '30 derniers jours',  value: stats.last30d,  color: stats.last30d  > 0 ? NAVY  : MUTED, jours: 30 },
                   ].map((s, i) => (
-                    <div key={i} onClick={drill({ inscrit_depuis: String(s.jours), groupes: 'Approuvé,Intérêt,Partenaires,Formation incomplète', label: `Nouvelles inscriptions — ${s.label.toLowerCase()}` })}
+                    <div key={i} onClick={drill({ inscrit_depuis: String(s.jours), groupes: 'Approuvé,Intérêt,Partenaires', label: `Nouvelles inscriptions — ${s.label.toLowerCase()}` })}
                       style={{ cursor: isAdmin ? 'pointer' : 'default', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s' }}
                       onMouseOver={e => { if (isAdmin) e.currentTarget.style.backgroundColor = '#f0f4f8' }}
                       onMouseOut={e => { e.currentTarget.style.backgroundColor = 'transparent' }}

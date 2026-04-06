@@ -18,7 +18,7 @@ export interface VueFiltres {
   filtresReadiness: Record<string, string | null>
   filtreDeployable: string | null
   filtreCertifsManquants?: boolean
-  filtreCertifsEnAttente?: boolean
+  filtreCertifsEnAttente?: boolean  // Déprécié — conservé pour rétro-compat vues sauvegardées
 }
 
 export interface Vue {
