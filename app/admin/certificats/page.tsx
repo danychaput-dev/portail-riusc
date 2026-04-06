@@ -606,40 +606,61 @@ export default function AdminCertificatsPage() {
             <div style={{ marginBottom: '16px' }}>
               <input type="text" placeholder="🔍 Filtrer par nom..." value={filterNom} onChange={e => setFilterNom(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '280px', outline: 'none' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '440px 1fr', gap: '20px', alignItems: 'start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '480px 1fr', gap: '20px', alignItems: 'start' }}>
+              {/* Liste regroupée par personne */}
+              <div style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
                 {filteredGrouped.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat en attente 🎉</div>}
-                {filteredGrouped.map(group => {
+                {filteredGrouped.map((group, gi) => {
                   const allSaved = group.certs.every(c => c.statut === 'saved')
                   const pendingCount = group.certs.filter(c => c.statut !== 'saved').length
                   return (
-                    <div key={group.benevoleId} style={{ backgroundColor: 'white', borderRadius: '12px', border: allSaved ? '1px solid #bbf7d0' : '1px solid #e5e7eb', opacity: allSaved ? 0.6 : 1, overflow: 'hidden' }}>
-                      {/* En-tête personne */}
-                      <div style={{ padding: '12px 16px', backgroundColor: '#f9fafb', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={group.benevoleId} style={{ marginBottom: '16px' }}>
+                      {/* ── En-tête personne ── */}
+                      <div style={{
+                        padding: '10px 14px', backgroundColor: allSaved ? '#f0fdf4' : '#f1f5f9',
+                        borderRadius: '8px 8px 0 0', border: '1px solid #d1d5db', borderBottom: 'none',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        opacity: allSaved ? 0.6 : 1,
+                      }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{initials(group.nom)}</div>
+                          <div style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', flexShrink: 0 }}>
+                            {initials(group.nom)}
+                          </div>
                           <div>
-                            <div style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{allSaved ? '✅ ' : ''}{group.nom}</div>
-                            <a href={`mailto:${group.email}`} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>{group.email}</a>
+                            <span style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{allSaved ? '✅ ' : ''}{group.nom || 'Sans nom'}</span>
+                            <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>
+                              {group.email || ''}
+                            </a>
                           </div>
                         </div>
-                        <span style={{ fontSize: '11px', backgroundColor: allSaved ? '#d1fae5' : '#fef3c7', color: allSaved ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
+                        <span style={{ fontSize: '11px', backgroundColor: allSaved ? '#d1fae5' : '#fef3c7', color: allSaved ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '10px', fontWeight: '600', flexShrink: 0 }}>
                           {allSaved ? 'Tout approuvé' : `${pendingCount} en attente`}
                         </span>
                       </div>
-                      {/* Liste des certificats de cette personne */}
+                      {/* ── Certificats de cette personne ── */}
                       {group.certs.map((cert, ci) => (
-                        <div key={cert.id} onClick={() => setSelectedId(cert.id)} style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #e5e7eb', backgroundColor: selectedId === cert.id ? '#eff6ff' : ci % 2 === 0 ? '#ffffff' : '#f9fafb', transition: 'all 0.15s' }}>
+                        <div
+                          key={cert.id}
+                          onClick={() => setSelectedId(cert.id)}
+                          style={{
+                            padding: '12px 14px 12px 54px',
+                            cursor: 'pointer',
+                            border: '1px solid #d1d5db',
+                            borderTop: 'none',
+                            borderRadius: ci === group.certs.length - 1 ? '0 0 8px 8px' : '0',
+                            backgroundColor: selectedId === cert.id ? '#dbeafe' : cert.statut === 'saved' ? '#f0fdf4' : (ci % 2 === 0 ? '#ffffff' : '#f9fafb'),
+                          }}
+                        >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ fontSize: '13px', color: cert.statut === 'saved' ? '#059669' : '#1f2937', fontWeight: '600' }}>
-                              {cert.statut === 'saved' ? '✅ ' : '📄 '}{cert.nom_formation}
-                            </div>
+                            <span style={{ fontSize: '13px', color: cert.statut === 'saved' ? '#059669' : '#1f2937', fontWeight: '600' }}>
+                              {cert.statut === 'saved' ? '✅' : '📄'} {cert.nom_formation || 'Formation'}
+                            </span>
                             <span style={{ fontSize: '10px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', flexShrink: 0 }}>
                               {cert.statut === 'saved' ? 'Approuvé' : 'En attente'}
                             </span>
                           </div>
                           {selectedId === cert.id && cert.statut !== 'saved' && (
-                            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '8px', alignItems: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px', alignItems: 'flex-end' }} onClick={e => e.stopPropagation()}>
                               <div style={{ flex: 1 }}>
                                 <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>DATE DE RÉUSSITE *</label>
                                 <input type="date" value={cert.dateInput || ''} onChange={e => handleDateChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
@@ -648,7 +669,7 @@ export default function AdminCertificatsPage() {
                                 <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>EXPIRATION <span style={{ color: '#9ca3af', fontWeight: '400' }}>(opt.)</span></label>
                                 <input type="date" value={cert.dateExpiration || ''} onChange={e => handleDateExpirationChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
                               </div>
-                              <button onClick={() => handleApprouver(cert.id)} disabled={!cert.dateInput || cert.statut === 'saving'} style={{ padding: '8px 14px', backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb', color: cert.dateInput ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: cert.dateInput ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', transition: 'background-color 0.2s', flexShrink: 0 }}>
+                              <button onClick={() => handleApprouver(cert.id)} disabled={!cert.dateInput || cert.statut === 'saving'} style={{ padding: '8px 14px', backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb', color: cert.dateInput ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: cert.dateInput ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                 {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
                               </button>
                             </div>
@@ -660,6 +681,7 @@ export default function AdminCertificatsPage() {
                   )
                 })}
               </div>
+              {/* Prévisualisation */}
               <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden', position: 'sticky', top: '20px', minHeight: '500px' }}>
                 {!selected ? (
                   <div style={{ padding: '80px 20px', textAlign: 'center', color: '#9ca3af' }}><div style={{ fontSize: '56px', marginBottom: '16px' }}>📄</div><p style={{ margin: 0, fontSize: '15px', fontWeight: '500' }}>Sélectionnez un certificat pour le visualiser</p></div>
@@ -687,40 +709,53 @@ export default function AdminCertificatsPage() {
         {activeTab === 'a_completer' && (
           <>
             <p style={{ color: '#6b7280', margin: '0 0 16px', fontSize: '14px' }}>
-              Compétences déclarées par le réserviste dans son profil, mais aucun fichier certificat n'a été soumis. {aCompleterGrouped.length} personne{aCompleterGrouped.length > 1 ? 's' : ''} · {aCompleterFiltered.length} certificat{aCompleterFiltered.length > 1 ? 's' : ''} manquant{aCompleterFiltered.length > 1 ? 's' : ''}
+              Compétences déclarées dans le profil sans fichier soumis. {aCompleterGrouped.length} personne{aCompleterGrouped.length > 1 ? 's' : ''} · {aCompleterFiltered.length} certificat{aCompleterFiltered.length > 1 ? 's' : ''} manquant{aCompleterFiltered.length > 1 ? 's' : ''}
             </p>
             <div style={{ marginBottom: '16px' }}>
               <input type="text" placeholder="🔍 Filtrer par nom..." value={filterACompleter} onChange={e => setFilterACompleter(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '280px', outline: 'none' }} />
             </div>
-            <div style={{ maxWidth: '700px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
-                {aCompleterGrouped.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat à compléter</div>}
-                {aCompleterGrouped.map(group => (
-                  <div key={group.benevoleId} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-                    {/* En-tête personne */}
-                    <div style={{ padding: '12px 16px', backgroundColor: '#f9fafb', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#dc2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{initials(group.nom)}</div>
-                        <div>
-                          <div style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{group.nom}</div>
-                          <a href={`mailto:${group.email}`} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>{group.email}</a>
+            <div style={{ maxWidth: '800px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+              {aCompleterGrouped.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat à compléter</div>}
+              {/* En-tête tableau */}
+              {aCompleterGrouped.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px 100px', padding: '8px 14px', backgroundColor: '#f1f5f9', borderRadius: '8px 8px 0 0', border: '1px solid #d1d5db', borderBottom: 'none', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div>Réserviste</div>
+                  <div>Courriel</div>
+                  <div style={{ textAlign: 'center' }}>Manquants</div>
+                </div>
+              )}
+              {aCompleterGrouped.map((group, gi) => (
+                <div key={group.benevoleId} style={{ border: '1px solid #d1d5db', borderTop: gi === 0 ? 'none' : '1px solid #d1d5db', borderRadius: gi === aCompleterGrouped.length - 1 ? '0 0 8px 8px' : '0' }}>
+                  {/* Ligne personne */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '1fr 200px 100px', padding: '10px 14px',
+                    backgroundColor: gi % 2 === 0 ? '#ffffff' : '#f9fafb',
+                    alignItems: 'center',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#dc2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', flexShrink: 0 }}>
+                        {initials(group.nom)}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '13px' }}>{group.nom || 'Sans nom'}</div>
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
+                          {group.certs.map(c => c.nom_formation || '?').join(' · ')}
                         </div>
                       </div>
-                      <span style={{ fontSize: '11px', backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
-                        {group.certs.length} manquant{group.certs.length > 1 ? 's' : ''}
+                    </div>
+                    <div>
+                      <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>
+                        {group.email || '—'}
+                      </a>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={{ fontSize: '11px', backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 8px', borderRadius: '10px', fontWeight: '700' }}>
+                        {group.certs.length}
                       </span>
                     </div>
-                    {/* Liste des certificats manquants */}
-                    {group.certs.map((cert, ci) => (
-                      <div key={cert.id} style={{ padding: '10px 16px', borderBottom: '1px solid #e5e7eb', backgroundColor: ci % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
-                        <div style={{ fontSize: '13px', color: '#1f2937', fontWeight: '600' }}>
-                          📎 {cert.nom_formation || 'Formation non spécifiée'}
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </>
         )}
