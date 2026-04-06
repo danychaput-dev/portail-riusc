@@ -63,9 +63,10 @@ const FORMATIONS = [
 ]
 
 const isImage = (url: string) => /\.(jpg|jpeg|png|gif|webp)/i.test(url)
-function initials(nom: string) {
+function initials(nom: string | null | undefined) {
+  if (!nom) return '??'
   const p = nom.trim().split(' ')
-  return (p[0]?.[0] ?? '') + (p[p.length - 1]?.[0] ?? '')
+  return ((p[0]?.[0] ?? '') + (p[p.length - 1]?.[0] ?? '')).toUpperCase()
 }
 
 function formationsMatch(a: string, b: string): boolean {
@@ -393,14 +394,15 @@ export default function AdminCertificatsPage() {
         })
 
         const enriched = await Promise.all(dataFiltered.map(async (item) => {
-          const { data: res } = await supabase.from('reservistes').select('email').eq('benevole_id', item.benevole_id).single()
+          const { data: res } = await supabase.from('reservistes').select('email, prenom, nom').eq('benevole_id', item.benevole_id).single()
           let signedUrl = ''
           if (item.certificat_url?.startsWith('storage:')) {
             const path = item.certificat_url.replace('storage:', '')
             const { data: signed } = await supabase.storage.from('certificats').createSignedUrl(path, 3600)
             signedUrl = signed?.signedUrl || ''
           }
-          return { ...item, email: res?.email || '', signedUrl, dateInput: '', dateExpiration: '', statut: 'idle' as const }
+          const nomComplet = item.nom_complet || `${res?.prenom || ''} ${res?.nom || ''}`.trim() || 'Inconnu'
+          return { ...item, nom_complet: nomComplet, email: res?.email || '', signedUrl, dateInput: '', dateExpiration: '', statut: 'idle' as const }
         }))
         setCertificats(enriched)
       }
@@ -414,15 +416,19 @@ export default function AdminCertificatsPage() {
         .is('monday_item_id', null)
         .order('nom_complet')
       if (aCompleter) {
-        // Enrichir avec email
+        // Enrichir avec email + nom (nom_complet peut être null dans formations_benevoles)
         const bIds = [...new Set(aCompleter.map(c => c.benevole_id))]
-        const emailMap = new Map<string, string>()
+        const infoMap = new Map<string, { email: string; nom: string }>()
         for (let i = 0; i < bIds.length; i += 500) {
           const batch = bIds.slice(i, i + 500)
-          const { data: res } = await supabase.from('reservistes').select('benevole_id, email').in('benevole_id', batch)
-          for (const r of (res || [])) emailMap.set(r.benevole_id, r.email)
+          const { data: res } = await supabase.from('reservistes').select('benevole_id, email, prenom, nom').in('benevole_id', batch)
+          for (const r of (res || [])) infoMap.set(r.benevole_id, { email: r.email || '', nom: `${r.prenom || ''} ${r.nom || ''}`.trim() })
         }
-        setCertifsACompleter(aCompleter.map(c => ({ ...c, email: emailMap.get(c.benevole_id) || '' })))
+        setCertifsACompleter(aCompleter.map(c => ({
+          ...c,
+          nom_complet: c.nom_complet || infoMap.get(c.benevole_id)?.nom || 'Inconnu',
+          email: infoMap.get(c.benevole_id)?.email || '',
+        })))
       }
 
       setLoading(false)
@@ -622,13 +628,13 @@ export default function AdminCertificatsPage() {
                         </span>
                       </div>
                       {/* Liste des certificats de cette personne */}
-                      {group.certs.map(cert => (
-                        <div key={cert.id} onClick={() => setSelectedId(cert.id)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid #f9fafb', backgroundColor: selectedId === cert.id ? '#eff6ff' : 'transparent', transition: 'all 0.15s' }}>
+                      {group.certs.map((cert, ci) => (
+                        <div key={cert.id} onClick={() => setSelectedId(cert.id)} style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #e5e7eb', backgroundColor: selectedId === cert.id ? '#eff6ff' : ci % 2 === 0 ? '#ffffff' : '#f9fafb', transition: 'all 0.15s' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ fontSize: '13px', color: cert.statut === 'saved' ? '#059669' : '#374151', fontWeight: '500' }}>
+                            <div style={{ fontSize: '13px', color: cert.statut === 'saved' ? '#059669' : '#1f2937', fontWeight: '600' }}>
                               {cert.statut === 'saved' ? '✅ ' : '📄 '}{cert.nom_formation}
                             </div>
-                            <span style={{ fontSize: '10px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : '#92400e', padding: '1px 6px', borderRadius: '8px', fontWeight: '600', flexShrink: 0 }}>
+                            <span style={{ fontSize: '10px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', flexShrink: 0 }}>
                               {cert.statut === 'saved' ? 'Approuvé' : 'En attente'}
                             </span>
                           </div>
@@ -705,10 +711,10 @@ export default function AdminCertificatsPage() {
                       </span>
                     </div>
                     {/* Liste des certificats manquants */}
-                    {group.certs.map(cert => (
-                      <div key={cert.id} style={{ padding: '8px 16px', borderBottom: '1px solid #f9fafb' }}>
-                        <div style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>
-                          📎 {cert.nom_formation}
+                    {group.certs.map((cert, ci) => (
+                      <div key={cert.id} style={{ padding: '10px 16px', borderBottom: '1px solid #e5e7eb', backgroundColor: ci % 2 === 0 ? '#ffffff' : '#f9fafb' }}>
+                        <div style={{ fontSize: '13px', color: '#1f2937', fontWeight: '600' }}>
+                          📎 {cert.nom_formation || 'Formation non spécifiée'}
                         </div>
                       </div>
                     ))}
