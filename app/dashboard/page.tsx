@@ -51,7 +51,7 @@ interface CampData {
 }
 
 interface Stats {
-  totalInscrits: number; totalInteret: number; totalApprouves: number; totalPartenaires: number
+  totalReservistes: number; totalRIUSC: number; totalInteret: number; totalApprouves: number; totalPartenaires: number
   parOrganisme: { organisme: string; total: number }[]
   reservistesQualifies: { organisme: string; total: number }[]
   partenairesOrganismes: { organisme: string; total: number }[]
@@ -279,11 +279,12 @@ export default function DashboardPublicPage() {
               </p>
             )}
             {/* ── Badges ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-              <StatCard value={stats.totalInscrits}    label="Réservistes inscrits" onClick={drill({ groupes: 'Approuvé,Intérêt,Partenaires', label: 'Tous les réservistes inscrits' })} />
-              <StatCard value={stats.totalInteret}     label="Avec intérêt à joindre" color={AMBER} onClick={drill({ groupes: 'Intérêt', label: 'Personnes avec intérêt à joindre' })} />
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
+              <StatCard value={stats.totalReservistes} label="Réservistes" onClick={drill({ groupes: 'Approuvé,Intérêt', label: 'Tous les réservistes' })} />
+              <StatCard value={stats.totalApprouves}   label="Qualifiés" color={NAVY} onClick={drill({ groupes: 'Approuvé', label: 'Réservistes qualifiés' })} />
+              <StatCard value={stats.totalInteret}     label="Avec intérêt" color={AMBER} onClick={drill({ groupes: 'Intérêt', label: 'Personnes avec intérêt à joindre' })} />
               <StatCard value={stats.totalPartenaires} label="Partenaires" color="#4a7b65" onClick={drill({ groupes: 'Partenaires', label: 'Partenaires' })} />
-              <StatCard value={stats.totalApprouves}   label="Réservistes qualifiés" color={NAVY} onClick={drill({ groupes: 'Approuvé', label: 'Réservistes qualifiés' })} />
+              <StatCard value={stats.totalRIUSC}       label="Membres RIUSC" color={MUTED} onClick={drill({ groupes: 'Approuvé,Intérêt,Partenaires', label: 'Tous les membres RIUSC' })} />
             </div>
 
             {/* ── Ligne 1 : Organisme | (Intérêt + Antécédents) ── */}
