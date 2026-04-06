@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 
 interface CertificatEnAttente {
   id: string
@@ -265,6 +266,7 @@ export default function AdminCertificatsPage() {
   const [mondayFilter, setMondayFilter] = useState('')
   const [adminBenevoleId, setAdminBenevoleId] = useState<string>('')
   const [downloadProgress, setDownloadProgress] = useState<{ done: number; total: number; active: boolean }>({ done: 0, total: 0, active: false })
+  const [composeDestinataire, setComposeDestinataire] = useState<{ benevole_id: string; email: string; prenom: string; nom: string } | null>(null)
 
   const downloadFirst50 = async () => {
     const toDownload = mondayItems.filter(i => i.mState.status === 'idle' && !i.downloadedFiles).slice(0, 50)
@@ -628,7 +630,7 @@ export default function AdminCertificatsPage() {
                           </div>
                           <div>
                             <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: '700', color: '#111827', fontSize: '14px', textDecoration: 'none' }}>{allSaved ? '✅ ' : ''}{group.nom || 'Sans nom'}</a>
-                            {group.email && <a href={`mailto:${group.email}`} style={{ marginLeft: '8px', fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>{group.email}</a>}
+                            {group.email && <a href="#" onClick={e => { e.preventDefault(); const parts = (group.nom || '').trim().split(' '); setComposeDestinataire({ benevole_id: group.benevoleId, email: group.email, prenom: parts.slice(0, -1).join(' ') || parts[0] || '', nom: parts[parts.length - 1] || '' }) }} style={{ marginLeft: '8px', fontSize: '12px', color: '#3b82f6', textDecoration: 'none', cursor: 'pointer' }}>{group.email}</a>}
                           </div>
                         </div>
                         <span style={{ fontSize: '11px', backgroundColor: allSaved ? '#d1fae5' : '#fef3c7', color: allSaved ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '10px', fontWeight: '600', flexShrink: 0 }}>
@@ -744,9 +746,11 @@ export default function AdminCertificatsPage() {
                       </div>
                     </div>
                     <div>
-                      <a href={`mailto:${group.email}`} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>
-                        {group.email || '—'}
-                      </a>
+                      {group.email ? (
+                        <a href="#" onClick={e => { e.preventDefault(); const parts = (group.nom || '').trim().split(' '); setComposeDestinataire({ benevole_id: group.benevoleId, email: group.email, prenom: parts.slice(0, -1).join(' ') || parts[0] || '', nom: parts[parts.length - 1] || '' }) }} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none', cursor: 'pointer' }}>
+                          {group.email}
+                        </a>
+                      ) : <span style={{ fontSize: '12px', color: '#9ca3af' }}>—</span>}
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <span style={{ fontSize: '11px', backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 8px', borderRadius: '10px', fontWeight: '700' }}>
@@ -928,6 +932,12 @@ export default function AdminCertificatsPage() {
             </div>
           </>
         )}
+      {composeDestinataire && (
+        <ModalComposeCourriel
+          destinataires={[composeDestinataire]}
+          onClose={() => setComposeDestinataire(null)}
+        />
+      )}
     </main>
   )
 }
