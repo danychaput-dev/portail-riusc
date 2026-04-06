@@ -532,6 +532,39 @@ export default function AdminCertificatsPage() {
   const mondaySavedCount = mondayItems.filter(i => i.mState.status === 'saved').length
   const mondayPendingCount = mondayItems.filter(i => i.mState.status === 'idle' || i.mState.status === 'error').length
 
+  // Regrouper les certificats portail par personne
+  const filteredGrouped = (() => {
+    const map = new Map<string, CertificatEnAttente[]>()
+    for (const c of filtered) {
+      const key = c.benevole_id
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(c)
+    }
+    return [...map.entries()].map(([benevoleId, certs]) => ({
+      benevoleId,
+      nom: certs[0].nom_complet,
+      email: certs[0].email,
+      certs,
+    }))
+  })()
+
+  // Regrouper les certificats à compléter par personne
+  const aCompleterFiltered = certifsACompleter.filter(c => !filterACompleter || c.nom_complet.toLowerCase().includes(filterACompleter.toLowerCase()))
+  const aCompleterGrouped = (() => {
+    const map = new Map<string, CertificatACompleter[]>()
+    for (const c of aCompleterFiltered) {
+      const key = c.benevole_id
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(c)
+    }
+    return [...map.entries()].map(([benevoleId, certs]) => ({
+      benevoleId,
+      nom: certs[0].nom_complet,
+      email: certs[0].email,
+      certs,
+    }))
+  })()
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
@@ -540,7 +573,6 @@ export default function AdminCertificatsPage() {
     )
   }
 
-  const aCompleterFiltered = certifsACompleter.filter(c => !filterACompleter || c.nom_complet.toLowerCase().includes(filterACompleter.toLowerCase()))
 
   const tabBtn = (tab: 'portail' | 'monday' | 'a_completer', label: string) => (
     <button onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: activeTab === tab ? '700' : '400', color: activeTab === tab ? '#1e3a5f' : '#6b7280', borderBottom: activeTab === tab ? '2px solid #1e3a5f' : '2px solid transparent', marginBottom: '-2px' }}>
@@ -564,45 +596,63 @@ export default function AdminCertificatsPage() {
         {/* ════ ONGLET PORTAIL ════ */}
         {activeTab === 'portail' && (
           <>
-            <p style={{ color: '#6b7280', margin: '0 0 16px', fontSize: '14px' }}>{pending.length} en attente · {savedCount} approuvés cette session</p>
+            <p style={{ color: '#6b7280', margin: '0 0 16px', fontSize: '14px' }}>{pending.length} en attente · {savedCount} approuvés cette session · {filteredGrouped.length} personne{filteredGrouped.length > 1 ? 's' : ''}</p>
             <div style={{ marginBottom: '16px' }}>
               <input type="text" placeholder="🔍 Filtrer par nom..." value={filterNom} onChange={e => setFilterNom(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '280px', outline: 'none' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '20px', alignItems: 'start' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
-                {filtered.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat en attente 🎉</div>}
-                {filtered.map(cert => (
-                  <div key={cert.id} onClick={() => setSelectedId(cert.id)} style={{ backgroundColor: 'white', borderRadius: '10px', padding: '14px 16px', cursor: 'pointer', border: selectedId === cert.id ? '2px solid #1e3a5f' : cert.statut === 'saved' ? '2px solid #059669' : cert.statut === 'error' ? '2px solid #dc2626' : '1px solid #e5e7eb', opacity: cert.statut === 'saved' ? 0.55 : 1, transition: 'all 0.15s' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px', marginBottom: '2px' }}>{cert.statut === 'saved' ? '✅ ' : ''}{cert.nom_complet}</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cert.nom_formation}</div>
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{cert.email}</div>
-                      </div>
-                      <span style={{ fontSize: '11px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap', fontWeight: '600', flexShrink: 0 }}>
-                        {cert.statut === 'saved' ? 'Approuvé' : 'En attente'}
-                      </span>
-                    </div>
-                    {selectedId === cert.id && cert.statut !== 'saved' && (
-                      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: '8px' }} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>DATE DE RÉUSSITE *</label>
-                            <input type="date" value={cert.dateInput || ''} onChange={e => handleDateChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '440px 1fr', gap: '20px', alignItems: 'start' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
+                {filteredGrouped.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat en attente 🎉</div>}
+                {filteredGrouped.map(group => {
+                  const allSaved = group.certs.every(c => c.statut === 'saved')
+                  const pendingCount = group.certs.filter(c => c.statut !== 'saved').length
+                  return (
+                    <div key={group.benevoleId} style={{ backgroundColor: 'white', borderRadius: '12px', border: allSaved ? '1px solid #bbf7d0' : '1px solid #e5e7eb', opacity: allSaved ? 0.6 : 1, overflow: 'hidden' }}>
+                      {/* En-tête personne */}
+                      <div style={{ padding: '12px 16px', backgroundColor: '#f9fafb', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#1e3a5f', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{initials(group.nom)}</div>
+                          <div>
+                            <div style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{allSaved ? '✅ ' : ''}{group.nom}</div>
+                            <a href={`mailto:${group.email}`} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>{group.email}</a>
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>DATE D'EXPIRATION <span style={{ color: '#9ca3af', fontWeight: '400' }}>(optionnel)</span></label>
-                            <input type="date" value={cert.dateExpiration || ''} onChange={e => handleDateExpirationChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
-                          </div>
-                          <button onClick={() => handleApprouver(cert.id)} disabled={!cert.dateInput || cert.statut === 'saving'} style={{ padding: '8px 16px', backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb', color: cert.dateInput ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: cert.dateInput ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', transition: 'background-color 0.2s', flexShrink: 0 }}>
-                            {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
-                          </button>
                         </div>
+                        <span style={{ fontSize: '11px', backgroundColor: allSaved ? '#d1fae5' : '#fef3c7', color: allSaved ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
+                          {allSaved ? 'Tout approuvé' : `${pendingCount} en attente`}
+                        </span>
                       </div>
-                    )}
-                    {cert.statut === 'error' && <div style={{ marginTop: '8px', fontSize: '12px', color: '#dc2626' }}>❌ Erreur lors de la sauvegarde — réessayez</div>}
-                  </div>
-                ))}
+                      {/* Liste des certificats de cette personne */}
+                      {group.certs.map(cert => (
+                        <div key={cert.id} onClick={() => setSelectedId(cert.id)} style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid #f9fafb', backgroundColor: selectedId === cert.id ? '#eff6ff' : 'transparent', transition: 'all 0.15s' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ fontSize: '13px', color: cert.statut === 'saved' ? '#059669' : '#374151', fontWeight: '500' }}>
+                              {cert.statut === 'saved' ? '✅ ' : '📄 '}{cert.nom_formation}
+                            </div>
+                            <span style={{ fontSize: '10px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : '#92400e', padding: '1px 6px', borderRadius: '8px', fontWeight: '600', flexShrink: 0 }}>
+                              {cert.statut === 'saved' ? 'Approuvé' : 'En attente'}
+                            </span>
+                          </div>
+                          {selectedId === cert.id && cert.statut !== 'saved' && (
+                            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '8px', alignItems: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>DATE DE RÉUSSITE *</label>
+                                <input type="date" value={cert.dateInput || ''} onChange={e => handleDateChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>EXPIRATION <span style={{ color: '#9ca3af', fontWeight: '400' }}>(opt.)</span></label>
+                                <input type="date" value={cert.dateExpiration || ''} onChange={e => handleDateExpirationChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                              </div>
+                              <button onClick={() => handleApprouver(cert.id)} disabled={!cert.dateInput || cert.statut === 'saving'} style={{ padding: '8px 14px', backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb', color: cert.dateInput ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: cert.dateInput ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', transition: 'background-color 0.2s', flexShrink: 0 }}>
+                                {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
+                              </button>
+                            </div>
+                          )}
+                          {cert.statut === 'error' && <div style={{ marginTop: '6px', fontSize: '12px', color: '#dc2626' }}>❌ Erreur — réessayez</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })}
               </div>
               <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden', position: 'sticky', top: '20px', minHeight: '500px' }}>
                 {!selected ? (
@@ -631,26 +681,37 @@ export default function AdminCertificatsPage() {
         {activeTab === 'a_completer' && (
           <>
             <p style={{ color: '#6b7280', margin: '0 0 16px', fontSize: '14px' }}>
-              Compétences déclarées par le réserviste dans son profil, mais aucun fichier certificat n'a été soumis. Le réserviste doit téléverser son certificat via son profil.
+              Compétences déclarées par le réserviste dans son profil, mais aucun fichier certificat n'a été soumis. {aCompleterGrouped.length} personne{aCompleterGrouped.length > 1 ? 's' : ''} · {aCompleterFiltered.length} certificat{aCompleterFiltered.length > 1 ? 's' : ''} manquant{aCompleterFiltered.length > 1 ? 's' : ''}
             </p>
             <div style={{ marginBottom: '16px' }}>
               <input type="text" placeholder="🔍 Filtrer par nom..." value={filterACompleter} onChange={e => setFilterACompleter(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '280px', outline: 'none' }} />
             </div>
             <div style={{ maxWidth: '700px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
-                {aCompleterFiltered.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat à compléter</div>}
-                {aCompleterFiltered.map(cert => (
-                  <div key={cert.id} style={{ backgroundColor: 'white', borderRadius: '10px', padding: '14px 16px', border: '1px solid #e5e7eb' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px', marginBottom: '2px' }}>{cert.nom_complet}</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cert.nom_formation}</div>
-                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{cert.email}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
+                {aCompleterGrouped.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat à compléter</div>}
+                {aCompleterGrouped.map(group => (
+                  <div key={group.benevoleId} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+                    {/* En-tête personne */}
+                    <div style={{ padding: '12px 16px', backgroundColor: '#f9fafb', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#dc2626', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', flexShrink: 0 }}>{initials(group.nom)}</div>
+                        <div>
+                          <div style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{group.nom}</div>
+                          <a href={`mailto:${group.email}`} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>{group.email}</a>
+                        </div>
                       </div>
-                      <span style={{ fontSize: '11px', backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap', fontWeight: '600', flexShrink: 0 }}>
-                        Fichier manquant
+                      <span style={{ fontSize: '11px', backgroundColor: '#fef2f2', color: '#dc2626', padding: '2px 8px', borderRadius: '10px', fontWeight: '600' }}>
+                        {group.certs.length} manquant{group.certs.length > 1 ? 's' : ''}
                       </span>
                     </div>
+                    {/* Liste des certificats manquants */}
+                    {group.certs.map(cert => (
+                      <div key={cert.id} style={{ padding: '8px 16px', borderBottom: '1px solid #f9fafb' }}>
+                        <div style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>
+                          📎 {cert.nom_formation}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>

@@ -646,11 +646,11 @@ function ReservistesPage() {
         <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} />
 
         {/* Filtres */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '12px', flexWrap: 'nowrap', alignItems: 'center' }}>
+          <div style={{ width: '260px', minWidth: '180px', flexShrink: 0, position: 'relative' }}>
             <input
               type="text"
-              placeholder="Rechercher par nom, courriel, ville, téléphone…"
+              placeholder="Rechercher…"
               value={recherche}
               onChange={e => handleRecherche(e.target.value)}
               style={{ width: '100%', padding: '9px 12px', paddingRight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, outline: 'none' }}
@@ -665,7 +665,7 @@ function ReservistesPage() {
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Groupe :</span>
             {GROUPES_OPTIONS.map(opt => (
               <button
@@ -676,17 +676,19 @@ function ReservistesPage() {
                   border: `1px solid ${groupesFiltres.includes(opt.val) ? opt.couleur : '#e2e8f0'}`,
                   backgroundColor: groupesFiltres.includes(opt.val) ? opt.bg : 'white',
                   color: groupesFiltres.includes(opt.val) ? opt.couleur : '#94a3b8',
-                  cursor: 'pointer', transition: 'all 0.15s'
+                  cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' as const
                 }}
               >
                 {opt.label}
               </button>
             ))}
-            {(groupesFiltres.length > 0 || recherche) && (
-              <button onClick={() => { setGroupesFiltres([]); setRecherche('') }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
-                Tout effacer
-              </button>
-            )}
+            <span style={{ width: '80px', flexShrink: 0, display: 'inline-flex' }}>
+              {(groupesFiltres.length > 0 || recherche) && (
+                <button onClick={() => { setGroupesFiltres([]); setRecherche('') }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                  Tout effacer
+                </button>
+              )}
+            </span>
           </div>
         </div>
 
@@ -753,42 +755,40 @@ function ReservistesPage() {
             <>
               <span style={{ color: '#e2e8f0' }}>|</span>
               {readinessStats.certifs_manquants > 0 && (
-                <span
+                <button
                   onClick={() => { setFiltreCertifsManquants(prev => !prev); setFiltreCertifsEnAttente(false); setGroupesFiltres(['Approuvé']) }}
                   title={`${readinessStats.certifs_manquants} réserviste${readinessStats.certifs_manquants > 1 ? 's' : ''} avec certificat(s) manquant(s)\nCliquer pour filtrer`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
                     padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    border: filtreCertifsManquants ? '2px solid #dc2626' : '1px solid #fecaca',
-                    backgroundColor: filtreCertifsManquants ? '#fee2e2' : '#fef2f2', color: '#dc2626',
-                    cursor: 'pointer', userSelect: 'none',
-                    boxShadow: filtreCertifsManquants ? '0 0 0 2px rgba(220, 38, 38, 0.25)' : 'none',
+                    border: `1px solid ${filtreCertifsManquants ? '#ef4444' : '#fecaca'}`,
+                    backgroundColor: filtreCertifsManquants ? '#fef2f2' : '#fef2f2', color: filtreCertifsManquants ? '#ef4444' : '#dc2626',
+                    cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
-                  📎 Fichiers manquants
+                  {filtreCertifsManquants && '✓ '}📎 Fichiers manquants
                   <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#dc2626', color: 'white' }}>
                     {readinessStats.certifs_manquants}
                   </span>
-                </span>
+                </button>
               )}
               {readinessStats.certifs_en_attente > 0 && (
-                <span
+                <button
                   onClick={() => { setFiltreCertifsEnAttente(prev => !prev); setFiltreCertifsManquants(false); setGroupesFiltres(['Approuvé']) }}
                   title={`${readinessStats.certifs_en_attente} réserviste${readinessStats.certifs_en_attente > 1 ? 's' : ''} avec certificat(s) en attente d'approbation\nCliquer pour filtrer`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
                     padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    border: filtreCertifsEnAttente ? '2px solid #d97706' : '1px solid #fde68a',
-                    backgroundColor: filtreCertifsEnAttente ? '#fef3c7' : '#fffbeb', color: '#d97706',
-                    cursor: 'pointer', userSelect: 'none',
-                    boxShadow: filtreCertifsEnAttente ? '0 0 0 2px rgba(217, 119, 6, 0.25)' : 'none',
+                    border: `1px solid ${filtreCertifsEnAttente ? '#d97706' : '#fde68a'}`,
+                    backgroundColor: filtreCertifsEnAttente ? '#fffbeb' : '#fffbeb', color: filtreCertifsEnAttente ? '#d97706' : '#d97706',
+                    cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
-                  📄 En attente
+                  {filtreCertifsEnAttente && '✓ '}📄 En attente
                   <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#d97706', color: 'white' }}>
                     {readinessStats.certifs_en_attente}
                   </span>
-                </span>
+                </button>
               )}
             </>
           )}
