@@ -44,6 +44,7 @@ export default function InscriptionPage() {
     latitude: null as number | null,
     longitude: null as number | null,
     groupe_rs: [] as string[],
+    competence_rs: [] as number[],
     commentaire: '',
     confirm_18: false,
     consent_photos: false,
@@ -257,8 +258,8 @@ export default function InscriptionPage() {
     // Si on coche "Aucune", décocher toutes les autres organisations
     else if (id === AUCUNE_ORG_ID && !selectedOrgIds.includes(id)) {
       setSelectedOrgIds([AUCUNE_ORG_ID])
-      // Vider aussi les groupes RS si AQBRS était sélectionné
-      setFormData(prev => ({ ...prev, groupe_rs: [] }))
+      // Vider aussi les groupes RS et compétences RS si AQBRS était sélectionné
+      setFormData(prev => ({ ...prev, groupe_rs: [], competence_rs: [] }))
     }
     // Si on décoche une organisation
     else if (selectedOrgIds.includes(id)) {
@@ -269,9 +270,9 @@ export default function InscriptionPage() {
       } else {
         setSelectedOrgIds(newSelected)
       }
-      // Si on décoche AQBRS, vider les groupes RS
+      // Si on décoche AQBRS, vider les groupes RS et compétences RS
       if (id === AQBRS_ORG_ID) {
-        setFormData(prev => ({ ...prev, groupe_rs: [] }))
+        setFormData(prev => ({ ...prev, groupe_rs: [], competence_rs: [] }))
       }
     }
     
@@ -286,6 +287,21 @@ export default function InscriptionPage() {
       groupe_rs: prev.groupe_rs.includes(groupe)
         ? prev.groupe_rs.filter(g => g !== groupe)
         : [...prev.groupe_rs, groupe]
+    }))
+  }
+
+  const COMPETENCE_RS_OPTIONS = [
+    { id: 1, label: 'Niveau 1 - Équipier' },
+    { id: 2, label: "Niveau 2 - Chef d'équipe" },
+    { id: 3, label: 'Niveau 3 - Responsable des opérations' },
+  ]
+
+  const toggleCompetenceRS = (id: number) => {
+    setFormData(prev => ({
+      ...prev,
+      competence_rs: prev.competence_rs.includes(id)
+        ? prev.competence_rs.filter(x => x !== id)
+        : [...prev.competence_rs, id]
     }))
   }
 
@@ -480,11 +496,21 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           )
         }
 
-        // Sauvegarder le groupe de recherche dans reservistes
+        // Sauvegarder le groupe de recherche et compétences RS dans reservistes
+        const rsUpdates: Record<string, any> = {}
         if (formData.groupe_rs.length > 0) {
+          rsUpdates.groupe_recherche = formData.groupe_rs[0]
+        }
+        if (formData.competence_rs.length > 0) {
+          rsUpdates.competence_rs = formData.competence_rs.map(id => {
+            const opt = COMPETENCE_RS_OPTIONS.find(o => o.id === id)
+            return opt ? opt.label : null
+          }).filter(Boolean)
+        }
+        if (Object.keys(rsUpdates).length > 0) {
           await supabase
             .from('reservistes')
-            .update({ groupe_recherche: formData.groupe_rs[0] })
+            .update(rsUpdates)
             .eq('benevole_id', newBenevoleId)
         }
       }
@@ -836,6 +862,27 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
               </>
             )}
           </div>
+
+          {/* ── Compétences RS (conditionnel si AQBRS coché) ── */}
+          {isAqbrsSelected && (
+            <div style={sectionStyle}>
+              <h3 style={sectionTitleStyle}>Niveau de compétence en recherche et sauvetage</h3>
+              <p style={sectionDescStyle}>Sélectionnez votre niveau si applicable.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '2px 0' }}>
+                {COMPETENCE_RS_OPTIONS.map(opt => (
+                  <label key={opt.id} style={checkboxRowStyle(formData.competence_rs.includes(opt.id))}>
+                    <input
+                      type="checkbox"
+                      checked={formData.competence_rs.includes(opt.id)}
+                      onChange={() => toggleCompetenceRS(opt.id)}
+                      style={{ accentColor: '#1e3a5f', width: '17px', height: '17px', flexShrink: 0 }}
+                    />
+                    <span style={{ fontSize: '14px', color: '#374151' }}>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ── Groupe RS (conditionnel si AQBRS coché) ── */}
           {isAqbrsSelected && (
