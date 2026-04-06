@@ -200,12 +200,73 @@ export async function GET(req: NextRequest) {
     reservistes = reservistes.filter(r => benevoleIds.has(r.benevole_id))
   }
 
-  // Charger les organismes pour TOUS les réservistes (pour colonne + filtre)
-  const { data: orgLinks } = await supabaseAdmin
-    .from('reserviste_organisations')
-    .select('benevole_id, organisations (nom)')
+  // Charger orgs, formations et camps EN PARALLÈLE pour tous les réservistes filtrés
+  const benevoleIds = reservistes.map(r => r.benevole_id)
+
+  // Helper pour charger orgs (limitées aux réservistes résultants quand pas de filtre organisme)
+  const loadOrgs = async () => {
+    // Si on filtre par organisme, on a besoin de toutes les orgs pour filtrer côté serveur
+    // Sinon on peut limiter aux benevole_ids résultants
+    const needAllOrgs = !!organisme
+    let orgQuery = supabaseAdmin.from('reserviste_organisations').select('benevole_id, organisations (nom)')
+    if (!needAllOrgs && benevoleIds.length > 0 && benevoleIds.length <= 1500) {
+      // Batch si nécessaire
+      let allLinks: any[] = []
+      for (let i = 0; i < benevoleIds.length; i += 500) {
+        const batch = benevoleIds.slice(i, i + 500)
+        const { data } = await supabaseAdmin.from('reserviste_organisations').select('benevole_id, organisations (nom)').in('benevole_id', batch)
+        if (data) allLinks = allLinks.concat(data)
+      }
+      return allLinks
+    }
+    const { data } = await orgQuery
+    return data || []
+  }
+
+  const loadFormations = async () => {
+    const map: Record<string, { initiation_sc: boolean; camp: boolean; certifs_en_attente: number; certifs_manquants: number }> = {}
+    if (benevoleIds.length === 0) return map
+    for (let i = 0; i < benevoleIds.length; i += 500) {
+      const batch = benevoleIds.slice(i, i + 500)
+      const { data: formations } = await supabaseAdmin
+        .from('formations_benevoles')
+        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
+        .in('benevole_id', batch)
+      for (const f of (formations || [])) {
+        if (!map[f.benevole_id]) map[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
+        const cat = (f.nom_formation || '').toLowerCase()
+        if (f.resultat === 'Réussi') {
+          if (f.initiation_sc_completee === true || cat.includes('initier')) map[f.benevole_id].initiation_sc = true
+          if (cat.includes('camp de qualification')) map[f.benevole_id].camp = true
+        } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
+          if (f.certificat_url) map[f.benevole_id].certifs_en_attente++
+          else map[f.benevole_id].certifs_manquants++
+        }
+      }
+    }
+    return map
+  }
+
+  const loadCampInscriptions = async () => {
+    if (benevoleIds.length === 0) return new Set<string>()
+    const allIds: string[] = []
+    for (let i = 0; i < benevoleIds.length; i += 500) {
+      const batch = benevoleIds.slice(i, i + 500)
+      const { data } = await supabaseAdmin.from('inscriptions_camps').select('benevole_id').in('benevole_id', batch)
+      if (data) allIds.push(...data.map(i => i.benevole_id))
+    }
+    return new Set(allIds)
+  }
+
+  // Lancer les 3 en parallèle
+  const [orgLinks, formationsMap, campInscritSet] = await Promise.all([
+    loadOrgs(),
+    loadFormations(),
+    loadCampInscriptions(),
+  ])
+
   const orgMapAll: Record<string, string[]> = {}
-  for (const link of (orgLinks || [])) {
+  for (const link of orgLinks) {
     const nom = (link as any).organisations?.nom || ''
     if (!nom) continue
     if (!orgMapAll[link.benevole_id]) orgMapAll[link.benevole_id] = []
@@ -252,47 +313,6 @@ export async function GET(req: NextRequest) {
         const orgs = orgMapAll[r.benevole_id] || []
         return orgs.some(o => o.includes(organisme))
       })
-    }
-  }
-
-  // Enrichir avec données de formation (initiation SC + camp + certificats en attente)
-  const benevoleIds = reservistes.map(r => r.benevole_id)
-  let formationsMap: Record<string, { initiation_sc: boolean; camp: boolean; certifs_en_attente: number; certifs_manquants: number }> = {}
-  if (benevoleIds.length > 0) {
-    for (let i = 0; i < benevoleIds.length; i += 500) {
-      const batch = benevoleIds.slice(i, i + 500)
-      const { data: formations } = await supabaseAdmin
-        .from('formations_benevoles')
-        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
-        .in('benevole_id', batch)
-      for (const f of (formations || [])) {
-        if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
-        const cat = (f.nom_formation || '').toLowerCase()
-        if (f.resultat === 'Réussi') {
-          if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
-          if (cat.includes('camp de qualification')) formationsMap[f.benevole_id].camp = true
-        } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
-          if (f.certificat_url) {
-            // Certificat soumis, en attente d'approbation
-            formationsMap[f.benevole_id].certifs_en_attente++
-          } else {
-            // Compétence déclarée mais aucun fichier soumis
-            formationsMap[f.benevole_id].certifs_manquants++
-          }
-        }
-      }
-    }
-  }
-
-  // Inscriptions camps — pour afficher X jaune (inscrit mais pas encore certifié)
-  let campInscritSet = new Set<string>()
-  if (benevoleIds.length > 0) {
-    const { data: inscriptions } = await supabaseAdmin
-      .from('inscriptions_camps')
-      .select('benevole_id')
-      .in('benevole_id', benevoleIds)
-    if (inscriptions) {
-      campInscritSet = new Set(inscriptions.map(i => i.benevole_id))
     }
   }
 
