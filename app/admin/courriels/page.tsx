@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 
 const C = '#1e3a5f'
@@ -327,16 +326,13 @@ export default function CampagnesPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <PortailHeader />
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 20px' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '13px', cursor: 'pointer' }}>← Admin</button>
-            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Courriels</h1>
-          </div>
+    <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '28px 20px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Courriels</h1>
         </div>
+      </div>
 
         {/* Onglets */}
         <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', gap: '4px' }}>
@@ -676,28 +672,26 @@ export default function CampagnesPage() {
             }
           `}</style>
         )}
+        {/* ─── Modal Reply ─── */}
+        {replyDest && (
+          <ModalComposeCourriel
+            destinataires={replyDest}
+            initialSubject={replySubject}
+            onClose={() => setReplyDest(null)}
+            onSent={() => {
+              setReplyDest(null)
+              // Rafraîchir les données
+              if (activeTab === 'individuels') {
+                const params = new URLSearchParams()
+                if (indivDateFrom) params.set('from', indivDateFrom)
+                if (indivDateTo) params.set('to', indivDateTo)
+                fetch(`/api/admin/courriels/individuels?${params}`)
+                  .then(r => r.json())
+                  .then(json => setIndividuels(json.courriels || []))
+              }
+            }}
+          />
+        )}
       </main>
-
-      {/* ─── Modal Reply ─── */}
-      {replyDest && (
-        <ModalComposeCourriel
-          destinataires={replyDest}
-          initialSubject={replySubject}
-          onClose={() => setReplyDest(null)}
-          onSent={() => {
-            setReplyDest(null)
-            // Rafraîchir les données
-            if (activeTab === 'individuels') {
-              const params = new URLSearchParams()
-              if (indivDateFrom) params.set('from', indivDateFrom)
-              if (indivDateTo) params.set('to', indivDateTo)
-              fetch(`/api/admin/courriels/individuels?${params}`)
-                .then(r => r.json())
-                .then(json => setIndividuels(json.courriels || []))
-            }
-          }}
-        />
-      )}
-    </div>
   )
 }

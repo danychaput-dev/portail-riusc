@@ -3,7 +3,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import PortailHeader from '@/app/components/PortailHeader'
 
 interface CertificatEnAttente {
   id: string
@@ -535,7 +534,7 @@ export default function AdminCertificatsPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
         <div style={{ textAlign: 'center', color: '#6b7280' }}><div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div><p>Chargement des certificats...</p></div>
       </div>
     )
@@ -550,13 +549,10 @@ export default function AdminCertificatsPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <PortailHeader subtitle="Admin — Validation des certificats" />
-      <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-          <h1 style={{ color: '#1e3a5f', margin: 0, fontSize: '24px', fontWeight: '700' }}>🗂️ Validation des certificats</h1>
-          <a href="/" style={{ padding: '8px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', textDecoration: 'none', fontSize: '14px' }}>← Retour au portail</a>
-        </div>
+    <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <h1 style={{ color: '#1e3a5f', margin: 0, fontSize: '24px', fontWeight: '700' }}>🗂️ Validation des certificats</h1>
+      </div>
 
         {/* Onglets */}
         <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', gap: '4px' }}>
@@ -830,7 +826,6 @@ export default function AdminCertificatsPage() {
             </div>
           </>
         )}
-      </main>
-    </div>
+    </main>
   )
 }

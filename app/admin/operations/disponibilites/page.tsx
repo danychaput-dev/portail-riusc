@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 
 const C = '#1e3a5f'
 
@@ -341,8 +340,7 @@ function DisponibilitesInner() {
 
   // ─── Rendu ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9' }}>
-      <PortailHeader/>
+    <div>
       <main style={{ maxWidth:1400, margin:'0 auto', padding:'20px 16px 60px' }}>
 
         {/* En-tête */}
@@ -543,7 +541,7 @@ function DisponibilitesInner() {
 
 export default function DisponibilitesPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:14 }}>Chargement…</div>}>
+    <Suspense fallback={<div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:'48px 0', color:'#94a3b8', fontSize:14 }}>Chargement…</div>}>
       <DisponibilitesInner/>
     </Suspense>
   )

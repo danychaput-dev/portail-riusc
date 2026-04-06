@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -416,11 +415,8 @@ export default function InscriptionsCampsPage() {
   }
 
   return (
-    <>
-      <PortailHeader />
-      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0' }}>
-          <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
+    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0' }}>
+      <div style={{ display: 'flex', height: '100%', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
 
       {/* ── Bouton toggle sidebar sur mobile ── */}
       {isMobile && !sidebarOpen && (
@@ -734,9 +730,7 @@ export default function InscriptionsCampsPage() {
           )}
         </div>
       </main>
-    </div>
-        </div>
-      </div>
+
       {/* ── Modal SMS ─────────────────────────────────────────────────── */}
       {showSmsModal && (
         <div
@@ -823,7 +817,8 @@ export default function InscriptionsCampsPage() {
           </div>
         </div>
       )}
-    </>
+      </div>
+    </div>
   )
 }
 

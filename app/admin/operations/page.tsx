@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 import { n8nUrl } from '@/utils/n8n'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -640,8 +639,7 @@ export default function OperationsPage() {
 
   // ── Rendu ────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight:'100vh', backgroundColor:'#f1f5f9' }}>
-      {!fullscreen && <PortailHeader/>}
+    <div>
 
       <button
         onClick={() => {

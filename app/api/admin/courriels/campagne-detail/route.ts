@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
         .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject')
         .eq('campagne_id', campagneId)
         .order('created_at', { ascending: true })
-      courriels = r2.data
+      courriels = r2.data as any
       error = r2.error
     }
 

@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 import { formatPhone } from '@/utils/phone'
 import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 import ModalReserviste from '@/app/components/ModalReserviste'
@@ -532,8 +531,7 @@ function ReservistesPage() {
     : '0.8fr 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
 
   return (
-    <div style={{ backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', ...(isMobile ? { minHeight: '100vh' } : { height: '100vh', overflow: 'hidden' }) }}>
-      <PortailHeader />
+    <div style={{ display: 'flex', flexDirection: 'column', ...(isMobile ? { minHeight: '100%' } : { height: '100%', overflow: 'hidden' }) }}>
       <main style={{ margin: '0 auto', padding: '0 28px', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, ...(isMobile ? {} : { overflow: 'hidden' }) }}>
 
       {/* Zone fixe : filtres + readiness (ne défile pas) */}
@@ -559,7 +557,6 @@ function ReservistesPage() {
         {/* En-tête */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={() => router.push(hasUrlFilters && urlFrom === 'dashboard' ? '/dashboard' : '/admin')} style={{ background: 'none', border: 'none', color: '#9ca3af', fontSize: '13px', cursor: 'pointer' }}>← {hasUrlFilters && urlFrom === 'dashboard' ? 'Dashboard' : 'Admin'}</button>
             <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Annuaire des réservistes</h1>
             <span style={{ fontSize: '13px', color: '#6b7280', backgroundColor: '#f1f5f9', padding: '3px 10px', borderRadius: '20px' }}>
               {loading ? '…' : `${data.length}${data.length !== total ? ` / ${total}` : ''} résultat${total !== 1 ? 's' : ''}`}

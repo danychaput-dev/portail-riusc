@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 
 type Role = 'admin' | 'coordonnateur' | 'reserviste'
 
@@ -247,22 +246,18 @@ export default function AdminUtilisateursPage() {
   })
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
       <div style={{ textAlign: 'center', color: '#6b7280' }}><div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div><p>Chargement...</p></div>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <PortailHeader />
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 20px' }}>
+    <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 20px' }}>
 
-        {/* En-tête */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-          <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '13px', padding: 0 }}>← Admin</button>
-          <span style={{ color: '#d1d5db' }}>|</span>
-          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Gestion des rôles</h1>
-        </div>
+      {/* En-tête */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Gestion des rôles</h1>
+      </div>
 
         {message && (
           <div style={{ marginBottom: '16px', padding: '10px 16px', borderRadius: '8px', backgroundColor: message.type === 'success' ? '#f0fdf4' : '#fef2f2', border: `1px solid ${message.type === 'success' ? '#bbf7d0' : '#fca5a5'}`, color: message.type === 'success' ? '#166534' : '#dc2626', fontSize: '13px' }}>
@@ -413,7 +408,6 @@ export default function AdminUtilisateursPage() {
           </div>
         </div>
 
-      </main>
-    </div>
+          </main>
   )
 }

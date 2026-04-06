@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
       if (dateFrom) q2 = q2.gte('created_at', `${dateFrom}T00:00:00`)
       if (dateTo) q2 = q2.lte('created_at', `${dateTo}T23:59:59`)
       const r2 = await q2
-      courriels = r2.data
+      courriels = r2.data as any
       error = r2.error
     }
 

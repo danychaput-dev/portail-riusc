@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import PortailHeader from '@/app/components/PortailHeader'
 import { formatPhone } from '@/utils/phone'
 import type { Sinistre, Demande, Deployment, Vague as Rotation } from '@/types'
 import {
@@ -828,21 +827,17 @@ export default function AdminSinistresPage() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
       <div style={{ textAlign: 'center', color: '#6b7280' }}><div style={{ fontSize: '32px', marginBottom: '12px' }}>⏳</div><p>Chargement...</p></div>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <PortailHeader />
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px' }}>
+    <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px' }}>
 
-        {/* En-tête */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <button onClick={() => router.push('/admin')} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '13px', padding: 0 }}>← Admin</button>
-          <span style={{ color: '#d1d5db' }}>|</span>
-          <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f', flex: 1 }}>🚨 Sinistres</h1>
+      {/* En-tête */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f', flex: 1 }}>🚨 Sinistres</h1>
           <button
             onClick={() => { setEditSinistre(null); setShowFormSinistre(true) }}
             style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
@@ -1131,7 +1126,6 @@ export default function AdminSinistresPage() {
           </div>
         )}
 
-      </main>
-    </div>
+    </main>
   )
 }
