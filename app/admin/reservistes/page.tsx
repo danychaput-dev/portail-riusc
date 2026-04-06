@@ -172,7 +172,7 @@ function ReservistesPage() {
 
   const defaultGroupes = urlGroupes
     ? urlGroupes.split(',').map(g => g.trim()).filter(Boolean)
-    : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt']
+    : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt', 'Partenaires']
 
   const [loading,        setLoading]        = useState(true)
   const [rawData,        setRawData]        = useState<Reserviste[]>([])
@@ -721,7 +721,7 @@ function ReservistesPage() {
             ))}
             <span style={{ width: '80px', flexShrink: 0, display: 'inline-flex' }}>
               {(groupesFiltres.length > 0 || recherche) && (
-                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                   Tout effacer
                 </button>
               )}
