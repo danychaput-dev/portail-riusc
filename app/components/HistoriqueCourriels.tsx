@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { Courriel } from '@/types'
 
 const C = '#1e3a5f'
@@ -45,6 +45,8 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
   const [reponses, setReponses] = useState<CourrielReponse[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [updatingStatut, setUpdatingStatut] = useState<string | null>(null)
+  const [markingAllRead, setMarkingAllRead] = useState(false)
 
   useEffect(() => {
     if (!benevoleId) return
@@ -62,6 +64,40 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [benevoleId, refreshKey])
+
+  // Marquer une réponse comme lue/traitée/archivée
+  const updateStatut = useCallback(async (reponseId: string, newStatut: string) => {
+    setUpdatingStatut(reponseId)
+    try {
+      await fetch('/api/admin/courriels/reponses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reponse_id: reponseId, statut: newStatut }),
+      })
+      setReponses(prev => prev.map(r => r.id === reponseId ? { ...r, statut: newStatut } : r))
+      // Sync sidebar badge
+      const remaining = reponses.filter(r => r.statut === 'recu' && r.id !== reponseId).length
+      window.dispatchEvent(new CustomEvent('courriels-badge-update', { detail: { count: remaining } }))
+    } catch {}
+    setUpdatingStatut(null)
+  }, [reponses])
+
+  // Tout marquer lu pour ce réserviste
+  const markAllRead = useCallback(async () => {
+    const nonLuesIds = reponses.filter(r => r.statut === 'recu').map(r => r.id)
+    if (nonLuesIds.length === 0) return
+    setMarkingAllRead(true)
+    try {
+      await fetch('/api/admin/courriels/reponses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reponse_ids: nonLuesIds, statut: 'lu' }),
+      })
+      setReponses(prev => prev.map(r => r.statut === 'recu' ? { ...r, statut: 'lu' } : r))
+      window.dispatchEvent(new CustomEvent('courriels-badge-update', { detail: { count: 0 } }))
+    } catch {}
+    setMarkingAllRead(false)
+  }, [reponses])
 
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>Chargement des courriels…</div>
@@ -98,7 +134,21 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
           backgroundColor: '#fffbeb', border: '1px solid #fbbf24',
           fontSize: '13px', color: '#92400e', display: 'flex', alignItems: 'center', gap: '8px',
         }}>
-          📨 <strong>{nonLues}</strong> réponse{nonLues > 1 ? 's' : ''} non lue{nonLues > 1 ? 's' : ''}
+          <span style={{ flex: 1 }}>
+            📨 <strong>{nonLues}</strong> réponse{nonLues > 1 ? 's' : ''} non lue{nonLues > 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={markAllRead}
+            disabled={markingAllRead}
+            style={{
+              padding: '4px 12px', fontSize: '11px', fontWeight: '600',
+              borderRadius: '6px', border: '1px solid #16a34a', cursor: markingAllRead ? 'wait' : 'pointer',
+              backgroundColor: '#f0fdf4', color: '#16a34a',
+              opacity: markingAllRead ? 0.6 : 1,
+            }}
+          >
+            {markingAllRead ? '⏳' : '✓'} Tout marquer lu
+          </button>
         </div>
       )}
 
@@ -107,7 +157,16 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
           if (item.type === 'envoi') {
             return <CourrielEnvoyeCard key={`e-${item.data.id}`} c={item.data} expandedId={expandedId} setExpandedId={setExpandedId} />
           } else {
-            return <ReponseRecueCard key={`r-${item.data.id}`} r={item.data} expandedId={expandedId} setExpandedId={setExpandedId} />
+            return (
+              <ReponseRecueCard
+                key={`r-${item.data.id}`}
+                r={item.data}
+                expandedId={expandedId}
+                setExpandedId={setExpandedId}
+                onUpdateStatut={updateStatut}
+                updatingStatut={updatingStatut}
+              />
+            )
           }
         })}
       </div>
@@ -240,8 +299,9 @@ function CourrielEnvoyeCard({ c, expandedId, setExpandedId }: {
 }
 
 // ── Carte réponse reçue (NOUVEAU) ──
-function ReponseRecueCard({ r, expandedId, setExpandedId }: {
+function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updatingStatut }: {
   r: CourrielReponse; expandedId: string | null; setExpandedId: (id: string | null) => void
+  onUpdateStatut: (id: string, statut: string) => void; updatingStatut: string | null
 }) {
   const cfg = REPONSE_STATUT[r.statut] || REPONSE_STATUT.recu
   const date = new Date(r.created_at)
@@ -300,19 +360,55 @@ function ReponseRecueCard({ r, expandedId, setExpandedId }: {
 
       {isExpanded && (
         <div style={{ borderTop: '1px solid #e2e8f0', padding: '14px 14px 14px 42px' }}>
-          {/* Pièces jointes */}
+          {/* Boutons de statut */}
+          <div style={{ marginBottom: '10px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {(['recu', 'lu', 'traite', 'archive'] as const).map(s => {
+              const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
+              const isActive = r.statut === s
+              const isHighlight = s === 'lu' && isNonLu
+              return (
+                <button key={s} disabled={isActive || updatingStatut === r.id} onClick={(e) => { e.stopPropagation(); onUpdateStatut(r.id, s) }}
+                  style={{
+                    padding: '3px 10px', fontSize: '11px', borderRadius: '5px',
+                    cursor: isActive ? 'default' : 'pointer',
+                    border: isHighlight ? '1px solid #16a34a' : isActive ? `1px solid ${C}` : '1px solid #e2e8f0',
+                    backgroundColor: isHighlight ? '#f0fdf4' : isActive ? '#eff6ff' : 'white',
+                    color: isHighlight ? '#16a34a' : isActive ? C : '#6b7280',
+                    fontWeight: isHighlight ? '700' : '400',
+                    opacity: updatingStatut === r.id ? 0.5 : 1,
+                  }}
+                  title={({ recu: 'Reçu', lu: 'Marquer comme lu', traite: 'Marquer comme traité', archive: 'Archiver' } as Record<string, string>)[s]}
+                >{labels[s]}</button>
+              )
+            })}
+          </div>
+
+          {/* Pièces jointes — avec téléchargement via API Resend */}
           {r.pieces_jointes && r.pieces_jointes.length > 0 && (
             <div style={{ marginBottom: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               {r.pieces_jointes.map((att: any, i: number) => (
-                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+                <a
+                  key={i}
+                  href={`/api/admin/courriels/attachment?email_id=${(r as any).resend_email_id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    padding: '3px 10px', borderRadius: '8px',
+                    backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0',
+                    fontSize: '12px', color: '#1e40af', textDecoration: 'none',
+                    cursor: 'pointer',
+                  }}
+                  title="Télécharger"
+                >
                   📎 {att.filename || 'pièce jointe'}
-                </span>
+                </a>
               ))}
             </div>
           )}
 
           {/* Contenu */}
-          {(r.body_html || r.body_text) && (
+          {(r.body_html || r.body_text) ? (
             <>
               <div style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Réponse du réserviste
@@ -329,6 +425,10 @@ function ReponseRecueCard({ r, expandedId, setExpandedId }: {
                 {!r.body_html ? r.body_text : undefined}
               </div>
             </>
+          ) : (
+            <div style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic', padding: '8px 0' }}>
+              Aucun contenu texte (le courriel ne contenait peut-être que des pièces jointes)
+            </div>
           )}
         </div>
       )}

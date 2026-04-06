@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
       try {
         const { data: reponses } = await supabaseAdmin
           .from('courriel_reponses')
-          .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
+          .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
           .in('courriel_id', courrielIds)
           .order('created_at', { ascending: true })
         const repMap = new Map<string, any[]>()
