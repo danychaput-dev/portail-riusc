@@ -70,9 +70,8 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const { reponse_id, statut } = await req.json()
+    const { reponse_id, reponse_ids, statut, bulk_statut_from } = await req.json()
 
-    if (!reponse_id) return NextResponse.json({ error: 'reponse_id requis' }, { status: 400 })
     if (!['recu', 'lu', 'traite', 'archive'].includes(statut)) {
       return NextResponse.json({ error: 'Statut invalide' }, { status: 400 })
     }
@@ -82,6 +81,29 @@ export async function PATCH(req: NextRequest) {
       updates.lu_par = user.id
       updates.lu_at = new Date().toISOString()
     }
+
+    // Bulk update: mark all replies with bulk_statut_from → statut
+    if (bulk_statut_from) {
+      const { error, count } = await supabaseAdmin
+        .from('courriel_reponses')
+        .update(updates)
+        .eq('statut', bulk_statut_from)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, updated: count })
+    }
+
+    // Batch update: array of IDs
+    if (reponse_ids && Array.isArray(reponse_ids) && reponse_ids.length > 0) {
+      const { error, count } = await supabaseAdmin
+        .from('courriel_reponses')
+        .update(updates)
+        .in('id', reponse_ids)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, updated: count })
+    }
+
+    // Single update
+    if (!reponse_id) return NextResponse.json({ error: 'reponse_id requis' }, { status: 400 })
 
     const { error } = await supabaseAdmin
       .from('courriel_reponses')

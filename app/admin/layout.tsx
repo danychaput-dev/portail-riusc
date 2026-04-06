@@ -60,6 +60,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     init()
   }, [])
 
+  // Écouter les mises à jour du badge courriels depuis la page courriels
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const count = (e as CustomEvent).detail?.count
+      if (typeof count === 'number') {
+        setStats(prev => ({ ...prev, courriels_reponses_non_lues: count }))
+      }
+    }
+    window.addEventListener('courriels-badge-update', handler)
+    return () => window.removeEventListener('courriels-badge-update', handler)
+  }, [])
+
   if (!authorized) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

@@ -193,6 +193,9 @@ export default function CampagnesPage() {
   // ─── Reply statut management ───
   const [updatingStatut, setUpdatingStatut] = useState<string | null>(null)
 
+  // ─── Filtre envoyeur ───
+  const [filterSender, setFilterSender] = useState('')
+
   // ─── Reply modal ───
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
@@ -239,6 +242,42 @@ export default function CampagnesPage() {
       .finally(() => setLoadingIndiv(false))
   }, [authorized, activeTab, indivDateFrom, indivDateTo])
 
+  // ─── Sync sidebar badge via custom event ───
+  const dispatchBadgeUpdate = (count: number) => {
+    window.dispatchEvent(new CustomEvent('courriels-badge-update', { detail: { count } }))
+  }
+
+  // ─── Tout marquer lu ───
+  const [markingAllRead, setMarkingAllRead] = useState(false)
+  const markAllAsRead = async () => {
+    setMarkingAllRead(true)
+    try {
+      await fetch('/api/admin/courriels/reponses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bulk_statut_from: 'recu', statut: 'lu' }),
+      })
+      setReponsesNonLues(0)
+      dispatchBadgeUpdate(0)
+      // Update inline data
+      setCampagneDetail(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          destinataires: prev.destinataires.map(d => ({
+            ...d,
+            reponses: d.reponses?.map(r => r.statut === 'recu' ? { ...r, statut: 'lu' } : r),
+          })),
+        }
+      })
+      setIndividuels(prev => prev.map(c => ({
+        ...c,
+        reponses: c.reponses?.map(r => r.statut === 'recu' ? { ...r, statut: 'lu' } : r),
+      })))
+    } catch {}
+    setMarkingAllRead(false)
+  }
+
   // ─── Changer statut d'une réponse (inline) ───
   const updateReponseStatut = async (reponseId: string, newStatut: string) => {
     setUpdatingStatut(reponseId)
@@ -250,7 +289,11 @@ export default function CampagnesPage() {
       })
       // Décrémenter le compteur si on marque une réponse "recu" comme autre chose
       if (newStatut !== 'recu') {
-        setReponsesNonLues(c => Math.max(0, c - 1))
+        setReponsesNonLues(c => {
+          const newCount = Math.max(0, c - 1)
+          dispatchBadgeUpdate(newCount)
+          return newCount
+        })
       }
       // Mettre à jour le statut dans les données inline (campagnes + individuels)
       setCampagneDetail(prev => {
@@ -296,11 +339,24 @@ export default function CampagnesPage() {
     return list
   }, [campagnes, campSearch, campDateFrom, campDateTo])
 
+  // ─── Liste des envoyeurs uniques (from_name ou from_email) pour le filtre ───
+  const uniqueSenders = useMemo(() => {
+    const senders = new Set<string>()
+    individuels.forEach(c => {
+      if (c.from_name) senders.add(c.from_name)
+      else if (c.from_email) senders.add(c.from_email)
+    })
+    return Array.from(senders).sort((a, b) => a.localeCompare(b, 'fr'))
+  }, [individuels])
+
   // ─── Filtrage individuels ───
   const filteredIndiv = useMemo(() => {
     let list = individuels
     if (showOnlyWithReplies) {
       list = list.filter(c => c.reponses && c.reponses.length > 0)
+    }
+    if (filterSender) {
+      list = list.filter(c => (c.from_name || c.from_email) === filterSender)
     }
     if (indivSearch) {
       const s = indivSearch.toLowerCase()
@@ -311,7 +367,7 @@ export default function CampagnesPage() {
       )
     }
     return list
-  }, [individuels, indivSearch, showOnlyWithReplies])
+  }, [individuels, indivSearch, showOnlyWithReplies, filterSender])
 
   // ─── Reply helpers ───
   const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string) => {
@@ -365,17 +421,31 @@ export default function CampagnesPage() {
             <span style={{ fontSize: '13px', color: '#92400e', fontWeight: '600', flex: 1 }}>
               {reponsesNonLues} réponse{reponsesNonLues > 1 ? 's' : ''} non lue{reponsesNonLues > 1 ? 's' : ''}
             </span>
-            <button
-              onClick={() => { setShowOnlyWithReplies(!showOnlyWithReplies); setActiveTab('individuels') }}
-              style={{
-                padding: '5px 14px', fontSize: '12px', fontWeight: '600',
-                borderRadius: '6px', border: '1px solid #f59e0b', cursor: 'pointer',
-                backgroundColor: showOnlyWithReplies ? '#f59e0b' : 'white',
-                color: showOnlyWithReplies ? 'white' : '#92400e',
-              }}
-            >
-              {showOnlyWithReplies ? '✕ Voir tous' : 'Voir les réponses'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => { setShowOnlyWithReplies(!showOnlyWithReplies); setActiveTab('individuels') }}
+                style={{
+                  padding: '5px 14px', fontSize: '12px', fontWeight: '600',
+                  borderRadius: '6px', border: '1px solid #f59e0b', cursor: 'pointer',
+                  backgroundColor: showOnlyWithReplies ? '#f59e0b' : 'white',
+                  color: showOnlyWithReplies ? 'white' : '#92400e',
+                }}
+              >
+                {showOnlyWithReplies ? '✕ Voir tous' : 'Voir les réponses'}
+              </button>
+              <button
+                onClick={markAllAsRead}
+                disabled={markingAllRead}
+                style={{
+                  padding: '5px 14px', fontSize: '12px', fontWeight: '600',
+                  borderRadius: '6px', border: '1px solid #16a34a', cursor: markingAllRead ? 'wait' : 'pointer',
+                  backgroundColor: '#f0fdf4', color: '#16a34a',
+                  opacity: markingAllRead ? 0.6 : 1,
+                }}
+              >
+                {markingAllRead ? '⏳' : '✓'} Tout marquer lu
+              </button>
+            </div>
           </div>
         )}
 
@@ -535,12 +605,13 @@ export default function CampagnesPage() {
                                           {/* Actions statut + répondre */}
                                           <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                                             {['recu', 'lu', 'traite', 'archive'].map(s => {
-                                              const labels: Record<string, string> = { recu: '📨', lu: '👁️', traite: '✅', archive: '📁' }
+                                              const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
                                               const isActive = rep.statut === s
+                                              const isHighlight = s === 'lu' && rep.statut === 'recu'
                                               return (
                                                 <button key={s} disabled={isActive || updatingStatut === rep.id} onClick={() => updateReponseStatut(rep.id, s)}
-                                                  style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', cursor: isActive ? 'default' : 'pointer', border: isActive ? `1px solid ${C}` : '1px solid #e2e8f0', backgroundColor: isActive ? '#eff6ff' : 'white', color: isActive ? C : '#6b7280', opacity: updatingStatut === rep.id ? 0.5 : 1 }}
-                                                  title={({ recu: 'Reçu', lu: 'Lu', traite: 'Traité', archive: 'Archivé' } as Record<string, string>)[s]}
+                                                  style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', cursor: isActive ? 'default' : 'pointer', border: isHighlight ? '1px solid #16a34a' : isActive ? `1px solid ${C}` : '1px solid #e2e8f0', backgroundColor: isHighlight ? '#f0fdf4' : isActive ? '#eff6ff' : 'white', color: isHighlight ? '#16a34a' : isActive ? C : '#6b7280', fontWeight: isHighlight ? '700' : '400', opacity: updatingStatut === rep.id ? 0.5 : 1 }}
+                                                  title={({ recu: 'Reçu', lu: 'Marquer comme lu', traite: 'Marquer comme traité', archive: 'Archiver' } as Record<string, string>)[s]}
                                                 >{labels[s]}</button>
                                               )
                                             })}
@@ -583,6 +654,27 @@ export default function CampagnesPage() {
         {activeTab === 'individuels' && (
           <>
             <FilterBar search={indivSearch} setSearch={setIndivSearch} dateFrom={indivDateFrom} setDateFrom={setIndivDateFrom} dateTo={indivDateTo} setDateTo={setIndivDateTo} />
+            {/* Filtres supplémentaires : envoyeur + avec réponses */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px', marginTop: '-8px' }}>
+              {uniqueSenders.length > 1 && (
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <label style={{ fontSize: '12px', color: '#6b7280' }}>Envoyeur</label>
+                  <select
+                    value={filterSender}
+                    onChange={e => setFilterSender(e.target.value)}
+                    style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none', backgroundColor: 'white' }}
+                  >
+                    <option value="">Tous</option>
+                    {uniqueSenders.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
+              {filterSender && (
+                <button onClick={() => setFilterSender('')} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  ✕ Réinitialiser envoyeur
+                </button>
+              )}
+            </div>
 
             {loadingIndiv ? (
               <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Chargement…</div>
