@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState, useMemo } from 'react'
+import { Suspense, useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { formatPhone } from '@/utils/phone'
@@ -333,7 +333,34 @@ function ReservistesPage() {
     setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
   }
 
-  const toggleSelect = (id: string) => {
+  const lastSelectedIdx = useRef<number | null>(null)
+
+  const toggleSelect = (id: string, index?: number, shiftKey?: boolean) => {
+    // Shift+Click = sélection de plage
+    if (shiftKey && index !== undefined && lastSelectedIdx.current !== null && lastSelectedIdx.current !== index) {
+      const start = Math.min(lastSelectedIdx.current, index)
+      const end = Math.max(lastSelectedIdx.current, index)
+      const rangeIds = data.slice(start, end + 1).map(r => r.benevole_id)
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        for (const rid of rangeIds) next.add(rid)
+        return next
+      })
+      setSelectedDestinataires(prev => {
+        const next = new Map(prev)
+        for (const rid of rangeIds) {
+          if (!next.has(rid)) {
+            const r = data.find(r => r.benevole_id === rid)
+            if (r) next.set(rid, { benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom })
+          }
+        }
+        return next
+      })
+      return
+    }
+
+    // Clic normal
+    if (index !== undefined) lastSelectedIdx.current = index
     setSelectedIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id); else next.add(id)
@@ -943,7 +970,7 @@ function ReservistesPage() {
                 {/* Checkbox sélection */}
                 {canEmail && (
                   <div style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <input type="checkbox" checked={selectedIds.has(r.benevole_id)} onChange={() => toggleSelect(r.benevole_id)} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
+                    <input type="checkbox" checked={selectedIds.has(r.benevole_id)} onClick={(e) => { e.stopPropagation(); toggleSelect(r.benevole_id, i, e.shiftKey) }} readOnly style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
                   </div>
                 )}
                 {/* Nom */}
