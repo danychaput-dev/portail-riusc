@@ -25,9 +25,9 @@ export default function FormInput({ label, error, size = 'md', style, ...props }
         {...props}
         style={{
           padding: isSmall ? '6px 8px' : '8px 12px',
-          border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,
+          border: `1px solid ${error ? '#ef4444' : '#9ca3af'}`,
           borderRadius: 6,
-          fontSize: 13,
+          fontSize: 14,
           outline: 'none',
           backgroundColor: props.disabled ? '#f9fafb' : 'white',
           color: '#111827',
@@ -67,9 +67,9 @@ export function FormSelect({ label, error, size = 'md', options, placeholder, st
         {...props}
         style={{
           padding: isSmall ? '6px 8px' : '8px 12px',
-          border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,
+          border: `1px solid ${error ? '#ef4444' : '#9ca3af'}`,
           borderRadius: 6,
-          fontSize: 13,
+          fontSize: 14,
           outline: 'none',
           backgroundColor: props.disabled ? '#f9fafb' : 'white',
           color: '#111827',
@@ -109,9 +109,9 @@ export function FormTextarea({ label, error, style, ...props }: FormTextareaProp
         {...props}
         style={{
           padding: '8px 12px',
-          border: `1px solid ${error ? '#ef4444' : '#d1d5db'}`,
+          border: `1px solid ${error ? '#ef4444' : '#9ca3af'}`,
           borderRadius: 6,
-          fontSize: 13,
+          fontSize: 14,
           outline: 'none',
           backgroundColor: props.disabled ? '#f9fafb' : 'white',
           color: '#111827',

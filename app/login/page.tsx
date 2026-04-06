@@ -23,6 +23,14 @@ function LoginContent() {
   // Récupérer le camp_id si présent dans l'URL
   const campId = searchParams.get('camp') || ''
 
+  // Pré-remplir le dernier courriel utilisé
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('riusc_last_email')
+      if (saved && !email) setEmail(saved)
+    } catch {}
+  }, [])
+
   const contactLink = (
     <span> Si le problème persiste, <a href="mailto:dany.chaput@aqbrs.ca" style={{ color: '#dc2626', fontWeight: '600', textDecoration: 'underline' }}>contactez-nous</a>.</span>
   )
@@ -273,6 +281,9 @@ function LoginContent() {
           body: JSON.stringify({ user_id: authUserId, benevole_id: res?.benevole_id || null, page: '__connexion__' }),
         }).catch(() => {})
 
+        // Sauvegarder le courriel pour pré-remplissage futur
+        try { localStorage.setItem('riusc_last_email', email.trim().toLowerCase()) } catch {}
+
         router.push(campId ? `/formation?camp=${campId}` : '/')
       }
     } catch (err) {
@@ -385,11 +396,13 @@ function LoginContent() {
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Adresse courriel</label>
             <input
               type="email"
+              name="email"
+              autoComplete="email"
               placeholder="votre.nom@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
-              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '2px solid #e5e7eb', borderRadius: '10px', marginBottom: '16px', boxSizing: 'border-box', color: '#111827' }}
+              style={{ width: '100%', padding: '14px 16px', fontSize: '16px', border: '2px solid #9ca3af', borderRadius: '10px', marginBottom: '16px', boxSizing: 'border-box', color: '#111827' }}
             />
             <button
               type="button"

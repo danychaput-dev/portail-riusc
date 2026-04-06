@@ -267,7 +267,12 @@ function ReservistesPage() {
     current === null ? 'has' : current === 'has' ? 'missing' : null
 
   const toggleReadinessFilter = (key: ReadinessKey) => {
-    setFiltresReadiness(prev => ({ ...prev, [key]: cycleFilter(prev[key]) }))
+    const newState = cycleFilter(filtresReadiness[key])
+    setFiltresReadiness(prev => ({ ...prev, [key]: newState }))
+    // Auto-sélectionner Approuvé seulement quand on active un filtre readiness
+    if (newState !== null) {
+      setGroupesFiltres(['Approuvé'])
+    }
   }
 
   const hasAnyReadinessFilter = Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null
@@ -581,7 +586,7 @@ function ReservistesPage() {
         )}
 
         {/* En-tête */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Annuaire des réservistes</h1>
             <span style={{ fontSize: '13px', color: '#6b7280', backgroundColor: '#f1f5f9', padding: '3px 10px', borderRadius: '20px' }}>
@@ -625,6 +630,9 @@ function ReservistesPage() {
             )}
           </div>
         </div>
+
+        {/* Vues sauvegardées — compact dans l'en-tête */}
+        <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} />
 
         {/* Filtres */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -676,7 +684,11 @@ function ReservistesPage() {
           <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Déployabilité :</span>
           {/* Pastille Déployable — aussi cliquable 3 états */}
           <button
-            onClick={() => setFiltreDeployable(cycleFilter(filtreDeployable))}
+            onClick={() => {
+              const newState = cycleFilter(filtreDeployable)
+              setFiltreDeployable(newState)
+              if (newState !== null) setGroupesFiltres(['Approuvé'])
+            }}
             title={`${readinessStats.deployable}/${approuves.length} déployables\nCliquer pour filtrer : ${filtreDeployable === null ? 'montrer les déployables' : filtreDeployable === 'has' ? 'montrer les non-déployables' : 'retirer le filtre'}`}
             style={{
               display: 'flex', alignItems: 'center', gap: '5px',
@@ -767,9 +779,6 @@ function ReservistesPage() {
             </button>
           )}
         </div>
-
-        {/* Vues sauvegardées */}
-        <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} />
 
       </div>{/* Fin zone fixe */}
 
