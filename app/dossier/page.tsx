@@ -356,7 +356,7 @@ function Checkbox({ label, checked, onChange }: { label: string; checked: boolea
 
 // ─── Composant liste dynamique (Organisations / Langues) ─────────────────────
 
-function DynamicList({ myIds, allItems, pinnedNoms, newIds, newName, showInput, onToggleNew, onSetNewName, onSetShowInput, addLabel, placeholder, globalNote }: {
+function DynamicList({ myIds, allItems, pinnedNoms, newIds, newName, showInput, onToggleNew, onRemove, onSetNewName, onSetShowInput, addLabel, placeholder, globalNote }: {
   myIds: string[]
   allItems: { id: string; nom: string }[]
   pinnedNoms?: string[]
@@ -364,6 +364,7 @@ function DynamicList({ myIds, allItems, pinnedNoms, newIds, newName, showInput, 
   newName: string
   showInput: boolean
   onToggleNew: (id: string) => void
+  onRemove?: (id: string) => void
   onSetNewName: (v: string) => void
   onSetShowInput: (v: boolean) => void
   addLabel: string
@@ -386,7 +387,18 @@ function DynamicList({ myIds, allItems, pinnedNoms, newIds, newName, showInput, 
         <div style={{ marginBottom: '16px' }}>
           <p style={{ fontSize: '13px', fontWeight: '600', color: '#374151', margin: '0 0 8px 0' }}>Mes sélections actuelles</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {myItems.map(item => (
+            {myItems.map(item => onRemove ? (
+              <button
+                key={item.id}
+                onClick={() => onRemove(item.id)}
+                title="Cliquer pour retirer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '13px', fontWeight: '500', color: '#1e3a5f', cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseOver={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fca5a5' }}
+                onMouseOut={e => { e.currentTarget.style.backgroundColor = '#eff6ff'; e.currentTarget.style.color = '#1e3a5f'; e.currentTarget.style.borderColor = '#bfdbfe' }}
+              >
+                ✓ {item.nom} <span style={{ fontSize: '15px', lineHeight: '1' }}>×</span>
+              </button>
+            ) : (
               <span key={item.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '13px', fontWeight: '500', color: '#1e3a5f' }}>
                 ✓ {item.nom}
               </span>
@@ -507,6 +519,7 @@ function DossierPage() {
   const [allOrgs, setAllOrgs] = useState<Organisation[]>([])
   const [myOrgIds, setMyOrgIds] = useState<string[]>([])
   const [newOrgIds, setNewOrgIds] = useState<string[]>([])
+  const [removedOrgIds, setRemovedOrgIds] = useState<string[]>([])
   const [newOrgName, setNewOrgName] = useState('')
   const [showNewOrgInput, setShowNewOrgInput] = useState(false)
 
@@ -520,8 +533,8 @@ function DossierPage() {
   // ─── Groupes de recherche ────────────────────────────────────────────────────
   const [groupesRS, setGroupesRS] = useState<string[]>([])
 
-  const isAqbrsLinked = myOrgIds.includes(AQBRS_ORG_ID) || newOrgIds.includes(AQBRS_ORG_ID)
-  const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== ''
+  const isAqbrsLinked = (myOrgIds.includes(AQBRS_ORG_ID) && !removedOrgIds.includes(AQBRS_ORG_ID)) || newOrgIds.includes(AQBRS_ORG_ID)
+  const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== '' || removedOrgIds.length > 0
   const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== ''
   const anyChanges = hasChanges || orgHasChanges || langueHasChanges
 
@@ -692,6 +705,15 @@ function DossierPage() {
 
       // ── Organisations (Supabase) ─────────────────────────────────────────────
       if (orgHasChanges) {
+        // Supprimer les organisations retirées
+        if (removedOrgIds.length > 0) {
+          await supabase
+            .from('reserviste_organisations')
+            .delete()
+            .eq('benevole_id', reserviste.benevole_id)
+            .in('organisation_id', removedOrgIds)
+        }
+
         let orgIdsToAdd = [...newOrgIds]
         if (newOrgName.trim()) {
           const { data: createdOrg, error: createError } = await supabase
@@ -711,10 +733,11 @@ function DossierPage() {
         }
         const { data: refreshedOrgs } = await supabase.from('organisations').select('id, nom').order('nom')
         setAllOrgs(refreshedOrgs || [])
-        setMyOrgIds(prev => [...prev, ...uniqueOrgs])
+        setMyOrgIds(prev => [...prev.filter(id => !removedOrgIds.includes(id)), ...uniqueOrgs])
         setNewOrgIds([])
         setNewOrgName('')
         setShowNewOrgInput(false)
+        setRemovedOrgIds([])
       }
 
       // ── Langues (Supabase) ───────────────────────────────────────────────────
@@ -910,15 +933,16 @@ function DossierPage() {
         <Section
           title="Organisations d'appartenance"
           icon="🏢"
-          description="À quelles organisations êtes-vous affilié? Vos associations sont permanentes — vous pouvez en ajouter, mais pas en retirer."
+          description="À quelles organisations êtes-vous affilié? Cliquez sur une pastille pour la retirer."
         >
           <DynamicList
-            myIds={myOrgIds}
+            myIds={myOrgIds.filter(id => !removedOrgIds.includes(id))}
             allItems={allOrgs}
             newIds={newOrgIds}
             newName={newOrgName}
             showInput={showNewOrgInput}
             onToggleNew={id => setNewOrgIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+            onRemove={id => setRemovedOrgIds(prev => [...prev, id])}
             onSetNewName={setNewOrgName}
             onSetShowInput={setShowNewOrgInput}
             addLabel="Mon organisation n'est pas dans la liste"
