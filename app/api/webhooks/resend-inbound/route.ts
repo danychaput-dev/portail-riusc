@@ -54,26 +54,27 @@ function extractCourrielIdFromAddress(toAddresses: string[]): string | null {
 }
 
 /**
- * Récupérer le contenu complet de l'email via l'API Resend
- * Le webhook ne contient que les métadonnées — il faut fetcher le body séparément
+ * Récupérer le contenu complet d'un email INBOUND via l'API Resend Receiving
+ * Endpoint: GET /emails/receiving/{id} (PAS /emails/{id} qui est pour les outbound)
+ * Le webhook ne contient que les métadonnées — le body doit être fetché séparément
  */
 async function fetchEmailContent(emailId: string): Promise<{ html: string | null; text: string | null }> {
   try {
-    // Utiliser l'API Resend pour récupérer le contenu complet
-    const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+    const response = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     })
     if (!response.ok) {
-      console.error(`Erreur fetch email ${emailId}:`, response.status)
+      console.error(`❌ Erreur fetch inbound email ${emailId}: HTTP ${response.status}`, await response.text().catch(() => ''))
       return { html: null, text: null }
     }
     const data = await response.json()
+    console.log(`✅ Contenu inbound récupéré pour ${emailId}: html=${!!data.html}, text=${!!data.text}`)
     return {
       html: data.html || null,
       text: data.text || null,
     }
   } catch (err) {
-    console.error(`Erreur fetch contenu email ${emailId}:`, err)
+    console.error(`❌ Erreur fetch contenu inbound ${emailId}:`, err)
     return { html: null, text: null }
   }
 }
