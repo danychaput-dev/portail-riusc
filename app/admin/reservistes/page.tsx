@@ -190,6 +190,8 @@ function ReservistesPage() {
   type FilterState = 'has' | 'missing' | null
   const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, antecedents: null })
   const [filtreDeployable, setFiltreDeployable] = useState<FilterState>(null)
+  const [filtreCertifsManquants, setFiltreCertifsManquants] = useState(false)
+  const [filtreCertifsEnAttente, setFiltreCertifsEnAttente] = useState(false)
   const [modal,          setModal]          = useState<ModalAntecedents | null>(null)
   const [modalDate,      setModalDate]      = useState('')
   const [modalStatut,    setModalStatut]    = useState('verifie')
@@ -220,6 +222,8 @@ function ReservistesPage() {
     setFiltreBottes(false)
     setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null })
     setFiltreDeployable(null)
+    setFiltreCertifsManquants(false)
+    setFiltreCertifsEnAttente(false)
   }, [urlParamsKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auth
@@ -275,7 +279,7 @@ function ReservistesPage() {
     }
   }
 
-  const hasAnyReadinessFilter = Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null
+  const hasAnyReadinessFilter = Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null || filtreCertifsManquants || filtreCertifsEnAttente
 
   // Liste des organismes uniques pour le filtre
   const organismesUniques = useMemo(() => {
@@ -317,8 +321,11 @@ function ReservistesPage() {
     // Filtre déployable
     if (filtreDeployable === 'has') filtered = filtered.filter(r => isDeployable(r))
     if (filtreDeployable === 'missing') filtered = filtered.filter(r => !isDeployable(r))
+    // Filtres certificats
+    if (filtreCertifsManquants) filtered = filtered.filter(r => r.certifs_manquants > 0)
+    if (filtreCertifsEnAttente) filtered = filtered.filter(r => r.certifs_en_attente > 0)
     return sortData(filtered, sortKey, sortDir)
-  }, [rawData, filtreBottes, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, sortKey, sortDir])
+  }, [rawData, filtreBottes, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, filtreCertifsEnAttente, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -364,6 +371,8 @@ function ReservistesPage() {
     filtreGroupeRS,
     filtresReadiness,
     filtreDeployable,
+    filtreCertifsManquants,
+    filtreCertifsEnAttente,
   })
 
   const loadViewFilters = (f: VueFiltres) => {
@@ -376,6 +385,8 @@ function ReservistesPage() {
     if (f.filtreGroupeRS !== undefined) setFiltreGroupeRS(f.filtreGroupeRS || '')
     if (f.filtresReadiness) setFiltresReadiness(f.filtresReadiness as Record<ReadinessKey, FilterState>)
     if (f.filtreDeployable !== undefined) setFiltreDeployable(f.filtreDeployable as FilterState)
+    if (f.filtreCertifsManquants !== undefined) setFiltreCertifsManquants(f.filtreCertifsManquants || false)
+    if (f.filtreCertifsEnAttente !== undefined) setFiltreCertifsEnAttente(f.filtreCertifsEnAttente || false)
   }
 
   const getDestinatairesFromSelection = () =>
@@ -743,11 +754,15 @@ function ReservistesPage() {
               <span style={{ color: '#e2e8f0' }}>|</span>
               {readinessStats.certifs_manquants > 0 && (
                 <span
-                  title={`${readinessStats.certifs_manquants} réserviste${readinessStats.certifs_manquants > 1 ? 's' : ''} avec certificat(s) manquant(s)\nFichier non soumis — visible dans l'onglet "Certificat à ajouter"`}
+                  onClick={() => { setFiltreCertifsManquants(prev => !prev); setFiltreCertifsEnAttente(false); setGroupesFiltres(['Approuvé']) }}
+                  title={`${readinessStats.certifs_manquants} réserviste${readinessStats.certifs_manquants > 1 ? 's' : ''} avec certificat(s) manquant(s)\nCliquer pour filtrer`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
                     padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626',
+                    border: filtreCertifsManquants ? '2px solid #dc2626' : '1px solid #fecaca',
+                    backgroundColor: filtreCertifsManquants ? '#fee2e2' : '#fef2f2', color: '#dc2626',
+                    cursor: 'pointer', userSelect: 'none',
+                    boxShadow: filtreCertifsManquants ? '0 0 0 2px rgba(220, 38, 38, 0.25)' : 'none',
                   }}
                 >
                   📎 Fichiers manquants
@@ -758,11 +773,15 @@ function ReservistesPage() {
               )}
               {readinessStats.certifs_en_attente > 0 && (
                 <span
-                  title={`${readinessStats.certifs_en_attente} réserviste${readinessStats.certifs_en_attente > 1 ? 's' : ''} avec certificat(s) en attente d'approbation`}
+                  onClick={() => { setFiltreCertifsEnAttente(prev => !prev); setFiltreCertifsManquants(false); setGroupesFiltres(['Approuvé']) }}
+                  title={`${readinessStats.certifs_en_attente} réserviste${readinessStats.certifs_en_attente > 1 ? 's' : ''} avec certificat(s) en attente d'approbation\nCliquer pour filtrer`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
                     padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    border: '1px solid #fde68a', backgroundColor: '#fffbeb', color: '#d97706',
+                    border: filtreCertifsEnAttente ? '2px solid #d97706' : '1px solid #fde68a',
+                    backgroundColor: filtreCertifsEnAttente ? '#fef3c7' : '#fffbeb', color: '#d97706',
+                    cursor: 'pointer', userSelect: 'none',
+                    boxShadow: filtreCertifsEnAttente ? '0 0 0 2px rgba(217, 119, 6, 0.25)' : 'none',
                   }}
                 >
                   📄 En attente
@@ -774,7 +793,7 @@ function ReservistesPage() {
             </>
           )}
           {(filtreBottes || filtreOrganisme || filtreGroupeRS || hasAnyReadinessFilter) && (
-            <button onClick={() => { setFiltreBottes(false); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+            <button onClick={() => { setFiltreBottes(false); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreCertifsEnAttente(false) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
               ✕ Réinitialiser
             </button>
           )}

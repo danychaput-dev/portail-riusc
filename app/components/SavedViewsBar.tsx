@@ -17,6 +17,8 @@ export interface VueFiltres {
   filtreGroupeRS: string
   filtresReadiness: Record<string, string | null>
   filtreDeployable: string | null
+  filtreCertifsManquants?: boolean
+  filtreCertifsEnAttente?: boolean
 }
 
 export interface Vue {
