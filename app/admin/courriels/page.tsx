@@ -59,7 +59,25 @@ interface CourrielIndividuel {
   nom_complet: string
 }
 
-type ActiveTab = 'campagnes' | 'individuels'
+type ActiveTab = 'campagnes' | 'individuels' | 'reponses'
+
+interface CourrielReponse {
+  id: string
+  courriel_id: string | null
+  resend_email_id: string | null
+  benevole_id: string | null
+  from_email: string
+  from_name: string | null
+  to_email: string | null
+  subject: string | null
+  body_text: string | null
+  body_html: string | null
+  pieces_jointes: any[]
+  statut: string
+  lu_par: string | null
+  lu_at: string | null
+  created_at: string
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 function statutBadge(statut: string) {
@@ -87,6 +105,21 @@ function formatDate(d: string) {
 function formatDateTime(d: string) {
   const date = new Date(d)
   return date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'short', year: 'numeric' }) + ' à ' + date.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+}
+
+function reponseStatutBadge(statut: string) {
+  const map: Record<string, { label: string; color: string; bg: string }> = {
+    recu:    { label: 'Reçu',    color: '#d97706', bg: '#fffbeb' },
+    lu:      { label: 'Lu',      color: '#2563eb', bg: '#eff6ff' },
+    traite:  { label: 'Traité',  color: '#16a34a', bg: '#f0fdf4' },
+    archive: { label: 'Archivé', color: '#6b7280', bg: '#f3f4f6' },
+  }
+  const m = map[statut] || map.recu
+  return (
+    <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', backgroundColor: m.bg, color: m.color, whiteSpace: 'nowrap' }}>
+      {m.label}
+    </span>
+  )
 }
 
 function StatPill({ value, label, color, bg }: { value: number | string; label: string; color: string; bg: string }) {
@@ -155,6 +188,17 @@ export default function CampagnesPage() {
   const [indivDateFrom, setIndivDateFrom] = useState('')
   const [indivDateTo, setIndivDateTo] = useState('')
 
+  // ─── Réponses inbound ───
+  const [reponsesInbound, setReponsesInbound] = useState<CourrielReponse[]>([])
+  const [loadingReponses, setLoadingReponses] = useState(false)
+  const [selectedReponse, setSelectedReponse] = useState<string | null>(null)
+  const [repSearch, setRepSearch] = useState('')
+  const [repDateFrom, setRepDateFrom] = useState('')
+  const [repDateTo, setRepDateTo] = useState('')
+  const [repStatutFilter, setRepStatutFilter] = useState<string>('')
+  const [updatingStatut, setUpdatingStatut] = useState<string | null>(null)
+  const [nonLuesBadge, setNonLuesBadge] = useState(0)
+
   // ─── Reply modal ───
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
@@ -171,12 +215,18 @@ export default function CampagnesPage() {
     init()
   }, [])
 
-  // ─── Load campagnes ───
+  // ─── Load campagnes + count réponses non lues ───
   useEffect(() => {
     if (!authorized) return
-    fetch('/api/admin/courriels/campagnes')
-      .then(r => r.json())
-      .then(json => setCampagnes(json.campagnes || []))
+    Promise.all([
+      fetch('/api/admin/courriels/campagnes').then(r => r.json()),
+      fetch('/api/admin/courriels/reponses?statut=recu&limit=200').then(r => r.json()),
+    ])
+      .then(([campJson, repJson]) => {
+        setCampagnes(campJson.campagnes || [])
+        // Count non lues pour badge onglet
+        setNonLuesBadge((repJson.reponses || []).length)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [authorized])
@@ -194,6 +244,45 @@ export default function CampagnesPage() {
       .catch(() => {})
       .finally(() => setLoadingIndiv(false))
   }, [authorized, activeTab, indivDateFrom, indivDateTo])
+
+  // ─── Load réponses inbound ───
+  const loadReponses = async () => {
+    setLoadingReponses(true)
+    try {
+      const params = new URLSearchParams()
+      if (repStatutFilter) params.set('statut', repStatutFilter)
+      params.set('limit', '200')
+      const res = await fetch(`/api/admin/courriels/reponses?${params}`)
+      const json = await res.json()
+      setReponsesInbound(json.reponses || [])
+    } catch {}
+    setLoadingReponses(false)
+  }
+
+  useEffect(() => {
+    if (!authorized || activeTab !== 'reponses') return
+    loadReponses()
+  }, [authorized, activeTab, repStatutFilter])
+
+  // ─── Changer statut d'une réponse ───
+  const updateReponseStatut = async (reponseId: string, newStatut: string) => {
+    setUpdatingStatut(reponseId)
+    try {
+      await fetch('/api/admin/courriels/reponses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reponse_id: reponseId, statut: newStatut }),
+      })
+      setReponsesInbound(prev => {
+        const old = prev.find(r => r.id === reponseId)
+        if (old?.statut === 'recu' && newStatut !== 'recu') {
+          setNonLuesBadge(c => Math.max(0, c - 1))
+        }
+        return prev.map(r => r.id === reponseId ? { ...r, statut: newStatut } : r)
+      })
+    } catch {}
+    setUpdatingStatut(null)
+  }
 
   // ─── Load campagne detail ───
   const openCampagneDetail = async (id: string) => {
@@ -230,6 +319,26 @@ export default function CampagnesPage() {
       (c.subject || '').toLowerCase().includes(s)
     )
   }, [individuels, indivSearch])
+
+  // ─── Filtrage réponses ───
+  const filteredReponses = useMemo(() => {
+    let list = reponsesInbound
+    if (repSearch) {
+      const s = repSearch.toLowerCase()
+      list = list.filter(r =>
+        (r.from_name || '').toLowerCase().includes(s) ||
+        (r.from_email || '').toLowerCase().includes(s) ||
+        (r.subject || '').toLowerCase().includes(s)
+      )
+    }
+    if (repDateFrom) list = list.filter(r => r.created_at >= repDateFrom)
+    if (repDateTo) list = list.filter(r => r.created_at.slice(0, 10) <= repDateTo)
+    return list
+  }, [reponsesInbound, repSearch, repDateFrom, repDateTo])
+
+  const nonLuesCount = activeTab === 'reponses'
+    ? reponsesInbound.filter(r => r.statut === 'recu').length
+    : nonLuesBadge
 
   // ─── Reply helpers ───
   const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string) => {
@@ -279,6 +388,7 @@ export default function CampagnesPage() {
         <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', gap: '4px' }}>
           {tabBtn('campagnes', `📧 Campagnes (${campagnes.length})`)}
           {tabBtn('individuels', `📨 Individuels${individuels.length > 0 ? ` (${individuels.length})` : ''}`)}
+          {tabBtn('reponses', `📬 Réponses${nonLuesCount > 0 ? ` (${nonLuesCount} nouvelle${nonLuesCount > 1 ? 's' : ''})` : ''}`)}
         </div>
 
         {/* ════ ONGLET CAMPAGNES ════ */}
@@ -487,6 +597,190 @@ export default function CampagnesPage() {
                             >
                               ↩ Répondre
                             </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ════ ONGLET RÉPONSES INBOUND ════ */}
+        {activeTab === 'reponses' && (
+          <>
+            {/* Filtres spécifiques réponses */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+              <input
+                type="text"
+                placeholder="🔍 Rechercher expéditeur ou sujet..."
+                value={repSearch}
+                onChange={e => setRepSearch(e.target.value)}
+                style={{ padding: '8px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', width: '280px', outline: 'none' }}
+              />
+              <select
+                value={repStatutFilter}
+                onChange={e => setRepStatutFilter(e.target.value)}
+                style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', outline: 'none', backgroundColor: 'white' }}
+              >
+                <option value="">Tous les statuts</option>
+                <option value="recu">📨 Reçu (non lu)</option>
+                <option value="lu">👁️ Lu</option>
+                <option value="traite">✅ Traité</option>
+                <option value="archive">📁 Archivé</option>
+              </select>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <label style={{ fontSize: '12px', color: '#6b7280' }}>Du</label>
+                <input type="date" value={repDateFrom} onChange={e => setRepDateFrom(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none' }} />
+                <label style={{ fontSize: '12px', color: '#6b7280' }}>au</label>
+                <input type="date" value={repDateTo} onChange={e => setRepDateTo(e.target.value)} style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', outline: 'none' }} />
+              </div>
+              {(repSearch || repDateFrom || repDateTo || repStatutFilter) && (
+                <button onClick={() => { setRepSearch(''); setRepDateFrom(''); setRepDateTo(''); setRepStatutFilter('') }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  ✕ Effacer
+                </button>
+              )}
+            </div>
+
+            {loadingReponses ? (
+              <div style={{ padding: '48px', textAlign: 'center', color: '#94a3b8', fontSize: '14px' }}>Chargement…</div>
+            ) : filteredReponses.length === 0 ? (
+              <div style={{ padding: '48px', textAlign: 'center' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>📬</div>
+                <div style={{ fontSize: '15px', color: '#6b7280' }}>
+                  {repSearch || repDateFrom || repDateTo || repStatutFilter ? 'Aucune réponse trouvée avec ces filtres' : 'Aucune réponse reçue pour le moment'}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {filteredReponses.map(r => {
+                  const isOpen = selectedReponse === r.id
+                  const isNonLu = r.statut === 'recu'
+                  const dateStr = formatDate(r.created_at)
+                  const timeStr = new Date(r.created_at).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })
+
+                  return (
+                    <div key={r.id} style={{
+                      backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden',
+                      border: isNonLu ? '1px solid #fbbf24' : '1px solid transparent',
+                    }}>
+                      {/* Ligne résumé — cliquable */}
+                      <div
+                        onClick={() => {
+                          setSelectedReponse(isOpen ? null : r.id)
+                          // Auto-marquer comme lu quand on ouvre
+                          if (!isOpen && r.statut === 'recu') {
+                            updateReponseStatut(r.id, 'lu')
+                          }
+                        }}
+                        style={{
+                          padding: '14px 16px', cursor: 'pointer',
+                          display: 'grid', gridTemplateColumns: '1fr 1.2fr 90px 130px 40px',
+                          gap: '8px', alignItems: 'center', transition: 'background-color 0.1s',
+                          backgroundColor: isNonLu ? '#fffdf5' : 'white',
+                        }}
+                        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f9fafb')}
+                        onMouseOut={e => (e.currentTarget.style.backgroundColor = isNonLu ? '#fffdf5' : 'white')}
+                      >
+                        <div>
+                          <div style={{ fontWeight: isNonLu ? '700' : '500', color: '#1f2937', fontSize: '13px' }}>
+                            📨 {r.from_name || r.from_email}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>{r.from_email}</div>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isNonLu ? '600' : '400' }}>
+                          {r.subject || '(sans objet)'}
+                        </div>
+                        <div>{reponseStatutBadge(r.statut)}</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>{dateStr} {timeStr}</div>
+                        <div style={{ textAlign: 'center', fontSize: '16px', color: '#9ca3af', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</div>
+                      </div>
+
+                      {/* Détail (quand ouvert) */}
+                      {isOpen && (
+                        <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px 20px', backgroundColor: '#f9fafb' }}>
+                          {/* Métadonnées */}
+                          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px', fontSize: '12px', color: '#6b7280' }}>
+                            <span>De : <strong>{r.from_name || '—'}</strong> ({r.from_email})</span>
+                            {r.to_email && <span>À : {r.to_email}</span>}
+                            <span>Reçu : {formatDateTime(r.created_at)}</span>
+                            {r.courriel_id && <span>🔗 Lié au courriel original</span>}
+                            {r.pieces_jointes && r.pieces_jointes.length > 0 && (
+                              <span>📎 {r.pieces_jointes.length} pièce{r.pieces_jointes.length > 1 ? 's' : ''} jointe{r.pieces_jointes.length > 1 ? 's' : ''}</span>
+                            )}
+                          </div>
+
+                          {/* Pièces jointes */}
+                          {r.pieces_jointes && r.pieces_jointes.length > 0 && (
+                            <div style={{ marginBottom: '10px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {r.pieces_jointes.map((att: any, i: number) => (
+                                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '12px', color: '#475569' }}>
+                                  📎 {att.filename || 'pièce jointe'}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Contenu */}
+                          <div style={{
+                            padding: '16px', backgroundColor: 'white', borderRadius: '8px',
+                            border: '1px solid #e5e7eb', fontSize: '13px', lineHeight: '1.6',
+                            color: '#374151', maxHeight: '400px', overflowY: 'auto',
+                            whiteSpace: r.body_html ? undefined : 'pre-wrap',
+                          }}
+                            dangerouslySetInnerHTML={r.body_html ? { __html: r.body_html } : undefined}
+                          >
+                            {!r.body_html ? (r.body_text || '(aucun contenu)') : undefined}
+                          </div>
+
+                          {/* Actions statut */}
+                          <div style={{ marginTop: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>Marquer comme :</span>
+                            {['recu', 'lu', 'traite', 'archive'].map(s => {
+                              const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
+                              const isActive = r.statut === s
+                              return (
+                                <button
+                                  key={s}
+                                  disabled={isActive || updatingStatut === r.id}
+                                  onClick={() => updateReponseStatut(r.id, s)}
+                                  style={{
+                                    padding: '6px 12px', fontSize: '12px', fontWeight: '600',
+                                    borderRadius: '6px', cursor: isActive ? 'default' : 'pointer',
+                                    border: isActive ? `2px solid ${C}` : '1px solid #d1d5db',
+                                    backgroundColor: isActive ? '#eff6ff' : 'white',
+                                    color: isActive ? C : '#374151',
+                                    opacity: updatingStatut === r.id ? 0.5 : 1,
+                                  }}
+                                >
+                                  {labels[s]}
+                                </button>
+                              )
+                            })}
+
+                            {/* Bouton répondre si on a un benevole_id */}
+                            {r.benevole_id && (
+                              <button
+                                onClick={() => {
+                                  setReplySubject(r.subject?.startsWith('Re: ') ? r.subject : `Re: ${r.subject || ''}`)
+                                  setReplyDest([{
+                                    benevole_id: r.benevole_id!,
+                                    email: r.from_email,
+                                    prenom: r.from_name?.split(' ')[0] || '',
+                                    nom: r.from_name?.split(' ').slice(1).join(' ') || '',
+                                  }])
+                                }}
+                                style={{
+                                  padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                                  color: 'white', backgroundColor: C, border: 'none',
+                                  borderRadius: '6px', cursor: 'pointer', marginLeft: 'auto',
+                                }}
+                              >
+                                ↩ Répondre
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
