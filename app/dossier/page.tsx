@@ -59,6 +59,7 @@ interface DossierData {
   autres_competences: string
   commentaire: string
   confidentialite: boolean
+  groupe_recherche: string
 }
 
 // ─── OPTIONS ─────────────────────────────────────────────────────────────────
@@ -199,6 +200,7 @@ const DEFAULT_DOSSIER: DossierData = {
   certification_csi: [],
   communication: [], cartographie_sig: [], operation_urgence: [],
   autres_competences: '', commentaire: '', confidentialite: false,
+  groupe_recherche: '',
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -515,6 +517,9 @@ function DossierPage() {
   const [newLangueName, setNewLangueName] = useState('')
   const [showNewLangueInput, setShowNewLangueInput] = useState(false)
 
+  // ─── Groupes de recherche ────────────────────────────────────────────────────
+  const [groupesRS, setGroupesRS] = useState<string[]>([])
+
   const isAqbrsLinked = myOrgIds.includes(AQBRS_ORG_ID) || newOrgIds.includes(AQBRS_ORG_ID)
   const orgHasChanges = newOrgIds.length > 0 || newOrgName.trim() !== ''
   const langueHasChanges = newLangueIds.length > 0 || newLangueName.trim() !== ''
@@ -585,6 +590,10 @@ function DossierPage() {
         .from('reserviste_langues').select('langue_id').eq('benevole_id', reservisteData.benevole_id)
       setMyLangueIds((myLanguesData || []).map((r: any) => r.langue_id))
 
+      // Charger groupes de recherche
+      const { data: grsData } = await supabase.from('groupes_recherche').select('nom').eq('actif', true).order('nom')
+      setGroupesRS((grsData || []).map(g => g.nom))
+
       // Charger dossier depuis Supabase (reservisteData contient déjà toutes les colonnes)
       const d = reservisteData
       const loaded: DossierData = {
@@ -616,6 +625,7 @@ function DossierPage() {
         autres_competences: d.autres_competences || '',
         commentaire: d.commentaire || '',
         confidentialite: d.confidentialite || false,
+        groupe_recherche: d.groupe_recherche || '',
       }
       setDossier(loaded)
       setOriginalDossier(loaded)
@@ -667,6 +677,7 @@ function DossierPage() {
             autres_competences: dossier.autres_competences || null,
             commentaire: dossier.commentaire || null,
             confidentialite: dossier.confidentialite,
+            groupe_recherche: dossier.groupe_recherche || null,
           })
           .eq('benevole_id', reserviste.benevole_id)
 
@@ -934,6 +945,23 @@ function DossierPage() {
               value={dossier.competence_rs}
               onChange={v => updateDossier('competence_rs', v)}
             />
+          </Section>
+        )}
+
+        {isAqbrsLinked && (
+          <Section title="Groupe de recherche et sauvetage" icon="🏔️">
+            <select
+              value={dossier.groupe_recherche}
+              onChange={e => updateDossier('groupe_recherche', e.target.value)}
+              style={{
+                width: '100%', maxWidth: '440px', padding: '10px 12px',
+                border: '1px solid #d1d5db', borderRadius: '8px',
+                fontSize: '14px', color: '#374151', backgroundColor: 'white',
+              }}
+            >
+              <option value="">Aucun / Non applicable</option>
+              {groupesRS.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
           </Section>
         )}
 
