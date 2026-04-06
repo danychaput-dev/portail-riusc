@@ -708,7 +708,7 @@ export default function CampagnesPage() {
                       {/* Ligne résumé — cliquable */}
                       <div
                         onClick={() => setSelectedIndiv(isOpen ? null : c.id)}
-                        style={{ padding: '14px 16px', cursor: 'pointer', display: 'grid', gridTemplateColumns: '1fr 1fr 100px 130px 70px 40px', gap: '8px', alignItems: 'center', transition: 'background-color 0.1s' }}
+                        style={{ padding: '14px 16px', cursor: 'pointer', display: 'grid', gridTemplateColumns: hasUnread ? '1fr 1fr 100px 130px 90px' : '1fr 1fr 100px 130px 70px 40px', gap: '8px', alignItems: 'center', transition: 'background-color 0.1s' }}
                         onMouseOver={e => (e.currentTarget.style.backgroundColor = hasUnread ? '#fffbeb' : '#f9fafb')}
                         onMouseOut={e => (e.currentTarget.style.backgroundColor = hasUnread ? '#fffdf5' : 'white')}
                       >
@@ -719,17 +719,48 @@ export default function CampagnesPage() {
                         <div style={{ fontSize: '13px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {c.subject}
                           {c.reponses && c.reponses.length > 0 && (
-                            <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1e40af', flexShrink: 0 }}>
-                              💬 {c.reponses.length}
+                            <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '8px', backgroundColor: hasUnread ? '#fbbf24' : '#dbeafe', color: hasUnread ? 'white' : '#1e40af', flexShrink: 0 }}>
+                              💬 {c.reponses.filter(r => r.statut === 'recu').length || c.reponses.length}
                             </span>
                           )}
                         </div>
                         <div>{statutBadge(c.statut)}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(c.created_at)}</div>
-                        <div style={{ fontSize: '12px', color: c.clics_count > 0 ? '#1e40af' : '#9ca3af', textAlign: 'center', fontWeight: c.clics_count > 0 ? '700' : '400' }}>
-                          {c.ouvert_at ? '👁' : ''} {c.clics_count > 0 ? `${c.clics_count} clic${c.clics_count > 1 ? 's' : ''}` : ''}
-                        </div>
-                        <div style={{ textAlign: 'center', fontSize: '16px', color: '#9ca3af', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</div>
+                        {hasUnread ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const unreadIds = c.reponses?.filter(r => r.statut === 'recu').map(r => r.id) || []
+                              if (unreadIds.length === 0) return
+                              fetch('/api/admin/courriels/reponses', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ reponse_ids: unreadIds, statut: 'lu' }),
+                              }).then(() => {
+                                setIndividuels(prev => prev.map(item =>
+                                  item.id === c.id
+                                    ? { ...item, reponses: item.reponses?.map(r => r.statut === 'recu' ? { ...r, statut: 'lu' } : r) }
+                                    : item
+                                ))
+                                setReponsesNonLues(prev => {
+                                  const newCount = Math.max(0, prev - unreadIds.length)
+                                  dispatchBadgeUpdate(newCount)
+                                  return newCount
+                                })
+                              })
+                            }}
+                            style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px', border: '1px solid #16a34a', backgroundColor: '#f0fdf4', color: '#16a34a', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            ✓ Marquer lu
+                          </button>
+                        ) : (
+                          <>
+                            <div style={{ fontSize: '12px', color: c.clics_count > 0 ? '#1e40af' : '#9ca3af', textAlign: 'center', fontWeight: c.clics_count > 0 ? '700' : '400' }}>
+                              {c.ouvert_at ? '👁' : ''} {c.clics_count > 0 ? `${c.clics_count} clic${c.clics_count > 1 ? 's' : ''}` : ''}
+                            </div>
+                            <div style={{ textAlign: 'center', fontSize: '16px', color: '#9ca3af', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</div>
+                          </>
+                        )}
                       </div>
 
                       {/* Détail (quand ouvert) */}
@@ -800,12 +831,13 @@ export default function CampagnesPage() {
                                   {/* Actions statut + répondre */}
                                   <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                                     {['recu', 'lu', 'traite', 'archive'].map(s => {
-                                      const labels: Record<string, string> = { recu: '📨', lu: '👁️', traite: '✅', archive: '📁' }
+                                      const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
                                       const isActive = rep.statut === s
+                                      const isHighlight = s === 'lu' && rep.statut === 'recu'
                                       return (
                                         <button key={s} disabled={isActive || updatingStatut === rep.id} onClick={() => updateReponseStatut(rep.id, s)}
-                                          style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', cursor: isActive ? 'default' : 'pointer', border: isActive ? `1px solid ${C}` : '1px solid #e2e8f0', backgroundColor: isActive ? '#eff6ff' : 'white', color: isActive ? C : '#6b7280', opacity: updatingStatut === rep.id ? 0.5 : 1 }}
-                                          title={({ recu: 'Reçu', lu: 'Lu', traite: 'Traité', archive: 'Archivé' } as Record<string, string>)[s]}
+                                          style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', cursor: isActive ? 'default' : 'pointer', border: isHighlight ? '1px solid #16a34a' : isActive ? `1px solid ${C}` : '1px solid #e2e8f0', backgroundColor: isHighlight ? '#f0fdf4' : isActive ? '#eff6ff' : 'white', color: isHighlight ? '#16a34a' : isActive ? C : '#6b7280', fontWeight: isHighlight ? '700' : '400', opacity: updatingStatut === rep.id ? 0.5 : 1 }}
+                                          title={({ recu: 'Reçu', lu: 'Marquer comme lu', traite: 'Marquer comme traité', archive: 'Archiver' } as Record<string, string>)[s]}
                                         >{labels[s]}</button>
                                       )
                                     })}
