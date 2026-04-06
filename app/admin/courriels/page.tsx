@@ -775,7 +775,7 @@ export default function CampagnesPage() {
                               {c.reponses.map((rep: ReponseInline) => {
                                 const isNonLu = rep.statut === 'recu'
                                 return (
-                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: `3px solid ${isNonLu ? '#fbbf24' : '#bfdbfe'}`, paddingLeft: '14px', marginBottom: '10px', backgroundColor: isNonLu ? '#fffdf5' : 'transparent', borderRadius: isNonLu ? '0 8px 8px 0' : undefined, padding: isNonLu ? '10px 14px 10px 14px' : undefined, paddingLeft: '14px' }}>
+                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: `3px solid ${isNonLu ? '#fbbf24' : '#bfdbfe'}`, marginBottom: '10px', backgroundColor: isNonLu ? '#fffdf5' : 'transparent', borderRadius: isNonLu ? '0 8px 8px 0' : undefined, padding: isNonLu ? '10px 14px 10px 14px' : '0 0 0 14px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
                                     <span style={{ fontSize: '12px', fontWeight: isNonLu ? '700' : '600', color: isNonLu ? '#92400e' : '#1e40af' }}>
                                       📨 {rep.from_name || rep.from_email}
