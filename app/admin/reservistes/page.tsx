@@ -200,6 +200,15 @@ function ReservistesPage() {
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
 
+  // Responsive — ne pas figer la page sur mobile
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // Synchroniser groupesFiltres quand les URL params changent (navigation client-side depuis dashboard)
   useEffect(() => {
     setGroupesFiltres(defaultGroupes)
@@ -517,9 +526,9 @@ function ReservistesPage() {
     : '0.8fr 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
 
   return (
-    <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', ...(isMobile ? { minHeight: '100vh' } : { height: '100vh', overflow: 'hidden' }) }}>
       <PortailHeader />
-      <main style={{ margin: '0 auto', padding: '0 28px', width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+      <main style={{ margin: '0 auto', padding: '0 28px', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, ...(isMobile ? {} : { overflow: 'hidden' }) }}>
 
       {/* Zone fixe : filtres + readiness (ne défile pas) */}
       <div style={{ flexShrink: 0, paddingTop: '28px' }}>
@@ -696,7 +705,7 @@ function ReservistesPage() {
       </div>{/* Fin zone fixe */}
 
         {/* Tableau — zone scrollable */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', marginBottom: '16px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '16px', ...(isMobile ? {} : { overflow: 'hidden' }) }}>
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const, display: 'flex', flexDirection: 'column', flex: 1 }}>
         <div style={{ minWidth: '1280px', display: 'flex', flexDirection: 'column', flex: 1 }}>

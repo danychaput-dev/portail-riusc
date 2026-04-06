@@ -109,6 +109,21 @@ export default function InscriptionsCampsPage() {
   const [search, setSearch] = useState('')
   const [filterPresence, setFilterPresence] = useState<string>('tous')
 
+  // Responsive — sidebar cachable sur mobile
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
+      if (mobile) setSidebarOpen(false)
+      else setSidebarOpen(true)
+    }
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // ── Détecter si admin ──────────────────────────────────────────────────────
   useEffect(() => {
     async function checkRole() {
@@ -407,7 +422,34 @@ export default function InscriptionsCampsPage() {
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0' }}>
           <div style={{ display: 'flex', height: 'calc(100vh - 64px)', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
 
+      {/* ── Bouton toggle sidebar sur mobile ── */}
+      {isMobile && !sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          style={{
+            position: 'fixed', bottom: 20, left: 20, zIndex: 50,
+            width: 48, height: 48, borderRadius: '50%',
+            backgroundColor: '#1e3a5f', color: 'white', border: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            cursor: 'pointer', fontSize: 20, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+          title="Choisir un camp"
+        >
+          ☰
+        </button>
+      )}
+
       {/* ── Colonne gauche : liste des camps ─────────────────────────────── */}
+      {(sidebarOpen || !isMobile) && (
+      <>
+      {/* Overlay sur mobile */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 40 }}
+        />
+      )}
       <aside style={{
         width: 220,
         minWidth: 220,
@@ -416,14 +458,24 @@ export default function InscriptionsCampsPage() {
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
+        ...(isMobile ? { position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 45, boxShadow: '4px 0 16px rgba(0,0,0,0.15)' } : {}),
       }}>
         <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #e5e7eb' }}>
-          <button
-            onClick={() => router.push(retourHref)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, padding: '0 0 10px 0', fontWeight: 500 }}
-          >
-            ← Retour
-          </button>
+          {isMobile ? (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, padding: '0 0 10px 0', fontWeight: 500 }}
+            >
+              ← Fermer
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push(retourHref)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 13, padding: '0 0 10px 0', fontWeight: 500 }}
+            >
+              ← Retour
+            </button>
+          )}
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#1e3a5f' }}>Camps</h2>
           <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b7280' }}>
             {upcomingCamps.length} à venir · {pastCamps.length} passés
@@ -439,7 +491,7 @@ export default function InscriptionsCampsPage() {
                 <div style={{ padding: '10px 16px 4px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   À venir
                 </div>
-                {upcomingCamps.map(c => <CampItem key={c.session_id} camp={c} selected={c.session_id === selectedCampId} onClick={() => setSelectedCampId(c.session_id)} />)}
+                {upcomingCamps.map(c => <CampItem key={c.session_id} camp={c} selected={c.session_id === selectedCampId} onClick={() => { setSelectedCampId(c.session_id); if (isMobile) setSidebarOpen(false) }} />)}
               </div>
             )}
             {pastCamps.length > 0 && (
@@ -447,12 +499,14 @@ export default function InscriptionsCampsPage() {
                 <div style={{ padding: '10px 16px 4px', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 8 }}>
                   Passés
                 </div>
-                {pastCamps.map(c => <CampItem key={c.session_id} camp={c} selected={c.session_id === selectedCampId} onClick={() => setSelectedCampId(c.session_id)} />)}
+                {pastCamps.map(c => <CampItem key={c.session_id} camp={c} selected={c.session_id === selectedCampId} onClick={() => { setSelectedCampId(c.session_id); if (isMobile) setSidebarOpen(false) }} />)}
               </div>
             )}
           </>
         )}
       </aside>
+      </>
+      )}
 
       {/* ── Zone principale ───────────────────────────────────────────────── */}
       <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
