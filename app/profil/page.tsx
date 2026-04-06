@@ -480,8 +480,8 @@ export default function ProfilPage() {
       const { data: grsData } = await supabase.from('groupes_recherche').select('nom').eq('actif', true).order('nom')
       setGroupesRS((grsData || []).map(g => g.nom))
 
-      // Backfill AQBRS si compétence RS remplie
-      if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
+      // Backfill AQBRS si compétence RS ou groupe de recherche rempli
+      if (((d.competence_rs || []).length > 0 || (d.groupe_recherche || '').length > 0) && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
         await supabase.from('reserviste_organisations').insert({
           benevole_id: reservisteData.benevole_id,
           organisation_id: AQBRS_ORG_ID

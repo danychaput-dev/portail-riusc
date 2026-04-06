@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
 import { logPageVisit } from '@/utils/logEvent'
-import { n8nUrl } from '@/utils/n8n'
+// n8n import retiré — dossier charge et sauvegarde maintenant directement via Supabase
 
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
 
@@ -202,6 +202,31 @@ const DEFAULT_DOSSIER: DossierData = {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Convertit les labels Supabase en IDs pour l'UI */
+function labelsToIds(field: string, labels: string[] | null): number[] {
+  if (!labels || labels.length === 0) return []
+  const opts = OPTIONS[field]
+  if (!opts) return []
+  return labels.map(label => {
+    const exact = opts.find(o => o.label === label)
+    if (exact) return exact.id
+    const frPart = label.split(' / ')[0].trim().toLowerCase()
+    const partial = opts.find(o => o.label.toLowerCase() === frPart || o.label.toLowerCase().startsWith(frPart))
+    return partial ? partial.id : null
+  }).filter((id): id is number => id !== null)
+}
+
+/** Convertit les IDs UI en labels pour Supabase */
+function idsToLabels(field: string, ids: number[]): string[] {
+  if (!ids || ids.length === 0) return []
+  const opts = OPTIONS[field]
+  if (!opts) return []
+  return ids.map(id => {
+    const opt = opts.find(o => o.id === id)
+    return opt ? opt.label : null
+  }).filter((label): label is string => label !== null)
+}
 
 function isOlderThan18(dateStr: string): boolean {
   if (!dateStr) return false
@@ -560,58 +585,48 @@ function DossierPage() {
         .from('reserviste_langues').select('langue_id').eq('benevole_id', reservisteData.benevole_id)
       setMyLangueIds((myLanguesData || []).map((r: any) => r.langue_id))
 
-      // Charger dossier depuis n8n/Monday
-      try {
-        const response = await fetch(n8nUrl(`/webhook/riusc-get-dossier?benevole_id=${reservisteData.benevole_id}`))
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.dossier) {
-            const d = data.dossier
-            const loaded: DossierData = {
-              prenom: d.prenom || '',
-              nom: d.nom || '',
-              email: d.email || '',
-              date_naissance: d.date_naissance || '',
-              grandeur_bottes: d.grandeur_bottes || '',
-              j_ai_18_ans: d.j_ai_18_ans || false,
-              allergies_alimentaires: d.allergies_alimentaires || '',
-              allergies_autres: d.allergies_autres || '',
-              problemes_sante: d.problemes_sante || '',
-              groupe_sanguin: Array.isArray(d.groupe_sanguin) && d.groupe_sanguin.length > 0 ? (GROUPE_SANGUIN_REVERSE[d.groupe_sanguin[0]] || '') : '',
-              competence_rs: d.competence_rs || [],
-              certificat_premiers_soins: d.certificat_premiers_soins || [],
-              date_expiration_certificat: d.date_expiration_certificat || '',
-              vehicule_tout_terrain: d.vehicule_tout_terrain || [],
-              navire_marin: d.navire_marin || [],
-              permis_conduire: d.permis_conduire || [],
-              disponible_covoiturage: d.disponible_covoiturage || [],
-              satp_drone: d.satp_drone || [],
-              equipe_canine: d.equipe_canine || [],
-              competences_securite: d.competences_securite || [],
-              competences_sauvetage: d.competences_sauvetage || [],
-              certification_csi: d.certification_csi || [],
-              communication: d.communication || [],
-              cartographie_sig: d.cartographie_sig || [],
-              operation_urgence: d.operation_urgence || [],
-              autres_competences: d.autres_competences || '',
-              commentaire: d.commentaire || '',
-              confidentialite: d.confidentialite || false,
-            }
-            setDossier(loaded)
-            setOriginalDossier(loaded)
+      // Charger dossier depuis Supabase (reservisteData contient déjà toutes les colonnes)
+      const d = reservisteData
+      const loaded: DossierData = {
+        prenom: d.prenom || '',
+        nom: d.nom || '',
+        email: d.email || '',
+        date_naissance: d.date_naissance || '',
+        grandeur_bottes: d.grandeur_bottes || '',
+        j_ai_18_ans: d.j_ai_18_ans || false,
+        allergies_alimentaires: d.allergies_alimentaires || '',
+        allergies_autres: d.allergies_autres || '',
+        problemes_sante: d.problemes_sante || '',
+        groupe_sanguin: d.groupe_sanguin || '',
+        competence_rs: labelsToIds('competence_rs', d.competence_rs),
+        certificat_premiers_soins: labelsToIds('certificat_premiers_soins', d.certificat_premiers_soins),
+        date_expiration_certificat: d.date_expiration_certificat || '',
+        vehicule_tout_terrain: labelsToIds('vehicule_tout_terrain', d.vehicule_tout_terrain),
+        navire_marin: labelsToIds('navire_marin', d.navire_marin),
+        permis_conduire: labelsToIds('permis_conduire', d.permis_conduire),
+        disponible_covoiturage: labelsToIds('disponible_covoiturage', d.disponible_covoiturage),
+        satp_drone: labelsToIds('satp_drone', d.satp_drone),
+        equipe_canine: labelsToIds('equipe_canine', d.equipe_canine),
+        competences_securite: labelsToIds('competences_securite', d.competences_securite),
+        competences_sauvetage: labelsToIds('competences_sauvetage', d.competences_sauvetage),
+        certification_csi: labelsToIds('certification_csi', d.certification_csi),
+        communication: labelsToIds('communication', d.communication),
+        cartographie_sig: labelsToIds('cartographie_sig', d.cartographie_sig),
+        operation_urgence: labelsToIds('operation_urgence', d.operation_urgence),
+        autres_competences: d.autres_competences || '',
+        commentaire: d.commentaire || '',
+        confidentialite: d.confidentialite || false,
+      }
+      setDossier(loaded)
+      setOriginalDossier(loaded)
 
-            // Backfill AQBRS si compétence RS remplie et AQBRS pas encore lié
-            if ((d.competence_rs || []).length > 0 && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
-              await supabase.from('reserviste_organisations').insert({
-                benevole_id: reservisteData.benevole_id,
-                organisation_id: AQBRS_ORG_ID
-              })
-              setMyOrgIds(prev => [...prev, AQBRS_ORG_ID])
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Erreur chargement dossier:', error)
+      // Backfill AQBRS si compétence RS ou groupe de recherche rempli
+      if (((d.competence_rs || []).length > 0 || (d.groupe_recherche || '').length > 0) && !linkedOrgIds.includes(AQBRS_ORG_ID)) {
+        await supabase.from('reserviste_organisations').insert({
+          benevole_id: reservisteData.benevole_id,
+          organisation_id: AQBRS_ORG_ID
+        })
+        setMyOrgIds(prev => [...prev, AQBRS_ORG_ID])
       }
     }
     loadData()
@@ -623,44 +638,40 @@ function DossierPage() {
     setSaveMessage(null)
 
     try {
-      // ── Dossier principal (Monday via n8n) ──────────────────────────────────
+      // ── Dossier principal (Supabase direct) ─────────────────────────────────
       if (hasChanges) {
-        const response = await fetch(n8nUrl('/webhook/riusc-update-dossier'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            dossier: {
-              grandeur_bottes: dossier.grandeur_bottes,
-              j_ai_18_ans: dossier.j_ai_18_ans,
-              allergies_alimentaires: dossier.allergies_alimentaires,
-              allergies_autres: dossier.allergies_autres,
-              problemes_sante: dossier.problemes_sante,
-              groupe_sanguin: dossier.groupe_sanguin && GROUPE_SANGUIN_MAP[dossier.groupe_sanguin] ? [GROUPE_SANGUIN_MAP[dossier.groupe_sanguin]] : [],
-              competence_rs: dossier.competence_rs,
-              certificat_premiers_soins: dossier.certificat_premiers_soins,
-              date_expiration_certificat: dossier.date_expiration_certificat,
-              vehicule_tout_terrain: dossier.vehicule_tout_terrain,
-              navire_marin: dossier.navire_marin,
-              permis_conduire: dossier.permis_conduire,
-              disponible_covoiturage: dossier.disponible_covoiturage,
-              satp_drone: dossier.satp_drone,
-              equipe_canine: dossier.equipe_canine,
-              competences_securite: dossier.competences_securite,
-              competences_sauvetage: dossier.competences_sauvetage,
-              certification_csi: dossier.certification_csi,
-              communication: dossier.communication,
-              cartographie_sig: dossier.cartographie_sig,
-              operation_urgence: dossier.operation_urgence,
-              autres_competences: dossier.autres_competences,
-              commentaire: dossier.commentaire,
-              confidentialite: dossier.confidentialite,
-            }
+        const { error: dossierError } = await supabase
+          .from('reservistes')
+          .update({
+            grandeur_bottes: dossier.grandeur_bottes || null,
+            j_ai_18_ans: dossier.j_ai_18_ans,
+            allergies_alimentaires: dossier.allergies_alimentaires || null,
+            allergies_autres: dossier.allergies_autres || null,
+            problemes_sante: dossier.problemes_sante || null,
+            groupe_sanguin: dossier.groupe_sanguin || null,
+            competence_rs: idsToLabels('competence_rs', dossier.competence_rs),
+            certificat_premiers_soins: idsToLabels('certificat_premiers_soins', dossier.certificat_premiers_soins),
+            date_expiration_certificat: dossier.date_expiration_certificat || null,
+            vehicule_tout_terrain: idsToLabels('vehicule_tout_terrain', dossier.vehicule_tout_terrain),
+            navire_marin: idsToLabels('navire_marin', dossier.navire_marin),
+            permis_conduire: idsToLabels('permis_conduire', dossier.permis_conduire),
+            disponible_covoiturage: idsToLabels('disponible_covoiturage', dossier.disponible_covoiturage),
+            satp_drone: idsToLabels('satp_drone', dossier.satp_drone),
+            equipe_canine: idsToLabels('equipe_canine', dossier.equipe_canine),
+            competences_securite: idsToLabels('competences_securite', dossier.competences_securite),
+            competences_sauvetage: idsToLabels('competences_sauvetage', dossier.competences_sauvetage),
+            certification_csi: idsToLabels('certification_csi', dossier.certification_csi),
+            communication: idsToLabels('communication', dossier.communication),
+            cartographie_sig: idsToLabels('cartographie_sig', dossier.cartographie_sig),
+            operation_urgence: idsToLabels('operation_urgence', dossier.operation_urgence),
+            autres_competences: dossier.autres_competences || null,
+            commentaire: dossier.commentaire || null,
+            confidentialite: dossier.confidentialite,
           })
-        })
-        const data = await response.json()
-        if (!data.success) {
-          setSaveMessage({ type: 'error', text: data.error || 'Erreur lors de la sauvegarde' })
+          .eq('benevole_id', reserviste.benevole_id)
+
+        if (dossierError) {
+          setSaveMessage({ type: 'error', text: dossierError.message || 'Erreur lors de la sauvegarde' })
           setSaving(false)
           return
         }
