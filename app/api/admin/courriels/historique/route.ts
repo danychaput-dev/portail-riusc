@@ -29,11 +29,29 @@ export async function GET(req: NextRequest) {
     if (!benevole_id) return NextResponse.json({ error: 'benevole_id requis' }, { status: 400 })
 
     // Utiliser service_role pour que tous les admins voient tous les courriels
-    const { data: courriels, error } = await supabaseAdmin
+    // Essayer avec has_reply d'abord, fallback sans si la colonne n'existe pas encore
+    let courriels: any[] | null = null
+    let error: any = null
+
+    const result1 = await supabaseAdmin
       .from('courriels')
       .select('id, campagne_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, resend_id, body_html, envoye_par, pieces_jointes, has_reply')
       .eq('benevole_id', benevole_id)
       .order('created_at', { ascending: false })
+
+    if (result1.error && result1.error.message?.includes('has_reply')) {
+      // Colonne pas encore créée — requête sans
+      const result2 = await supabaseAdmin
+        .from('courriels')
+        .select('id, campagne_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, resend_id, body_html, envoye_par, pieces_jointes')
+        .eq('benevole_id', benevole_id)
+        .order('created_at', { ascending: false })
+      courriels = result2.data
+      error = result2.error
+    } else {
+      courriels = result1.data
+      error = result1.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

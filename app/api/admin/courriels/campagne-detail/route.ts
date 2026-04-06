@@ -39,11 +39,22 @@ export async function GET(req: NextRequest) {
     if (!campagne) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
 
     // Récupérer tous les courriels de la campagne
-    const { data: courriels, error } = await supabaseAdmin
+    let { data: courriels, error } = await supabaseAdmin
       .from('courriels')
       .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject, has_reply')
       .eq('campagne_id', campagneId)
       .order('created_at', { ascending: true })
+
+    // Fallback si has_reply n'existe pas encore
+    if (error && error.message?.includes('has_reply')) {
+      const r2 = await supabaseAdmin
+        .from('courriels')
+        .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject')
+        .eq('campagne_id', campagneId)
+        .order('created_at', { ascending: true })
+      courriels = r2.data
+      error = r2.error
+    }
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -60,19 +71,23 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Récupérer les réponses liées aux courriels de cette campagne
+    // Récupérer les réponses liées aux courriels de cette campagne (défensif)
     const courrielIds = (courriels || []).map(c => c.id).filter(Boolean)
     let reponsesMap = new Map<string, any[]>()
     if (courrielIds.length > 0) {
-      const { data: reponses } = await supabaseAdmin
-        .from('courriel_reponses')
-        .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
-        .in('courriel_id', courrielIds)
-        .order('created_at', { ascending: true })
-      for (const rep of reponses || []) {
-        const list = reponsesMap.get(rep.courriel_id) || []
-        list.push(rep)
-        reponsesMap.set(rep.courriel_id, list)
+      try {
+        const { data: reponses } = await supabaseAdmin
+          .from('courriel_reponses')
+          .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
+          .in('courriel_id', courrielIds)
+          .order('created_at', { ascending: true })
+        for (const rep of reponses || []) {
+          const list = reponsesMap.get(rep.courriel_id) || []
+          list.push(rep)
+          reponsesMap.set(rep.courriel_id, list)
+        }
+      } catch {
+        // Table courriel_reponses pas encore créée — on continue sans
       }
     }
 

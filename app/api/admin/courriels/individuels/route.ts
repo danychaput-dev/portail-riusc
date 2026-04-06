@@ -32,9 +32,12 @@ export async function GET(req: NextRequest) {
     const dateTo = req.nextUrl.searchParams.get('to') || ''
     const limit = parseInt(req.nextUrl.searchParams.get('limit') || '100')
 
+    const selectCols = 'id, benevole_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, body_html, pieces_jointes, envoye_par, has_reply'
+    const selectColsFallback = 'id, benevole_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, body_html, pieces_jointes, envoye_par'
+
     let query = supabaseAdmin
       .from('courriels')
-      .select('id, benevole_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, body_html, pieces_jointes, envoye_par, has_reply')
+      .select(selectCols)
       .is('campagne_id', null)
       .order('created_at', { ascending: false })
       .limit(limit)
@@ -42,7 +45,23 @@ export async function GET(req: NextRequest) {
     if (dateFrom) query = query.gte('created_at', `${dateFrom}T00:00:00`)
     if (dateTo) query = query.lte('created_at', `${dateTo}T23:59:59`)
 
-    const { data: courriels, error } = await query
+    let { data: courriels, error } = await query
+
+    // Fallback si has_reply n'existe pas encore
+    if (error && error.message?.includes('has_reply')) {
+      let q2 = supabaseAdmin
+        .from('courriels')
+        .select(selectColsFallback)
+        .is('campagne_id', null)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+      if (dateFrom) q2 = q2.gte('created_at', `${dateFrom}T00:00:00`)
+      if (dateTo) q2 = q2.lte('created_at', `${dateTo}T23:59:59`)
+      const r2 = await q2
+      courriels = r2.data
+      error = r2.error
+    }
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     // Enrichir avec le nom du réserviste
@@ -68,21 +87,25 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Récupérer les réponses liées à ces courriels
+    // Récupérer les réponses liées à ces courriels (défensif si table pas encore créée)
     const courrielIds = enriched.map(c => c.id).filter(Boolean)
     if (courrielIds.length > 0) {
-      const { data: reponses } = await supabaseAdmin
-        .from('courriel_reponses')
-        .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
-        .in('courriel_id', courrielIds)
-        .order('created_at', { ascending: true })
-      const repMap = new Map<string, any[]>()
-      for (const rep of reponses || []) {
-        const list = repMap.get(rep.courriel_id) || []
-        list.push(rep)
-        repMap.set(rep.courriel_id, list)
+      try {
+        const { data: reponses } = await supabaseAdmin
+          .from('courriel_reponses')
+          .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
+          .in('courriel_id', courrielIds)
+          .order('created_at', { ascending: true })
+        const repMap = new Map<string, any[]>()
+        for (const rep of reponses || []) {
+          const list = repMap.get(rep.courriel_id) || []
+          list.push(rep)
+          repMap.set(rep.courriel_id, list)
+        }
+        enriched = enriched.map(c => ({ ...c, reponses: repMap.get(c.id) || [] }))
+      } catch {
+        // Table courriel_reponses pas encore créée — on continue sans
       }
-      enriched = enriched.map(c => ({ ...c, reponses: repMap.get(c.id) || [] }))
     }
 
     return NextResponse.json({ courriels: enriched })
