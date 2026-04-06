@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     // Récupérer tous les courriels de la campagne
     const { data: courriels, error } = await supabaseAdmin
       .from('courriels')
-      .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject')
+      .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject, has_reply')
       .eq('campagne_id', campagneId)
       .order('created_at', { ascending: true })
 
@@ -60,6 +60,22 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Récupérer les réponses liées aux courriels de cette campagne
+    const courrielIds = (courriels || []).map(c => c.id).filter(Boolean)
+    let reponsesMap = new Map<string, any[]>()
+    if (courrielIds.length > 0) {
+      const { data: reponses } = await supabaseAdmin
+        .from('courriel_reponses')
+        .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
+        .in('courriel_id', courrielIds)
+        .order('created_at', { ascending: true })
+      for (const rep of reponses || []) {
+        const list = reponsesMap.get(rep.courriel_id) || []
+        list.push(rep)
+        reponsesMap.set(rep.courriel_id, list)
+      }
+    }
+
     const enriched = (courriels || []).map(c => {
       const r = nameMap.get(c.benevole_id)
       return {
@@ -67,6 +83,7 @@ export async function GET(req: NextRequest) {
         prenom: r?.prenom || '',
         nom: r?.nom || '',
         nom_complet: r ? `${r.prenom} ${r.nom}` : c.to_email,
+        reponses: reponsesMap.get(c.id) || [],
       }
     })
 

@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabaseAdmin
       .from('courriels')
-      .select('id, benevole_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, body_html, pieces_jointes, envoye_par')
+      .select('id, benevole_id, subject, from_name, from_email, to_email, statut, ouvert_at, clics_count, created_at, body_html, pieces_jointes, envoye_par, has_reply')
       .is('campagne_id', null)
       .order('created_at', { ascending: false })
       .limit(limit)
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
         .in('benevole_id', bIds)
       for (const r of reservistes || []) nameMap.set(r.benevole_id, `${r.prenom} ${r.nom}`)
     }
-    let enriched = raw.map(c => ({ ...c, nom_complet: nameMap.get(c.benevole_id) || c.to_email }))
+    let enriched: any[] = raw.map(c => ({ ...c, nom_complet: nameMap.get(c.benevole_id) || c.to_email }))
 
     // Filtre recherche côté serveur (nom ou courriel)
     if (search) {
@@ -66,6 +66,23 @@ export async function GET(req: NextRequest) {
         (c.to_email || '').toLowerCase().includes(s) ||
         (c.subject || '').toLowerCase().includes(s)
       )
+    }
+
+    // Récupérer les réponses liées à ces courriels
+    const courrielIds = enriched.map(c => c.id).filter(Boolean)
+    if (courrielIds.length > 0) {
+      const { data: reponses } = await supabaseAdmin
+        .from('courriel_reponses')
+        .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at')
+        .in('courriel_id', courrielIds)
+        .order('created_at', { ascending: true })
+      const repMap = new Map<string, any[]>()
+      for (const rep of reponses || []) {
+        const list = repMap.get(rep.courriel_id) || []
+        list.push(rep)
+        repMap.set(rep.courriel_id, list)
+      }
+      enriched = enriched.map(c => ({ ...c, reponses: repMap.get(c.id) || [] }))
     }
 
     return NextResponse.json({ courriels: enriched })

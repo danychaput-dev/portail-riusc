@@ -28,6 +28,19 @@ interface CampagneStats {
   }
 }
 
+interface ReponseInline {
+  id: string
+  courriel_id: string | null
+  from_email: string
+  from_name: string | null
+  subject: string | null
+  body_text: string | null
+  body_html: string | null
+  pieces_jointes: any[]
+  statut: string
+  created_at: string
+}
+
 interface Destinataire {
   id: string
   benevole_id: string
@@ -41,6 +54,8 @@ interface Destinataire {
   nom: string
   body_html?: string
   subject?: string
+  has_reply?: boolean
+  reponses?: ReponseInline[]
 }
 
 interface CourrielIndividuel {
@@ -57,6 +72,8 @@ interface CourrielIndividuel {
   body_html: string
   pieces_jointes: string[] | null
   nom_complet: string
+  has_reply?: boolean
+  reponses?: ReponseInline[]
 }
 
 type ActiveTab = 'campagnes' | 'individuels' | 'reponses'
@@ -473,7 +490,7 @@ export default function CampagnesPage() {
                                 </button>
                               </div>
 
-                              {/* Table destinataires */}
+                              {/* Table destinataires + réponses en fil */}
                               <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', backgroundColor: '#f1f5f9', padding: '8px 12px', fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>
                                   <div>Nom</div>
@@ -484,22 +501,63 @@ export default function CampagnesPage() {
                                   <div style={{ textAlign: 'center' }}>Action</div>
                                 </div>
                                 {campagneDetail.destinataires.map(d => (
-                                  <div key={d.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: 'white', alignItems: 'center' }}>
-                                    <div style={{ fontWeight: '500', color: '#1f2937' }}>{d.nom_complet}</div>
-                                    <div style={{ color: '#6b7280', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.to_email}</div>
-                                    <div>{statutBadge(d.statut)}</div>
-                                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{d.ouvert_at ? formatDateTime(d.ouvert_at) : '—'}</div>
-                                    <div style={{ textAlign: 'center', fontSize: '12px', color: d.clics_count > 0 ? '#1e40af' : '#9ca3af', fontWeight: d.clics_count > 0 ? '700' : '400' }}>
-                                      {d.clics_count > 0 ? d.clics_count : '—'}
+                                  <div key={d.id}>
+                                    {/* Ligne destinataire */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: 'white', alignItems: 'center' }}>
+                                      <div style={{ fontWeight: '500', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {d.nom_complet}
+                                        {d.reponses && d.reponses.length > 0 && (
+                                          <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                                            💬 {d.reponses.length}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div style={{ color: '#6b7280', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.to_email}</div>
+                                      <div>{statutBadge(d.statut)}</div>
+                                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{d.ouvert_at ? formatDateTime(d.ouvert_at) : '—'}</div>
+                                      <div style={{ textAlign: 'center', fontSize: '12px', color: d.clics_count > 0 ? '#1e40af' : '#9ca3af', fontWeight: d.clics_count > 0 ? '700' : '400' }}>
+                                        {d.clics_count > 0 ? d.clics_count : '—'}
+                                      </div>
+                                      <div style={{ textAlign: 'center' }}>
+                                        <button
+                                          onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject)}
+                                          style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
+                                        >
+                                          ↩ Reply
+                                        </button>
+                                      </div>
                                     </div>
-                                    <div style={{ textAlign: 'center' }}>
-                                      <button
-                                        onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject)}
-                                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
-                                      >
-                                        ↩ Reply
-                                      </button>
-                                    </div>
+                                    {/* Réponses en fil (retrait) */}
+                                    {d.reponses && d.reponses.map(rep => (
+                                      <div key={rep.id} style={{ borderTop: '1px solid #f3f4f6', backgroundColor: '#f8fafc', padding: '10px 12px 10px 36px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                        <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>↳</span>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af' }}>
+                                              📨 Réponse de {rep.from_name || rep.from_email}
+                                            </span>
+                                            {reponseStatutBadge(rep.statut)}
+                                            <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                                              {formatDateTime(rep.created_at)}
+                                            </span>
+                                          </div>
+                                          {rep.subject && <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>{rep.subject}</div>}
+                                          <div
+                                            style={{ fontSize: '12px', color: '#4b5563', lineHeight: '1.5', maxHeight: '120px', overflowY: 'auto', whiteSpace: rep.body_html ? undefined : 'pre-wrap' }}
+                                            dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
+                                          >
+                                            {!rep.body_html ? (rep.body_text || '') : undefined}
+                                          </div>
+                                          {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
+                                            <div style={{ marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                              {rep.pieces_jointes.map((att: any, i: number) => (
+                                                <span key={i} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#475569' }}>📎 {att.filename || 'fichier'}</span>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 ))}
                               </div>
@@ -554,8 +612,13 @@ export default function CampagnesPage() {
                           <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '13px' }}>{c.nom_complet}</div>
                           <div style={{ fontSize: '11px', color: '#9ca3af' }}>{c.to_email}</div>
                         </div>
-                        <div style={{ fontSize: '13px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: '13px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {c.subject}
+                          {c.reponses && c.reponses.length > 0 && (
+                            <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1e40af', flexShrink: 0 }}>
+                              💬 {c.reponses.length}
+                            </span>
+                          )}
                         </div>
                         <div>{statutBadge(c.statut)}</div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(c.created_at)}</div>
@@ -598,6 +661,40 @@ export default function CampagnesPage() {
                               ↩ Répondre
                             </button>
                           </div>
+
+                          {/* Réponses en fil */}
+                          {c.reponses && c.reponses.length > 0 && (
+                            <div style={{ marginTop: '16px' }}>
+                              <div style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.03em' }}>
+                                💬 {c.reponses.length} réponse{c.reponses.length > 1 ? 's' : ''}
+                              </div>
+                              {c.reponses.map((rep: ReponseInline) => (
+                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: '3px solid #bfdbfe', paddingLeft: '14px', marginBottom: '10px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af' }}>
+                                      📨 {rep.from_name || rep.from_email}
+                                    </span>
+                                    {reponseStatutBadge(rep.statut)}
+                                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>{formatDateTime(rep.created_at)}</span>
+                                  </div>
+                                  {rep.subject && <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px', fontWeight: '500' }}>{rep.subject}</div>}
+                                  <div
+                                    style={{ fontSize: '13px', color: '#374151', lineHeight: '1.6', padding: '12px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', maxHeight: '200px', overflowY: 'auto', whiteSpace: rep.body_html ? undefined : 'pre-wrap' }}
+                                    dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
+                                  >
+                                    {!rep.body_html ? (rep.body_text || '') : undefined}
+                                  </div>
+                                  {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
+                                    <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                      {rep.pieces_jointes.map((att: any, i: number) => (
+                                        <span key={i} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#475569' }}>📎 {att.filename || 'fichier'}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
