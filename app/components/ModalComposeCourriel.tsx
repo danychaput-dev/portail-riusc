@@ -113,19 +113,41 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     setSending(true)
     setError(null)
     try {
+      const payload = JSON.stringify({
+        destinataires,
+        subject,
+        body_html: bodyHtml.replace(/\n/g, '<br/>'),
+        attachments: attachments.map(a => ({
+          filename: a.filename,
+          content: a.base64,
+        })),
+      })
+
+      // Vérifier la taille avant envoi (Vercel limite à ~4.5 MB)
+      const payloadSizeMB = new Blob([payload]).size / (1024 * 1024)
+      if (payloadSizeMB > 4) {
+        setError(`Le message est trop volumineux (${payloadSizeMB.toFixed(1)} MB). Réduisez la taille des pièces jointes (max ~4 MB au total).`)
+        setSending(false)
+        return
+      }
+
       const res = await fetch('/api/admin/courriels/envoyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          destinataires,
-          subject,
-          body_html: bodyHtml.replace(/\n/g, '<br/>'),
-          attachments: attachments.map(a => ({
-            filename: a.filename,
-            content: a.base64,
-          })),
-        }),
+        body: payload,
       })
+
+      // Gérer les réponses non-JSON (ex: erreur Vercel "Request Entity Too Large")
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.includes('application/json')) {
+        const text = await res.text()
+        setError(text.includes('Entity Too Large') || text.includes('too large')
+          ? 'Le message est trop volumineux. Réduisez la taille des pièces jointes.'
+          : `Erreur serveur: ${text.slice(0, 200)}`)
+        setSending(false)
+        return
+      }
+
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Erreur lors de l\'envoi'); setSending(false); return }
 

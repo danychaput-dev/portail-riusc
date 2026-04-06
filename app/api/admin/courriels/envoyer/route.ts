@@ -224,6 +224,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, envoyes, echoues, resultats, campagne_id })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('❌ Erreur envoi courriel:', err)
+    // Vérifier si c'est un problème de parsing JSON du body
+    const msg = err.message || 'Erreur inconnue'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
