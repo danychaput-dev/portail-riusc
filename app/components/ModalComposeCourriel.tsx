@@ -54,12 +54,13 @@ interface Props {
   destinataires: Destinataire[]
   onClose: () => void
   onSent?: (resultats: { envoyes: number; echoues: number }) => void
+  initialSubject?: string
 }
 
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template'
 
-export default function ModalComposeCourriel({ destinataires, onClose, onSent }: Props) {
-  const [subject, setSubject] = useState('')
+export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject }: Props) {
+  const [subject, setSubject] = useState(initialSubject || '')
   const [bodyHtml, setBodyHtml] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
