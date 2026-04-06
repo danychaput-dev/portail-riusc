@@ -196,9 +196,26 @@ export async function POST(req: NextRequest) {
     const courrielId = extractCourrielIdFromAddress(toAddresses)
 
     // Récupérer le contenu de l'email :
-    // 1) D'abord depuis le payload webhook (Resend inbound inclut html/text)
-    // 2) Fallback vers l'API Resend si absent du payload
+    // 1) D'abord depuis le payload webhook (Resend inbound DEVRAIT inclure html/text)
+    // 2) Chercher dans tous les champs possibles du payload
+    // 3) Fallback vers l'API Resend si absent du payload
     let content = { html: data.html || null, text: data.text || null }
+
+    // Fallback: certains webhooks mettent le contenu dans data.body, data.body_html, data.body_text, etc.
+    if (!content.html && !content.text) {
+      content.html = data.body_html || data.body || data.content?.html || data.email?.html || null
+      content.text = data.body_text || data.content?.text || data.email?.text || data.plain_text || null
+    }
+
+    // Log exhaustif pour diagnostiquer les champs du payload
+    console.log(`📩 Payload data keys: [${Object.keys(data).join(', ')}]`)
+    console.log(`📩 Content trouvé dans payload: html=${!!content.html} (${content.html?.length || 0}), text=${!!content.text} (${content.text?.length || 0})`)
+    if (!content.html && !content.text) {
+      // Dumper les 500 premiers chars du payload pour debug
+      const payloadStr = JSON.stringify(data).slice(0, 500)
+      console.log(`⚠️ AUCUN CONTENU dans le payload. Payload (500 chars): ${payloadStr}`)
+    }
+
     if (!content.html && !content.text && resendEmailId) {
       content = await fetchEmailContent(resendEmailId)
     }
