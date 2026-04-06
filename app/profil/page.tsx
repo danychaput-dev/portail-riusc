@@ -2498,7 +2498,6 @@ function ProfilPage() {
         </div>
       </main>
 
-      {!isViewingOther && <ImpersonateBanner position="bottom" />}
     </div>
   )
 }

@@ -418,8 +418,6 @@ export default function DisponibilitesPage() {
         </div>
       </main>
 
-      <ImpersonateBanner position="bottom" />
-
       {demoToast && (
         <div style={{ position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)', backgroundColor: '#1e3a5f', color: 'white', padding: '14px 24px', borderRadius: '10px', fontSize: '14px', fontWeight: '500', zIndex: 10000, boxShadow: '0 4px 20px rgba(0,0,0,0.25)', maxWidth: '500px', textAlign: 'center' }}>
           {demoToast}
