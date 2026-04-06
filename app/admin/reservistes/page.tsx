@@ -181,6 +181,7 @@ function ReservistesPage() {
   const [recherche,      setRecherche]      = useState('')
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(defaultGroupes)
   const [viewResetKey, setViewResetKey] = useState(0)
+  const lastFetchKey = useRef('')
   const [exporting,      setExporting]      = useState(false)
   const [sortKey,        setSortKey]        = useState<SortKey>('nom')
   const [sortDir,        setSortDir]        = useState<SortDir>('asc')
@@ -239,11 +240,10 @@ function ReservistesPage() {
     init()
   }, [])
 
-  // Charger à chaque changement de recherche ou groupes
+  // Charger à chaque changement de recherche ou groupes (params serveur uniquement)
   useEffect(() => {
     if (!authorized) return
     const timer = setTimeout(async () => {
-      setLoading(true)
       const params = new URLSearchParams()
       if (recherche) params.set('recherche', recherche)
       if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
@@ -256,10 +256,15 @@ function ReservistesPage() {
       if (urlCampStatut) params.set('camp_statut', urlCampStatut)
       if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
       if (urlStatut) params.set('statut', urlStatut)
-      const res = await fetch(`/api/admin/reservistes?${params}`)
+      const key = params.toString()
+      // Skip fetch si les params serveur n'ont pas changé (ex: changement de vue avec mêmes groupes)
+      if (key === lastFetchKey.current && rawData.length > 0) return
+      setLoading(true)
+      const res = await fetch(`/api/admin/reservistes?${key}`)
       const json = await res.json()
       setRawData(json.data || [])
       setTotal(json.total || 0)
+      lastFetchKey.current = key
       setLoading(false)
     }, recherche ? 350 : 0)
     return () => clearTimeout(timer)
