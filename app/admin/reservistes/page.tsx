@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { formatPhone } from '@/utils/phone'
 import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 import ModalReserviste from '@/app/components/ModalReserviste'
+import SavedViewsBar, { type VueFiltres } from '@/app/components/SavedViewsBar'
 
 const C = '#1e3a5f'
 
@@ -345,6 +346,31 @@ function ReservistesPage() {
       setSelectedIds(new Set(data.map(r => r.benevole_id)))
       setSelectedDestinataires(new Map(data.map(r => [r.benevole_id, { benevole_id: r.benevole_id, email: r.email, prenom: r.prenom, nom: r.nom }])))
     }
+  }
+
+  // ─── Vues sauvegardées ───
+  const getCurrentFilters = (): VueFiltres => ({
+    recherche,
+    groupes: groupesFiltres,
+    sortKey,
+    sortDir,
+    filtreBottes,
+    filtreOrganisme,
+    filtreGroupeRS,
+    filtresReadiness,
+    filtreDeployable,
+  })
+
+  const loadViewFilters = (f: VueFiltres) => {
+    if (f.recherche !== undefined) setRecherche(f.recherche || '')
+    if (f.groupes) setGroupesFiltres(f.groupes)
+    if (f.sortKey) setSortKey(f.sortKey as SortKey)
+    if (f.sortDir) setSortDir(f.sortDir as SortDir)
+    if (f.filtreBottes !== undefined) setFiltreBottes(f.filtreBottes)
+    if (f.filtreOrganisme !== undefined) setFiltreOrganisme(f.filtreOrganisme || '')
+    if (f.filtreGroupeRS !== undefined) setFiltreGroupeRS(f.filtreGroupeRS || '')
+    if (f.filtresReadiness) setFiltresReadiness(f.filtresReadiness as Record<ReadinessKey, FilterState>)
+    if (f.filtreDeployable !== undefined) setFiltreDeployable(f.filtreDeployable as FilterState)
   }
 
   const getDestinatairesFromSelection = () =>
@@ -741,6 +767,10 @@ function ReservistesPage() {
             </button>
           )}
         </div>
+
+        {/* Vues sauvegardées */}
+        <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} />
+
       </div>{/* Fin zone fixe */}
 
         {/* Tableau — zone scrollable */}
