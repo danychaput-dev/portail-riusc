@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
   const campSession  = searchParams.get('camp_session')
   const campStatut   = searchParams.get('camp_statut')
   const statut       = searchParams.get('statut')
+  const ids          = searchParams.get('ids')
 
   let query = supabaseAdmin
     .from('reservistes')
@@ -50,6 +51,86 @@ export async function GET(req: NextRequest) {
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
+
+  // Export par IDs spécifiques (sélection)
+  if (ids) {
+    const idList = ids.split(',').filter(Boolean)
+    if (idList.length > 0) {
+      // Supabase .in() max ~300 items — batch if needed
+      let allData: any[] = []
+      for (let i = 0; i < idList.length; i += 300) {
+        const batch = idList.slice(i, i + 300)
+        const { data: batchData } = await supabaseAdmin
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche')
+          .in('benevole_id', batch)
+          .order('nom')
+        if (batchData) allData = allData.concat(batchData)
+      }
+      // Skip all other filters, jump directly to enrichment + export
+      // We need to set reservistes and skip the normal query
+      const { data: orgLinksIds } = await supabaseAdmin
+        .from('reserviste_organisations')
+        .select('benevole_id, organisations (nom)')
+      const orgMapIds: Record<string, string[]> = {}
+      for (const link of (orgLinksIds || [])) {
+        const nom = (link as any).organisations?.nom || ''
+        if (!nom) continue
+        if (!orgMapIds[link.benevole_id]) orgMapIds[link.benevole_id] = []
+        orgMapIds[link.benevole_id].push(nom)
+      }
+      const getOrgPrincipaleIds = (benevoleId: string): string => {
+        const orgs = orgMapIds[benevoleId] || []
+        if (orgs.length === 0) return ''
+        const hasAQBRS = orgs.some(o => o.includes('AQBRS'))
+        return hasAQBRS ? orgs.find(o => o.includes('AQBRS'))! : orgs[0]
+      }
+
+      // Enrichir avec formations
+      const benevoleIdsArr = allData.map(r => r.benevole_id)
+      let formationsMapIds: Record<string, { initiation_sc: boolean; camp: boolean; certifs_en_attente: number; certifs_manquants: number }> = {}
+      for (let i = 0; i < benevoleIdsArr.length; i += 500) {
+        const batch = benevoleIdsArr.slice(i, i + 500)
+        const { data: formations } = await supabaseAdmin
+          .from('formations_benevoles')
+          .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
+          .in('benevole_id', batch)
+        for (const f of (formations || [])) {
+          if (!formationsMapIds[f.benevole_id]) formationsMapIds[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
+          if (f.initiation_sc_completee || (f.source === 'lms' && f.resultat === 'Réussi')) formationsMapIds[f.benevole_id].initiation_sc = true
+          if (f.resultat === 'En attente' && f.certificat_url) formationsMapIds[f.benevole_id].certifs_en_attente++
+          if (f.resultat === 'En attente' && !f.certificat_url) formationsMapIds[f.benevole_id].certifs_manquants++
+        }
+      }
+
+      const enriched = allData.map(r => ({
+        ...r,
+        org_principale: getOrgPrincipaleIds(r.benevole_id),
+        initiation_sc: formationsMapIds[r.benevole_id]?.initiation_sc || false,
+        certifs_en_attente: formationsMapIds[r.benevole_id]?.certifs_en_attente || 0,
+        certifs_manquants: formationsMapIds[r.benevole_id]?.certifs_manquants || 0,
+      }))
+
+      if (format === 'xlsx') {
+        const rows = enriched.map(r => ({
+          'Prénom': r.prenom, 'Nom': r.nom, 'Courriel': r.email,
+          'Téléphone': r.telephone, 'Ville': r.ville, 'Région': r.region,
+          'Organisme': r.org_principale, 'Groupe': r.groupe, 'Statut': r.statut,
+          'Bottes': r.remboursement_bottes_date ? 'Oui' : 'Non',
+          'Antécédents': r.antecedents_statut || '',
+          'Initiation SC': r.initiation_sc ? 'Oui' : 'Non',
+          'Camp': r.camp_qualif_complete ? 'Oui' : 'Non',
+        }))
+        const ws = XLSX.utils.json_to_sheet(rows)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Sélection')
+        const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })
+        return new Response(buf, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="selection-${allData.length}.xlsx"` } })
+      }
+
+      return NextResponse.json(enriched)
+    }
+  }
 
   if (statut) {
     query = query.eq('statut', statut)

@@ -422,23 +422,28 @@ function ReservistesPage() {
   const exporter = async () => {
     setExporting(true)
     const params = new URLSearchParams({ format: 'xlsx' })
-    if (recherche) params.set('recherche', recherche)
-    if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
-    if (urlOrganisme) params.set('organisme', urlOrganisme)
-    if (urlRegion) params.set('region', urlRegion)
-    if (urlAntecedents) params.set('antecedents', urlAntecedents)
-    if (urlBottes) params.set('bottes', urlBottes)
-    if (urlInscritDepuis) params.set('inscrit_depuis', urlInscritDepuis)
-    if (urlCampSession) params.set('camp_session', urlCampSession)
-    if (urlCampStatut) params.set('camp_statut', urlCampStatut)
-    if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
-    if (urlStatut) params.set('statut', urlStatut)
+    // Si des réservistes sont sélectionnés, exporter seulement la sélection
+    if (selectedIds.size > 0) {
+      params.set('ids', [...selectedIds].join(','))
+    } else {
+      if (recherche) params.set('recherche', recherche)
+      if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
+      if (urlOrganisme) params.set('organisme', urlOrganisme)
+      if (urlRegion) params.set('region', urlRegion)
+      if (urlAntecedents) params.set('antecedents', urlAntecedents)
+      if (urlBottes) params.set('bottes', urlBottes)
+      if (urlInscritDepuis) params.set('inscrit_depuis', urlInscritDepuis)
+      if (urlCampSession) params.set('camp_session', urlCampSession)
+      if (urlCampStatut) params.set('camp_statut', urlCampStatut)
+      if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
+      if (urlStatut) params.set('statut', urlStatut)
+    }
     const res  = await fetch(`/api/admin/reservistes?${params}`)
     const blob = await res.blob()
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = `reservistes-${new Date().toISOString().slice(0, 10)}.xlsx`
+    a.download = `reservistes-${selectedIds.size > 0 ? `selection-${selectedIds.size}` : new Date().toISOString().slice(0, 10)}.xlsx`
     a.click()
     URL.revokeObjectURL(url)
     setExporting(false)
@@ -643,7 +648,7 @@ function ReservistesPage() {
                 opacity: data.length === 0 ? 0.5 : 1
               }}
             >
-              {exporting ? '⟳ Export…' : '⬇ Exporter Excel'}
+              {exporting ? '⟳ Export…' : selectedIds.size > 0 ? `⬇ Exporter sélection (${selectedIds.size})` : '⬇ Exporter Excel'}
             </button>
             {canEmail && (
               <button
@@ -829,10 +834,10 @@ function ReservistesPage() {
       </div>{/* Fin zone fixe */}
 
         {/* Tableau — zone scrollable */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '16px', ...(isMobile ? {} : { overflow: 'hidden' }) }}>
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const, display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <div style={{ minWidth: '1280px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '16px', minHeight: 0, ...(isMobile ? {} : { overflow: 'hidden' }) }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as const, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ minWidth: '1280px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           {/* En-tête tableau — figé en haut (ne défile pas) */}
           <div style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
             {/* Ligne 1 : Titres */}
