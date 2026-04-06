@@ -60,8 +60,9 @@ interface Props {
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template'
 
 export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject }: Props) {
+  const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
   const [subject, setSubject] = useState(initialSubject || '')
-  const [bodyHtml, setBodyHtml] = useState('')
+  const [bodyHtml, setBodyHtml] = useState(isReply ? '' : 'Bonjour {{ prenom }},\n\n')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ envoyes: number; echoues: number } | null>(null)
