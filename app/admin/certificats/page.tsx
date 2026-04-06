@@ -18,6 +18,14 @@ interface CertificatEnAttente {
   statut?: 'idle' | 'saving' | 'saved' | 'error'
 }
 
+interface CertificatACompleter {
+  id: string
+  benevole_id: string
+  nom_complet: string
+  nom_formation: string
+  email: string
+}
+
 interface DownloadedFile {
   storagePath: string
   signedUrl: string
@@ -248,7 +256,9 @@ export default function AdminCertificatsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filterNom, setFilterNom] = useState('')
   const [savedCount, setSavedCount] = useState(0)
-  const [activeTab, setActiveTab] = useState<'portail' | 'monday'>('portail')
+  const [activeTab, setActiveTab] = useState<'portail' | 'monday' | 'a_completer'>('portail')
+  const [certifsACompleter, setCertifsACompleter] = useState<CertificatACompleter[]>([])
+  const [filterACompleter, setFilterACompleter] = useState('')
   const [mondayItems, setMondayItems] = useState<MondayItem[]>([])
   const [mondaySelectedId, setMondaySelectedId] = useState<number | null>(null)
   const [mondayViewFileIdx, setMondayViewFileIdx] = useState(0)
@@ -395,6 +405,27 @@ export default function AdminCertificatsPage() {
         }))
         setCertificats(enriched)
       }
+      // Charger les certificats "à compléter" (déclarés sans fichier, certificat requis)
+      const { data: aCompleter } = await supabase
+        .from('formations_benevoles')
+        .select('id, benevole_id, nom_complet, nom_formation')
+        .eq('resultat', 'En attente')
+        .is('certificat_url', null)
+        .is('date_reussite', null)
+        .is('monday_item_id', null)
+        .order('nom_complet')
+      if (aCompleter) {
+        // Enrichir avec email
+        const bIds = [...new Set(aCompleter.map(c => c.benevole_id))]
+        const emailMap = new Map<string, string>()
+        for (let i = 0; i < bIds.length; i += 500) {
+          const batch = bIds.slice(i, i + 500)
+          const { data: res } = await supabase.from('reservistes').select('benevole_id, email').in('benevole_id', batch)
+          for (const r of (res || [])) emailMap.set(r.benevole_id, r.email)
+        }
+        setCertifsACompleter(aCompleter.map(c => ({ ...c, email: emailMap.get(c.benevole_id) || '' })))
+      }
+
       setLoading(false)
     }
     loadData()
@@ -510,7 +541,9 @@ export default function AdminCertificatsPage() {
     )
   }
 
-  const tabBtn = (tab: 'portail' | 'monday', label: string) => (
+  const aCompleterFiltered = certifsACompleter.filter(c => !filterACompleter || c.nom_complet.toLowerCase().includes(filterACompleter.toLowerCase()))
+
+  const tabBtn = (tab: 'portail' | 'monday' | 'a_completer', label: string) => (
     <button onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: activeTab === tab ? '700' : '400', color: activeTab === tab ? '#1e3a5f' : '#6b7280', borderBottom: activeTab === tab ? '2px solid #1e3a5f' : '2px solid transparent', marginBottom: '-2px' }}>
       {label}
     </button>
@@ -528,6 +561,7 @@ export default function AdminCertificatsPage() {
         {/* Onglets */}
         <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: '20px', gap: '4px' }}>
           {tabBtn('portail', `📁 Portail (${pending.length} en attente)`)}
+          {tabBtn('a_completer', `📎 Certificat à ajouter (${certifsACompleter.length})`)}
           {tabBtn('monday', `📋 Monday / Esther (${mondayPendingCount} en attente · ${mondaySavedCount} approuvés)`)}
         </div>
 
@@ -592,6 +626,37 @@ export default function AdminCertificatsPage() {
                     </div>
                   </>
                 )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ════ ONGLET À COMPLÉTER ════ */}
+        {activeTab === 'a_completer' && (
+          <>
+            <p style={{ color: '#6b7280', margin: '0 0 16px', fontSize: '14px' }}>
+              Compétences déclarées par le réserviste dans son profil, mais aucun fichier certificat n'a été soumis. Le réserviste doit téléverser son certificat via son profil.
+            </p>
+            <div style={{ marginBottom: '16px' }}>
+              <input type="text" placeholder="🔍 Filtrer par nom..." value={filterACompleter} onChange={e => setFilterACompleter(e.target.value)} style={{ padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', width: '280px', outline: 'none' }} />
+            </div>
+            <div style={{ maxWidth: '700px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', paddingRight: '4px' }}>
+                {aCompleterFiltered.length === 0 && <div style={{ padding: '40px 20px', textAlign: 'center', color: '#9ca3af', backgroundColor: 'white', borderRadius: '12px' }}>Aucun certificat à compléter</div>}
+                {aCompleterFiltered.map(cert => (
+                  <div key={cert.id} style={{ backgroundColor: 'white', borderRadius: '10px', padding: '14px 16px', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: '600', color: '#111827', fontSize: '14px', marginBottom: '2px' }}>{cert.nom_complet}</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cert.nom_formation}</div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>{cert.email}</div>
+                      </div>
+                      <span style={{ fontSize: '11px', backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', whiteSpace: 'nowrap', fontWeight: '600', flexShrink: 0 }}>
+                        Fichier manquant
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </>

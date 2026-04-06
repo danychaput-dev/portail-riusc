@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
       const batch = benevoleIds.slice(i, i + 500)
       const { data: formations } = await supabaseAdmin
         .from('formations_benevoles')
-        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee')
+        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
         .in('benevole_id', batch)
       for (const f of (formations || [])) {
         if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0 }
@@ -190,7 +190,8 @@ export async function GET(req: NextRequest) {
         if (f.resultat === 'Réussi') {
           if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
           if (cat.includes('camp de qualification')) formationsMap[f.benevole_id].camp = true
-        } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
+        } else if ((f.resultat === 'En attente' || f.resultat === 'Soumis') && f.certificat_url) {
+          // Ne compter que les certificats réellement soumis (avec fichier)
           formationsMap[f.benevole_id].certifs_en_attente++
         }
       }
