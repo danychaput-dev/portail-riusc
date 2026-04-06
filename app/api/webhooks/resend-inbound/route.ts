@@ -57,24 +57,63 @@ function extractCourrielIdFromAddress(toAddresses: string[]): string | null {
  * Récupérer le contenu complet d'un email INBOUND via l'API Resend Receiving
  * Endpoint: GET /emails/receiving/{id} (PAS /emails/{id} qui est pour les outbound)
  * Le webhook ne contient que les métadonnées — le body doit être fetché séparément
+ * Retry avec délai car le contenu peut ne pas être prêt immédiatement
  */
-async function fetchEmailContent(emailId: string): Promise<{ html: string | null; text: string | null }> {
+async function fetchEmailContent(emailId: string, attempt = 1): Promise<{ html: string | null; text: string | null }> {
+  const MAX_ATTEMPTS = 3
+  const DELAY_MS = 2000
+
   try {
+    console.log(`📥 Fetch inbound email content: ${emailId} (tentative ${attempt}/${MAX_ATTEMPTS})`)
+
     const response = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     })
+
+    const responseText = await response.text()
+
     if (!response.ok) {
-      console.error(`❌ Erreur fetch inbound email ${emailId}: HTTP ${response.status}`, await response.text().catch(() => ''))
+      console.error(`❌ Erreur fetch inbound email ${emailId}: HTTP ${response.status}`, responseText)
+      // Retry si 404 (contenu pas encore prêt)
+      if (response.status === 404 && attempt < MAX_ATTEMPTS) {
+        console.log(`⏳ Contenu pas encore prêt, retry dans ${DELAY_MS}ms...`)
+        await new Promise(resolve => setTimeout(resolve, DELAY_MS))
+        return fetchEmailContent(emailId, attempt + 1)
+      }
       return { html: null, text: null }
     }
-    const data = await response.json()
-    console.log(`✅ Contenu inbound récupéré pour ${emailId}: html=${!!data.html}, text=${!!data.text}`)
-    return {
-      html: data.html || null,
-      text: data.text || null,
+
+    let data: any
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      console.error(`❌ Réponse non-JSON pour ${emailId}:`, responseText.slice(0, 500))
+      return { html: null, text: null }
     }
+
+    // Log la structure complète de la réponse pour debug
+    const keys = Object.keys(data)
+    console.log(`📧 Structure réponse Resend pour ${emailId}: keys=[${keys.join(',')}]`)
+    console.log(`📧 html=${typeof data.html} (${data.html ? data.html.length + ' chars' : 'null'}), text=${typeof data.text} (${data.text ? data.text.length + ' chars' : 'null'})`)
+
+    // Essayer plusieurs structures possibles de la réponse
+    const html = data.html || data.body_html || data.data?.html || null
+    const text = data.text || data.body_text || data.data?.text || data.body || null
+
+    if (!html && !text && attempt < MAX_ATTEMPTS) {
+      console.log(`⏳ Contenu vide, retry dans ${DELAY_MS}ms... (keys: ${keys.join(',')})`)
+      await new Promise(resolve => setTimeout(resolve, DELAY_MS))
+      return fetchEmailContent(emailId, attempt + 1)
+    }
+
+    console.log(`✅ Contenu inbound récupéré pour ${emailId}: html=${!!html} (${html?.length || 0} chars), text=${!!text} (${text?.length || 0} chars)`)
+    return { html, text }
   } catch (err) {
     console.error(`❌ Erreur fetch contenu inbound ${emailId}:`, err)
+    if (attempt < MAX_ATTEMPTS) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_MS))
+      return fetchEmailContent(emailId, attempt + 1)
+    }
     return { html: null, text: null }
   }
 }
@@ -102,7 +141,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payload invalide' }, { status: 400 })
     }
 
-    const resendEmailId = data.email_id
+    // 🔍 Debug logging — afficher toute la structure du payload
+    const payloadKeys = Object.keys(data)
+    console.log(`📩 Webhook inbound payload keys: [${payloadKeys.join(', ')}]`)
+    console.log(`📩 data.email_id=${data.email_id}, data.id=${data.id}`)
+    console.log(`📩 data.html type=${typeof data.html}, data.text type=${typeof data.text}`)
+    if (data.html) console.log(`📩 data.html (${data.html.length} chars): ${data.html.slice(0, 200)}...`)
+    if (data.text) console.log(`📩 data.text (${data.text.length} chars): ${data.text.slice(0, 200)}...`)
+
+    const resendEmailId = data.email_id || data.id
     const from = data.from || ''
     const toAddresses: string[] = Array.isArray(data.to) ? data.to : [data.to].filter(Boolean)
     const subject = data.subject || '(sans objet)'
@@ -153,6 +200,9 @@ export async function POST(req: NextRequest) {
       filename: att.filename,
       content_type: att.content_type,
     }))
+
+    // Log final avant insert
+    console.log(`📝 Insert courriel_reponses: html=${!!content.html} (${content.html?.length || 0} chars), text=${!!content.text} (${content.text?.length || 0} chars), courriel_id=${courrielId}, email_id=${resendEmailId}`)
 
     // Insérer la réponse dans la base de données
     const { data: reponse, error: insertError } = await supabaseAdmin
