@@ -75,17 +75,18 @@ function badgeAntecedents(statut: string | null, dateExpir: string | null) {
   return { couleur: '#d97706', bg: '#fffbeb', label: 'En attente' }
 }
 
-// Readiness helpers — 4 vrais critères de déployabilité
-type ReadinessKey = 'profil' | 'initiation' | 'camp' | 'antecedents'
+// Readiness helpers — 5 critères de déployabilité
+type ReadinessKey = 'profil' | 'initiation' | 'camp' | 'bottes' | 'antecedents'
 const READINESS_STEPS: { key: ReadinessKey; label: string; short: string; icon: string }[] = [
   { key: 'profil',       label: 'Profil complet',          short: 'Profil', icon: '👤' },
   { key: 'initiation',   label: 'Initiation SC complétée', short: 'Init',   icon: '🎓' },
   { key: 'camp',         label: 'Camp de qualification',    short: 'Camp',   icon: '⛺' },
+  { key: 'bottes',       label: 'Bottes remboursées',       short: 'Bottes', icon: '🥾' },
   { key: 'antecedents',  label: 'Antécédents vérifiés',    short: 'Antéc',  icon: '🔍' },
 ]
 
-// Colonnes "Prêt" = les 3 premiers (profil, initiation, camp) — antécédents reste en colonne séparée
-const PRET_STEPS = READINESS_STEPS.filter(s => s.key !== 'antecedents')
+// Colonnes "Prêt" = profil, initiation, camp — bottes et antécédents ont leur propre colonne
+const PRET_STEPS = READINESS_STEPS.filter(s => s.key !== 'antecedents' && s.key !== 'bottes')
 
 function getReadiness(r: Reserviste): Record<ReadinessKey, boolean> {
   const antExpire = r.antecedents_date_expiration && new Date(r.antecedents_date_expiration) < new Date()
@@ -98,6 +99,7 @@ function getReadiness(r: Reserviste): Record<ReadinessKey, boolean> {
     profil: isProfilComplet,
     initiation: r.initiation_sc === true,
     camp: r.camp_complete === true,
+    bottes: !!r.remboursement_bottes_date,
     antecedents: r.antecedents_statut === 'verifie' && !antExpire,
   }
 }
@@ -183,12 +185,11 @@ function ReservistesPage() {
   const [sortDir,        setSortDir]        = useState<SortDir>('asc')
   const [authorized,     setAuthorized]     = useState(false)
   const [userRole,       setUserRole]       = useState<string>('')
-  const [filtreBottes,   setFiltreBottes]   = useState(false)
   const [filtreOrganisme, setFiltreOrganisme] = useState<string>('')
   const [filtreGroupeRS, setFiltreGroupeRS] = useState<string>('')
   // Filtres readiness 3 états : null (off) → 'has' (ceux qui l'ont) → 'missing' (ceux à qui ça manque) → null
   type FilterState = 'has' | 'missing' | null
-  const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, antecedents: null })
+  const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null })
   const [filtreDeployable, setFiltreDeployable] = useState<FilterState>(null)
   const [filtreCertifsManquants, setFiltreCertifsManquants] = useState(false)
   const [filtreCertifsEnAttente, setFiltreCertifsEnAttente] = useState(false)
@@ -219,8 +220,7 @@ function ReservistesPage() {
     setRecherche('')
     setFiltreOrganisme('')
     setFiltreGroupeRS('')
-    setFiltreBottes(false)
-    setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null })
+    setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null })
     setFiltreDeployable(null)
     setFiltreCertifsManquants(false)
     setFiltreCertifsEnAttente(false)
@@ -309,7 +309,6 @@ function ReservistesPage() {
   // Sorted + filtered data
   const data = useMemo(() => {
     let filtered = rawData
-    if (filtreBottes) filtered = filtered.filter(r => r.remboursement_bottes_date)
     if (filtreOrganisme) filtered = filtered.filter(r => (r.org_principale || '').includes(filtreOrganisme))
     if (filtreGroupeRS) filtered = filtered.filter(r => (r.groupe_recherche || '') === filtreGroupeRS)
     // Appliquer tous les filtres readiness actifs (combinés = AND)
@@ -325,7 +324,7 @@ function ReservistesPage() {
     if (filtreCertifsManquants) filtered = filtered.filter(r => r.certifs_manquants > 0)
     if (filtreCertifsEnAttente) filtered = filtered.filter(r => r.certifs_en_attente > 0)
     return sortData(filtered, sortKey, sortDir)
-  }, [rawData, filtreBottes, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, filtreCertifsEnAttente, sortKey, sortDir])
+  }, [rawData, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, filtreCertifsEnAttente, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -393,7 +392,6 @@ function ReservistesPage() {
     groupes: groupesFiltres,
     sortKey,
     sortDir,
-    filtreBottes,
     filtreOrganisme,
     filtreGroupeRS,
     filtresReadiness,
@@ -407,7 +405,8 @@ function ReservistesPage() {
     if (f.groupes) setGroupesFiltres(f.groupes)
     if (f.sortKey) setSortKey(f.sortKey as SortKey)
     if (f.sortDir) setSortDir(f.sortDir as SortDir)
-    if (f.filtreBottes !== undefined) setFiltreBottes(f.filtreBottes)
+    // Rétro-compat : ancien filtreBottes boolean → nouveau filtre readiness
+    if (f.filtreBottes) setFiltresReadiness(prev => ({ ...prev, bottes: 'has' }))
     if (f.filtreOrganisme !== undefined) setFiltreOrganisme(f.filtreOrganisme || '')
     if (f.filtreGroupeRS !== undefined) setFiltreGroupeRS(f.filtreGroupeRS || '')
     if (f.filtresReadiness) setFiltresReadiness(f.filtresReadiness as Record<ReadinessKey, FilterState>)
@@ -532,17 +531,17 @@ function ReservistesPage() {
   // Déployable reste sur Approuvés seulement
   const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
   const readinessStats = useMemo(() => {
-    const stats = { profil: 0, initiation: 0, camp: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0 }
+    const stats = { profil: 0, initiation: 0, camp: 0, bottes: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0 }
     for (const r of rawData) {
       const rd = getReadiness(r)
       if (rd.profil) stats.profil++
       if (rd.initiation) stats.initiation++
       if (rd.camp) stats.camp++
+      if (rd.bottes) stats.bottes++
       if (rd.antecedents) stats.antecedents++
-      // Certificats
+      // Certificats — compter indépendamment (un réserviste peut avoir les deux)
       if (r.certifs_manquants > 0) stats.certifs_manquants++
-      else if (r.certifs_en_attente > 0) stats.certifs_en_attente++
-      // Note: on ne compte pas certifs_ok car un réserviste sans certificat requis n'a rien à montrer
+      if (r.certifs_en_attente > 0) stats.certifs_en_attente++
     }
     // Déployable = seulement les Approuvés qui ont tout
     for (const r of approuves) {
@@ -582,6 +581,7 @@ function ReservistesPage() {
       profil: `${readinessStats.profil}/${total} profils complets\n${profilLines.length > 0 ? 'Manquent :\n' + profilLines.join('\n') : 'Tous les profils sont complets'}`,
       initiation: `${readinessStats.initiation}/${total} ont complété l'initiation SC\n${total - readinessStats.initiation} n'ont pas encore complété`,
       camp: `${readinessStats.camp}/${total} ont fait le camp de qualification\n${total - readinessStats.camp} n'ont pas encore fait le camp`,
+      bottes: `${readinessStats.bottes}/${total} ont leurs bottes remboursées\n${total - readinessStats.bottes} sans bottes`,
       antecedents: `${readinessStats.antecedents}/${total} antécédents vérifiés\n${antManque} en attente de vérification`,
     }
   }, [rawData, baseTotal, readinessStats])
@@ -824,8 +824,8 @@ function ReservistesPage() {
               )}
             </>
           )}
-          {(filtreBottes || filtreOrganisme || filtreGroupeRS || hasAnyReadinessFilter) && (
-            <button onClick={() => { setFiltreBottes(false); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreCertifsEnAttente(false) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
+          {(filtreOrganisme || filtreGroupeRS || hasAnyReadinessFilter) && (
+            <button onClick={() => { setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreCertifsEnAttente(false) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
               ✕ Réinitialiser
             </button>
           )}

@@ -12,7 +12,7 @@ export interface VueFiltres {
   groupes: string[]
   sortKey: string
   sortDir: string
-  filtreBottes: boolean
+  filtreBottes?: boolean  // Déprécié — maintenant dans filtresReadiness.bottes
   filtreOrganisme: string
   filtreGroupeRS: string
   filtresReadiness: Record<string, string | null>
