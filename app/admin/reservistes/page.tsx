@@ -46,6 +46,7 @@ interface Reserviste {
   initiation_sc: boolean
   camp_complete: boolean
   certifs_en_attente: number
+  certifs_manquants: number
   camp_inscrit: boolean
   org_principale: string
   groupe_aqbrs: string
@@ -457,13 +458,17 @@ function ReservistesPage() {
   // Déployable reste sur Approuvés seulement
   const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
   const readinessStats = useMemo(() => {
-    const stats = { profil: 0, initiation: 0, camp: 0, antecedents: 0, deployable: 0 }
+    const stats = { profil: 0, initiation: 0, camp: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0 }
     for (const r of rawData) {
       const rd = getReadiness(r)
       if (rd.profil) stats.profil++
       if (rd.initiation) stats.initiation++
       if (rd.camp) stats.camp++
       if (rd.antecedents) stats.antecedents++
+      // Certificats
+      if (r.certifs_manquants > 0) stats.certifs_manquants++
+      else if (r.certifs_en_attente > 0) stats.certifs_en_attente++
+      // Note: on ne compte pas certifs_ok car un réserviste sans certificat requis n'a rien à montrer
     }
     // Déployable = seulement les Approuvés qui ont tout
     for (const r of approuves) {
@@ -696,6 +701,42 @@ function ReservistesPage() {
               </button>
             )
           })}
+          {/* Indicateur certificats */}
+          {(readinessStats.certifs_manquants > 0 || readinessStats.certifs_en_attente > 0) && (
+            <>
+              <span style={{ color: '#e2e8f0' }}>|</span>
+              {readinessStats.certifs_manquants > 0 && (
+                <span
+                  title={`${readinessStats.certifs_manquants} réserviste${readinessStats.certifs_manquants > 1 ? 's' : ''} avec certificat(s) manquant(s)\nFichier non soumis — visible dans l'onglet "Certificat à ajouter"`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                    border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#dc2626',
+                  }}
+                >
+                  📎 Fichiers manquants
+                  <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#dc2626', color: 'white' }}>
+                    {readinessStats.certifs_manquants}
+                  </span>
+                </span>
+              )}
+              {readinessStats.certifs_en_attente > 0 && (
+                <span
+                  title={`${readinessStats.certifs_en_attente} réserviste${readinessStats.certifs_en_attente > 1 ? 's' : ''} avec certificat(s) en attente d'approbation`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                    border: '1px solid #fde68a', backgroundColor: '#fffbeb', color: '#d97706',
+                  }}
+                >
+                  📄 En attente
+                  <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#d97706', color: 'white' }}>
+                    {readinessStats.certifs_en_attente}
+                  </span>
+                </span>
+              )}
+            </>
+          )}
           {(filtreBottes || filtreOrganisme || filtreGroupeRS || hasAnyReadinessFilter) && (
             <button onClick={() => { setFiltreBottes(false); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, antecedents: null }); setFiltreDeployable(null) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '4px' }}>
               ✕ Réinitialiser
@@ -965,12 +1006,33 @@ function ReservistesPage() {
                       </div>
                     )
                   })}
-                  {r.certifs_en_attente > 0 && (
-                    <span
-                      style={{ fontSize: '11px', marginLeft: '2px' }}
-                      title={`${r.certifs_en_attente} certificat${r.certifs_en_attente > 1 ? 's' : ''} en attente d'approbation`}
-                    >🟡</span>
-                  )}
+                  {/* Pastille certificats : vert = tout OK, jaune = en attente d'approbation, rouge = fichier manquant */}
+                  {(() => {
+                    const manquants = r.certifs_manquants
+                    const enAttente = r.certifs_en_attente
+                    const total = manquants + enAttente
+                    if (total === 0) return null
+                    // Rouge si fichiers manquants, jaune si seulement en attente d'approbation
+                    const hasManquants = manquants > 0
+                    const lines = []
+                    if (manquants > 0) lines.push(`${manquants} certificat${manquants > 1 ? 's' : ''} — fichier manquant`)
+                    if (enAttente > 0) lines.push(`${enAttente} certificat${enAttente > 1 ? 's' : ''} — en attente d'approbation`)
+                    return (
+                      <div
+                        title={lines.join('\n')}
+                        style={{
+                          width: '26px', height: '26px', borderRadius: '6px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '10px', fontWeight: '700',
+                          backgroundColor: hasManquants ? '#fef2f2' : '#fffbeb',
+                          border: `1px solid ${hasManquants ? '#fecaca' : '#fde68a'}`,
+                          color: hasManquants ? '#dc2626' : '#d97706',
+                        }}
+                      >
+                        {total}
+                      </div>
+                    )
+                  })()}
                   {isDeployable(r) && (
                     <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
                   )}

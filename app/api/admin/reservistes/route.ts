@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
 
   // Enrichir avec données de formation (initiation SC + camp + certificats en attente)
   const benevoleIds = reservistes.map(r => r.benevole_id)
-  let formationsMap: Record<string, { initiation_sc: boolean; camp: boolean; certifs_en_attente: number }> = {}
+  let formationsMap: Record<string, { initiation_sc: boolean; camp: boolean; certifs_en_attente: number; certifs_manquants: number }> = {}
   if (benevoleIds.length > 0) {
     for (let i = 0; i < benevoleIds.length; i += 500) {
       const batch = benevoleIds.slice(i, i + 500)
@@ -185,14 +185,19 @@ export async function GET(req: NextRequest) {
         .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
         .in('benevole_id', batch)
       for (const f of (formations || [])) {
-        if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0 }
+        if (!formationsMap[f.benevole_id]) formationsMap[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
         const cat = (f.nom_formation || '').toLowerCase()
         if (f.resultat === 'Réussi') {
           if (f.initiation_sc_completee === true || cat.includes('initier')) formationsMap[f.benevole_id].initiation_sc = true
           if (cat.includes('camp de qualification')) formationsMap[f.benevole_id].camp = true
-        } else if ((f.resultat === 'En attente' || f.resultat === 'Soumis') && f.certificat_url) {
-          // Ne compter que les certificats réellement soumis (avec fichier)
-          formationsMap[f.benevole_id].certifs_en_attente++
+        } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
+          if (f.certificat_url) {
+            // Certificat soumis, en attente d'approbation
+            formationsMap[f.benevole_id].certifs_en_attente++
+          } else {
+            // Compétence déclarée mais aucun fichier soumis
+            formationsMap[f.benevole_id].certifs_manquants++
+          }
         }
       }
     }
@@ -217,6 +222,7 @@ export async function GET(req: NextRequest) {
       initiation_sc: formationsMap[r.benevole_id]?.initiation_sc || false,
       camp_complete: campComplete,
       certifs_en_attente: formationsMap[r.benevole_id]?.certifs_en_attente || 0,
+      certifs_manquants: formationsMap[r.benevole_id]?.certifs_manquants || 0,
       camp_inscrit: !campComplete && campInscritSet.has(r.benevole_id),
       org_principale: getOrgPrincipale(r.benevole_id),
       groupe_aqbrs: getGroupeAQBRS(r.benevole_id),
