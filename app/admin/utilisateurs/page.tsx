@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
-type Role = 'admin' | 'coordonnateur' | 'reserviste'
+type Role = 'admin' | 'coordonnateur' | 'adjoint' | 'reserviste'
 
 interface Utilisateur {
   benevole_id: string
@@ -19,12 +19,14 @@ interface Utilisateur {
 const ROLE_LABELS: Record<Role, string> = {
   admin: '🔴 Admin',
   coordonnateur: '🟡 Coordonnateur',
+  adjoint: '🔵 Adjoint',
   reserviste: '⚪ Réserviste',
 }
 
 const ROLE_COLORS: Record<Role, { bg: string; border: string; text: string }> = {
   admin: { bg: '#fef2f2', border: '#fca5a5', text: '#dc2626' },
   coordonnateur: { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
+  adjoint: { bg: '#eff6ff', border: '#93c5fd', text: '#2563eb' },
   reserviste: { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
 }
 
@@ -178,7 +180,7 @@ export default function AdminUtilisateursPage() {
       const { data } = await supabase
         .from('reservistes')
         .select('benevole_id, prenom, nom, email, role, niveau_ressource')
-        .in('role', ['admin', 'coordonnateur'])
+        .in('role', ['admin', 'coordonnateur', 'adjoint'])
         .order('nom')
 
       setUtilisateurs(data || [])
@@ -233,7 +235,7 @@ export default function AdminUtilisateursPage() {
       .from('reservistes')
       .select('benevole_id, prenom, nom, email, role, niveau_ressource')
       .or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%`)
-      .eq('role', 'reserviste')
+      .in('role', ['reserviste', 'adjoint'])
       .limit(10)
     setResultats(data || [])
     setRechercheEnCours(false)
@@ -269,7 +271,7 @@ export default function AdminUtilisateursPage() {
         <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '24px', overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#1e3a5f', flex: 1 }}>
-              Admins et coordonnateurs ({utilisateurs.length})
+              Admins, coordonnateurs et adjoints ({utilisateurs.length})
             </h2>
             <input
               type="text"
@@ -286,6 +288,7 @@ export default function AdminUtilisateursPage() {
               <option value="tous">Tous les rôles</option>
               <option value="admin">Admin</option>
               <option value="coordonnateur">Coordonnateur</option>
+              <option value="adjoint">Adjoint</option>
             </select>
           </div>
 
@@ -315,6 +318,7 @@ export default function AdminUtilisateursPage() {
                     >
                       <option value="admin">Admin</option>
                       <option value="coordonnateur">Coordonnateur</option>
+                      <option value="adjoint">Adjoint</option>
                       <option value="reserviste">Réserviste (retirer)</option>
                     </select>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -389,6 +393,12 @@ export default function AdminUtilisateursPage() {
                       <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e3a5f' }}>{r.prenom} {r.nom}</div>
                       <div style={{ fontSize: '11px', color: '#6b7280' }}>{r.email}</div>
                     </div>
+                    <button
+                      onClick={() => { changerRole(r.benevole_id, 'adjoint'); setResultats([]); setRecherche(''); setUtilisateurs(prev => [...prev, { ...r, role: 'adjoint' }]) }}
+                      style={{ padding: '4px 10px', backgroundColor: '#eff6ff', border: '1px solid #93c5fd', color: '#2563eb', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      + Adjoint
+                    </button>
                     <button
                       onClick={() => { changerRole(r.benevole_id, 'coordonnateur'); setResultats([]); setRecherche(''); setUtilisateurs(prev => [...prev, { ...r, role: 'coordonnateur' }]) }}
                       style={{ padding: '4px 10px', backgroundColor: '#fffbeb', border: '1px solid #fcd34d', color: '#d97706', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}
