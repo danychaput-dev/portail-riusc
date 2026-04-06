@@ -513,8 +513,8 @@ function ReservistesPage() {
 
   // Columns: [checkbox] Nom Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
   const gridCols = canEmail
-    ? '36px 1.2fr 0.8fr 1.3fr 0.7fr 0.55fr 0.7fr 0.7fr 80px 90px 120px 140px'
-    : '1.2fr 0.8fr 1.3fr 0.7fr 0.55fr 0.7fr 0.7fr 80px 90px 120px 140px'
+    ? '36px 0.8fr 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+    : '0.8fr 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
 
   return (
     <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -734,7 +734,7 @@ function ReservistesPage() {
                 <select
                   value={filtreOrganisme}
                   onChange={e => setFiltreOrganisme(e.target.value)}
-                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreOrganisme ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreOrganisme ? '#eff6ff' : 'white', color: filtreOrganisme ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', minWidth: '160px', maxWidth: '300px' }}
+                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreOrganisme ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreOrganisme ? '#eff6ff' : 'white', color: filtreOrganisme ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', width: '100%', maxWidth: '100%' }}
                 >
                   <option value="">Tous</option>
                   {organismesUniques.map(o => <option key={o} value={o}>{o}</option>)}
@@ -745,14 +745,14 @@ function ReservistesPage() {
                 <select
                   value={filtreGroupeRS}
                   onChange={e => setFiltreGroupeRS(e.target.value)}
-                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreGroupeRS ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreGroupeRS ? '#eff6ff' : 'white', color: filtreGroupeRS ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', minWidth: '120px', maxWidth: '260px' }}
+                  style={{ fontSize: '9px', padding: '1px 2px', borderRadius: '4px', border: `1px solid ${filtreGroupeRS ? '#3b82f6' : '#d1d5db'}`, backgroundColor: filtreGroupeRS ? '#eff6ff' : 'white', color: filtreGroupeRS ? '#1d4ed8' : '#94a3b8', cursor: 'pointer', width: '100%', maxWidth: '100%' }}
                 >
                   <option value="">Tous</option>
                   {groupesRSUniques.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               {/* Bottes — count (adaptatif aux filtres) */}
-              <div style={thSubStyle}>
+              <div style={{ ...thSubStyle, justifyContent: 'center' }}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700' }}>
                   {data.filter(r => r.remboursement_bottes_date).length}
                 </span>
@@ -782,7 +782,7 @@ function ReservistesPage() {
                 })}
               </div>
               {/* Antécédents — count (adaptatif aux filtres) + bouton filtre */}
-              <div style={{ ...thSubStyle, gap: '4px' }}>
+              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px' }}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700' }}>
                   {data.filter(r => r.antecedents_statut === 'verifie').length}
                 </span>
