@@ -599,7 +599,7 @@ export default function CampagnesPage() {
                                           {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
                                             <div style={{ marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                               {rep.pieces_jointes.map((att: any, i: number) => (
-                                                <a key={i} href={`/api/admin/courriels/attachment?email_id=${rep.resend_email_id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#1e40af', textDecoration: 'none', cursor: 'pointer' }}>📎 {att.filename || 'fichier'}</a>
+                                                <a key={i} href={`/api/admin/courriels/attachment?email_id=${rep.resend_email_id || ''}&attachment_id=${att.id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#1e40af', textDecoration: 'none', cursor: 'pointer' }}>📎 {att.filename || 'fichier'}</a>
                                               ))}
                                             </div>
                                           )}

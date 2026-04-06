@@ -54,68 +54,100 @@ function extractCourrielIdFromAddress(toAddresses: string[]): string | null {
 }
 
 /**
- * Récupérer le contenu complet d'un email INBOUND via l'API Resend Receiving
- * Endpoint: GET /emails/receiving/{id} (PAS /emails/{id} qui est pour les outbound)
- * Le webhook ne contient que les métadonnées — le body doit être fetché séparément
+ * Récupérer le contenu complet d'un email INBOUND
+ * Stratégie :
+ *   1) SDK Resend → resend.emails.receiving.get(id)  — endpoint /emails/receiving/{id}
+ *   2) Fallback fetch brut → GET /emails/receiving/{id}
+ *   3) Fallback fetch brut → GET /emails/{id}  (certains exemples Resend l'utilisent)
  * Retry avec délai car le contenu peut ne pas être prêt immédiatement
  */
 async function fetchEmailContent(emailId: string, attempt = 1): Promise<{ html: string | null; text: string | null }> {
   const MAX_ATTEMPTS = 3
-  const DELAY_MS = 2000
+  const DELAY_MS = 2500
 
+  console.log(`📥 Fetch inbound email content: ${emailId} (tentative ${attempt}/${MAX_ATTEMPTS})`)
+
+  // === Méthode 1 : SDK Resend ===
   try {
-    console.log(`📥 Fetch inbound email content: ${emailId} (tentative ${attempt}/${MAX_ATTEMPTS})`)
+    console.log(`📥 [SDK] resend.emails.receiving.get('${emailId}')`)
+    const { data: emailData, error: sdkError } = await resend.emails.receiving.get(emailId)
 
-    const response = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+    if (sdkError) {
+      console.error(`❌ [SDK] Erreur:`, JSON.stringify(sdkError))
+    } else if (emailData) {
+      const keys = Object.keys(emailData)
+      console.log(`📧 [SDK] Réponse keys=[${keys.join(',')}]`)
+      const html = (emailData as any).html || null
+      const text = (emailData as any).text || null
+      console.log(`📧 [SDK] html=${typeof html} (${html?.length || 0} chars), text=${typeof text} (${text?.length || 0} chars)`)
+
+      if (html || text) {
+        console.log(`✅ [SDK] Contenu récupéré pour ${emailId}`)
+        return { html, text }
+      }
+      console.log(`⚠️ [SDK] Réponse OK mais html et text vides`)
+    }
+  } catch (sdkErr) {
+    console.error(`❌ [SDK] Exception:`, sdkErr)
+  }
+
+  // === Méthode 2 : Fetch brut /emails/receiving/{id} ===
+  try {
+    console.log(`📥 [FETCH] GET /emails/receiving/${emailId}`)
+    const resp1 = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     })
+    const text1 = await resp1.text()
+    console.log(`📧 [FETCH /receiving] HTTP ${resp1.status}, body length=${text1.length}`)
 
-    const responseText = await response.text()
-
-    if (!response.ok) {
-      console.error(`❌ Erreur fetch inbound email ${emailId}: HTTP ${response.status}`, responseText)
-      // Retry si 404 (contenu pas encore prêt)
-      if (response.status === 404 && attempt < MAX_ATTEMPTS) {
-        console.log(`⏳ Contenu pas encore prêt, retry dans ${DELAY_MS}ms...`)
-        await new Promise(resolve => setTimeout(resolve, DELAY_MS))
-        return fetchEmailContent(emailId, attempt + 1)
+    if (resp1.ok) {
+      const d1 = JSON.parse(text1)
+      const keys = Object.keys(d1)
+      console.log(`📧 [FETCH /receiving] keys=[${keys.join(',')}]`)
+      if (d1.html || d1.text) {
+        console.log(`✅ [FETCH /receiving] html=${!!d1.html} (${d1.html?.length || 0}), text=${!!d1.text} (${d1.text?.length || 0})`)
+        return { html: d1.html || null, text: d1.text || null }
       }
-      return { html: null, text: null }
+    } else {
+      console.error(`❌ [FETCH /receiving] HTTP ${resp1.status}: ${text1.slice(0, 300)}`)
     }
-
-    let data: any
-    try {
-      data = JSON.parse(responseText)
-    } catch {
-      console.error(`❌ Réponse non-JSON pour ${emailId}:`, responseText.slice(0, 500))
-      return { html: null, text: null }
-    }
-
-    // Log la structure complète de la réponse pour debug
-    const keys = Object.keys(data)
-    console.log(`📧 Structure réponse Resend pour ${emailId}: keys=[${keys.join(',')}]`)
-    console.log(`📧 html=${typeof data.html} (${data.html ? data.html.length + ' chars' : 'null'}), text=${typeof data.text} (${data.text ? data.text.length + ' chars' : 'null'})`)
-
-    // Essayer plusieurs structures possibles de la réponse
-    const html = data.html || data.body_html || data.data?.html || null
-    const text = data.text || data.body_text || data.data?.text || data.body || null
-
-    if (!html && !text && attempt < MAX_ATTEMPTS) {
-      console.log(`⏳ Contenu vide, retry dans ${DELAY_MS}ms... (keys: ${keys.join(',')})`)
-      await new Promise(resolve => setTimeout(resolve, DELAY_MS))
-      return fetchEmailContent(emailId, attempt + 1)
-    }
-
-    console.log(`✅ Contenu inbound récupéré pour ${emailId}: html=${!!html} (${html?.length || 0} chars), text=${!!text} (${text?.length || 0} chars)`)
-    return { html, text }
-  } catch (err) {
-    console.error(`❌ Erreur fetch contenu inbound ${emailId}:`, err)
-    if (attempt < MAX_ATTEMPTS) {
-      await new Promise(resolve => setTimeout(resolve, DELAY_MS))
-      return fetchEmailContent(emailId, attempt + 1)
-    }
-    return { html: null, text: null }
+  } catch (err2) {
+    console.error(`❌ [FETCH /receiving] Exception:`, err2)
   }
+
+  // === Méthode 3 : Fetch brut /emails/{id} (fallback) ===
+  try {
+    console.log(`📥 [FETCH] GET /emails/${emailId}`)
+    const resp2 = await fetch(`https://api.resend.com/emails/${emailId}`, {
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    })
+    const text2 = await resp2.text()
+    console.log(`📧 [FETCH /emails] HTTP ${resp2.status}, body length=${text2.length}`)
+
+    if (resp2.ok) {
+      const d2 = JSON.parse(text2)
+      const keys = Object.keys(d2)
+      console.log(`📧 [FETCH /emails] keys=[${keys.join(',')}]`)
+      if (d2.html || d2.text) {
+        console.log(`✅ [FETCH /emails] html=${!!d2.html} (${d2.html?.length || 0}), text=${!!d2.text} (${d2.text?.length || 0})`)
+        return { html: d2.html || null, text: d2.text || null }
+      }
+    } else {
+      console.error(`❌ [FETCH /emails] HTTP ${resp2.status}: ${text2.slice(0, 300)}`)
+    }
+  } catch (err3) {
+    console.error(`❌ [FETCH /emails] Exception:`, err3)
+  }
+
+  // === Retry si échec ===
+  if (attempt < MAX_ATTEMPTS) {
+    console.log(`⏳ Aucune méthode n'a retourné de contenu. Retry dans ${DELAY_MS}ms... (tentative ${attempt}/${MAX_ATTEMPTS})`)
+    await new Promise(resolve => setTimeout(resolve, DELAY_MS))
+    return fetchEmailContent(emailId, attempt + 1)
+  }
+
+  console.error(`❌ ÉCHEC FINAL: impossible de récupérer le contenu de ${emailId} après ${MAX_ATTEMPTS} tentatives`)
+  return { html: null, text: null }
 }
 
 export async function POST(req: NextRequest) {

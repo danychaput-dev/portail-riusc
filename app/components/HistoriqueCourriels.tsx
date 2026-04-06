@@ -33,6 +33,7 @@ interface CourrielReponse {
   pieces_jointes: any[]
   statut: string
   created_at: string
+  resend_email_id?: string
 }
 
 interface Props {
@@ -389,7 +390,7 @@ function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updati
               {r.pieces_jointes.map((att: any, i: number) => (
                 <a
                   key={i}
-                  href={`/api/admin/courriels/attachment?email_id=${(r as any).resend_email_id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`}
+                  href={`/api/admin/courriels/attachment?email_id=${(r as any).resend_email_id || ''}&attachment_id=${att.id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
