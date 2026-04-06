@@ -29,7 +29,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const { destinataires, subject, body_html, campagne_nom, attachments } = await req.json()
+    const { destinataires, subject, body_html, campagne_nom, attachments, cc } = await req.json()
+    const ccList: string[] = Array.isArray(cc) ? cc.filter((e: any) => typeof e === 'string' && e.includes('@')) : []
 
     if (!destinataires || !Array.isArray(destinataires) || destinataires.length === 0) {
       return NextResponse.json({ error: 'Au moins un destinataire requis' }, { status: 400 })
@@ -128,6 +129,7 @@ export async function POST(req: NextRequest) {
             preInserts.map((dest: any) => ({
               from: `${fromName} <${fromEmail}>`,
               to: [dest.email],
+              ...(ccList.length > 0 ? { cc: ccList } : {}),
               subject,
               html: dest.html,
               replyTo: dest.courriel_id ? `reply+${dest.courriel_id}@${inboundDomain}` : replyTo,
@@ -190,6 +192,7 @@ export async function POST(req: NextRequest) {
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: `${fromName} <${fromEmail}>`,
           to: [dest.email],
+          ...(ccList.length > 0 ? { cc: ccList } : {}),
           subject,
           html: dest.html,
           replyTo: dynamicReplyTo,

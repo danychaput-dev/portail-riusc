@@ -18,6 +18,13 @@ interface AdminEmailConfig {
   reply_to: string
 }
 
+interface CcContact {
+  id: string
+  nom: string
+  email: string
+  position: number
+}
+
 interface BrouillonPJ {
   filename: string
   storage_path: string
@@ -57,7 +64,7 @@ interface Props {
   initialSubject?: string
 }
 
-type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template'
+type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template' | 'cc_manage'
 
 export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject }: Props) {
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
@@ -86,11 +93,26 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   const [attachments, setAttachments] = useState<PieceJointe[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Charger config
+  // CC
+  const [ccContacts, setCcContacts] = useState<CcContact[]>([])
+  const [selectedCc, setSelectedCc] = useState<Set<string>>(new Set())
+  const [showCc, setShowCc] = useState(false)
+  // Gestion CC (dans le panel config)
+  const [newCcNom, setNewCcNom] = useState('')
+  const [newCcEmail, setNewCcEmail] = useState('')
+  const [editingCcId, setEditingCcId] = useState<string | null>(null)
+  const [editCcNom, setEditCcNom] = useState('')
+  const [editCcEmail, setEditCcEmail] = useState('')
+
+  // Charger config + contacts CC
   useEffect(() => {
     fetch('/api/admin/courriels/config')
       .then(r => r.json())
       .then(json => { if (json.config) setConfig(json.config) })
+      .catch(() => {})
+    fetch('/api/admin/courriels/cc-contacts')
+      .then(r => r.json())
+      .then(json => setCcContacts(json.contacts || []))
       .catch(() => {})
   }, [])
 
@@ -113,10 +135,14 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     setSending(true)
     setError(null)
     try {
+      // Construire la liste CC à partir des contacts sélectionnés
+      const ccEmails = ccContacts.filter(c => selectedCc.has(c.id)).map(c => c.email)
+
       const payload = JSON.stringify({
         destinataires,
         subject,
         body_html: bodyHtml.replace(/\n/g, '<br/>'),
+        cc: ccEmails.length > 0 ? ccEmails : undefined,
         attachments: attachments.map(a => ({
           filename: a.filename,
           content: a.base64,
@@ -329,6 +355,43 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     brouillons: 'Mes brouillons',
     templates: 'Templates',
     save_template: editingTemplateId ? 'Mettre à jour le template' : 'Sauvegarder comme template',
+    cc_manage: 'Gérer la liste CC',
+  }
+
+  const ajouterCcContact = async () => {
+    if (!newCcNom.trim() || !newCcEmail.trim()) return
+    try {
+      const res = await fetch('/api/admin/courriels/cc-contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom: newCcNom.trim(), email: newCcEmail.trim() }),
+      })
+      const json = await res.json()
+      if (json.contact) setCcContacts(prev => [...prev, json.contact])
+      setNewCcNom('')
+      setNewCcEmail('')
+    } catch {}
+  }
+
+  const modifierCcContact = async (id: string) => {
+    if (!editCcNom.trim() || !editCcEmail.trim()) return
+    try {
+      await fetch('/api/admin/courriels/cc-contacts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, nom: editCcNom.trim(), email: editCcEmail.trim() }),
+      })
+      setCcContacts(prev => prev.map(c => c.id === id ? { ...c, nom: editCcNom.trim(), email: editCcEmail.trim() } : c))
+      setEditingCcId(null)
+    } catch {}
+  }
+
+  const supprimerCcContact = async (id: string) => {
+    try {
+      await fetch(`/api/admin/courriels/cc-contacts?id=${id}`, { method: 'DELETE' })
+      setCcContacts(prev => prev.filter(c => c.id !== id))
+      setSelectedCc(prev => { const next = new Set(prev); next.delete(id); return next })
+    } catch {}
   }
 
   return (
@@ -469,6 +532,45 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
             </div>
           )}
 
+          {/* === Panel gestion CC === */}
+          {panel === 'cc_manage' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ fontSize: '13px', color: '#6b7280' }}>Personnes disponibles en copie conforme (CC) lors de l&apos;envoi de courriels.</div>
+
+              {/* Liste existante */}
+              {ccContacts.map(c => (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
+                  {editingCcId === c.id ? (
+                    <>
+                      <input type="text" value={editCcNom} onChange={e => setEditCcNom(e.target.value)} placeholder="Nom" style={{ flex: 1, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                      <input type="email" value={editCcEmail} onChange={e => setEditCcEmail(e.target.value)} placeholder="Courriel" style={{ flex: 2, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                      <button onClick={() => modifierCcContact(c.id)} style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', backgroundColor: C, color: 'white', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}>OK</button>
+                      <button onClick={() => setEditingCcId(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px' }}>×</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{c.nom}</div>
+                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{c.email}</div>
+                      </div>
+                      <button onClick={() => { setEditingCcId(c.id); setEditCcNom(c.nom); setEditCcEmail(c.email) }} title="Modifier" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280', padding: '4px' }}>✏️</button>
+                      <button onClick={() => supprimerCcContact(c.id)} title="Supprimer" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#dc2626', padding: '4px' }}>🗑️</button>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              {/* Ajouter */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', padding: '8px 12px', borderRadius: '8px', border: '1px dashed #d1d5db', backgroundColor: 'white' }}>
+                <input type="text" value={newCcNom} onChange={e => setNewCcNom(e.target.value)} placeholder="Nom" style={{ flex: 1, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                <input type="email" value={newCcEmail} onChange={e => setNewCcEmail(e.target.value)} placeholder="Courriel" onKeyDown={e => { if (e.key === 'Enter') ajouterCcContact() }} style={{ flex: 2, padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }} />
+                <button onClick={ajouterCcContact} disabled={!newCcNom.trim() || !newCcEmail.trim()} style={{ padding: '5px 12px', borderRadius: '6px', border: 'none', backgroundColor: newCcNom.trim() && newCcEmail.trim() ? C : '#e5e7eb', color: newCcNom.trim() && newCcEmail.trim() ? 'white' : '#9ca3af', fontSize: '12px', fontWeight: '600', cursor: newCcNom.trim() && newCcEmail.trim() ? 'pointer' : 'not-allowed' }}>+ Ajouter</button>
+              </div>
+
+              <button onClick={() => setPanel('compose')} style={{ marginTop: '4px', padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', fontWeight: '600', cursor: 'pointer', alignSelf: 'flex-start' }}>← Retour</button>
+            </div>
+          )}
+
           {/* === Panel composition === */}
           {panel === 'compose' && !success && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -486,6 +588,34 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                   {destinataires.length > 20 && <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{destinataires.length - 20} autres</span>}
                 </div>
               </div>
+
+              {/* CC */}
+              {ccContacts.length > 0 && (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: showCc ? '6px' : '0' }}>
+                    <button onClick={() => setShowCc(!showCc)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', fontWeight: '600', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '10px', transition: 'transform 0.15s', transform: showCc ? 'rotate(90deg)' : 'rotate(0)' }}>&#9654;</span>
+                      CC {selectedCc.size > 0 && <span style={{ padding: '1px 7px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '11px', fontWeight: '700' }}>{selectedCc.size}</span>}
+                    </button>
+                    <button onClick={() => setPanel('cc_manage')} style={{ background: 'none', border: 'none', fontSize: '11px', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline' }}>modifier la liste</button>
+                  </div>
+                  {showCc && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      {ccContacts.map(c => (
+                        <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '8px', backgroundColor: selectedCc.has(c.id) ? '#e0e7ff' : 'white', border: `1px solid ${selectedCc.has(c.id) ? '#818cf8' : '#e2e8f0'}`, cursor: 'pointer', fontSize: '12px', color: selectedCc.has(c.id) ? '#3730a3' : '#374151', fontWeight: selectedCc.has(c.id) ? '600' : '400', transition: 'all 0.1s' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCc.has(c.id)}
+                            onChange={() => setSelectedCc(prev => { const next = new Set(prev); next.has(c.id) ? next.delete(c.id) : next.add(c.id); return next })}
+                            style={{ width: 14, height: 14, accentColor: C, margin: 0 }}
+                          />
+                          {c.nom}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {config && (
                 <div style={{ fontSize: '12px', color: '#6b7280' }}>De : <strong>{config.from_name || 'RIUSC'}</strong> &lt;{config.from_email || 'noreply@aqbrs.ca'}&gt;</div>
