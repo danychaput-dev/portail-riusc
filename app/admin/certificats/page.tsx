@@ -627,10 +627,8 @@ export default function AdminCertificatsPage() {
                             {initials(group.nom)}
                           </div>
                           <div>
-                            <span style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{allSaved ? '✅ ' : ''}{group.nom || 'Sans nom'}</span>
-                            <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '8px', fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>
-                              {group.email || ''}
-                            </a>
+                            <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: '700', color: '#111827', fontSize: '14px', textDecoration: 'none' }}>{allSaved ? '✅ ' : ''}{group.nom || 'Sans nom'}</a>
+                            {group.email && <a href={`mailto:${group.email}`} style={{ marginLeft: '8px', fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>{group.email}</a>}
                           </div>
                         </div>
                         <span style={{ fontSize: '11px', backgroundColor: allSaved ? '#d1fae5' : '#fef3c7', color: allSaved ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '10px', fontWeight: '600', flexShrink: 0 }}>
@@ -737,14 +735,16 @@ export default function AdminCertificatsPage() {
                         {initials(group.nom)}
                       </div>
                       <div>
-                        <div style={{ fontWeight: '700', color: '#111827', fontSize: '13px' }}>{group.nom || 'Sans nom'}</div>
-                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>
-                          {group.certs.map(c => c.nom_formation || '?').join(' · ')}
+                        <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ fontWeight: '700', color: '#111827', fontSize: '13px', textDecoration: 'none' }}>{group.nom || 'Sans nom'}</a>
+                        <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                          {group.certs.map((c, ci) => (
+                            <div key={ci}>📎 {c.nom_formation || 'Formation non spécifiée'}</div>
+                          ))}
                         </div>
                       </div>
                     </div>
                     <div>
-                      <a href={`/dossier?bid=${group.benevoleId}&from=certificats`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>
+                      <a href={`mailto:${group.email}`} style={{ fontSize: '12px', color: '#3b82f6', textDecoration: 'none' }}>
                         {group.email || '—'}
                       </a>
                     </div>
