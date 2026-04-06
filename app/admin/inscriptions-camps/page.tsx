@@ -415,7 +415,7 @@ export default function InscriptionsCampsPage() {
   }
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0' }}>
+    <div style={{ width: '100%', padding: '0' }}>
       <div style={{ display: 'flex', height: '100%', fontFamily: 'system-ui, sans-serif', background: '#f8fafc' }}>
 
       {/* ── Bouton toggle sidebar sur mobile ── */}

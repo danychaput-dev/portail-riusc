@@ -65,7 +65,6 @@ export default function AdminSidebar({ stats }: Props) {
 
   const getBadge = (item: NavItem) => {
     if (!stats) return undefined
-    if (item.href === '/admin/operations' || item.href === '/admin/sinistres') return stats.sinistres_actifs
     if (item.href === '/admin/certificats') return stats.certificats_attente
     if (item.href === '/communaute') return stats.messages_non_lus
     if (item.href === '/admin/courriels') return stats.courriels_reponses_non_lues
