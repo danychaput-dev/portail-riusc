@@ -324,8 +324,17 @@ function ReservistesPage() {
 
   const handleRecherche = (val: string) => setRecherche(val)
 
-  const toggleGroupe = (g: string) => {
-    setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
+  const toggleGroupe = (g: string, shiftKey = false) => {
+    if (shiftKey) {
+      // Shift+clic = multi-sélection (ajouter/retirer)
+      setGroupesFiltres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
+    } else {
+      // Clic simple = sélection exclusive (ou déselection si déjà seul)
+      setGroupesFiltres(prev => {
+        if (prev.length === 1 && prev[0] === g) return [] // Déjà seul sélectionné → tout déselectionner
+        return [g]
+      })
+    }
   }
 
   const lastSelectedIdx = useRef<number | null>(null)
@@ -696,7 +705,7 @@ function ReservistesPage() {
             {GROUPES_OPTIONS.map(opt => (
               <button
                 key={opt.val}
-                onClick={() => toggleGroupe(opt.val)}
+                onClick={e => toggleGroupe(opt.val, e.shiftKey)}
                 style={{
                   padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
                   border: `1px solid ${groupesFiltres.includes(opt.val) ? opt.couleur : '#e2e8f0'}`,
