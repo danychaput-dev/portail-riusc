@@ -232,7 +232,7 @@ export async function GET() {
       .sort((a, b) => a.cohort - b.cohort)
 
     return NextResponse.json({
-      totalInscrits:    (reservistes || []).filter(r => r.groupe !== 'Retrait temporaire').length,
+      totalInscrits:    (reservistes || []).filter(r => ['Approuvé', 'Intérêt', 'Partenaires'].includes(r.groupe)).length,
       totalInteret:     groupeCounts['Intérêt']     || 0,
       totalApprouves:   groupeCounts['Approuvé']    || 0,
       totalPartenaires: groupeCounts['Partenaires'] || 0,

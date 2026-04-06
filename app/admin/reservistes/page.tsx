@@ -719,7 +719,7 @@ function ReservistesPage() {
             ))}
             <span style={{ width: '80px', flexShrink: 0, display: 'inline-flex' }}>
               {(groupesFiltres.length > 0 || recherche) && (
-                <button onClick={() => { setGroupesFiltres([]); setRecherche('') }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                   Tout effacer
                 </button>
               )}
