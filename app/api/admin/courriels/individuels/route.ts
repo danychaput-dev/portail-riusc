@@ -46,22 +46,23 @@ export async function GET(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     // Enrichir avec le nom du réserviste
-    let enriched = courriels || []
-    if (enriched.length > 0) {
-      const bIds = [...new Set(enriched.map(c => c.benevole_id).filter(Boolean))]
+    const raw = courriels || []
+    const bIds = [...new Set(raw.map(c => c.benevole_id).filter(Boolean))]
+    const nameMap = new Map<string, string>()
+    if (bIds.length > 0) {
       const { data: reservistes } = await supabaseAdmin
         .from('reservistes')
         .select('benevole_id, prenom, nom')
         .in('benevole_id', bIds)
-      const nameMap = new Map((reservistes || []).map(r => [r.benevole_id, `${r.prenom} ${r.nom}`]))
-      enriched = enriched.map(c => ({ ...c, nom_complet: nameMap.get(c.benevole_id) || c.to_email }))
+      for (const r of reservistes || []) nameMap.set(r.benevole_id, `${r.prenom} ${r.nom}`)
     }
+    let enriched = raw.map(c => ({ ...c, nom_complet: nameMap.get(c.benevole_id) || c.to_email }))
 
     // Filtre recherche côté serveur (nom ou courriel)
     if (search) {
       const s = search.toLowerCase()
       enriched = enriched.filter(c =>
-        (c.nom_complet || '').toLowerCase().includes(s) ||
+        c.nom_complet.toLowerCase().includes(s) ||
         (c.to_email || '').toLowerCase().includes(s) ||
         (c.subject || '').toLowerCase().includes(s)
       )
