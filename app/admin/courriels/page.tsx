@@ -532,8 +532,8 @@ export default function CampagnesPage() {
                                               ))}
                                             </div>
                                           )}
-                                          {/* Actions statut inline */}
-                                          <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                          {/* Actions statut + répondre */}
+                                          <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                                             {['recu', 'lu', 'traite', 'archive'].map(s => {
                                               const labels: Record<string, string> = { recu: '📨', lu: '👁️', traite: '✅', archive: '📁' }
                                               const isActive = rep.statut === s
@@ -544,6 +544,12 @@ export default function CampagnesPage() {
                                                 >{labels[s]}</button>
                                               )
                                             })}
+                                            <button
+                                              onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, rep.subject || c.subject)}
+                                              style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                              ↩ Répondre
+                                            </button>
                                           </div>
                                         </div>
                                       </div>
@@ -681,8 +687,8 @@ export default function CampagnesPage() {
                                       ))}
                                     </div>
                                   )}
-                                  {/* Actions statut inline */}
-                                  <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                  {/* Actions statut + répondre */}
+                                  <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                                     {['recu', 'lu', 'traite', 'archive'].map(s => {
                                       const labels: Record<string, string> = { recu: '📨', lu: '👁️', traite: '✅', archive: '📁' }
                                       const isActive = rep.statut === s
@@ -693,6 +699,17 @@ export default function CampagnesPage() {
                                         >{labels[s]}</button>
                                       )
                                     })}
+                                    <button
+                                      onClick={() => handleReply({
+                                        benevole_id: c.benevole_id,
+                                        email: c.to_email,
+                                        prenom: c.nom_complet.split(' ')[0] || '',
+                                        nom: c.nom_complet.split(' ').slice(1).join(' ') || '',
+                                      }, rep.subject || c.subject)}
+                                      style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
+                                    >
+                                      ↩ Répondre
+                                    </button>
                                   </div>
                                 </div>
                               ))}
