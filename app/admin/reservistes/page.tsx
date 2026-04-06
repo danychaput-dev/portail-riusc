@@ -51,6 +51,7 @@ interface Reserviste {
   groupe_aqbrs: string
   groupe_recherche: string | null
   responsable_groupe: boolean
+  created_at?: string
 }
 
 interface ModalAntecedents {
@@ -176,12 +177,11 @@ function ReservistesPage() {
     : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt']
 
   const [loading,        setLoading]        = useState(true)
-  const [rawData,        setRawData]        = useState<Reserviste[]>([])
-  const [total,          setTotal]          = useState(0)
+  const [allData,        setAllData]        = useState<Reserviste[]>([])  // Cache complet (tous groupes)
   const [recherche,      setRecherche]      = useState('')
   const [groupesFiltres, setGroupesFiltres] = useState<string[]>(defaultGroupes)
   const [viewResetKey, setViewResetKey] = useState(0)
-  const lastFetchKey = useRef('')
+  const dataLoaded = useRef(false)
   const [exporting,      setExporting]      = useState(false)
   const [sortKey,        setSortKey]        = useState<SortKey>('nom')
   const [sortDir,        setSortDir]        = useState<SortDir>('asc')
@@ -240,35 +240,27 @@ function ReservistesPage() {
     init()
   }, [])
 
-  // Charger à chaque changement de recherche ou groupes (params serveur uniquement)
+  // Charger TOUS les réservistes une seule fois (cache complet côté client)
   useEffect(() => {
-    if (!authorized) return
-    const timer = setTimeout(async () => {
+    if (!authorized || dataLoaded.current) return
+    const load = async () => {
+      setLoading(true)
       const params = new URLSearchParams()
-      if (recherche) params.set('recherche', recherche)
-      if (groupesFiltres.length > 0) params.set('groupes', groupesFiltres.join(','))
-      if (urlOrganisme) params.set('organisme', urlOrganisme)
-      if (urlRegion) params.set('region', urlRegion)
-      if (urlAntecedents) params.set('antecedents', urlAntecedents)
-      if (urlBottes) params.set('bottes', urlBottes)
-      if (urlInscritDepuis) params.set('inscrit_depuis', urlInscritDepuis)
+      // Charger tous les groupes d'un coup pour avoir le dataset complet
+      params.set('groupes', 'Approuvé,Intérêt,Partenaires,Retrait temporaire')
+      // Passer les URL params spéciaux (camp, etc.) qui nécessitent un filtre serveur
       if (urlCampSession) params.set('camp_session', urlCampSession)
       if (urlCampStatut) params.set('camp_statut', urlCampStatut)
       if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
       if (urlStatut) params.set('statut', urlStatut)
-      const key = params.toString()
-      // Skip fetch si les params serveur n'ont pas changé (ex: changement de vue avec mêmes groupes)
-      if (key === lastFetchKey.current && rawData.length > 0) return
-      setLoading(true)
-      const res = await fetch(`/api/admin/reservistes?${key}`)
+      const res = await fetch(`/api/admin/reservistes?${params}`)
       const json = await res.json()
-      setRawData(json.data || [])
-      setTotal(json.total || 0)
-      lastFetchKey.current = key
+      setAllData(json.data || [])
+      dataLoaded.current = true
       setLoading(false)
-    }, recherche ? 350 : 0)
-    return () => clearTimeout(timer)
-  }, [authorized, recherche, groupesFiltres, urlParamsKey])
+    }
+    load()
+  }, [authorized])
 
   // Cycle 3 états : null → has → missing → null
   const cycleFilter = (current: FilterState): FilterState =>
@@ -285,14 +277,14 @@ function ReservistesPage() {
 
   const hasAnyReadinessFilter = Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null || filtreCertifsManquants
 
-  // Liste des organismes uniques pour le filtre
+  // Liste des organismes uniques pour le filtre (depuis allData pour avoir la liste complète)
   const organismesUniques = useMemo(() => {
     const set = new Set<string>()
-    for (const r of rawData) {
+    for (const r of allData) {
       if (r.org_principale) set.add(r.org_principale)
     }
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
-  }, [rawData])
+  }, [allData])
 
   // Liste des groupes de recherche depuis Supabase
   const [groupesRSTable, setGroupesRSTable] = useState<string[]>([])
@@ -304,13 +296,58 @@ function ReservistesPage() {
   const groupesRSUniques = useMemo(() => {
     const set = new Set<string>()
     for (const g of groupesRSTable) set.add(g)
-    for (const r of rawData) {
+    for (const r of allData) {
       if (r.groupe_recherche) set.add(r.groupe_recherche)
     }
     return [...set].sort((a, b) => a.localeCompare(b, 'fr'))
-  }, [rawData, groupesRSTable])
+  }, [allData, groupesRSTable])
 
-  // Sorted + filtered data
+  // rawData = allData filtré par groupes + recherche (pour compatibilité avec le reste du code)
+  const rawData = useMemo(() => {
+    let filtered = allData
+    // Filtre par groupe
+    if (groupesFiltres.length > 0) filtered = filtered.filter(r => groupesFiltres.includes(r.groupe))
+    // Filtre par recherche texte
+    if (recherche) {
+      const q = recherche.toLowerCase()
+      filtered = filtered.filter(r =>
+        (r.nom || '').toLowerCase().includes(q) ||
+        (r.prenom || '').toLowerCase().includes(q) ||
+        (r.email || '').toLowerCase().includes(q) ||
+        (r.ville || '').toLowerCase().includes(q) ||
+        (r.telephone || '').includes(q)
+      )
+    }
+    // URL params spéciaux (filtrés côté client maintenant)
+    if (urlOrganisme) {
+      if (urlOrganisme === 'AQBRS' || urlOrganisme.includes('AQBRS')) {
+        filtered = filtered.filter(r => (r.org_principale || '').includes('AQBRS'))
+      } else if (urlOrganisme === 'sans_org') {
+        filtered = filtered.filter(r => !r.org_principale)
+      } else {
+        filtered = filtered.filter(r => (r.org_principale || '').includes(urlOrganisme))
+      }
+    }
+    if (urlRegion) filtered = filtered.filter(r => (r.region || '').toLowerCase().includes(urlRegion.toLowerCase()))
+    if (urlAntecedents) {
+      if (urlAntecedents === 'en_attente') filtered = filtered.filter(r => !r.antecedents_statut || r.antecedents_statut === 'en_attente')
+      else filtered = filtered.filter(r => r.antecedents_statut === urlAntecedents)
+    }
+    if (urlBottes === 'oui') filtered = filtered.filter(r => !!r.remboursement_bottes_date)
+    else if (urlBottes === 'non') filtered = filtered.filter(r => !r.remboursement_bottes_date)
+    if (urlInscritDepuis) {
+      const jours = parseInt(urlInscritDepuis)
+      if (!isNaN(jours)) {
+        const depuis = new Date(Date.now() - jours * 86400000).toISOString()
+        filtered = filtered.filter(r => (r.created_at && r.created_at >= depuis))
+      }
+    }
+    return filtered
+  }, [allData, groupesFiltres, recherche, urlOrganisme, urlRegion, urlAntecedents, urlBottes, urlInscritDepuis])
+
+  const total = rawData.length
+
+  // Sorted + filtered data (filtres avancés côté client)
   const data = useMemo(() => {
     let filtered = rawData
     if (filtreOrganisme) filtered = filtered.filter(r => (r.org_principale || '').includes(filtreOrganisme))
@@ -489,7 +526,7 @@ function ReservistesPage() {
       body: JSON.stringify({ benevole_id, date: newDate }),
     })
     if (res.ok) {
-      setRawData(prev => prev.map(r =>
+      setAllData(prev => prev.map(r =>
         r.benevole_id === benevole_id ? { ...r, remboursement_bottes_date: newDate } : r
       ))
     }
@@ -511,7 +548,7 @@ function ReservistesPage() {
     })
     if (res.ok) {
       const json = await res.json()
-      setRawData(prev => prev.map(r =>
+      setAllData(prev => prev.map(r =>
         r.benevole_id === modal.benevole_id
           ? { ...r, antecedents_statut: json.statut, antecedents_date_verification: json.date_verification, antecedents_date_expiration: json.date_expiration }
           : r
