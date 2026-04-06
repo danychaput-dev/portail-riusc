@@ -197,6 +197,9 @@ export default function CampagnesPage() {
   // ─── Filtre envoyeur ───
   const [filterSender, setFilterSender] = useState('')
 
+  // ─── Réponses orphelines (sans courriel_id) ───
+  const [reponsesOrphelines, setReponsesOrphelines] = useState<(ReponseInline & { benevole_id?: string; nom_complet?: string })[]>([])
+
   // ─── Reply modal ───
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
@@ -222,10 +225,14 @@ export default function CampagnesPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
 
-    // Compter les réponses non lues
+    // Compter les réponses non lues et synchroniser le badge sidebar
     fetch('/api/admin/courriels/reponses?statut=recu&limit=200')
       .then(r => r.json())
-      .then(json => setReponsesNonLues((json.reponses || []).length))
+      .then(json => {
+        const count = (json.reponses || []).length
+        setReponsesNonLues(count)
+        dispatchBadgeUpdate(count)
+      })
       .catch(() => {})
   }, [authorized])
 
@@ -238,7 +245,10 @@ export default function CampagnesPage() {
     if (indivDateTo) params.set('to', indivDateTo)
     fetch(`/api/admin/courriels/individuels?${params}`)
       .then(r => r.json())
-      .then(json => setIndividuels(json.courriels || []))
+      .then(json => {
+        setIndividuels(json.courriels || [])
+        setReponsesOrphelines(json.reponses_orphelines || [])
+      })
       .catch(() => {})
       .finally(() => setLoadingIndiv(false))
   }, [authorized, activeTab, indivDateFrom, indivDateTo])
@@ -275,6 +285,7 @@ export default function CampagnesPage() {
         ...c,
         reponses: c.reponses?.map(r => r.statut === 'recu' ? { ...r, statut: 'lu' } : r),
       })))
+      setReponsesOrphelines(prev => prev.map(r => r.statut === 'recu' ? { ...r, statut: 'lu' } : r))
     } catch {}
     setMarkingAllRead(false)
   }
@@ -776,7 +787,7 @@ export default function CampagnesPage() {
                                   {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
                                     <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                                       {rep.pieces_jointes.map((att: any, i: number) => (
-                                        <span key={i} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#475569' }}>📎 {att.filename || 'fichier'}</span>
+                                        <a key={i} href={`/api/admin/courriels/attachment?email_id=${rep.resend_email_id || ''}&attachment_id=${att.id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#1e40af', textDecoration: 'none', cursor: 'pointer' }}>📎 {att.filename || 'fichier'}</a>
                                       ))}
                                     </div>
                                   )}
@@ -816,6 +827,63 @@ export default function CampagnesPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* ════ RÉPONSES ORPHELINES (sans courriel lié) ════ */}
+        {activeTab === 'individuels' && reponsesOrphelines.length > 0 && (
+          <div style={{ marginTop: '24px' }}>
+            <div style={{ fontSize: '13px', fontWeight: '700', color: '#92400e', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>📨 Réponses reçues (non liées à un courriel)</span>
+              <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '10px', backgroundColor: '#fffbeb', color: '#d97706' }}>
+                {reponsesOrphelines.length}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {reponsesOrphelines.map((rep: any) => (
+                <div key={rep.id} style={{ backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '14px 16px', borderLeft: `3px solid ${rep.statut === 'recu' ? '#f59e0b' : '#e5e7eb'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e40af' }}>
+                      {rep.nom_complet || rep.from_email}
+                    </span>
+                    {rep.from_name && <span style={{ fontSize: '12px', color: '#6b7280' }}>({rep.from_email})</span>}
+                    {reponseStatutBadge(rep.statut)}
+                    <span style={{ fontSize: '11px', color: '#9ca3af' }}>{formatDateTime(rep.created_at)}</span>
+                  </div>
+                  {rep.subject && <div style={{ fontSize: '12px', color: '#374151', marginBottom: '6px', fontWeight: '500' }}>{rep.subject}</div>}
+                  <div
+                    style={{ fontSize: '13px', color: '#374151', lineHeight: '1.6', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px', maxHeight: '200px', overflowY: 'auto', whiteSpace: rep.body_html ? undefined : 'pre-wrap' }}
+                    dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
+                  >
+                    {!rep.body_html ? (rep.body_text || <em style={{ color: '#9ca3af' }}>Aucun contenu</em>) : undefined}
+                  </div>
+                  {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
+                    <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {rep.pieces_jointes.map((att: any, i: number) => (
+                        <a key={i} href={`/api/admin/courriels/attachment?email_id=${rep.resend_email_id || ''}&attachment_id=${att.id || ''}&filename=${encodeURIComponent(att.filename || 'fichier')}&content_type=${encodeURIComponent(att.content_type || 'application/octet-stream')}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '6px', backgroundColor: '#e2e8f0', color: '#1e40af', textDecoration: 'none', cursor: 'pointer' }}>📎 {att.filename || 'fichier'}</a>
+                      ))}
+                    </div>
+                  )}
+                  {/* Actions statut */}
+                  <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {['recu', 'lu', 'traite', 'archive'].map(s => {
+                      const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
+                      const isActive = rep.statut === s
+                      const isHighlight = s === 'lu' && rep.statut === 'recu'
+                      return (
+                        <button key={s} disabled={isActive || updatingStatut === rep.id} onClick={() => {
+                          updateReponseStatut(rep.id, s)
+                          // Aussi mettre à jour localement les orphelines
+                          setReponsesOrphelines(prev => prev.map(r => r.id === rep.id ? { ...r, statut: s } : r))
+                        }}
+                          style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '4px', cursor: isActive ? 'default' : 'pointer', border: isHighlight ? '1px solid #16a34a' : isActive ? `1px solid ${C}` : '1px solid #e2e8f0', backgroundColor: isHighlight ? '#f0fdf4' : isActive ? '#eff6ff' : 'white', color: isHighlight ? '#16a34a' : isActive ? C : '#6b7280', fontWeight: isHighlight ? '700' : '400', opacity: updatingStatut === rep.id ? 0.5 : 1 }}
+                        >{labels[s]}</button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* En-tête colonne pour individuels (quand liste non vide et pas en chargement) */}

@@ -108,7 +108,40 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ courriels: enriched })
+    // Récupérer les réponses orphelines (sans courriel_id ou avec un courriel_id qui n'existe pas dans nos courriels)
+    // Ces réponses apparaissent dans le dossier du réserviste mais pas ici sans ce fix
+    let reponsesOrphelines: any[] = []
+    try {
+      const { data: allReponses } = await supabaseAdmin
+        .from('courriel_reponses')
+        .select('id, courriel_id, benevole_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
+        .is('courriel_id', null)
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (allReponses && allReponses.length > 0) {
+        // Enrichir avec le nom du réserviste
+        const orphBIds = [...new Set(allReponses.map(r => r.benevole_id).filter(Boolean))]
+        const orphNameMap = new Map<string, { prenom: string; nom: string }>()
+        if (orphBIds.length > 0) {
+          const { data: reservistes } = await supabaseAdmin
+            .from('reservistes')
+            .select('benevole_id, prenom, nom')
+            .in('benevole_id', orphBIds)
+          for (const r of reservistes || []) orphNameMap.set(r.benevole_id, { prenom: r.prenom, nom: r.nom })
+        }
+        reponsesOrphelines = allReponses.map(r => ({
+          ...r,
+          nom_complet: orphNameMap.get(r.benevole_id)
+            ? `${orphNameMap.get(r.benevole_id)!.prenom} ${orphNameMap.get(r.benevole_id)!.nom}`
+            : r.from_email,
+        }))
+      }
+    } catch {
+      // Table pas encore prête — on continue
+    }
+
+    return NextResponse.json({ courriels: enriched, reponses_orphelines: reponsesOrphelines })
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
