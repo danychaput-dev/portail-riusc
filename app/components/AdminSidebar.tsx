@@ -32,7 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { titre: 'Camps',                icone: '🏕️', href: '/admin/inscriptions-camps', statut: 'actif' },
   { titre: 'Communauté',           icone: '💬', href: '/communaute',              statut: 'actif', externe: true },
   { titre: 'Dashboard',            icone: '📈', href: '/dashboard',               statut: 'actif', externe: true },
-  { titre: 'Statistiques',         icone: '📊', href: '/stats',                   statut: 'actif', externe: true },
+  { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',             statut: 'actif' },
   { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',      statut: 'actif' },
   { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',       statut: 'bientot' },
   { titre: 'Présences & CNESST',   icone: '📋', href: '/admin/presences',         statut: 'bientot' },
