@@ -215,20 +215,20 @@ export default function CampagnesPage() {
     init()
   }, [])
 
-  // ─── Load campagnes + count réponses non lues ───
+  // ─── Load campagnes ───
   useEffect(() => {
     if (!authorized) return
-    Promise.all([
-      fetch('/api/admin/courriels/campagnes').then(r => r.json()),
-      fetch('/api/admin/courriels/reponses?statut=recu&limit=200').then(r => r.json()),
-    ])
-      .then(([campJson, repJson]) => {
-        setCampagnes(campJson.campagnes || [])
-        // Count non lues pour badge onglet
-        setNonLuesBadge((repJson.reponses || []).length)
-      })
+    fetch('/api/admin/courriels/campagnes')
+      .then(r => r.json())
+      .then(json => setCampagnes(json.campagnes || []))
       .catch(() => {})
       .finally(() => setLoading(false))
+
+    // Count réponses non lues pour badge (indépendant — ne bloque pas les campagnes)
+    fetch('/api/admin/courriels/reponses?statut=recu&limit=200')
+      .then(r => r.json())
+      .then(json => setNonLuesBadge((json.reponses || []).length))
+      .catch(() => {})
   }, [authorized])
 
   // ─── Load individuels quand on switch d'onglet ───
