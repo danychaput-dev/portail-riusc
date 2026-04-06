@@ -40,6 +40,7 @@ export interface Reserviste {
   monday_created_at?: string
   remboursement_bottes_date?: string
   groupe_sanguin?: string
+  responsable_groupe?: boolean
 }
 
 // ─── Opérations (sinistres, demandes, déploiements) ─────────────────────────

@@ -14,7 +14,6 @@ const GROUPES_OPTIONS = [
   { val: 'Approuvé',           label: 'Approuvé',            couleur: '#22c55e', bg: '#f0fdf4' },
   { val: 'Intérêt',            label: 'Intérêt',             couleur: '#f59e0b', bg: '#fffbeb' },
   { val: 'Formation incomplète', label: 'Formation incomplète', couleur: '#3b82f6', bg: '#eff6ff' },
-  { val: 'Responsable',        label: 'Responsable',         couleur: '#7c3aed', bg: '#f5f3ff' },
   { val: 'Retrait temporaire', label: 'Retrait temporaire',  couleur: '#ef4444', bg: '#fef2f2' },
 ]
 
@@ -990,7 +989,7 @@ function ReservistesPage() {
                     }}
                     style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
                     title={canEmail ? `Clic: fiche · Clic droit: actions rapides` : undefined}
-                  >{r.nom} {r.prenom}</div>
+                  >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
                   )}
