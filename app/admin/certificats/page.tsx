@@ -458,6 +458,7 @@ export default function AdminCertificatsPage() {
       if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
       setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saved' } : c))
       setSavedCount(n => n + 1)
+      window.dispatchEvent(new CustomEvent('certificats-badge-update', { detail: { delta: -1 } }))
     } catch {
       setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'error' } : c))
     }
