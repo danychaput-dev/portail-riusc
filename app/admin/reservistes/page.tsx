@@ -113,7 +113,7 @@ function isDeployable(r: Reserviste): boolean {
 }
 
 // Sorting
-type SortKey = 'nom' | 'prenom' | 'telephone' | 'email' | 'ville' | 'region' | 'organisme' | 'groupe_recherche' | 'bottes' | 'antecedents' | 'groupe' | 'readiness'
+type SortKey = 'nom' | 'prenom' | 'telephone' | 'email' | 'ville' | 'region' | 'organisme' | 'groupe_recherche' | 'bottes' | 'antecedents' | 'groupe' | 'readiness' | 'certifs'
 type SortDir = 'asc' | 'desc'
 
 function sortData(data: Reserviste[], key: SortKey, dir: SortDir): Reserviste[] {
@@ -132,6 +132,7 @@ function sortData(data: Reserviste[], key: SortKey, dir: SortDir): Reserviste[] 
       case 'antecedents':  cmp = (a.antecedents_statut || '').localeCompare(b.antecedents_statut || ''); break
       case 'groupe':       cmp = (a.groupe || '').localeCompare(b.groupe || '', 'fr'); break
       case 'readiness':    cmp = readinessCount(a) - readinessCount(b); break
+      case 'certifs':      cmp = (a.certifs_manquants + a.certifs_en_attente) - (b.certifs_manquants + b.certifs_en_attente); break
     }
     return dir === 'desc' ? -cmp : cmp
   })
@@ -830,6 +831,19 @@ function ReservistesPage() {
                     </button>
                   )
                 })}
+                <button
+                  onClick={() => handleSort('certifs')}
+                  title={`Trier par certificats manquants`}
+                  style={{
+                    fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                    border: `1px solid ${sortKey === 'certifs' ? '#d97706' : '#d1d5db'}`,
+                    backgroundColor: sortKey === 'certifs' ? '#fffbeb' : 'white',
+                    color: sortKey === 'certifs' ? '#d97706' : '#94a3b8',
+                    cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                  }}
+                >
+                  📎{sortKey === 'certifs' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
               </div>
               {/* Antécédents — count (adaptatif aux filtres) + bouton filtre */}
               <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px' }}>
