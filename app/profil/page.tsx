@@ -1742,32 +1742,30 @@ export default function ProfilPage() {
               </label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
                 {allOrgs.filter(org => myOrgIds.includes(org.id) && !removedOrgIds.includes(org.id)).map(org => (
-                  <span key={org.id} style={{
-                    backgroundColor: '#e0f2fe',
-                    color: '#0369a1',
-                    padding: '6px 12px',
-                    borderRadius: '16px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}>
+                  <button
+                    key={org.id}
+                    onClick={() => setRemovedOrgIds(prev => [...prev, org.id])}
+                    title="Cliquer pour retirer"
+                    style={{
+                      backgroundColor: '#e0f2fe',
+                      color: '#0369a1',
+                      padding: '6px 12px',
+                      borderRadius: '16px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      border: '1px solid #bae6fd',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.borderColor = '#fca5a5' }}
+                    onMouseOut={e => { e.currentTarget.style.backgroundColor = '#e0f2fe'; e.currentTarget.style.color = '#0369a1'; e.currentTarget.style.borderColor = '#bae6fd' }}
+                  >
                     {org.nom}
-                    <button
-                      onClick={() => setRemovedOrgIds(prev => [...prev, org.id])}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#0369a1',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        padding: '0',
-                        lineHeight: '1',
-                      }}
-                      title="Retirer"
-                    >×</button>
-                  </span>
+                    <span style={{ fontSize: '16px', lineHeight: '1' }}>×</span>
+                  </button>
                 ))}
               </div>
 
