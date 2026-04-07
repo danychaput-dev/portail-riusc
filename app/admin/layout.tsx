@@ -11,6 +11,7 @@ interface SidebarStats {
   certificats_attente: number
   messages_non_lus: number
   courriels_reponses_non_lues: number
+  notes_non_lues: number
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -18,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const [authorized, setAuthorized] = useState(false)
-  const [stats, setStats] = useState<SidebarStats>({ sinistres_actifs: 0, certificats_attente: 0, messages_non_lus: 0, courriels_reponses_non_lues: 0 })
+  const [stats, setStats] = useState<SidebarStats>({ sinistres_actifs: 0, certificats_attente: 0, messages_non_lus: 0, courriels_reponses_non_lues: 0, notes_non_lues: 0 })
   const userIdRef = useRef<string | null>(null)
 
   const refreshBadges = useCallback(async () => {
@@ -38,10 +39,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .gt('created_at', lastSeenAt)
 
       let reponsesNonLues = 0
+      let notesNonLues = 0
       try {
-        const repRes = await fetch('/api/admin/courriels/reponses?statut=recu&limit=200')
+        const [repRes, notesRes] = await Promise.all([
+          fetch('/api/admin/courriels/reponses?statut=recu&limit=200'),
+          fetch('/api/admin/notes/non-lues'),
+        ])
         const repJson = await repRes.json()
         reponsesNonLues = (repJson.reponses || []).length
+        const notesJson = await notesRes.json()
+        notesNonLues = notesJson.count || 0
       } catch {}
 
       setStats({
@@ -49,6 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         certificats_attente: certificats.count || 0,
         messages_non_lus: messagesCount ?? 0,
         courriels_reponses_non_lues: reponsesNonLues,
+        notes_non_lues: notesNonLues,
       })
     } catch {}
   }, [supabase])
@@ -93,6 +101,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     window.addEventListener('certificats-badge-update', handler)
     return () => window.removeEventListener('certificats-badge-update', handler)
+  }, [])
+
+  // Écouter les mises à jour du badge notes
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const count = (e as CustomEvent).detail?.count
+      if (typeof count === 'number') {
+        setStats(prev => ({ ...prev, notes_non_lues: count }))
+      }
+    }
+    window.addEventListener('notes-badge-update', handler)
+    return () => window.removeEventListener('notes-badge-update', handler)
   }, [])
 
   if (!authorized) {

@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
         auteur_id: admin.id,
         auteur_nom: `${admin.prenom} ${admin.nom}`,
         contenu: contenu.trim(),
+        lu_par: [admin.id],  // L'auteur a lu sa propre note
       })
       .select()
       .single()

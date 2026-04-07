@@ -20,6 +20,7 @@ interface Props {
     certificats_attente?: number
     messages_non_lus?: number
     courriels_reponses_non_lues?: number
+    notes_non_lues?: number
   }
 }
 
@@ -63,11 +64,12 @@ export default function AdminSidebar({ stats }: Props) {
     return pathname.startsWith(href)
   }
 
-  const getBadge = (item: NavItem) => {
+  const getBadge = (item: NavItem): { count?: number; color?: string } | undefined => {
     if (!stats) return undefined
-    if (item.href === '/admin/certificats') return stats.certificats_attente
-    if (item.href === '/communaute') return stats.messages_non_lus
-    if (item.href === '/admin/courriels') return stats.courriels_reponses_non_lues
+    if (item.href === '/admin/certificats' && stats.certificats_attente) return { count: stats.certificats_attente }
+    if (item.href === '/communaute' && stats.messages_non_lus) return { count: stats.messages_non_lus }
+    if (item.href === '/admin/courriels' && stats.courriels_reponses_non_lues) return { count: stats.courriels_reponses_non_lues }
+    if (item.href === '/admin/reservistes' && stats.notes_non_lues) return { count: stats.notes_non_lues, color: '#d946ef' }  // magenta
     return undefined
   }
 
@@ -107,7 +109,9 @@ export default function AdminSidebar({ stats }: Props) {
         {NAV_ITEMS.map(item => {
           const active = isActive(item.href)
           const disabled = item.statut === 'bientot'
-          const badge = getBadge(item)
+          const badgeInfo = getBadge(item)
+          const badge = badgeInfo?.count
+          const badgeColor = badgeInfo?.color || '#dc2626'
 
           return (
             <button
@@ -153,7 +157,7 @@ export default function AdminSidebar({ stats }: Props) {
                   position: collapsed ? 'absolute' : 'relative',
                   top: collapsed ? '4px' : 'auto',
                   right: collapsed ? '4px' : 'auto',
-                  backgroundColor: '#dc2626',
+                  backgroundColor: badgeColor,
                   color: 'white',
                   borderRadius: '10px',
                   padding: '1px 6px',

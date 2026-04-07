@@ -75,13 +75,28 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
     setImpersonating(false)
   }
 
-  // Charger les notes quand on ouvre l'onglet
+  // Charger les notes quand on ouvre l'onglet + marquer comme lues
   useEffect(() => {
     if (onglet !== 'notes') return
     setLoadingNotes(true)
     fetch(`/api/admin/notes?benevole_id=${reserviste.benevole_id}`)
       .then(r => r.json())
-      .then(json => setNotes(json.notes || []))
+      .then(json => {
+        setNotes(json.notes || [])
+        // Marquer les notes de ce réserviste comme lues
+        fetch('/api/admin/notes/non-lues', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ benevole_id: reserviste.benevole_id }),
+        })
+          .then(r => r.json())
+          .then(json => {
+            if (typeof json.count === 'number') {
+              window.dispatchEvent(new CustomEvent('notes-badge-update', { detail: { count: json.count } }))
+            }
+          })
+          .catch(() => {})
+      })
       .catch(() => {})
       .finally(() => setLoadingNotes(false))
   }, [onglet, reserviste.benevole_id])
