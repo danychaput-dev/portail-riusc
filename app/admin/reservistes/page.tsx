@@ -208,6 +208,7 @@ function ReservistesPage() {
 
   // Notes non lues
   const [notesNonLuesIds, setNotesNonLuesIds] = useState<Set<string>>(new Set())
+  const [notesNonLuesCount, setNotesNonLuesCount] = useState(0)
   const [filtreNotesNonLues, setFiltreNotesNonLues] = useState(false)
 
   // Responsive — ne pas figer la page sur mobile
@@ -272,6 +273,7 @@ function ReservistesPage() {
       const res = await fetch('/api/admin/notes/non-lues?detail=1')
       const json = await res.json()
       setNotesNonLuesIds(new Set(json.benevole_ids || []))
+      setNotesNonLuesCount(json.count || 0)
     } catch {}
   }
   useEffect(() => {
@@ -742,7 +744,7 @@ function ReservistesPage() {
                   cursor: 'pointer',
                 }}
               >
-                {filtreNotesNonLues ? `✕ Notes non lues (${notesNonLuesIds.size})` : `📝 Notes non lues (${notesNonLuesIds.size})`}
+                {filtreNotesNonLues ? `✕ Notes non lues (${notesNonLuesCount})` : `📝 Notes non lues (${notesNonLuesCount})`}
               </button>
             )}
             {filtreNotesNonLues && (
@@ -754,6 +756,7 @@ function ReservistesPage() {
                     body: JSON.stringify({ tout: true }),
                   })
                   setNotesNonLuesIds(new Set())
+                  setNotesNonLuesCount(0)
                   setFiltreNotesNonLues(false)
                   window.dispatchEvent(new CustomEvent('notes-badge-update', { detail: { count: 0 } }))
                 }}
