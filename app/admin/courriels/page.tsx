@@ -207,6 +207,14 @@ export default function CampagnesPage() {
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
 
+  // ─── Menu contextuel (clic droit sur nom) ───
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; benevole_id: string; prenom: string; nom: string; email: string } | null>(null)
+  useEffect(() => {
+    const close = () => setContextMenu(null)
+    if (contextMenu) { window.addEventListener('click', close); window.addEventListener('contextmenu', close) }
+    return () => { window.removeEventListener('click', close); window.removeEventListener('contextmenu', close) }
+  }, [contextMenu])
+
   // ─── Auth ───
   useEffect(() => {
     const init = async () => {
@@ -638,7 +646,15 @@ export default function CampagnesPage() {
                                     {/* Ligne destinataire */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu') ? '#fffdf5' : d.reponses && d.reponses.length > 0 ? '#f0f9ff' : 'white', alignItems: 'center' }}>
                                       <div style={{ fontWeight: '500', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        {d.nom_complet}
+                                        <span
+                                          style={{ cursor: 'context-menu' }}
+                                          onContextMenu={(e) => {
+                                            e.preventDefault(); e.stopPropagation()
+                                            setContextMenu({ x: e.clientX, y: e.clientY, benevole_id: d.benevole_id, prenom: d.prenom, nom: d.nom, email: d.to_email })
+                                          }}
+                                        >
+                                          {d.nom_complet}
+                                        </span>
                                         {d.reponses && d.reponses.length > 0 && (
                                           <span style={{ fontSize: '10px', fontWeight: '600', padding: '1px 6px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1e40af' }}>
                                             💬 {d.reponses.length}
@@ -787,7 +803,15 @@ export default function CampagnesPage() {
                         onMouseOut={e => (e.currentTarget.style.backgroundColor = hasUnread ? '#fffdf5' : 'white')}
                       >
                         <div>
-                          <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '13px' }}>{c.nom_complet}</div>
+                          <div
+                            style={{ fontWeight: '600', color: '#1f2937', fontSize: '13px', cursor: 'context-menu' }}
+                            onContextMenu={(e) => {
+                              e.preventDefault(); e.stopPropagation()
+                              setContextMenu({ x: e.clientX, y: e.clientY, benevole_id: c.benevole_id, prenom: c.nom_complet?.split(' ')[0] || '', nom: c.nom_complet?.split(' ').slice(1).join(' ') || '', email: c.to_email })
+                            }}
+                          >
+                            {c.nom_complet}
+                          </div>
                           <div style={{ fontSize: '11px', color: '#9ca3af' }}>{c.to_email}</div>
                         </div>
                         <div style={{ fontSize: '13px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1029,6 +1053,69 @@ export default function CampagnesPage() {
             }
           `}</style>
         )}
+        {/* ─── Menu contextuel (clic droit sur nom) ─── */}
+        {contextMenu && (
+          <div
+            style={{
+              position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999,
+              backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e2e8f0',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '6px 0', minWidth: '200px',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ padding: '6px 14px', fontSize: '11px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {contextMenu.prenom} {contextMenu.nom}
+            </div>
+            <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+            <button
+              onClick={() => {
+                window.open(`/profil?bid=${contextMenu.benevole_id}&from=courriels`, '_blank')
+                setContextMenu(null)
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <span style={{ fontSize: '14px' }}>👤</span> Voir le profil
+            </button>
+            <button
+              onClick={() => {
+                window.open(`/formation?bid=${contextMenu.benevole_id}&from=courriels`, '_blank')
+                setContextMenu(null)
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <span style={{ fontSize: '14px' }}>🎓</span> Formation et parcours
+            </button>
+            <button
+              onClick={() => {
+                window.open(`/dossier?bid=${contextMenu.benevole_id}&from=courriels`, '_blank')
+                setContextMenu(null)
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <span style={{ fontSize: '14px' }}>📁</span> Dossier
+            </button>
+            <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+            <button
+              onClick={() => {
+                setReplyDest([{ benevole_id: contextMenu.benevole_id, email: contextMenu.email, prenom: contextMenu.prenom, nom: contextMenu.nom }])
+                setReplySubject('')
+                setContextMenu(null)
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <span style={{ fontSize: '14px' }}>✉️</span> Envoyer un courriel
+            </button>
+          </div>
+        )}
+
         {/* ─── Modal Reply ─── */}
         {replyDest && (
           <ModalComposeCourriel
