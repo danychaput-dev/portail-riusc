@@ -61,12 +61,12 @@ function LoginContent() {
     if (!tawkReady.current || !window.Tawk_API) return
     const fc = count ?? failCount
     const errText = errMsg || 'Aucune'
-    const etape = otpSent ? 'Code OTP' : 'Courriel'
+    const etape = otpSent ? 'Validation du code' : 'Saisie du courriel'
     const methode = otpMethod === 'sms' ? 'SMS' : otpMethod === 'email' ? 'Courriel' : '—'
     try {
       // Le nom du visiteur contient le contexte — toujours visible dans Tawk
       const visitorName = email
-        ? `${email} | ${fc} erreur${fc > 1 ? 's' : ''} | ${etape} | ${methode}`
+        ? `${email} | ${fc} erreur${fc > 1 ? 's' : ''} | ${etape} | via ${methode}`
         : 'Visiteur (courriel non saisi)'
       window.Tawk_API.setAttributes?.({
         'name': visitorName,
