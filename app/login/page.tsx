@@ -35,15 +35,16 @@ function LoginContent() {
 
   // Tawk.to — chat d'aide sur la page login
   useEffect(() => {
+    ;(window as any).Tawk_API = (window as any).Tawk_API || {}
+    ;(window as any).Tawk_LoadStart = new Date()
     const s = document.createElement('script')
     s.async = true
-    s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/default'
+    s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/895ef2c32f082b9bfa935b00113ce97a72042c04'
     s.charset = 'UTF-8'
     s.setAttribute('crossorigin', '*')
     document.head.appendChild(s)
     return () => {
       document.head.removeChild(s)
-      // Nettoyer le widget Tawk quand on quitte la page login
       if (window.Tawk_API) window.Tawk_API.hideWidget?.()
       delete (window as any).Tawk_API
       delete (window as any).Tawk_LoadStart
