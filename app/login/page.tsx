@@ -33,6 +33,9 @@ function LoginContent() {
     } catch {}
   }, [])
 
+  // Compteur de tentatives échouées
+  const [failCount, setFailCount] = useState(0)
+
   // Tawk.to — chat d'aide sur la page login
   useEffect(() => {
     ;(window as any).Tawk_API = (window as any).Tawk_API || {}
@@ -50,6 +53,31 @@ function LoginContent() {
       delete (window as any).Tawk_LoadStart
     }
   }, [])
+
+  // Mettre à jour les attributs visiteur Tawk.to quand le contexte change
+  useEffect(() => {
+    const updateTawk = () => {
+      if (!window.Tawk_API?.setAttributes) return
+      const errText = typeof error === 'string' ? error : error ? 'Erreur affichée' : ''
+      window.Tawk_API.setAttributes({
+        'email': email || 'Non saisi',
+        'Courriel saisi': email || '—',
+        'Méthode OTP': otpMethod || '—',
+        'Étape': otpSent ? 'Validation du code' : 'Saisie courriel',
+        'Dernière erreur': errText || 'Aucune',
+        'Tentatives échouées': String(failCount),
+      }, () => {})
+    }
+    // Si Tawk est déjà chargé, mettre à jour tout de suite
+    if (window.Tawk_API?.setAttributes) {
+      updateTawk()
+    } else {
+      // Sinon, attendre le chargement
+      const prev = window.Tawk_API?.onLoad
+      ;(window as any).Tawk_API = (window as any).Tawk_API || {}
+      window.Tawk_API.onLoad = () => { prev?.(); updateTawk() }
+    }
+  }, [email, error, otpMethod, otpSent, failCount])
 
   const contactLink = (
     <span> Si le problème persiste, <a href="mailto:dany.chaput@aqbrs.ca" style={{ color: '#dc2626', fontWeight: '600', textDecoration: 'underline' }}>contactez-nous</a>.</span>
@@ -172,6 +200,7 @@ function LoginContent() {
       if (fetchError) {
         console.error('Erreur recherche réserviste:', fetchError)
         setError(<>Erreur de connexion. Veuillez réessayer.{contactLink}</>)
+        setFailCount(c => c + 1)
         await logEvent({
           eventType: 'login_failed',
           email: email.trim(),
@@ -210,6 +239,7 @@ function LoginContent() {
         if (emailError) {
           console.error('Email OTP Error:', emailError)
           setError(<>Erreur d&apos;envoi du code de connexion.{contactLink}</>)
+          setFailCount(c => c + 1)
           await logEvent({
             eventType: 'login_failed',
             email: email.trim(),
@@ -257,6 +287,7 @@ function LoginContent() {
       if (verifyResult?.error) {
         console.error('Verify Error:', verifyResult.error)
         setError(<>Code invalide ou expiré. Réessayez.{contactLink}</>)
+        setFailCount(c => c + 1)
         await logEvent({
           eventType: 'login_failed',
           email: email.trim(),
@@ -306,6 +337,7 @@ function LoginContent() {
     } catch (err) {
       console.error('Verify unexpected error:', err)
       setError(<>Erreur de vérification. Réessayez.{contactLink}</>)
+      setFailCount(c => c + 1)
       await logEvent({
         eventType: 'login_failed',
         email: email.trim(),
