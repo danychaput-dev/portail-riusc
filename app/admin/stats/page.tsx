@@ -432,10 +432,21 @@ export default function StatsPage() {
     });
     const activeUsers = Object.values(userPageCounts).sort((a, b) => b.count - a.count).slice(0, 10);
 
-    const hourlyCounts: number[] = new Array(24).fill(0);
-    pageVisits.forEach(l => { hourlyCounts[new Date(l.created_at).getHours()]++; });
+    const hourlyData: { views: number; users: Set<string>; names: Set<string> }[] = Array.from({ length: 24 }, () => ({ views: 0, users: new Set<string>(), names: new Set<string>() }));
+    pageVisits.forEach(l => {
+      const h = new Date(l.created_at).getHours();
+      hourlyData[h].views++;
+      const uid = l.user_id || l.email || l.telephone || '';
+      if (uid) {
+        hourlyData[h].users.add(uid);
+        hourlyData[h].names.add(resolveName(l));
+      }
+    });
+    const hourlyCounts = hourlyData.map(d => d.views);
+    const hourlyUnique = hourlyData.map(d => d.users.size);
+    const hourlyNames = hourlyData.map(d => Array.from(d.names).sort((a, b) => a.localeCompare(b, 'fr')));
 
-    return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, activeUsers, authEvents, hourlyCounts };
+    return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, activeUsers, authEvents, hourlyCounts, hourlyUnique, hourlyNames };
   }, [filteredLogs, reservistes]);
 
   // ─── Stats audit_pages ────────────────────────────────────────────
@@ -884,22 +895,27 @@ export default function StatsPage() {
 
             {/* Distribution horaire */}
             <div style={{ marginBottom: 24 }}>
-              <Section title="🕐 Distribution horaire des visites">
-                <div className="print-chart" style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 120, paddingTop: 8 }}>
-                  {logStats.hourlyCounts.map((count, h) => {
-                    const maxH = Math.max(...logStats.hourlyCounts, 1);
-                    const height = (count / maxH) * 100;
+              <Section title="🕐 Distribution horaire des visites (personnes uniques)">
+                <div className="print-chart" style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140, paddingTop: 8 }}>
+                  {logStats.hourlyUnique.map((uniqueCount, h) => {
+                    const views = logStats.hourlyCounts[h];
+                    const names = logStats.hourlyNames[h] || [];
+                    const maxH = Math.max(...logStats.hourlyUnique, 1);
+                    const height = (uniqueCount / maxH) * 100;
+                    const tooltip = uniqueCount > 0
+                      ? `${uniqueCount} personne${uniqueCount > 1 ? 's' : ''} · ${views} page${views > 1 ? 's' : ''} vue${views > 1 ? 's' : ''}\n\n${names.join('\n')}`
+                      : `${h}h — aucune visite`;
                     return (
-                      <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 500 }}>{count > 0 ? count : ''}</div>
+                      <div key={h} title={tooltip} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: uniqueCount > 0 ? 'default' : 'default' }}>
+                        <div style={{ fontSize: 10, color: '#1e3a5f', fontWeight: 600 }}>{uniqueCount > 0 ? uniqueCount : ''}</div>
                         <div style={{
                           width: '100%',
                           maxWidth: 28,
                           height: `${Math.max(height, 3)}%`,
-                          background: count > 0 ? PRIMARY : '#e5e7eb',
+                          background: uniqueCount > 0 ? PRIMARY : '#e5e7eb',
                           borderRadius: '4px 4px 0 0',
                           transition: 'height 0.5s ease',
-                          opacity: count > 0 ? 1 : 0.4,
+                          opacity: uniqueCount > 0 ? 1 : 0.4,
                         }} />
                         <div style={{ fontSize: 9, color: '#9ca3af' }}>{h}h</div>
                       </div>
