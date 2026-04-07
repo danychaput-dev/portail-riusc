@@ -603,9 +603,16 @@ function ReservistesPage() {
   // Readiness stats — calculé sur rawData (déjà filtré par groupes sélectionnés)
   // Déployable reste sur Approuvés seulement
   const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
+
+  // Calculer les stats sur la source pertinente :
+  // - rawData quand aucun filtre avancé actif (vue globale)
+  // - data quand des filtres sont appliqués (vue filtrée)
+  const hasAdvancedFilters = filtreOrganisme || filtreGroupeRS || Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null || filtreCertifsManquants || filtreNotesNonLues
+  const statsSource = hasAdvancedFilters ? data : rawData
+
   const readinessStats = useMemo(() => {
     const stats = { profil: 0, initiation: 0, camp: 0, bottes: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0, certifs_manquants_total: 0 }
-    for (const r of rawData) {
+    for (const r of statsSource) {
       const rd = getReadiness(r)
       if (rd.profil) stats.profil++
       if (rd.initiation) stats.initiation++
@@ -616,21 +623,22 @@ function ReservistesPage() {
       if (r.certifs_manquants > 0) { stats.certifs_manquants++; stats.certifs_manquants_total += r.certifs_manquants }
       if (r.certifs_en_attente > 0) stats.certifs_en_attente++
     }
-    // Déployable = seulement les Approuvés qui ont tout
-    for (const r of approuves) {
+    // Déployable = seulement les Approuvés dans la source
+    const approuvesSource = hasAdvancedFilters ? statsSource.filter(r => r.groupe === 'Approuvé') : approuves
+    for (const r of approuvesSource) {
       if (isDeployable(r)) stats.deployable++
     }
     return stats
-  }, [rawData, approuves])
+  }, [statsSource, approuves, hasAdvancedFilters])
 
-  const baseTotal = rawData.length
+  const baseTotal = statsSource.length
 
   // Détails pour tooltips — ventilation des manquants par critère
   const readinessDetails = useMemo(() => {
     const total = baseTotal
     // Profil complet — quels champs manquent
     const profilManque = { date_naissance: 0, adresse: 0, ville: 0, region: 0, telephone: 0, contact_urgence_nom: 0, contact_urgence_tel: 0, email: 0, nom: 0, prenom: 0 }
-    for (const r of rawData) {
+    for (const r of statsSource) {
       if (!r.date_naissance) profilManque.date_naissance++
       if (!r.adresse) profilManque.adresse++
       if (!r.ville) profilManque.ville++
@@ -657,7 +665,7 @@ function ReservistesPage() {
       bottes: `${readinessStats.bottes}/${total} ont leurs bottes remboursées\n${total - readinessStats.bottes} sans bottes`,
       antecedents: `${readinessStats.antecedents}/${total} antécédents vérifiés\n${antManque} en attente de vérification`,
     }
-  }, [rawData, baseTotal, readinessStats])
+  }, [statsSource, baseTotal, readinessStats])
 
   if (!authorized) return null
 
