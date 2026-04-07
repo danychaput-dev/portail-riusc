@@ -913,7 +913,7 @@ function ReservistesPage() {
               cursor: 'pointer', transition: 'all 0.15s',
             }}
           >
-            {filtreDeployable === 'has' ? '✓' : filtreDeployable === 'missing' ? '✗' : ''} {readinessStats.deployable} / {approuves.length} déployables
+            {filtreDeployable === 'has' ? '✓' : filtreDeployable === 'missing' ? '✗' : ''} {filtreDeployable === 'missing' ? (approuves.length - readinessStats.deployable) : readinessStats.deployable} / {approuves.length} déployables
           </button>
           <span style={{ color: '#e2e8f0' }}>|</span>
           {READINESS_STEPS.map(step => {
