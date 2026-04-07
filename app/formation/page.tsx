@@ -19,6 +19,7 @@ function FormationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campParam = searchParams.get('camp') || '';
+  const bidParam = searchParams.get('bid') || '';
 
   const [user, setUser] = useState<any>(null);
   const [reserviste, setReserviste] = useState<Reserviste | null>(null);
@@ -93,7 +94,68 @@ function FormationContent() {
     }
   }, [loading, loadingCamp, campParam]);
 
+  // État pour mode consultation admin
+  const [isViewingOther, setIsViewingOther] = useState(false);
+
   async function loadData() {
+    // 👁️ MODE ADMIN — consultation via ?bid= (même pattern que /profil)
+    if (bidParam) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
+      // Vérifier que c'est un admin/coord
+      const { data: adminRes } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single();
+      if (adminRes && ['admin', 'coordonnateur', 'adjoint'].includes(adminRes.role)) {
+        const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: bidParam });
+        if (rpcData?.[0]) {
+          const d = rpcData[0];
+          setUser({ id: `admin_view_${d.benevole_id}`, email: d.email });
+          setReserviste(d);
+          setIsViewingOther(true);
+
+          const bid = d.benevole_id;
+          const [certResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
+            supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
+            supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
+            supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
+            supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
+          ]);
+          if (certResult.status === 'fulfilled' && certResult.value?.data) {
+            const certs = certResult.value.data;
+            const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
+              const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
+              const { data: sd } = await supabase.storage.from('certificats').createSignedUrl(url, 3600);
+              return { id: f.id, name: f.nom_formation || 'Certificat', url: sd?.signedUrl };
+            }));
+            setCertificats(filesWithUrls.filter((f: any) => f.url));
+          }
+          setLoadingCertificats(false);
+          const formData = formResult.status === 'fulfilled' ? formResult.value?.data : null;
+          if (formData) setFormations(await mapFormationsWithSignedUrls(formData));
+          setLoadingFormations(false);
+          const hasCampQualif = (formData || []).some((f: any) =>
+            (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
+          );
+          setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+          setLoadingCamp(false);
+          if (docsResult.status === 'fulfilled') {
+            const docs = docsResult.value?.data;
+            if (docs && docs.length > 0) {
+              setDocumentsOfficiels(docs);
+              const urls: Record<number, string> = {};
+              await Promise.allSettled(docs.map(async (doc: any) => {
+                const { data: signedData } = await supabase.storage.from('documents-officiels').createSignedUrl(doc.chemin_storage, 3600);
+                if (signedData?.signedUrl) urls[doc.id] = signedData.signedUrl;
+              }));
+              setDocumentUrls(urls);
+            }
+          }
+          if (lmsResult.status === 'fulfilled' && lmsResult.value?.data) setLmsPortailProgression(lmsResult.value.data);
+          setLoading(false);
+          return;
+        }
+      }
+    }
+
     // 🔧 SUPPORT MODE DEBUG
     if (typeof window !== 'undefined') {
       const debugMode = localStorage.getItem('debug_mode');
@@ -770,11 +832,19 @@ function FormationContent() {
         </div>
       )}
 
-      <PortailHeader subtitle="Formation et parcours du réserviste" />
+      {!isViewingOther && <PortailHeader subtitle="Formation et parcours du réserviste" />}
 
-      <ImpersonateBanner />
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
-        <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
+        {isViewingOther && reserviste ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <a href="/admin/reservistes" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour aux réservistes'}</a>
+            <span style={{ padding: '4px 12px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#1e40af', fontSize: '13px', fontWeight: '600' }}>
+              👁️ Consultation : {reserviste.prenom} {reserviste.nom}
+            </span>
+          </div>
+        ) : (
+          <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
+        )}
 
         <h2 style={{ color: '#1e3a5f', margin: '20px 0 8px 0', fontSize: '26px', fontWeight: '700' }}>Parcours du réserviste</h2>
         <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px' }}>

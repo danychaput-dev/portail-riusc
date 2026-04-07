@@ -1382,6 +1382,17 @@ function ReservistesPage() {
           </button>
           <button
             onClick={() => {
+              window.open(`/formation?bid=${contextMenu.reserviste.benevole_id}&from=reservistes`, '_blank')
+              setContextMenu(null)
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span style={{ fontSize: '14px' }}>🎓</span> Formation et parcours
+          </button>
+          <button
+            onClick={() => {
               setSelectedIds(new Set([contextMenu.reserviste.benevole_id]))
               setSelectedDestinataires(new Map([[contextMenu.reserviste.benevole_id, { benevole_id: contextMenu.reserviste.benevole_id, email: contextMenu.reserviste.email, prenom: contextMenu.reserviste.prenom, nom: contextMenu.reserviste.nom }]]))
               setShowEmailModal(true)
