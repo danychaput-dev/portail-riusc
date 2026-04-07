@@ -42,6 +42,7 @@ interface Inscription {
   prenom: string | null
   nom: string | null
   presence_updated_at: string | null
+  cahier_envoye: boolean
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -215,11 +216,12 @@ export default function InscriptionsCampsPage() {
       setLoadingInscrits(true)
       setSearch('')
       setFilterPresence('tous')
+      setSelectedIds(new Set())
 
       // Étape 1 — inscriptions du camp
       const { data, error } = await supabase
         .from('inscriptions_camps')
-        .select('id, benevole_id, prenom_nom, presence, courriel, telephone, camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at, presence_updated_at')
+        .select('id, benevole_id, prenom_nom, presence, courriel, telephone, camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at, presence_updated_at, cahier_envoye')
         .eq('session_id', selectedCampId)
         .order('prenom_nom')
 
@@ -252,6 +254,7 @@ export default function InscriptionsCampsPage() {
           monday_item_id: row.monday_item_id,
           created_at: row.created_at,
           presence_updated_at: row.presence_updated_at ?? null,
+          cahier_envoye: row.cahier_envoye ?? false,
           region: res?.region ?? null,
           groupe: res?.groupe ?? null,
           remboursement_bottes_date: res?.remboursement_bottes_date ?? null,
@@ -283,6 +286,122 @@ export default function InscriptionsCampsPage() {
   const selectedCamp = camps.find(c => c.session_id === selectedCampId)
   const upcomingCamps = camps.filter(c => !c.isPast)
   const pastCamps = camps.filter(c => c.isPast)
+
+  // ── Multi-sélection (admin only) ─────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map(i => i.id)))
+    }
+  }
+
+  async function bulkUpdatePresence(newPresence: string) {
+    if (selectedIds.size === 0) return
+    const label = PRESENCE_LABELS[newPresence]?.label || newPresence
+    if (!confirm(`Changer la présence de ${selectedIds.size} participant(s) à « ${label} » ?`)) return
+
+    setBulkUpdating(true)
+    const now = new Date().toISOString()
+
+    // Get admin name for logs
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: adminRes } = await supabase
+      .from('reservistes')
+      .select('prenom, nom')
+      .eq('user_id', user?.id || '')
+      .single()
+    const modifiePar = adminRes ? `${adminRes.prenom} ${adminRes.nom}` : 'Admin'
+
+    const ids = Array.from(selectedIds)
+    // Batch update
+    const { error } = await supabase
+      .from('inscriptions_camps')
+      .update({ presence: newPresence, presence_updated_at: now })
+      .in('id', ids)
+
+    if (error) {
+      console.error('Erreur bulk update:', error)
+      alert('Erreur lors de la mise à jour groupée.')
+      setBulkUpdating(false)
+      return
+    }
+
+    // Log each change
+    const logs = ids.map(id => {
+      const ins = inscriptions.find(i => i.id === id)
+      return {
+        inscription_id: id,
+        benevole_id: ins?.benevole_id || '',
+        session_id: selectedCampId,
+        prenom_nom: ins?.prenom_nom || '',
+        presence_avant: ins?.presence || '',
+        presence_apres: newPresence,
+        modifie_par: modifiePar,
+      }
+    }).filter(l => l.benevole_id)
+
+    if (logs.length > 0) {
+      await supabase.from('inscriptions_camps_logs').insert(logs)
+    }
+
+    // Update local state
+    setInscriptions(prev =>
+      prev.map(i => selectedIds.has(i.id)
+        ? { ...i, presence: newPresence, presence_updated_at: now }
+        : i
+      )
+    )
+    setSelectedIds(new Set())
+    setBulkUpdating(false)
+  }
+
+  async function toggleCahier(inscriptionId: string, current: boolean) {
+    const newVal = !current
+    const { error } = await supabase
+      .from('inscriptions_camps')
+      .update({ cahier_envoye: newVal })
+      .eq('id', inscriptionId)
+
+    if (error) {
+      console.error('Erreur cahier:', error)
+      return
+    }
+
+    setInscriptions(prev =>
+      prev.map(i => i.id === inscriptionId ? { ...i, cahier_envoye: newVal } : i)
+    )
+  }
+
+  async function bulkToggleCahier(value: boolean) {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+    const { error } = await supabase
+      .from('inscriptions_camps')
+      .update({ cahier_envoye: value })
+      .in('id', ids)
+
+    if (error) {
+      console.error('Erreur bulk cahier:', error)
+      return
+    }
+
+    setInscriptions(prev =>
+      prev.map(i => selectedIds.has(i.id) ? { ...i, cahier_envoye: value } : i)
+    )
+  }
 
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [showSmsModal, setShowSmsModal] = useState(false)
@@ -552,6 +671,7 @@ export default function InscriptionsCampsPage() {
                 <option value="absent">Je n&apos;y serai pas</option>
                 <option value="incertain">Incertain</option>
                 <option value="annule">Annulé</option>
+                <option value="Jy_etais">J&apos;y étais</option>
               </select>
               {(search || filterPresence !== 'tous') && (
                 <button
@@ -590,6 +710,74 @@ export default function InscriptionsCampsPage() {
           </div>
         )}
 
+        {/* Barre d'actions groupées */}
+        {isAdmin && selectedIds.size > 0 && (
+          <div style={{
+            padding: '10px 24px',
+            background: '#eff6ff',
+            borderBottom: '1px solid #bfdbfe',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexWrap: 'wrap',
+            fontSize: 13,
+          }}>
+            <span style={{ fontWeight: 600, color: '#1e3a5f' }}>
+              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </span>
+            <span style={{ color: '#94a3b8' }}>|</span>
+            <span style={{ color: '#374151', fontWeight: 500 }}>Présence :</span>
+            {Object.entries(PRESENCE_LABELS).map(([key, val]) => (
+              <button
+                key={key}
+                disabled={bulkUpdating}
+                onClick={() => bulkUpdatePresence(key)}
+                style={{
+                  padding: '4px 12px', borderRadius: 16, border: 'none',
+                  fontSize: 12, fontWeight: 600, cursor: bulkUpdating ? 'wait' : 'pointer',
+                  color: val.color, background: val.bg,
+                  opacity: bulkUpdating ? 0.6 : 1,
+                }}
+              >
+                {val.label}
+              </button>
+            ))}
+            <span style={{ color: '#94a3b8' }}>|</span>
+            <button
+              onClick={() => bulkToggleCahier(true)}
+              disabled={bulkUpdating}
+              style={{
+                padding: '4px 12px', borderRadius: 16, border: '1px solid #d1d5db',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                color: '#065f46', background: '#d1fae5',
+              }}
+            >
+              ✓ Cahier envoyé
+            </button>
+            <button
+              onClick={() => bulkToggleCahier(false)}
+              disabled={bulkUpdating}
+              style={{
+                padding: '4px 12px', borderRadius: 16, border: '1px solid #d1d5db',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                color: '#6b7280', background: '#f3f4f6',
+              }}
+            >
+              ✗ Cahier non envoyé
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              style={{
+                marginLeft: 'auto', padding: '4px 12px', borderRadius: 16,
+                border: '1px solid #d1d5db', fontSize: 12, fontWeight: 500,
+                cursor: 'pointer', color: '#6b7280', background: '#fff',
+              }}
+            >
+              Désélectionner
+            </button>
+          </div>
+        )}
+
         {/* Tableau */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '0 0 16px' }}>
           {loadingInscrits ? (
@@ -600,9 +788,20 @@ export default function InscriptionsCampsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
                 <tr style={{ background: '#f9fafb', position: 'sticky', top: 0, zIndex: 1 }}>
-                  {['Nom', 'Présence', 'Inscrit le', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {isAdmin && (
+                    <th style={{ padding: '8px 6px', borderBottom: '1px solid #e5e7eb', width: 32, textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        onChange={toggleSelectAll}
+                        style={{ cursor: 'pointer', accentColor: '#1e3a5f' }}
+                        title="Tout sélectionner"
+                      />
+                    </th>
+                  )}
+                  {['Nom', 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
-                      padding: '8px 10px', textAlign: 'left', fontSize: 10,
+                      padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
                       letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
                       whiteSpace: 'nowrap',
@@ -621,6 +820,16 @@ export default function InscriptionsCampsPage() {
                       borderBottom: '1px solid #f3f4f6',
                     }}
                   >
+                    {isAdmin && (
+                      <td style={{ padding: '8px 6px', textAlign: 'center', width: 32 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(ins.id)}
+                          onChange={() => toggleSelect(ins.id)}
+                          style={{ cursor: 'pointer', accentColor: '#1e3a5f' }}
+                        />
+                      </td>
+                    )}
                     <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
                       {ins.prenom_nom}
                     </td>
@@ -652,6 +861,7 @@ export default function InscriptionsCampsPage() {
                             <option value="absent">Je n&apos;y serai pas</option>
                             <option value="incertain">Incertain</option>
                             <option value="annule">Annulé</option>
+                            <option value="Jy_etais">J&apos;y étais</option>
                           </select>
                           {ins.presence_updated_at && (
                             <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
@@ -661,6 +871,17 @@ export default function InscriptionsCampsPage() {
                         </div>
                       ) : presenceBadge(ins.presence)}
                     </td>
+                    {isAdmin && (
+                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={ins.cahier_envoye}
+                          onChange={() => toggleCahier(ins.id, ins.cahier_envoye)}
+                          style={{ cursor: 'pointer', accentColor: '#1e3a5f', width: 15, height: 15 }}
+                          title={ins.cahier_envoye ? 'Cahier envoyé' : 'Cahier non envoyé'}
+                        />
+                      </td>
+                    )}
                     <td style={{ padding: '8px 10px', color: '#6b7280', whiteSpace: 'nowrap', fontSize: 12 }}>
                       {ins.created_at
                         ? new Date(ins.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
