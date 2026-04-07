@@ -395,18 +395,55 @@ export default function StatsPage() {
     }));
 
     // Personnes uniques qui ont échoué, et combien ont réussi ensuite
-    // On croise auth_logs (failed) avec auth_logs (logins) + audit_pages (connexions)
-    const failedIdentities = new Set(failed.map(l => (l.email || l.telephone || '').toLowerCase()).filter(Boolean));
-    // Succès dans auth_logs
-    const succeededIdentities = new Set(logins.map(l => (l.email || l.telephone || '').toLowerCase()).filter(Boolean));
-    // Succès dans audit_pages — on résout les user_id → email via reservistes
-    const userIdToEmail: Record<string, string> = {};
-    reservistes.forEach(r => { if (r.user_id && r.email) userIdToEmail[r.user_id] = r.email.toLowerCase(); });
-    auditPages.filter(p => p.page === '__connexion__' && p.user_id).forEach(p => {
-      const email = userIdToEmail[p.user_id!];
-      if (email) succeededIdentities.add(email);
+    // On construit des lookups email ↔ telephone ↔ user_id via reservistes
+    const resEmailToIds = new Map<string, Set<string>>();
+    const resPhoneToIds = new Map<string, Set<string>>();
+    reservistes.forEach(r => {
+      const ids = new Set<string>();
+      if (r.email) ids.add(r.email.toLowerCase());
+      if (r.telephone) { ids.add(r.telephone); ids.add(r.telephone.replace(/\D/g, '')); }
+      if (r.user_id) ids.add(r.user_id);
+      // Cross-map tous les identifiants
+      ids.forEach(id => {
+        if (r.email) { if (!resEmailToIds.has(id)) resEmailToIds.set(id, new Set()); resEmailToIds.get(id)!.add(r.email.toLowerCase()); }
+        if (r.telephone) { if (!resPhoneToIds.has(id)) resPhoneToIds.set(id, new Set()); resPhoneToIds.get(id)!.add(r.telephone); }
+      });
+    });
+
+    // Identités uniques qui ont échoué (email ou téléphone normalisé)
+    const failedIdentities = new Set<string>();
+    failed.forEach(l => {
+      const id = (l.email || l.telephone || '').toLowerCase().trim();
+      if (id) failedIdentities.add(id);
     });
     const failedUniqueUsers = failedIdentities.size;
+
+    // Identités qui ont réussi — on collecte depuis toutes les sources
+    const succeededIdentities = new Set<string>();
+    // 1. auth_logs logins réussis
+    logins.forEach(l => {
+      if (l.email) succeededIdentities.add(l.email.toLowerCase());
+      if (l.telephone) succeededIdentities.add(l.telephone.toLowerCase());
+    });
+    // 2. audit_pages — si un user a visité une page authentifiée, il a réussi à se connecter
+    const userIdToIdentity: Record<string, string[]> = {};
+    reservistes.forEach(r => {
+      if (!r.user_id) return;
+      const ids: string[] = [];
+      if (r.email) ids.push(r.email.toLowerCase());
+      if (r.telephone) ids.push(r.telephone.toLowerCase());
+      userIdToIdentity[r.user_id] = ids;
+    });
+    const auditUserIds = new Set(auditPages.filter(p => p.user_id).map(p => p.user_id!));
+    auditUserIds.forEach(uid => {
+      (userIdToIdentity[uid] || []).forEach(id => succeededIdentities.add(id));
+    });
+    // 3. page_visit authentifiées dans auth_logs
+    authenticated.forEach(l => {
+      if (l.email) succeededIdentities.add(l.email.toLowerCase());
+      if (l.telephone) succeededIdentities.add(l.telephone.toLowerCase());
+    });
+
     const failedThenSucceeded = Array.from(failedIdentities).filter(id => succeededIdentities.has(id)).length;
 
     // Build user_id → name lookup from reservistes
@@ -833,8 +870,9 @@ export default function StatsPage() {
             <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
               <StatCard icon="👁️" label="Visiteurs anonymes" value={logStats.anonymous} sub="Pages publiques (inscription, login)" />
               <StatCard icon="🧑" label="Actifs dans le portail" value={auditStats.uniqueUsers} color={PRIMARY_LIGHT} sub="Utilisateurs avec session active" />
-              <StatCard icon="✅" label="Connexions réussies" value={auditStats.connexions} color={GREEN} sub="Sessions ouvertes" />
-              <StatCard icon="⚠️" label="Connexions échouées" value={logStats.failed} color={logStats.failed > 0 ? RED : '#6b7280'}
+              <StatCard icon="✅" label="Connexions réussies" value={auditStats.connexions || auditStats.uniqueUsers} color={GREEN} sub={auditStats.connexions > 0 ? 'Sessions ouvertes' : `${auditStats.uniqueUsers} utilisateur${auditStats.uniqueUsers > 1 ? 's' : ''} actif${auditStats.uniqueUsers > 1 ? 's' : ''}`} />
+              <StatCard icon="⚠️" label="Connexions échouées" value={logStats.failed}
+                color={logStats.failed === 0 ? '#6b7280' : (logStats.failedUniqueUsers > 0 && logStats.failedThenSucceeded === logStats.failedUniqueUsers) ? GREEN : RED}
                 sub={logStats.failed > 0 ? `${logStats.failedThenSucceeded} / ${logStats.failedUniqueUsers} ont réussi ensuite` : undefined} />
             </div>
 
