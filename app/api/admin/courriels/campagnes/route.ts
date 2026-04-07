@@ -1,8 +1,14 @@
 // app/api/admin/courriels/campagnes/route.ts
-// Liste des campagnes avec stats agrégées
+// Liste des campagnes avec stats agrégées + compteur réponses
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET() {
   try {
@@ -57,6 +63,49 @@ export async function GET() {
           taux_clics: total > 0 ? Math.round((clicked / total) * 100) : 0,
         }
       })
+    }
+
+    // Compter les réponses non lues par campagne (courriel_reponses → courriels → campagne_id)
+    try {
+      const campagneIds = (campagnes || []).map(c => c.id)
+      if (campagneIds.length > 0) {
+        // Récupérer tous les courriels de campagne avec leur campagne_id
+        const { data: campCourriels } = await supabaseAdmin
+          .from('courriels')
+          .select('id, campagne_id')
+          .in('campagne_id', campagneIds)
+
+        if (campCourriels && campCourriels.length > 0) {
+          const courrielIds = campCourriels.map(c => c.id)
+          const courrielToCampagne = new Map(campCourriels.map(c => [c.id, c.campagne_id]))
+
+          // Récupérer les réponses non lues pour ces courriels
+          const { data: reponses } = await supabaseAdmin
+            .from('courriel_reponses')
+            .select('id, courriel_id, statut')
+            .in('courriel_id', courrielIds)
+
+          // Compter par campagne
+          const replyCounts = new Map<string, { total: number; non_lues: number }>()
+          for (const rep of reponses || []) {
+            const campId = courrielToCampagne.get(rep.courriel_id)
+            if (!campId) continue
+            const curr = replyCounts.get(campId) || { total: 0, non_lues: 0 }
+            curr.total++
+            if (rep.statut === 'recu') curr.non_lues++
+            replyCounts.set(campId, curr)
+          }
+
+          // Injecter dans les stats
+          for (const s of stats) {
+            const rc = replyCounts.get(s.id)
+            s.reponses_total = rc?.total || 0
+            s.reponses_non_lues = rc?.non_lues || 0
+          }
+        }
+      }
+    } catch {
+      // Table courriel_reponses pas encore dispo — on continue sans
     }
 
     return NextResponse.json({ campagnes: stats })

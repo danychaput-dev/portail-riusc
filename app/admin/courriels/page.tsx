@@ -15,6 +15,8 @@ interface CampagneStats {
   body_html: string
   total_envoyes: number
   created_at: string
+  reponses_total?: number
+  reponses_non_lues?: number
   stats: {
     total: number
     delivered: number
@@ -479,7 +481,18 @@ export default function CampagnesPage() {
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={() => { setShowOnlyWithReplies(!showOnlyWithReplies); setActiveTab('individuels') }}
+                onClick={() => {
+                  // Trouver la première campagne avec réponses non lues
+                  const campAvecReponses = campagnes.find(c => (c.reponses_non_lues || 0) > 0)
+                  if (campAvecReponses) {
+                    setActiveTab('campagnes')
+                    openCampagneDetail(campAvecReponses.id)
+                  } else {
+                    // Fallback: réponses individuelles
+                    setShowOnlyWithReplies(!showOnlyWithReplies)
+                    setActiveTab('individuels')
+                  }
+                }}
                 style={{
                   padding: '5px 14px', fontSize: '12px', fontWeight: '600',
                   borderRadius: '6px', border: '1px solid #f59e0b', cursor: 'pointer',
@@ -551,6 +564,16 @@ export default function CampagnesPage() {
                           <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a' }}>{s.delivered} liv.</span>
                           <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#2563eb' }}>{s.taux_ouverture}% ouv.</span>
                           {s.bounced > 0 && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#fef2f2', color: '#dc2626' }}>{s.bounced} reb.</span>}
+                          {(c.reponses_total || 0) > 0 && (
+                            <span style={{
+                              fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '8px',
+                              backgroundColor: (c.reponses_non_lues || 0) > 0 ? '#fef3c7' : '#dbeafe',
+                              color: (c.reponses_non_lues || 0) > 0 ? '#92400e' : '#1e40af',
+                              animation: (c.reponses_non_lues || 0) > 0 ? 'none' : 'none',
+                            }}>
+                              💬 {c.reponses_total} rép.{(c.reponses_non_lues || 0) > 0 ? ` (${c.reponses_non_lues} ⬤)` : ''}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(c.created_at)}</div>
                         <span style={{ fontSize: '14px', color: '#9ca3af', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', textAlign: 'center' }}>▼</span>
@@ -613,7 +636,7 @@ export default function CampagnesPage() {
                                 {campagneDetail.destinataires.map(d => (
                                   <div key={d.id}>
                                     {/* Ligne destinataire */}
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: 'white', alignItems: 'center' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu') ? '#fffdf5' : d.reponses && d.reponses.length > 0 ? '#f0f9ff' : 'white', alignItems: 'center' }}>
                                       <div style={{ fontWeight: '500', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         {d.nom_complet}
                                         {d.reponses && d.reponses.length > 0 && (
