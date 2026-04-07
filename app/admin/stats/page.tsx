@@ -285,7 +285,7 @@ export default function StatsPage() {
 
       const [logsRes, resRes, auditRes] = await Promise.all([
         supabase.from('auth_logs').select('*').gte('created_at', from).lte('created_at', to).order('created_at', { ascending: false }),
-        supabase.from('reservistes').select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id'),
+        supabase.from('reservistes').select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id').neq('groupe', 'Partenaires'),
         fetch(`/api/audit/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`).then(r => r.json()),
       ]);
 
