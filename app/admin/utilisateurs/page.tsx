@@ -255,6 +255,17 @@ export default function AdminUtilisateursPage() {
 
   return (
     <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 20px' }}>
+      {/* Mobile styles */}
+      <style>{`
+        @media (max-width: 640px) {
+          .user-card { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .user-card .user-identity { flex-direction: row !important; align-items: center !important; width: 100% !important; }
+          .user-card .user-controls { flex-direction: row !important; width: 100% !important; align-items: center !important; justify-content: space-between !important; }
+          .user-card .role-badge { display: none !important; }
+          .users-header { flex-direction: column !important; align-items: flex-start !important; }
+          .users-header input, .users-header select { width: 100% !important; }
+        }
+      `}</style>
 
       {/* En-tête */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
@@ -269,7 +280,7 @@ export default function AdminUtilisateursPage() {
 
         {/* Utilisateurs avec rôles élevés */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '24px', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="users-header" style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#1e3a5f', flex: 1 }}>
               Admins, coordonnateurs et adjoints ({utilisateurs.length})
             </h2>
@@ -298,18 +309,20 @@ export default function AdminUtilisateursPage() {
             filtres.map(u => {
               const c = ROLE_COLORS[u.role]
               return (
-                <div key={u.benevole_id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid #f9fafb' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>
-                    {(u.prenom?.[0] || '') + (u.nom?.[0] || '')}
+                <div key={u.benevole_id} className="user-card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', borderBottom: '1px solid #f9fafb' }}>
+                  <div className="user-identity" style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>
+                      {(u.prenom?.[0] || '') + (u.nom?.[0] || '')}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e3a5f' }}>{u.prenom} {u.nom}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>{u.email}</div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: '600', fontSize: '14px', color: '#1e3a5f' }}>{u.prenom} {u.nom}</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{u.email}</div>
-                  </div>
-                  <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', backgroundColor: c.bg, border: `1px solid ${c.border}`, color: c.text, whiteSpace: 'nowrap' }}>
+                  <span className="role-badge" style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '600', backgroundColor: c.bg, border: `1px solid ${c.border}`, color: c.text, whiteSpace: 'nowrap' }}>
                     {ROLE_LABELS[u.role]}
                   </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                  <div className="user-controls" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
                     <select
                       value={u.role}
                       disabled={u.saving}

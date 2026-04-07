@@ -168,6 +168,15 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
 
   return (
     <>
+      <style>{`
+        @media (max-width: 640px) {
+          .modal-res-header { flex-direction: column !important; align-items: flex-start !important; }
+          .modal-res-actions { flex-wrap: wrap !important; width: 100% !important; margin-top: 8px !important; }
+          .modal-res-info span { font-size: 12px !important; }
+          .modal-res-close { position: absolute !important; top: 12px !important; right: 12px !important; }
+          .modal-res-container { padding: 16px 16px 0 !important; position: relative !important; }
+        }
+      `}</style>
       <div
         style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -175,19 +184,19 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
         <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '640px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
 
           {/* En-tête avec info réserviste */}
-          <div style={{ padding: '20px 24px 0', borderBottom: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
+          <div className="modal-res-container" style={{ padding: '20px 24px 0', borderBottom: '1px solid #e2e8f0' }}>
+            <div className="modal-res-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
               <div>
                 <h2 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: '700', color: C }}>
                   {reserviste.prenom} {reserviste.nom}
                 </h2>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#6b7280' }}>
+                <div className="modal-res-info" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#6b7280' }}>
                   {reserviste.email && <span>{reserviste.email}</span>}
                   {reserviste.telephone && <span>{reserviste.telephone}</span>}
                   {reserviste.region && <span>{reserviste.region}</span>}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <div className="modal-res-actions" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <a
                   href={`/profil?bid=${reserviste.benevole_id}&from=reservistes`}
                   target="_blank"
@@ -220,6 +229,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                   🔄
                 </button>
                 <button
+                  className="modal-res-close"
                   onClick={onClose}
                   style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1, padding: '4px' }}
                 >
