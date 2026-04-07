@@ -206,6 +206,10 @@ function ReservistesPage() {
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
 
+  // Notes non lues
+  const [notesNonLuesIds, setNotesNonLuesIds] = useState<Set<string>>(new Set())
+  const [filtreNotesNonLues, setFiltreNotesNonLues] = useState(false)
+
   // Responsive — ne pas figer la page sur mobile
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
@@ -260,6 +264,23 @@ function ReservistesPage() {
       setLoading(false)
     }
     load()
+  }, [authorized])
+
+  // Charger les notes non lues (benevole_ids)
+  const fetchNotesNonLues = async () => {
+    try {
+      const res = await fetch('/api/admin/notes/non-lues?detail=1')
+      const json = await res.json()
+      setNotesNonLuesIds(new Set(json.benevole_ids || []))
+    } catch {}
+  }
+  useEffect(() => {
+    if (!authorized) return
+    fetchNotesNonLues()
+    // Écouter les mises à jour (quand on marque des notes comme lues dans le modal)
+    const handler = () => fetchNotesNonLues()
+    window.addEventListener('notes-badge-update', handler)
+    return () => window.removeEventListener('notes-badge-update', handler)
   }, [authorized])
 
   // Cycle 3 états : null → has → missing → null
@@ -363,8 +384,10 @@ function ReservistesPage() {
     if (filtreDeployable === 'missing') filtered = filtered.filter(r => !isDeployable(r))
     // Filtres certificats
     if (filtreCertifsManquants) filtered = filtered.filter(r => r.certifs_manquants > 0)
+    // Filtre notes non lues
+    if (filtreNotesNonLues) filtered = filtered.filter(r => notesNonLuesIds.has(r.benevole_id))
     return sortData(filtered, sortKey, sortDir)
-  }, [rawData, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, sortKey, sortDir])
+  }, [rawData, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, filtreNotesNonLues, notesNonLuesIds, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -698,6 +721,53 @@ function ReservistesPage() {
             >
               {exporting ? '⟳ Export…' : selectedIds.size > 0 ? `⬇ Exporter sélection (${selectedIds.size})` : '⬇ Exporter Excel'}
             </button>
+            {notesNonLuesIds.size > 0 && (
+              <button
+                onClick={() => {
+                  if (filtreNotesNonLues) {
+                    // Désactiver le filtre
+                    setFiltreNotesNonLues(false)
+                  } else {
+                    // Activer le filtre — montrer tous les groupes pour pas manquer des notes
+                    setFiltreNotesNonLues(true)
+                    setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires', 'Retrait temporaire'])
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '8px',
+                  border: filtreNotesNonLues ? '2px solid #d946ef' : '1px solid #d946ef',
+                  backgroundColor: filtreNotesNonLues ? '#fdf4ff' : 'white',
+                  color: '#d946ef', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                {filtreNotesNonLues ? `✕ Notes non lues (${notesNonLuesIds.size})` : `📝 Notes non lues (${notesNonLuesIds.size})`}
+              </button>
+            )}
+            {filtreNotesNonLues && (
+              <button
+                onClick={async () => {
+                  await fetch('/api/admin/notes/non-lues', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tout: true }),
+                  })
+                  setNotesNonLuesIds(new Set())
+                  setFiltreNotesNonLues(false)
+                  window.dispatchEvent(new CustomEvent('notes-badge-update', { detail: { count: 0 } }))
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '8px',
+                  border: '1px solid #d946ef',
+                  backgroundColor: '#d946ef', color: 'white', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                ✓ Tout marquer lu
+              </button>
+            )}
             {canEmail && (
               <button
                 onClick={() => {
@@ -764,7 +834,7 @@ function ReservistesPage() {
             ))}
             <span style={{ width: '80px', flexShrink: 0, display: 'inline-flex' }}>
               {(groupesFiltres.length > 0 || recherche) && (
-                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreNotesNonLues(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                   Tout effacer
                 </button>
               )}
@@ -1351,7 +1421,7 @@ function ReservistesPage() {
           reserviste={modalReserviste}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
-          onClose={() => setModalReserviste(null)}
+          onClose={() => { setModalReserviste(null); fetchNotesNonLues() }}
         />
       )}
     </div>

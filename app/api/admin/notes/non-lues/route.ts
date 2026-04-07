@@ -24,21 +24,29 @@ async function getAuthUser() {
   return user
 }
 
-// GET — Nombre de notes non lues
-export async function GET() {
+// GET — Nombre de notes non lues + optionnellement les benevole_ids
+export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
 
+    const detail = req.nextUrl.searchParams.get('detail') === '1'
+
     // Notes où l'user courant n'est PAS dans lu_par ET n'est PAS l'auteur
-    const { count, error } = await supabaseAdmin
+    const { data: notes, count, error } = await supabaseAdmin
       .from('notes_reservistes')
-      .select('id', { count: 'exact', head: true })
+      .select('id, benevole_id', { count: 'exact' })
       .not('auteur_id', 'eq', user.id)
       .not('lu_par', 'cs', `{${user.id}}`)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ count: count || 0 })
+
+    const result: any = { count: count || 0 }
+    if (detail && notes) {
+      // Retourner les benevole_ids uniques qui ont des notes non lues
+      result.benevole_ids = [...new Set(notes.map(n => n.benevole_id))]
+    }
+    return NextResponse.json(result)
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
