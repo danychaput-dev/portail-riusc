@@ -4,7 +4,7 @@ declare global { interface Window { Tawk_API?: any; Tawk_LoadStart?: Date } }
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import Image from 'next/image'
 import { logEvent, logPageVisit } from '@/utils/logEvent'
 
@@ -35,11 +35,14 @@ function LoginContent() {
 
   // Compteur de tentatives échouées
   const [failCount, setFailCount] = useState(0)
+  const tawkReady = useRef(false)
 
   // Tawk.to — chat d'aide sur la page login
   useEffect(() => {
     ;(window as any).Tawk_API = (window as any).Tawk_API || {}
     ;(window as any).Tawk_LoadStart = new Date()
+    // Quand Tawk est prêt, marquer comme ready
+    ;(window as any).Tawk_API.onLoad = () => { tawkReady.current = true }
     const s = document.createElement('script')
     s.async = true
     s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/1jljvfn7c'
@@ -54,29 +57,38 @@ function LoginContent() {
     }
   }, [])
 
-  // Mettre à jour les attributs visiteur Tawk.to quand le contexte change
-  useEffect(() => {
-    const updateTawk = () => {
-      if (!window.Tawk_API?.setAttributes) return
-      const errText = typeof error === 'string' ? error : error ? 'Erreur affichée' : ''
-      window.Tawk_API.setAttributes({
-        'email': email || 'Non saisi',
+  // Helper pour envoyer le contexte à Tawk.to
+  const updateTawkContext = (errMsg?: string, count?: number) => {
+    if (!tawkReady.current || !window.Tawk_API) return
+    const fc = count ?? failCount
+    const errText = errMsg || (typeof error === 'string' ? error : error ? 'Erreur affichée' : 'Aucune')
+    const etape = otpSent ? 'Validation du code' : 'Saisie courriel'
+    // Envoyer un message système visible dans le chat de l'agent
+    try {
+      window.Tawk_API.addTags?.([
+        `email:${email || '?'}`,
+        `erreurs:${fc}`,
+        etape,
+      ], () => {})
+      window.Tawk_API.setAttributes?.({
+        'name': email || 'Visiteur',
+        'email': email || undefined,
         'Courriel saisi': email || '—',
         'Méthode OTP': otpMethod || '—',
-        'Étape': otpSent ? 'Validation du code' : 'Saisie courriel',
-        'Dernière erreur': errText || 'Aucune',
-        'Tentatives échouées': String(failCount),
+        'Étape': etape,
+        'Dernière erreur': errText,
+        'Tentatives échouées': String(fc),
       }, () => {})
+    } catch {}
+    // Ouvrir le chat automatiquement après 2+ erreurs
+    if (fc >= 2) {
+      try { window.Tawk_API.maximize?.() } catch {}
     }
-    // Si Tawk est déjà chargé, mettre à jour tout de suite
-    if (window.Tawk_API?.setAttributes) {
-      updateTawk()
-    } else {
-      // Sinon, attendre le chargement
-      const prev = window.Tawk_API?.onLoad
-      ;(window as any).Tawk_API = (window as any).Tawk_API || {}
-      window.Tawk_API.onLoad = () => { prev?.(); updateTawk() }
-    }
+  }
+
+  // Mettre à jour Tawk quand le contexte change
+  useEffect(() => {
+    updateTawkContext()
   }, [email, error, otpMethod, otpSent, failCount])
 
   const contactLink = (
@@ -200,7 +212,7 @@ function LoginContent() {
       if (fetchError) {
         console.error('Erreur recherche réserviste:', fetchError)
         setError(<>Erreur de connexion. Veuillez réessayer.{contactLink}</>)
-        setFailCount(c => c + 1)
+        setFailCount(c => { const n = c + 1; updateTawkContext('Erreur de connexion (RPC)', n); return n })
         await logEvent({
           eventType: 'login_failed',
           email: email.trim(),
@@ -239,7 +251,7 @@ function LoginContent() {
         if (emailError) {
           console.error('Email OTP Error:', emailError)
           setError(<>Erreur d&apos;envoi du code de connexion.{contactLink}</>)
-          setFailCount(c => c + 1)
+          setFailCount(c => { const n = c + 1; updateTawkContext('Erreur envoi code OTP', n); return n })
           await logEvent({
             eventType: 'login_failed',
             email: email.trim(),
@@ -287,7 +299,7 @@ function LoginContent() {
       if (verifyResult?.error) {
         console.error('Verify Error:', verifyResult.error)
         setError(<>Code invalide ou expiré. Réessayez.{contactLink}</>)
-        setFailCount(c => c + 1)
+        setFailCount(c => { const n = c + 1; updateTawkContext('Code invalide ou expiré', n); return n })
         await logEvent({
           eventType: 'login_failed',
           email: email.trim(),
@@ -337,7 +349,7 @@ function LoginContent() {
     } catch (err) {
       console.error('Verify unexpected error:', err)
       setError(<>Erreur de vérification. Réessayez.{contactLink}</>)
-      setFailCount(c => c + 1)
+      setFailCount(c => { const n = c + 1; updateTawkContext('Erreur de vérification inattendue', n); return n })
       await logEvent({
         eventType: 'login_failed',
         email: email.trim(),
