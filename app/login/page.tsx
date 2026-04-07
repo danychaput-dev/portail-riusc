@@ -39,7 +39,7 @@ function LoginContent() {
     ;(window as any).Tawk_LoadStart = new Date()
     const s = document.createElement('script')
     s.async = true
-    s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/895ef2c32f082b9bfa935b00113ce97a72042c04'
+    s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/1jljvfn7c'
     s.charset = 'UTF-8'
     s.setAttribute('crossorigin', '*')
     document.head.appendChild(s)
