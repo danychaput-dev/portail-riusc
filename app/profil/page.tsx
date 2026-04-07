@@ -1081,7 +1081,7 @@ function ProfilPage() {
           }
           for (const label of oldTriggered) {
             if (!newTriggered.includes(label)) {
-              const { data: existing } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).eq('source', 'portail').maybeSingle()
+              const { data: existing } = await supabase.from('formations_benevoles').select('id, source').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).maybeSingle()
               if (existing) removedFormations.push({ field: trigger.field, label, formationId: existing.id })
             }
           }
