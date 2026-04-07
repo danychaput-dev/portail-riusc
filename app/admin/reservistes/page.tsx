@@ -604,7 +604,7 @@ function ReservistesPage() {
   // Déployable reste sur Approuvés seulement
   const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
   const readinessStats = useMemo(() => {
-    const stats = { profil: 0, initiation: 0, camp: 0, bottes: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0 }
+    const stats = { profil: 0, initiation: 0, camp: 0, bottes: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0, certifs_manquants_total: 0 }
     for (const r of rawData) {
       const rd = getReadiness(r)
       if (rd.profil) stats.profil++
@@ -613,7 +613,7 @@ function ReservistesPage() {
       if (rd.bottes) stats.bottes++
       if (rd.antecedents) stats.antecedents++
       // Certificats — compter indépendamment (un réserviste peut avoir les deux)
-      if (r.certifs_manquants > 0) stats.certifs_manquants++
+      if (r.certifs_manquants > 0) { stats.certifs_manquants++; stats.certifs_manquants_total += r.certifs_manquants }
       if (r.certifs_en_attente > 0) stats.certifs_en_attente++
     }
     // Déployable = seulement les Approuvés qui ont tout
@@ -910,7 +910,7 @@ function ReservistesPage() {
               {readinessStats.certifs_manquants > 0 && (
                 <button
                   onClick={() => { setFiltreCertifsManquants(prev => !prev); setGroupesFiltres(['Approuvé']) }}
-                  title={`${readinessStats.certifs_manquants} réserviste${readinessStats.certifs_manquants > 1 ? 's' : ''} avec certificat(s) manquant(s)\nCliquer pour filtrer`}
+                  title={`${readinessStats.certifs_manquants} réserviste${readinessStats.certifs_manquants > 1 ? 's' : ''} · ${readinessStats.certifs_manquants_total} fichier${readinessStats.certifs_manquants_total > 1 ? 's' : ''} manquant${readinessStats.certifs_manquants_total > 1 ? 's' : ''}\nCliquer pour filtrer`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
                     padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
@@ -921,7 +921,7 @@ function ReservistesPage() {
                 >
                   {filtreCertifsManquants && '✓ '}📎 Fichiers manquants
                   <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#dc2626', color: 'white' }}>
-                    {readinessStats.certifs_manquants}
+                    {readinessStats.certifs_manquants} pers. · {readinessStats.certifs_manquants_total} fich.
                   </span>
                 </button>
               )}
