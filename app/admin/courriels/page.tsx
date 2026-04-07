@@ -480,51 +480,36 @@ export default function CampagnesPage() {
                 <div style={{ fontSize: '15px', color: '#6b7280' }}>Aucune campagne {campSearch || campDateFrom || campDateTo ? 'trouvée' : 'envoyée pour le moment'}</div>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {filteredCampagnes.map(c => {
                   const s = c.stats
                   const isOpen = selectedCampagne === c.id
 
                   return (
-                    <div key={c.id} style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-                      {/* En-tête campagne — cliquable */}
+                    <div key={c.id} style={{ backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', border: '1px solid transparent' }}>
+                      {/* Ligne résumé — cliquable */}
                       <div
                         onClick={() => openCampagneDetail(c.id)}
-                        style={{ padding: '20px', cursor: 'pointer', transition: 'background-color 0.1s' }}
+                        style={{ padding: '14px 16px', cursor: 'pointer', display: 'grid', gridTemplateColumns: '1fr auto 130px 40px', gap: '12px', alignItems: 'center', transition: 'background-color 0.1s' }}
                         onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f9fafb')}
                         onMouseOut={e => (e.currentTarget.style.backgroundColor = 'white')}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
-                          <div style={{ flex: 1 }}>
-                            <h3 style={{ margin: '0 0 4px', fontSize: '15px', fontWeight: '700', color: '#1f2937' }}>
-                              {c.subject}
-                            </h3>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                              {formatDateTime(c.created_at)} — {s.total} destinataire{s.total > 1 ? 's' : ''}
-                            </div>
+                        <div style={{ overflow: 'hidden' }}>
+                          <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {c.subject}
                           </div>
-                          <span style={{ fontSize: '18px', color: '#9ca3af', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
-                        </div>
-
-                        {/* Stats */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <StatPill value={s.total} label="Envoyés" color="#374151" bg="#f3f4f6" />
-                          <StatPill value={s.delivered} label="Livrés" color="#16a34a" bg="#f0fdf4" />
-                          <StatPill value={`${s.taux_ouverture}%`} label="Ouverts" color="#2563eb" bg="#eff6ff" />
-                          <StatPill value={`${s.taux_clics}%`} label="Clics" color="#1e40af" bg="#dbeafe" />
-                          {s.bounced > 0 && <StatPill value={s.bounced} label="Rebondis" color="#dc2626" bg="#fef2f2" />}
-                          {s.failed > 0 && <StatPill value={s.failed} label="Échoués" color="#dc2626" bg="#fef2f2" />}
-                        </div>
-
-                        {/* Barre de progression */}
-                        {s.total > 0 && (
-                          <div style={{ marginTop: '12px', height: '6px', borderRadius: '3px', backgroundColor: '#f1f5f9', overflow: 'hidden', display: 'flex' }}>
-                            {s.clicked > 0 && <div style={{ width: `${(s.clicked / s.total) * 100}%`, backgroundColor: '#1e40af' }} />}
-                            {(s.opened - s.clicked) > 0 && <div style={{ width: `${((s.opened - s.clicked) / s.total) * 100}%`, backgroundColor: '#3b82f6' }} />}
-                            {(s.delivered - s.opened) > 0 && <div style={{ width: `${((s.delivered - s.opened) / s.total) * 100}%`, backgroundColor: '#86efac' }} />}
-                            {s.bounced > 0 && <div style={{ width: `${(s.bounced / s.total) * 100}%`, backgroundColor: '#fca5a5' }} />}
+                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                            {s.total} destinataire{s.total > 1 ? 's' : ''}
                           </div>
-                        )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f3f4f6', color: '#374151' }}>{s.total} env.</span>
+                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a' }}>{s.delivered} liv.</span>
+                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#2563eb' }}>{s.taux_ouverture}% ouv.</span>
+                          {s.bounced > 0 && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#fef2f2', color: '#dc2626' }}>{s.bounced} reb.</span>}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(c.created_at)}</div>
+                        <span style={{ fontSize: '14px', color: '#9ca3af', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)', textAlign: 'center' }}>▼</span>
                       </div>
 
                       {/* ─── Détail destinataires (quand ouvert) ─── */}
