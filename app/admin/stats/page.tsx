@@ -394,6 +394,21 @@ export default function StatsPage() {
       method: l.auth_method || '—',
     }));
 
+    // Personnes uniques qui ont échoué, et combien ont réussi ensuite
+    // On croise auth_logs (failed) avec auth_logs (logins) + audit_pages (connexions)
+    const failedIdentities = new Set(failed.map(l => (l.email || l.telephone || '').toLowerCase()).filter(Boolean));
+    // Succès dans auth_logs
+    const succeededIdentities = new Set(logins.map(l => (l.email || l.telephone || '').toLowerCase()).filter(Boolean));
+    // Succès dans audit_pages — on résout les user_id → email via reservistes
+    const userIdToEmail: Record<string, string> = {};
+    reservistes.forEach(r => { if (r.user_id && r.email) userIdToEmail[r.user_id] = r.email.toLowerCase(); });
+    auditPages.filter(p => p.page === '__connexion__' && p.user_id).forEach(p => {
+      const email = userIdToEmail[p.user_id!];
+      if (email) succeededIdentities.add(email);
+    });
+    const failedUniqueUsers = failedIdentities.size;
+    const failedThenSucceeded = Array.from(failedIdentities).filter(id => succeededIdentities.has(id)).length;
+
     // Build user_id → name lookup from reservistes
     const userNameMap: Record<string, string> = {};
     reservistes.forEach(r => {
@@ -455,8 +470,8 @@ export default function StatsPage() {
       return names;
     });
 
-    return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, activeUsers, authEvents, hourlyCounts, hourlyUnique, hourlyNames };
-  }, [filteredLogs, reservistes]);
+    return { totalVisits: pageVisits.length, uniqueUsers: uniqueUsers.size, logins: logins.length, failed: failed.length, anonymous: anonymous.length, authenticated: authenticated.length, pageRanking, sourceRanking, deviceRanking, failedDetails, failedUniqueUsers, failedThenSucceeded, activeUsers, authEvents, hourlyCounts, hourlyUnique, hourlyNames };
+  }, [filteredLogs, reservistes, auditPages]);
 
   // ─── Stats audit_pages ────────────────────────────────────────────
   const auditStats = useMemo(() => {
@@ -818,8 +833,9 @@ export default function StatsPage() {
             <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
               <StatCard icon="👁️" label="Visiteurs anonymes" value={logStats.anonymous} sub="Pages publiques (inscription, login)" />
               <StatCard icon="🧑" label="Actifs dans le portail" value={auditStats.uniqueUsers} color={PRIMARY_LIGHT} sub="Utilisateurs avec session active" />
-              <StatCard icon="✅" label="Connexions réussies" value={logStats.logins} color={GREEN} sub="OTP validé aujourd'hui" />
-              <StatCard icon="⚠️" label="Connexions échouées" value={logStats.failed} color={logStats.failed > 0 ? RED : '#6b7280'} />
+              <StatCard icon="✅" label="Connexions réussies" value={auditStats.connexions} color={GREEN} sub="Sessions ouvertes" />
+              <StatCard icon="⚠️" label="Connexions échouées" value={logStats.failed} color={logStats.failed > 0 ? RED : '#6b7280'}
+                sub={logStats.failed > 0 ? `${logStats.failedThenSucceeded} / ${logStats.failedUniqueUsers} ont réussi ensuite` : undefined} />
             </div>
 
             {/* Indicateur de conversion pub → inscription */}
