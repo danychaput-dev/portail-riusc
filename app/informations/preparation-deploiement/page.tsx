@@ -205,8 +205,6 @@ export default function PreparationDeploiementPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <PortailHeader subtitle="Préparation au déploiement" />
-      <ImpersonateBanner />
-
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 24px' }}>
         <a href="/informations" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px', display: 'inline-block', marginBottom: '20px' }}>
           ← Retour aux informations pratiques

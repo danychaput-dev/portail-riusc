@@ -1442,8 +1442,6 @@ export default function HomePage() {
         onTourEnd={() => setShowTour(false)}
       />
 
-      <ImpersonateBanner />
-
       {/* 🎯 DEMO MODE - Bandeau informatif */}
       {isDemoMode && (
         <div style={{

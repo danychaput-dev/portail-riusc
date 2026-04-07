@@ -232,7 +232,6 @@ export default function DisponibilitesPage() {
       {/* ── Header ── */}
       <PortailHeader subtitle="Mes disponibilités" />
 
-      <ImpersonateBanner />
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '32px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour à l&apos;accueil</a>

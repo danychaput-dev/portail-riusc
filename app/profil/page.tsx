@@ -1286,7 +1286,7 @@ function ProfilPage() {
 
       <PortailHeader subtitle={isViewingOther ? `Profil de ${reserviste?.prenom} ${reserviste?.nom}` : 'Mon profil'} />
 
-      {isViewingOther ? (
+      {isViewingOther && (
         <div style={{ backgroundColor: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '10px 24px' }}>
           <div style={{ maxWidth: '860px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '13px', color: '#1e40af', fontWeight: '500' }}>
@@ -1306,8 +1306,6 @@ function ProfilPage() {
             </button>
           </div>
         </div>
-      ) : (
-        <ImpersonateBanner />
       )}
 
 

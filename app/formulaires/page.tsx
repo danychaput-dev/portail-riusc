@@ -784,7 +784,6 @@ function FormationContent() {
 
       <PortailHeader subtitle="Formation et parcours du réserviste" />
 
-      <ImpersonateBanner />
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 24px' }}>
         <a href="/" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>{'← Retour à l\'accueil'}</a>
 
