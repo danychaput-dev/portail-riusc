@@ -41,7 +41,6 @@ function LoginContent() {
   useEffect(() => {
     ;(window as any).Tawk_API = (window as any).Tawk_API || {}
     ;(window as any).Tawk_LoadStart = new Date()
-    // Quand Tawk est prêt, marquer comme ready
     ;(window as any).Tawk_API.onLoad = () => { tawkReady.current = true }
     const s = document.createElement('script')
     s.async = true
@@ -61,24 +60,22 @@ function LoginContent() {
   const updateTawkContext = (errMsg?: string, count?: number) => {
     if (!tawkReady.current || !window.Tawk_API) return
     const fc = count ?? failCount
-    const errText = errMsg || (typeof error === 'string' ? error : error ? 'Erreur affichée' : 'Aucune')
-    const etape = otpSent ? 'Validation du code' : 'Saisie courriel'
-    // Envoyer un message système visible dans le chat de l'agent
+    const errText = errMsg || 'Aucune'
+    const etape = otpSent ? 'Code OTP' : 'Courriel'
+    const methode = otpMethod === 'sms' ? 'SMS' : otpMethod === 'email' ? 'Courriel' : '—'
     try {
-      window.Tawk_API.addTags?.([
-        `email:${email || '?'}`,
-        `erreurs:${fc}`,
-        etape,
-      ], () => {})
+      // Le nom du visiteur contient le contexte — toujours visible dans Tawk
+      const visitorName = email
+        ? `${email} | ${fc} erreur${fc > 1 ? 's' : ''} | ${etape} | ${methode}`
+        : 'Visiteur (courriel non saisi)'
       window.Tawk_API.setAttributes?.({
-        'name': email || 'Visiteur',
+        'name': visitorName,
         'email': email || undefined,
-        'Courriel saisi': email || '—',
-        'Méthode OTP': otpMethod || '—',
-        'Étape': etape,
-        'Dernière erreur': errText,
-        'Tentatives échouées': String(fc),
       }, () => {})
+      // Événement visible dans l'historique du visiteur
+      if (errMsg && fc > 0) {
+        window.Tawk_API.addEvent?.(`Erreur #${fc}: ${errText}`, { email: email || '?', etape, methode }, () => {})
+      }
     } catch {}
     // Ouvrir le chat automatiquement après 2+ erreurs
     if (fc >= 2) {
