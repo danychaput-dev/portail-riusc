@@ -395,56 +395,72 @@ export default function StatsPage() {
     }));
 
     // Personnes uniques qui ont échoué, et combien ont réussi ensuite
-    // On construit des lookups email ↔ telephone ↔ user_id via reservistes
-    const resEmailToIds = new Map<string, Set<string>>();
-    const resPhoneToIds = new Map<string, Set<string>>();
+    // Normaliser un identifiant (email, téléphone, user_id) → clé comparable
+    const normalize = (v: string): string => {
+      const s = v.toLowerCase().trim();
+      // Si c'est un téléphone, ne garder que les chiffres
+      const digits = s.replace(/\D/g, '');
+      if (digits.length >= 10) return digits.slice(-10); // Garder les 10 derniers chiffres
+      return s;
+    };
+
+    // Construire un lookup : n'importe quel identifiant normalisé → Set de toutes les clés normalisées du même réserviste
+    const identityGroups = new Map<string, Set<string>>();
     reservistes.forEach(r => {
-      const ids = new Set<string>();
-      if (r.email) ids.add(r.email.toLowerCase());
-      if (r.telephone) { ids.add(r.telephone); ids.add(r.telephone.replace(/\D/g, '')); }
-      if (r.user_id) ids.add(r.user_id);
-      // Cross-map tous les identifiants
-      ids.forEach(id => {
-        if (r.email) { if (!resEmailToIds.has(id)) resEmailToIds.set(id, new Set()); resEmailToIds.get(id)!.add(r.email.toLowerCase()); }
-        if (r.telephone) { if (!resPhoneToIds.has(id)) resPhoneToIds.set(id, new Set()); resPhoneToIds.get(id)!.add(r.telephone); }
-      });
+      const keys = new Set<string>();
+      if (r.email) keys.add(normalize(r.email));
+      if (r.telephone) keys.add(normalize(r.telephone));
+      if (r.user_id) keys.add(r.user_id.toLowerCase());
+      // Chaque clé pointe vers le même groupe
+      keys.forEach(k => { identityGroups.set(k, keys); });
     });
 
-    // Identités uniques qui ont échoué (email ou téléphone normalisé)
-    const failedIdentities = new Set<string>();
+    // Résoudre une identité vers toutes ses variantes connues
+    const resolveAll = (raw: string): Set<string> => {
+      const n = normalize(raw);
+      const group = identityGroups.get(n);
+      return group || new Set([n]);
+    };
+
+    // Identités uniques qui ont échoué
+    const failedPeople = new Map<string, Set<string>>(); // canonical → all keys
     failed.forEach(l => {
-      const id = (l.email || l.telephone || '').toLowerCase().trim();
-      if (id) failedIdentities.add(id);
+      const raw = l.email || l.telephone || l.user_id || '';
+      if (!raw) return;
+      const allKeys = resolveAll(raw);
+      const canonical = Array.from(allKeys).sort().join('|');
+      if (!failedPeople.has(canonical)) failedPeople.set(canonical, allKeys);
     });
-    const failedUniqueUsers = failedIdentities.size;
+    const failedUniqueUsers = failedPeople.size;
 
-    // Identités qui ont réussi — on collecte depuis toutes les sources
-    const succeededIdentities = new Set<string>();
+    // Toutes les identités normalisées qui ont réussi à se connecter
+    const succeededNormalized = new Set<string>();
     // 1. auth_logs logins réussis
     logins.forEach(l => {
-      if (l.email) succeededIdentities.add(l.email.toLowerCase());
-      if (l.telephone) succeededIdentities.add(l.telephone.toLowerCase());
+      if (l.email) succeededNormalized.add(normalize(l.email));
+      if (l.telephone) succeededNormalized.add(normalize(l.telephone));
+      if (l.user_id) succeededNormalized.add(l.user_id.toLowerCase());
     });
-    // 2. audit_pages — si un user a visité une page authentifiée, il a réussi à se connecter
-    const userIdToIdentity: Record<string, string[]> = {};
-    reservistes.forEach(r => {
-      if (!r.user_id) return;
-      const ids: string[] = [];
-      if (r.email) ids.push(r.email.toLowerCase());
-      if (r.telephone) ids.push(r.telephone.toLowerCase());
-      userIdToIdentity[r.user_id] = ids;
-    });
-    const auditUserIds = new Set(auditPages.filter(p => p.user_id).map(p => p.user_id!));
-    auditUserIds.forEach(uid => {
-      (userIdToIdentity[uid] || []).forEach(id => succeededIdentities.add(id));
+    // 2. audit_pages — tout user_id qui a visité une page = connecté
+    auditPages.filter(p => p.user_id).forEach(p => {
+      succeededNormalized.add(p.user_id!.toLowerCase());
+      // Aussi résoudre vers email/telephone
+      const group = identityGroups.get(p.user_id!.toLowerCase());
+      if (group) group.forEach(k => succeededNormalized.add(k));
     });
     // 3. page_visit authentifiées dans auth_logs
     authenticated.forEach(l => {
-      if (l.email) succeededIdentities.add(l.email.toLowerCase());
-      if (l.telephone) succeededIdentities.add(l.telephone.toLowerCase());
+      if (l.email) succeededNormalized.add(normalize(l.email));
+      if (l.telephone) succeededNormalized.add(normalize(l.telephone));
+      if (l.user_id) succeededNormalized.add(l.user_id.toLowerCase());
     });
 
-    const failedThenSucceeded = Array.from(failedIdentities).filter(id => succeededIdentities.has(id)).length;
+    // Compter combien de personnes échouées ont au moins une clé dans succeededNormalized
+    let failedThenSucceeded = 0;
+    failedPeople.forEach(keys => {
+      const found = Array.from(keys).some(k => succeededNormalized.has(k));
+      if (found) failedThenSucceeded++;
+    });
 
     // Build user_id → name lookup from reservistes
     const userNameMap: Record<string, string> = {};
