@@ -255,15 +255,6 @@ function LoginContent() {
           phone_auth_uid: authUserId,
         })
 
-        // Logger avant la redirection
-        await logEvent({
-          eventType: otpMethod === 'sms' ? 'login_sms' : 'login_email',
-          email: email.trim(),
-          userId: verifyResult.data.user.id,
-          telephone: verifyResult.data.user.phone || null,
-          authMethod: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
-        })
-
         // ✅ Cookie benevole_id pour le middleware d'audit
         const { data: res } = await supabase
           .from('reservistes')
@@ -274,11 +265,17 @@ function LoginContent() {
           document.cookie = `benevole_id=${res.benevole_id}; path=/; max-age=2592000; SameSite=Lax`
         }
 
-        // ✅ Log connexion dans audit_connexions (fire & forget)
-        fetch('/api/audit/log-page', {
+        // ✅ Logger connexion réussie côté serveur (auth_logs + audit_pages en une seule requête)
+        await fetch('/api/auth/log-success', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: authUserId, benevole_id: res?.benevole_id || null, page: '__connexion__' }),
+          body: JSON.stringify({
+            user_id: authUserId,
+            email: email.trim(),
+            telephone: verifyResult.data.user.phone || null,
+            auth_method: otpMethod === 'sms' ? 'sms_otp' : 'email_otp',
+            benevole_id: res?.benevole_id || null,
+          }),
         }).catch(() => {})
 
         // Sauvegarder le courriel pour pré-remplissage futur
