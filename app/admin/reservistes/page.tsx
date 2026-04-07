@@ -194,6 +194,7 @@ function ReservistesPage() {
   const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null })
   const [filtreDeployable, setFiltreDeployable] = useState<FilterState>(null)
   const [filtreCertifsManquants, setFiltreCertifsManquants] = useState(false)
+  const [commsCount,     setCommsCount]     = useState<Record<string, { courriels: number; notes: number }>>({})
   const [modal,          setModal]          = useState<ModalAntecedents | null>(null)
   const [modalDate,      setModalDate]      = useState('')
   const [modalStatut,    setModalStatut]    = useState('verifie')
@@ -265,6 +266,15 @@ function ReservistesPage() {
       setLoading(false)
     }
     load()
+  }, [authorized])
+
+  // Charger les compteurs courriels/notes
+  useEffect(() => {
+    if (!authorized) return
+    fetch('/api/admin/reservistes/comms-count')
+      .then(r => r.json())
+      .then(data => setCommsCount(data))
+      .catch(() => {})
   }, [authorized])
 
   // Charger les notes non lues (benevole_ids)
@@ -1101,7 +1111,7 @@ function ReservistesPage() {
                     }}
                     style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
                     title={canEmail ? `Clic: fiche · Clic droit: actions rapides` : undefined}
-                  >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}</div>
+                  >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}{(() => { const cc = commsCount[r.benevole_id]; const total = cc ? cc.courriels + cc.notes : 0; return total > 0 ? <span title={`${cc.courriels} courriel${cc.courriels > 1 ? 's' : ''}, ${cc.notes} note${cc.notes > 1 ? 's' : ''}`} style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle', cursor: 'pointer' }}>✉ {total}</span> : null })()}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
                   )}
