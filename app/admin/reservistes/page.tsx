@@ -690,10 +690,10 @@ function ReservistesPage() {
     display: 'flex', alignItems: 'center', gap: '3px',
   }
 
-  // Columns: [checkbox] Nom Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
+  // Columns: [checkbox] Nom [comms] Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
   const gridCols = canEmail
-    ? '36px 0.8fr 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
-    : '0.8fr 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+    ? '36px 0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+    : '0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', ...(isMobile ? { minHeight: '100%' } : { height: '100%', overflow: 'hidden' }) }}>
@@ -969,6 +969,7 @@ function ReservistesPage() {
                 </div>
               )}
               <div style={thStyle()} onClick={() => handleSort('nom')}>Nom{sortArrow('nom')}</div>
+              <div style={{ ...thStyle(), justifyContent: 'center', padding: '8px 2px' }} title="Courriels / Notes">✉️</div>
               <div style={thStyle()} onClick={() => handleSort('telephone')}>Téléphone{sortArrow('telephone')}</div>
               <div style={thStyle()} onClick={() => handleSort('email')}>Courriel{sortArrow('email')}</div>
               <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
@@ -984,6 +985,7 @@ function ReservistesPage() {
             <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
               {canEmail && <div />}
               <div /> {/* Nom */}
+              <div /> {/* Comms */}
               <div /> {/* Téléphone */}
               <div /> {/* Courriel */}
               <div /> {/* Ville */}
@@ -1111,10 +1113,34 @@ function ReservistesPage() {
                     }}
                     style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
                     title={canEmail ? `Clic: fiche · Clic droit: actions rapides` : undefined}
-                  >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}{(() => { const cc = commsCount[r.benevole_id]; const total = cc ? cc.courriels + cc.notes : 0; return total > 0 ? <span title={`${cc.courriels} courriel${cc.courriels > 1 ? 's' : ''}, ${cc.notes} note${cc.notes > 1 ? 's' : ''}`} style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#0369a1', backgroundColor: '#e0f2fe', border: '1px solid #bae6fd', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle', cursor: 'pointer' }}>✉ {total}</span> : null })()}</div>
+                  >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
                   )}
+                </div>
+                {/* Comms icon */}
+                <div
+                  onClick={(e) => { e.stopPropagation(); setModalReserviste(r) }}
+                  style={{ padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  title={(() => { const cc = commsCount[r.benevole_id]; return cc ? `${cc.courriels} courriel${cc.courriels !== 1 ? 's' : ''}, ${cc.notes} note${cc.notes !== 1 ? 's' : ''}` : 'Aucun historique' })()}
+                >
+                  {(() => {
+                    const cc = commsCount[r.benevole_id]
+                    const total = cc ? cc.courriels + cc.notes : 0
+                    return (
+                      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: total > 0 ? 1 : 0.3 }}>
+                          <rect x="2" y="4" width="16" height="12" rx="2" stroke={total > 0 ? '#0369a1' : '#94a3b8'} strokeWidth="1.5" fill={total > 0 ? '#e0f2fe' : '#f8fafc'} />
+                          <path d="M2 6l8 5 8-5" stroke={total > 0 ? '#0369a1' : '#94a3b8'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                        </svg>
+                        {total > 0 && (
+                          <span style={{ position: 'absolute', top: '-4px', right: '-6px', fontSize: '9px', fontWeight: '700', color: 'white', backgroundColor: '#0369a1', borderRadius: '6px', padding: '0 3px', minWidth: '14px', textAlign: 'center', lineHeight: '14px' }}>
+                            {total}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
                 {/* Téléphone */}
                 <div style={{ padding: '11px 10px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>
