@@ -42,7 +42,7 @@ export async function DELETE(req: NextRequest) {
       const { error } = await supabaseAdmin.from('courriels').delete().eq('campagne_id', campagne_id)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       // Supprimer la campagne elle-même
-      await supabaseAdmin.from('campagnes_courriels').delete().eq('id', campagne_id)
+      await supabaseAdmin.from('courriel_campagnes').delete().eq('id', campagne_id)
       return NextResponse.json({ ok: true, deleted: ids.length })
     }
 
