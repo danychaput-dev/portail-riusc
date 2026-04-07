@@ -1,5 +1,7 @@
 'use client'
 
+declare global { interface Window { Tawk_API?: any; Tawk_LoadStart?: Date } }
+
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
@@ -29,6 +31,23 @@ function LoginContent() {
       const saved = localStorage.getItem('riusc_last_email')
       if (saved && !email) setEmail(saved)
     } catch {}
+  }, [])
+
+  // Tawk.to — chat d'aide sur la page login
+  useEffect(() => {
+    const s = document.createElement('script')
+    s.async = true
+    s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/default'
+    s.charset = 'UTF-8'
+    s.setAttribute('crossorigin', '*')
+    document.head.appendChild(s)
+    return () => {
+      document.head.removeChild(s)
+      // Nettoyer le widget Tawk quand on quitte la page login
+      if (window.Tawk_API) window.Tawk_API.hideWidget?.()
+      delete (window as any).Tawk_API
+      delete (window as any).Tawk_LoadStart
+    }
   }, [])
 
   const contactLink = (
