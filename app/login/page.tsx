@@ -37,23 +37,15 @@ function LoginContent() {
   const [failCount, setFailCount] = useState(0)
   const tawkReady = useRef(false)
 
-  // Tawk.to — chat d'aide sur la page login
+  // Tawk.to — détecter quand le widget global est prêt
   useEffect(() => {
-    ;(window as any).Tawk_API = (window as any).Tawk_API || {}
-    ;(window as any).Tawk_LoadStart = new Date()
-    ;(window as any).Tawk_API.onLoad = () => { tawkReady.current = true }
-    const s = document.createElement('script')
-    s.async = true
-    s.src = 'https://embed.tawk.to/69d4fbde0d1c3f1c37997dc2/1jljvfn7c'
-    s.charset = 'UTF-8'
-    s.setAttribute('crossorigin', '*')
-    document.head.appendChild(s)
-    return () => {
-      document.head.removeChild(s)
-      if (window.Tawk_API) window.Tawk_API.hideWidget?.()
-      delete (window as any).Tawk_API
-      delete (window as any).Tawk_LoadStart
-    }
+    const check = setInterval(() => {
+      if ((window as any).Tawk_API?.setAttributes) {
+        tawkReady.current = true
+        clearInterval(check)
+      }
+    }, 500)
+    return () => clearInterval(check)
   }, [])
 
   // Helper pour envoyer le contexte à Tawk.to
