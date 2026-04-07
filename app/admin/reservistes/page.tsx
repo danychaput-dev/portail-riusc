@@ -628,11 +628,16 @@ function ReservistesPage() {
   // Déployable reste sur Approuvés seulement
   const approuves = useMemo(() => rawData.filter(r => r.groupe === 'Approuvé'), [rawData])
 
-  // Calculer les stats sur la source pertinente :
-  // - rawData quand aucun filtre avancé actif (vue globale)
-  // - data quand des filtres sont appliqués (vue filtrée)
+  // Stats readiness : calculées sur rawData filtré par organisme/groupe RS SEULEMENT
+  // (exclut les filtres readiness eux-mêmes pour que les compteurs restent stables lors du cyclage)
   const hasAdvancedFilters = filtreOrganisme || filtreGroupeRS || Object.values(filtresReadiness).some(v => v !== null) || filtreDeployable !== null || filtreCertifsManquants || filtreNotesNonLues
-  const statsSource = hasAdvancedFilters ? data : rawData
+  const statsSource = useMemo(() => {
+    let source = rawData
+    if (filtreOrganisme) source = source.filter(r => (r.org_principale || '').includes(filtreOrganisme))
+    if (filtreGroupeRS) source = source.filter(r => (r.groupe_recherche || '') === filtreGroupeRS)
+    if (filtreNotesNonLues) source = source.filter(r => notesNonLuesIds.has(r.benevole_id))
+    return source
+  }, [rawData, filtreOrganisme, filtreGroupeRS, filtreNotesNonLues, notesNonLuesIds])
 
   const readinessStats = useMemo(() => {
     const stats = { profil: 0, initiation: 0, camp: 0, bottes: 0, antecedents: 0, deployable: 0, certifs_ok: 0, certifs_en_attente: 0, certifs_manquants: 0, certifs_manquants_total: 0 }
