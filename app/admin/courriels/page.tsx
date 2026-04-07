@@ -526,12 +526,34 @@ export default function CampagnesPage() {
                                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                                   {campagneDetail.destinataires.length} destinataire{campagneDetail.destinataires.length > 1 ? 's' : ''}
                                 </span>
-                                <button
-                                  onClick={() => handleReplyAll(campagneDetail.destinataires, c.subject)}
-                                  style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', backgroundColor: C, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
-                                >
-                                  ↩ Répondre à tous
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button
+                                    onClick={() => handleReplyAll(campagneDetail.destinataires, c.subject)}
+                                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', backgroundColor: C, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                  >
+                                    ↩ Répondre à tous
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      if (!confirm(`Supprimer la campagne « ${c.subject} » et tous ses ${s.total} courriels ?\n\nCette action est irréversible.`)) return
+                                      const res = await fetch('/api/admin/courriels/supprimer', {
+                                        method: 'DELETE',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ campagne_id: c.id }),
+                                      })
+                                      if (res.ok) {
+                                        setCampagnes(prev => prev.filter(camp => camp.id !== c.id))
+                                        setSelectedCampagne(null)
+                                        setCampagneDetail(null)
+                                      } else {
+                                        alert('Erreur lors de la suppression')
+                                      }
+                                    }}
+                                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: '#dc2626', backgroundColor: 'white', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer' }}
+                                  >
+                                    🗑 Supprimer la campagne
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Table destinataires + réponses en fil */}
@@ -779,6 +801,25 @@ export default function CampagnesPage() {
                               style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'white', backgroundColor: C, border: 'none', borderRadius: '6px', cursor: 'pointer' }}
                             >
                               ↩ Répondre
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Supprimer le courriel « ${c.subject} » et ses réponses ?\n\nCette action est irréversible.`)) return
+                                const res = await fetch('/api/admin/courriels/supprimer', {
+                                  method: 'DELETE',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ courriel_id: c.id }),
+                                })
+                                if (res.ok) {
+                                  setIndividuels(prev => prev.filter(item => item.id !== c.id))
+                                  setSelectedIndiv(null)
+                                } else {
+                                  alert('Erreur lors de la suppression')
+                                }
+                              }}
+                              style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: '#dc2626', backgroundColor: 'white', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer' }}
+                            >
+                              🗑 Supprimer
                             </button>
                           </div>
 
