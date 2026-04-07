@@ -355,16 +355,14 @@ function ReservistesPage() {
     let filtered = allData
     // Filtre par groupe
     if (groupesFiltres.length > 0) filtered = filtered.filter(r => groupesFiltres.includes(r.groupe))
-    // Filtre par recherche texte
+    // Filtre par recherche texte (insensible casse + accents, mots indépendants)
     if (recherche) {
-      const q = recherche.toLowerCase()
-      filtered = filtered.filter(r =>
-        (r.nom || '').toLowerCase().includes(q) ||
-        (r.prenom || '').toLowerCase().includes(q) ||
-        (r.email || '').toLowerCase().includes(q) ||
-        (r.ville || '').toLowerCase().includes(q) ||
-        (r.telephone || '').includes(q)
-      )
+      const normalize = (s: string) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      const mots = normalize(recherche).split(/\s+/).filter(Boolean)
+      filtered = filtered.filter(r => {
+        const champs = normalize(`${r.prenom} ${r.nom} ${r.email} ${r.ville} ${r.telephone}`)
+        return mots.every(mot => champs.includes(mot))
+      })
     }
     // URL params spéciaux (filtrés côté client maintenant)
     if (urlOrganisme) {
