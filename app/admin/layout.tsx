@@ -65,8 +65,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-      if (!res || !['admin', 'coordonnateur'].includes(res.role)) { router.push('/'); return }
+      // 1. Chercher par user_id
+      let res = (await supabase.from('reservistes').select('role, benevole_id').eq('user_id', user.id).single()).data
+      // 2. Fallback par email si user_id pas lié
+      if (!res && user.email) {
+        const { data: byEmail } = await supabase.from('reservistes').select('role, benevole_id').ilike('email', user.email).single()
+        if (byEmail) {
+          await supabase.from('reservistes').update({ user_id: user.id }).eq('benevole_id', byEmail.benevole_id)
+          res = byEmail
+        }
+      }
+      if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setAuthorized(true)
       userIdRef.current = user.id
       refreshBadges()
