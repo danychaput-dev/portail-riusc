@@ -69,7 +69,17 @@ type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template'
 export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject }: Props) {
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
   const [subject, setSubject] = useState(initialSubject || '')
-  const [bodyHtml, setBodyHtml] = useState(isReply ? '' : 'Bonjour {{ prenom }},\n\n')
+  const defaultBody = 'Bonjour {{ prenom }},\n\n'
+  const [bodyHtml, setBodyHtml] = useState(defaultBody)
+
+  // Fermeture sécurisée: confirmer si du contenu a été saisi
+  const handleSafeClose = () => {
+    const hasContent = subject.trim() !== (initialSubject || '').trim() || bodyHtml.trim() !== defaultBody.trim()
+    if (hasContent) {
+      if (!window.confirm('Vous avez du contenu non envoyé. Voulez-vous vraiment fermer ?')) return
+    }
+    onClose()
+  }
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ envoyes: number; echoues: number } | null>(null)
@@ -397,7 +407,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   return (
     <div
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '16px' }}
-      onClick={e => { if (e.target === e.currentTarget && !sending) onClose() }}
+      onClick={e => { /* Désactivé: empêche la perte du courriel en cours */ }}
     >
       <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '660px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
 
@@ -417,7 +427,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                 <button onClick={() => setPanel('config')} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#6b7280', cursor: 'pointer', textDecoration: 'underline', whiteSpace: 'nowrap' }}>⚙️ Signature</button>
               </>
             )}
-            <button onClick={onClose} disabled={sending} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1, marginLeft: '8px' }}>×</button>
+            <button onClick={handleSafeClose} disabled={sending} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af', lineHeight: 1, marginLeft: '8px' }}>×</button>
           </div>
         </div>
 
@@ -698,7 +708,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                   </button>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={onClose} disabled={sending} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
+                  <button onClick={handleSafeClose} disabled={sending} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
                   <button onClick={envoyer} disabled={sending || !subject.trim() || !bodyHtml.trim()} style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: (sending || !subject.trim() || !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !subject.trim() || !bodyHtml.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {sending ? '⏳ Envoi en cours…' : `📨 Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
                   </button>

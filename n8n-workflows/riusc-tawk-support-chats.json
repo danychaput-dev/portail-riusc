@@ -1,0 +1,80 @@
+{
+  "name": "RIUSC - Tawk.to Support Chats",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tawk-chat",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-tawk",
+      "name": "Webhook Tawk.to",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper: échapper les apostrophes pour SQL\nfunction esc(val) {\n  if (val === null || val === undefined || val === '') return 'NULL';\n  return \"'\" + String(val).replace(/'/g, \"''\") + \"'\";\n}\n\n// Helper: convertir en JSONB safe pour SQL\nfunction escJsonb(val) {\n  const str = JSON.stringify(val || []);\n  return \"'\" + str.replace(/'/g, \"''\") + \"'::jsonb\";\n}\n\nconst body = $input.first().json.body;\n\nconst event = body.event || 'unknown';\nconst chatId = body.chatId || body.chat?.id || null;\nconst time = body.time || new Date().toISOString();\n\nconst visitor = body.visitor || body.chat?.visitor || {};\nconst visitorName = visitor.name || null;\nconst visitorEmail = visitor.email || null;\nconst visitorCity = visitor.city || null;\nconst visitorCountry = visitor.country || null;\n\nconst messages = body.chat?.messages || body.messages || [];\nconst messageCount = messages.length;\n\n// Construire la requête SQL avec échappement complet\nconst query = `INSERT INTO support_chats (chat_id, event, visitor_name, visitor_email, visitor_city, visitor_country, messages, message_count, raw_payload, created_at)\nVALUES (\n  ${esc(chatId)},\n  ${esc(event)},\n  ${esc(visitorName)},\n  ${esc(visitorEmail)},\n  ${esc(visitorCity)},\n  ${esc(visitorCountry)},\n  ${escJsonb(messages)},\n  ${messageCount},\n  ${escJsonb(body)},\n  ${esc(time)}\n)\nON CONFLICT (chat_id) DO UPDATE SET\n  event = EXCLUDED.event,\n  visitor_name = EXCLUDED.visitor_name,\n  messages = EXCLUDED.messages,\n  message_count = EXCLUDED.message_count,\n  raw_payload = EXCLUDED.raw_payload;`;\n\nreturn [{ json: { query } }];"
+      },
+      "id": "parse-payload",
+      "name": "Parser payload Tawk.to",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.query }}",
+        "options": {}
+      },
+      "id": "supabase-insert",
+      "name": "Sauvegarder dans Supabase",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [750, 300],
+      "credentials": {
+        "postgres": {
+          "id": "REMPLACER_PAR_TON_CREDENTIAL_ID",
+          "name": "Supabase RIUSC"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'saved', timestamp: new Date().toISOString() } }];"
+      },
+      "id": "resume",
+      "name": "Résumé",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Tawk.to": {
+      "main": [
+        [{ "node": "Parser payload Tawk.to", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parser payload Tawk.to": {
+      "main": [
+        [{ "node": "Sauvegarder dans Supabase", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sauvegarder dans Supabase": {
+      "main": [
+        [{ "node": "Résumé", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    { "name": "RIUSC" },
+    { "name": "Support" }
+  ]
+}

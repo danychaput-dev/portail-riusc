@@ -39,9 +39,10 @@ interface CourrielReponse {
 interface Props {
   benevoleId: string
   refreshKey?: number
+  onReply?: (subject: string) => void
 }
 
-export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
+export default function HistoriqueCourriels({ benevoleId, refreshKey, onReply }: Props) {
   const [courriels, setCourriels] = useState<Courriel[]>([])
   const [reponses, setReponses] = useState<CourrielReponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -156,7 +157,7 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {timeline.map(item => {
           if (item.type === 'envoi') {
-            return <CourrielEnvoyeCard key={`e-${item.data.id}`} c={item.data} expandedId={expandedId} setExpandedId={setExpandedId} />
+            return <CourrielEnvoyeCard key={`e-${item.data.id}`} c={item.data} expandedId={expandedId} setExpandedId={setExpandedId} onReply={onReply} />
           } else {
             return (
               <ReponseRecueCard
@@ -166,6 +167,7 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
                 setExpandedId={setExpandedId}
                 onUpdateStatut={updateStatut}
                 updatingStatut={updatingStatut}
+                onReply={onReply}
               />
             )
           }
@@ -176,8 +178,8 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey }: Props) {
 }
 
 // ── Carte courriel envoyé (existant, refactorisé en composant) ──
-function CourrielEnvoyeCard({ c, expandedId, setExpandedId }: {
-  c: Courriel; expandedId: string | null; setExpandedId: (id: string | null) => void
+function CourrielEnvoyeCard({ c, expandedId, setExpandedId, onReply }: {
+  c: Courriel; expandedId: string | null; setExpandedId: (id: string | null) => void; onReply?: (subject: string) => void
 }) {
   const cfg = STATUT_CONFIG[c.statut] || STATUT_CONFIG.sent
   const date = new Date(c.created_at)
@@ -293,6 +295,20 @@ function CourrielEnvoyeCard({ c, expandedId, setExpandedId }: {
               />
             </>
           )}
+          {onReply && (
+            <div style={{ marginTop: '10px' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); onReply(c.subject) }}
+                style={{
+                  padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                  borderRadius: '6px', border: `1px solid ${C}`, cursor: 'pointer',
+                  backgroundColor: '#eff6ff', color: C,
+                }}
+              >
+                ↩ Répondre
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -300,9 +316,9 @@ function CourrielEnvoyeCard({ c, expandedId, setExpandedId }: {
 }
 
 // ── Carte réponse reçue (NOUVEAU) ──
-function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updatingStatut }: {
+function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updatingStatut, onReply }: {
   r: CourrielReponse; expandedId: string | null; setExpandedId: (id: string | null) => void
-  onUpdateStatut: (id: string, statut: string) => void; updatingStatut: string | null
+  onUpdateStatut: (id: string, statut: string) => void; updatingStatut: string | null; onReply?: (subject: string) => void
 }) {
   const cfg = REPONSE_STATUT[r.statut] || REPONSE_STATUT.recu
   const date = new Date(r.created_at)
@@ -429,6 +445,20 @@ function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updati
           ) : (
             <div style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic', padding: '8px 0' }}>
               Aucun contenu texte (le courriel ne contenait peut-être que des pièces jointes)
+            </div>
+          )}
+          {onReply && (
+            <div style={{ marginTop: '10px' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); onReply(r.subject || '') }}
+                style={{
+                  padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                  borderRadius: '6px', border: `1px solid ${C}`, cursor: 'pointer',
+                  backgroundColor: '#eff6ff', color: C,
+                }}
+              >
+                ↩ Répondre
+              </button>
             </div>
           )}
         </div>
