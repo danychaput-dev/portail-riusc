@@ -140,6 +140,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   }
 
   const supprimerNote = async (noteId: string) => {
+    if (!confirm('Supprimer cette note ?\n\nCette action est irréversible.')) return
     const res = await fetch(`/api/admin/notes?id=${noteId}`, { method: 'DELETE' })
     if (res.ok) setNotes(prev => prev.filter(n => n.id !== noteId))
   }
