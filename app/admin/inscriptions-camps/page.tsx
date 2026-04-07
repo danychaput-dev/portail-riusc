@@ -637,12 +637,20 @@ export default function InscriptionsCampsPage() {
                   <span style={{ fontSize: 13, color: '#6b7280' }}>📍 {selectedCamp.camp_lieu}</span>
                 </div>
               </div>
-              {/* Badges résumé */}
+              {/* Badges résumé — cliquables comme filtres */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Badge label="Total" value={selectedCamp.nb_total} color="#1e3a5f" bg="#dbeafe" />
-                <Badge label="Confirmés" value={selectedCamp.nb_confirme} color="#065f46" bg="#d1fae5" />
-                <Badge label="Absents" value={selectedCamp.nb_absent} color="#7f1d1d" bg="#fee2e2" />
-                {selectedCamp.nb_annule > 0 && <Badge label="Annulés" value={selectedCamp.nb_annule} color="#374151" bg="#f3f4f6" />}
+                <Badge label="Total" value={selectedCamp.nb_total} color="#1e3a5f" bg="#dbeafe"
+                  active={filterPresence === 'tous'}
+                  onClick={() => setFilterPresence('tous')} />
+                <Badge label="Confirmés" value={selectedCamp.nb_confirme} color="#065f46" bg="#d1fae5"
+                  active={filterPresence === 'confirme'}
+                  onClick={() => setFilterPresence(filterPresence === 'confirme' ? 'tous' : 'confirme')} />
+                <Badge label="Absents" value={selectedCamp.nb_absent} color="#7f1d1d" bg="#fee2e2"
+                  active={filterPresence === 'absent'}
+                  onClick={() => setFilterPresence(filterPresence === 'absent' ? 'tous' : 'absent')} />
+                {selectedCamp.nb_annule > 0 && <Badge label="Annulés" value={selectedCamp.nb_annule} color="#374151" bg="#f3f4f6"
+                  active={filterPresence === 'annule'}
+                  onClick={() => setFilterPresence(filterPresence === 'annule' ? 'tous' : 'annule')} />}
               </div>
             </div>
 
@@ -1070,9 +1078,19 @@ function CampItem({ camp, selected, onClick }: { camp: Camp; selected: boolean; 
   )
 }
 
-function Badge({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
+function Badge({ label, value, color, bg, active, onClick }: { label: string; value: number; color: string; bg: string; active?: boolean; onClick?: () => void }) {
   return (
-    <div style={{ background: bg, borderRadius: 8, padding: '6px 12px', textAlign: 'center', minWidth: 60 }}>
+    <div
+      onClick={onClick}
+      style={{
+        background: bg, borderRadius: 8, padding: '6px 12px', textAlign: 'center', minWidth: 60,
+        cursor: onClick ? 'pointer' : 'default',
+        outline: active ? `2px solid ${color}` : '2px solid transparent',
+        outlineOffset: 1,
+        transition: 'outline 0.15s, transform 0.15s',
+        transform: active ? 'scale(1.05)' : 'scale(1)',
+      }}
+    >
       <div style={{ fontSize: 18, fontWeight: 700, color }}>{value}</div>
       <div style={{ fontSize: 11, color, opacity: 0.8 }}>{label}</div>
     </div>
