@@ -707,9 +707,9 @@ function ReservistesPage() {
   }
 
   // Columns: [checkbox] Nom [comms] Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
-  // Adjoint: Nom Téléphone Courriel Adresse Ville Région Organisme Groupe
+  // Adjoint: Nom Téléphone Courriel Adresse Ville Région Bottes Groupe
   const gridCols = isAdjoint
-    ? '0.8fr 0.65fr 0.9fr 1.2fr 0.55fr 0.55fr 0.85fr 85px'
+    ? '0.8fr 0.65fr 0.9fr 1.2fr 0.55fr 0.55fr 70px 85px'
     : canEmail
       ? '36px 0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
       : '0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
@@ -1003,9 +1003,9 @@ function ReservistesPage() {
               {isAdjoint && <div style={thStyle()}>Adresse</div>}
               <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
               <div style={thStyle()} onClick={() => handleSort('region')}>Région{sortArrow('region')}</div>
-              <div style={thStyle()} onClick={() => handleSort('organisme')}>Organisme{sortArrow('organisme')}</div>
+              {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('organisme')}>Organisme{sortArrow('organisme')}</div>}
               {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('groupe_recherche')}>Groupe RS{sortArrow('groupe_recherche')}</div>}
-              {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('bottes')}>Bottes{sortArrow('bottes')}</div>}
+              <div style={thStyle()} onClick={() => handleSort('bottes')}>Bottes{sortArrow('bottes')}</div>
               <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
               {!isAdjoint && <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>Prêt{sortArrow('readiness')}</div>}
               {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('antecedents')}>Antécédents{sortArrow('antecedents')}</div>}
@@ -1021,6 +1021,7 @@ function ReservistesPage() {
               <div /> {/* Ville */}
               <div /> {/* Région */}
               {/* Organisme — filtre dropdown */}
+              {!isAdjoint && (
               <div style={thSubStyle}>
                 <select
                   value={filtreOrganisme}
@@ -1031,6 +1032,7 @@ function ReservistesPage() {
                   {organismesUniques.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
+              )}
               {/* Groupe RS — filtre dropdown */}
               {!isAdjoint && (
               <div style={thSubStyle}>
@@ -1045,13 +1047,11 @@ function ReservistesPage() {
               </div>
               )}
               {/* Bottes — count (adaptatif aux filtres) */}
-              {!isAdjoint && (
               <div style={{ ...thSubStyle, justifyContent: 'center' }}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700' }}>
                   {data.filter(r => r.remboursement_bottes_date).length}
                 </span>
               </div>
-              )}
               <div /> {/* Groupe */}
               {/* Prêt — 3 checkboxes filtre */}
               {!isAdjoint && (
@@ -1244,6 +1244,7 @@ function ReservistesPage() {
                   {!isAdjoint && r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap', fontSize: '10px' }}>{r.code_postal}</div>}
                 </div>
                 {/* Organisme */}
+                {!isAdjoint && (
                 <div style={{ padding: '11px 10px', fontSize: '11px', color: '#374151', overflow: 'hidden' }}>
                   <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.org_principale || ''}>
                     {r.org_principale ? (
@@ -1253,6 +1254,7 @@ function ReservistesPage() {
                     ) : <span style={{ color: '#d1d5db' }}>—</span>}
                   </div>
                 </div>
+                )}
                 {/* Groupe RS */}
                 {!isAdjoint && (
                 <div style={{ padding: '11px 10px', fontSize: '11px', color: '#374151', overflow: 'hidden' }}>
@@ -1262,7 +1264,6 @@ function ReservistesPage() {
                 </div>
                 )}
                 {/* Bottes */}
-                {!isAdjoint && (
                 <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                   <input
                     type="checkbox"
@@ -1276,7 +1277,6 @@ function ReservistesPage() {
                     </span>
                   )}
                 </div>
-                )}
                 {/* Groupe */}
                 <div style={{ padding: '11px 10px' }}>
                   <span style={{
