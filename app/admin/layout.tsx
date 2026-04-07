@@ -19,6 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter()
   const pathname = usePathname()
   const [authorized, setAuthorized] = useState(false)
+  const [userRole, setUserRole] = useState('')
   const [stats, setStats] = useState<SidebarStats>({ sinistres_actifs: 0, certificats_attente: 0, messages_non_lus: 0, courriels_reponses_non_lues: 0, notes_non_lues: 0 })
   const userIdRef = useRef<string | null>(null)
 
@@ -77,6 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
       if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setAuthorized(true)
+      setUserRole(res.role)
       userIdRef.current = user.id
       refreshBadges()
     }
@@ -139,7 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
       <PortailHeader />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        <AdminSidebar stats={stats} />
+        {userRole !== 'adjoint' && <AdminSidebar stats={stats} />}
         <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {children}
         </main>

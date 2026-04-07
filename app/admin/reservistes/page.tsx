@@ -206,6 +206,8 @@ function ReservistesPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
+  // Click-to-copy feedback (adjoint)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Notes non lues
   const [notesNonLuesIds, setNotesNonLuesIds] = useState<Set<string>>(new Set())
@@ -621,6 +623,7 @@ function ReservistesPage() {
   }
 
   const isAdmin = userRole === 'admin'
+  const isAdjoint = userRole === 'adjoint'
   const canEmail = ['admin', 'coordonnateur'].includes(userRole)
 
   // Readiness stats — calculé sur rawData (déjà filtré par groupes sélectionnés)
@@ -704,9 +707,19 @@ function ReservistesPage() {
   }
 
   // Columns: [checkbox] Nom [comms] Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
-  const gridCols = canEmail
-    ? '36px 0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
-    : '0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+  // Adjoint: Nom Téléphone Courriel Adresse Ville Région Organisme Groupe
+  const gridCols = isAdjoint
+    ? '0.8fr 0.65fr 0.9fr 1.2fr 0.55fr 0.55fr 0.85fr 85px'
+    : canEmail
+      ? '36px 0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+      : '0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+
+  const copyToClipboard = (text: string, fieldId: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(fieldId)
+      setTimeout(() => setCopiedField(null), 1500)
+    })
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', ...(isMobile ? { minHeight: '100%' } : { height: '100%', overflow: 'hidden' }) }}>
@@ -877,6 +890,7 @@ function ReservistesPage() {
         </div>
 
         {/* Readiness filter bar — pastilles 3 états : neutre → vert (a) → rouge (manque) → neutre */}
+        {!isAdjoint && (
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Déployabilité :</span>
           {/* Pastille Déployable — aussi cliquable 3 états */}
@@ -964,6 +978,7 @@ function ReservistesPage() {
             </button>
           )}
         </div>
+        )}
 
       </div>{/* Fin zone fixe */}
 
@@ -976,31 +991,33 @@ function ReservistesPage() {
           <div style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
             {/* Ligne 1 : Titres */}
             <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
-              {canEmail && (
+              {!isAdjoint && canEmail && (
                 <div style={{ ...thStyle(true), justifyContent: 'center', padding: '8px 8px 2px' }}>
                   <input type="checkbox" checked={selectedIds.size === data.length && data.length > 0} onChange={toggleSelectAll} style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
                 </div>
               )}
               <div style={thStyle()} onClick={() => handleSort('nom')}>Nom{sortArrow('nom')}</div>
-              <div style={{ ...thStyle(), justifyContent: 'center', padding: '8px 2px' }} title="Courriels / Notes">✉️</div>
+              {!isAdjoint && <div style={{ ...thStyle(), justifyContent: 'center', padding: '8px 2px' }} title="Courriels / Notes">✉️</div>}
               <div style={thStyle()} onClick={() => handleSort('telephone')}>Téléphone{sortArrow('telephone')}</div>
               <div style={thStyle()} onClick={() => handleSort('email')}>Courriel{sortArrow('email')}</div>
+              {isAdjoint && <div style={thStyle()}>Adresse</div>}
               <div style={thStyle()} onClick={() => handleSort('ville')}>Ville{sortArrow('ville')}</div>
               <div style={thStyle()} onClick={() => handleSort('region')}>Région{sortArrow('region')}</div>
               <div style={thStyle()} onClick={() => handleSort('organisme')}>Organisme{sortArrow('organisme')}</div>
-              <div style={thStyle()} onClick={() => handleSort('groupe_recherche')}>Groupe RS{sortArrow('groupe_recherche')}</div>
-              <div style={thStyle()} onClick={() => handleSort('bottes')}>Bottes{sortArrow('bottes')}</div>
+              {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('groupe_recherche')}>Groupe RS{sortArrow('groupe_recherche')}</div>}
+              {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('bottes')}>Bottes{sortArrow('bottes')}</div>}
               <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
-              <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>Prêt{sortArrow('readiness')}</div>
-              <div style={thStyle()} onClick={() => handleSort('antecedents')}>Antécédents{sortArrow('antecedents')}</div>
+              {!isAdjoint && <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>Prêt{sortArrow('readiness')}</div>}
+              {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('antecedents')}>Antécédents{sortArrow('antecedents')}</div>}
             </div>
             {/* Ligne 2 : Counts + Checkboxes de filtre */}
             <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
-              {canEmail && <div />}
+              {!isAdjoint && canEmail && <div />}
               <div /> {/* Nom */}
-              <div /> {/* Comms */}
+              {!isAdjoint && <div /> /* Comms */}
               <div /> {/* Téléphone */}
               <div /> {/* Courriel */}
+              {isAdjoint && <div /> /* Adresse */}
               <div /> {/* Ville */}
               <div /> {/* Région */}
               {/* Organisme — filtre dropdown */}
@@ -1015,6 +1032,7 @@ function ReservistesPage() {
                 </select>
               </div>
               {/* Groupe RS — filtre dropdown */}
+              {!isAdjoint && (
               <div style={thSubStyle}>
                 <select
                   value={filtreGroupeRS}
@@ -1025,14 +1043,18 @@ function ReservistesPage() {
                   {groupesRSUniques.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
+              )}
               {/* Bottes — count (adaptatif aux filtres) */}
+              {!isAdjoint && (
               <div style={{ ...thSubStyle, justifyContent: 'center' }}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: C, color: 'white', fontWeight: '700' }}>
                   {data.filter(r => r.remboursement_bottes_date).length}
                 </span>
               </div>
+              )}
               <div /> {/* Groupe */}
               {/* Prêt — 3 checkboxes filtre */}
+              {!isAdjoint && (
               <div style={{ ...thSubStyle, justifyContent: 'center', gap: '2px', padding: '0 4px 6px' }}>
                 {PRET_STEPS.map(step => {
                   const state = filtresReadiness[step.key]
@@ -1068,7 +1090,9 @@ function ReservistesPage() {
                   📎{sortKey === 'certifs' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
                 </button>
               </div>
+              )}
               {/* Antécédents — count (adaptatif aux filtres) + bouton filtre */}
+              {!isAdjoint && (
               <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px' }}>
                 <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#16a34a', color: 'white', fontWeight: '700' }}>
                   {data.filter(r => r.antecedents_statut === 'verifie').length}
@@ -1087,6 +1111,7 @@ function ReservistesPage() {
                   A
                 </button>
               </div>
+              )}
             </div>
           </div>
 
@@ -1109,7 +1134,7 @@ function ReservistesPage() {
                 onMouseOut={e => (e.currentTarget as HTMLElement).style.backgroundColor = i % 2 === 0 ? 'white' : '#fafafa'}
               >
                 {/* Checkbox sélection */}
-                {canEmail && (
+                {!isAdjoint && canEmail && (
                   <div style={{ padding: '11px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <input type="checkbox" checked={selectedIds.has(r.benevole_id)} onClick={(e) => { e.stopPropagation(); toggleSelect(r.benevole_id, i, e.shiftKey) }} readOnly style={{ width: 15, height: 15, cursor: 'pointer', accentColor: C }} />
                   </div>
@@ -1132,6 +1157,7 @@ function ReservistesPage() {
                   )}
                 </div>
                 {/* Comms icon */}
+                {!isAdjoint && (
                 <div
                   onClick={(e) => { e.stopPropagation(); setModalReserviste(r) }}
                   style={{ padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
@@ -1155,9 +1181,18 @@ function ReservistesPage() {
                     )
                   })()}
                 </div>
+                )}
                 {/* Téléphone */}
-                <div style={{ padding: '11px 10px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap' }}>
-                  {r.telephone ? formatPhone(r.telephone) : <span style={{ color: '#d1d5db' }}>—</span>}
+                <div
+                  onClick={isAdjoint && r.telephone ? () => copyToClipboard(formatPhone(r.telephone), `tel-${r.benevole_id}`) : undefined}
+                  style={{ padding: '11px 10px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap', cursor: isAdjoint && r.telephone ? 'pointer' : 'default' }}
+                  title={isAdjoint && r.telephone ? 'Cliquer pour copier' : undefined}
+                >
+                  {r.telephone ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {copiedField === `tel-${r.benevole_id}` ? <span style={{ color: '#16a34a', fontSize: '11px', fontWeight: '600' }}>Copié !</span> : formatPhone(r.telephone)}
+                    </span>
+                  ) : <span style={{ color: '#d1d5db' }}>—</span>}
                 </div>
                 {/* Courriel */}
                 <div style={{ padding: '11px 10px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
@@ -1179,6 +1214,26 @@ function ReservistesPage() {
                     : <span style={{ color: '#d1d5db' }}>—</span>
                   }
                 </div>
+                {/* Adresse complète — adjoint seulement */}
+                {isAdjoint && (
+                <div
+                  onClick={() => {
+                    const full = [r.adresse, r.ville, r.code_postal].filter(Boolean).join(', ')
+                    if (full) copyToClipboard(full, `addr-${r.benevole_id}`)
+                  }}
+                  style={{ padding: '11px 10px', fontSize: '12px', color: '#374151', overflow: 'hidden', cursor: r.adresse ? 'pointer' : 'default' }}
+                  title={r.adresse ? 'Cliquer pour copier l\'adresse complète' : undefined}
+                >
+                  {copiedField === `addr-${r.benevole_id}` ? (
+                    <span style={{ color: '#16a34a', fontSize: '11px', fontWeight: '600' }}>Copié !</span>
+                  ) : r.adresse ? (
+                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={[r.adresse, r.ville, r.code_postal].filter(Boolean).join(', ')}>
+                      {r.adresse}
+                      {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', fontSize: '10px' }}>{r.code_postal}</div>}
+                    </div>
+                  ) : <span style={{ color: '#d1d5db' }}>—</span>}
+                </div>
+                )}
                 {/* Ville */}
                 <div style={{ padding: '11px 10px', fontSize: '13px', color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {r.ville || <span style={{ color: '#d1d5db' }}>—</span>}
@@ -1186,7 +1241,7 @@ function ReservistesPage() {
                 {/* Région */}
                 <div style={{ padding: '11px 10px', fontSize: '12px', color: '#374151', overflow: 'hidden' }}>
                   <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.region || <span style={{ color: '#d1d5db' }}>—</span>}</div>
-                  {r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap', fontSize: '10px' }}>{r.code_postal}</div>}
+                  {!isAdjoint && r.code_postal && <div style={{ color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap', fontSize: '10px' }}>{r.code_postal}</div>}
                 </div>
                 {/* Organisme */}
                 <div style={{ padding: '11px 10px', fontSize: '11px', color: '#374151', overflow: 'hidden' }}>
@@ -1199,12 +1254,15 @@ function ReservistesPage() {
                   </div>
                 </div>
                 {/* Groupe RS */}
+                {!isAdjoint && (
                 <div style={{ padding: '11px 10px', fontSize: '11px', color: '#374151', overflow: 'hidden' }}>
                   <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={r.groupe_recherche || ''}>
                     {r.groupe_recherche || <span style={{ color: '#d1d5db' }}>—</span>}
                   </div>
                 </div>
+                )}
                 {/* Bottes */}
+                {!isAdjoint && (
                 <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                   <input
                     type="checkbox"
@@ -1218,6 +1276,7 @@ function ReservistesPage() {
                     </span>
                   )}
                 </div>
+                )}
                 {/* Groupe */}
                 <div style={{ padding: '11px 10px' }}>
                   <span style={{
@@ -1228,6 +1287,7 @@ function ReservistesPage() {
                   </span>
                 </div>
                 {/* Prêt — 3 étapes (profil, initiation, camp) + indicateur certifs en attente */}
+                {!isAdjoint && (
                 <div style={{ padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                   {PRET_STEPS.map(step => {
                     const ok = rd[step.key]
@@ -1298,7 +1358,9 @@ function ReservistesPage() {
                     <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
                   )}
                 </div>
+                )}
                 {/* Antécédents */}
+                {!isAdjoint && (
                 <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                     <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
@@ -1320,6 +1382,7 @@ function ReservistesPage() {
                     </span>
                   )}
                 </div>
+                )}
               </div>
             )
           })}
