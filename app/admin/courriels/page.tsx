@@ -112,6 +112,7 @@ function reponseStatutBadge(statut: string) {
     lu:      { label: 'Lu',      color: '#2563eb', bg: '#eff6ff' },
     traite:  { label: 'Traité',  color: '#16a34a', bg: '#f0fdf4' },
     archive: { label: 'Archivé', color: '#6b7280', bg: '#f3f4f6' },
+    sortant: { label: 'Envoyé',  color: '#1e3a5f', bg: '#eff6ff' },
   }
   const m = map[statut] || map.recu
   return (
@@ -361,9 +362,52 @@ export default function CampagnesPage() {
     return Array.from(senders).sort((a, b) => a.localeCompare(b, 'fr'))
   }, [individuels])
 
+  // ─── Regrouper les individuels par conversation (même destinataire + sujet normalisé) ───
+  const normalizeSubject = (s: string) => s.replace(/^(Re:\s*|Rép\.\s*:\s*|Fw:\s*|Fwd:\s*)+/gi, '').trim().toLowerCase()
+
+  const threadedIndiv = useMemo(() => {
+    // Grouper par clé de conversation
+    const threads = new Map<string, CourrielIndividuel[]>()
+    for (const c of individuels) {
+      const key = `${c.benevole_id}::${normalizeSubject(c.subject)}`
+      const list = threads.get(key) || []
+      list.push(c)
+      threads.set(key, list)
+    }
+    // Pour chaque thread, le plus ancien est le "parent", les autres deviennent des réponses sortantes
+    const result: CourrielIndividuel[] = []
+    for (const [, msgs] of threads) {
+      const sorted = msgs.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      const parent = { ...sorted[0] }
+      // Fusionner les réponses entrantes de tous les courriels du thread
+      const allInboundReplies = sorted.flatMap(c => c.reponses || [])
+      // Les courriels sortants après le premier deviennent aussi des réponses (type sortant)
+      const outboundReplies: ReponseInline[] = sorted.slice(1).map(c => ({
+        id: c.id,
+        courriel_id: parent.id,
+        from_email: c.from_email,
+        from_name: c.from_name,
+        subject: c.subject,
+        body_text: null,
+        body_html: c.body_html,
+        pieces_jointes: c.pieces_jointes || [],
+        statut: 'sortant',
+        created_at: c.created_at,
+      }))
+      // Combiner toutes les réponses et trier par date
+      const allReplies = [...allInboundReplies, ...outboundReplies].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
+      parent.reponses = allReplies
+      parent.has_reply = allReplies.length > 0
+      result.push(parent)
+    }
+    return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  }, [individuels])
+
   // ─── Filtrage individuels ───
   const filteredIndiv = useMemo(() => {
-    let list = individuels
+    let list = threadedIndiv
     if (showOnlyWithReplies) {
       list = list.filter(c => c.reponses && c.reponses.length > 0)
     }
@@ -379,7 +423,7 @@ export default function CampagnesPage() {
       )
     }
     return list
-  }, [individuels, indivSearch, showOnlyWithReplies, filterSender])
+  }, [threadedIndiv, indivSearch, showOnlyWithReplies, filterSender])
 
   // ─── Reply helpers ───
   const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string) => {
@@ -831,11 +875,13 @@ export default function CampagnesPage() {
                               </div>
                               {c.reponses.map((rep: ReponseInline) => {
                                 const isNonLu = rep.statut === 'recu'
+                                const isSortant = rep.statut === 'sortant'
+                                const borderColor = isSortant ? '#93c5fd' : isNonLu ? '#fbbf24' : '#bfdbfe'
                                 return (
-                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: `3px solid ${isNonLu ? '#fbbf24' : '#bfdbfe'}`, marginBottom: '10px', backgroundColor: isNonLu ? '#fffdf5' : 'transparent', borderRadius: isNonLu ? '0 8px 8px 0' : undefined, padding: isNonLu ? '10px 14px 10px 14px' : '0 0 0 14px' }}>
+                                <div key={rep.id} style={{ marginLeft: '16px', borderLeft: `3px solid ${borderColor}`, marginBottom: '10px', backgroundColor: isSortant ? '#f0f7ff' : isNonLu ? '#fffdf5' : 'transparent', borderRadius: (isNonLu || isSortant) ? '0 8px 8px 0' : undefined, padding: (isNonLu || isSortant) ? '10px 14px 10px 14px' : '0 0 0 14px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '12px', fontWeight: isNonLu ? '700' : '600', color: isNonLu ? '#92400e' : '#1e40af' }}>
-                                      📨 {rep.from_name || rep.from_email}
+                                    <span style={{ fontSize: '12px', fontWeight: isNonLu ? '700' : '600', color: isSortant ? '#1e3a5f' : isNonLu ? '#92400e' : '#1e40af' }}>
+                                      {isSortant ? '📤' : '📨'} {rep.from_name || rep.from_email}
                                     </span>
                                     {reponseStatutBadge(rep.statut)}
                                     <span style={{ fontSize: '11px', color: '#9ca3af' }}>{formatDateTime(rep.created_at)}</span>
@@ -856,7 +902,7 @@ export default function CampagnesPage() {
                                   )}
                                   {/* Actions statut + répondre */}
                                   <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                    {['recu', 'lu', 'traite', 'archive'].map(s => {
+                                    {!isSortant && ['recu', 'lu', 'traite', 'archive'].map(s => {
                                       const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
                                       const isActive = rep.statut === s
                                       const isHighlight = s === 'lu' && rep.statut === 'recu'
