@@ -8,6 +8,7 @@ import { logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from '@/app/components/CampInfoBlocs'
 import { n8nUrl } from '@/utils/n8n'
 import { formatPhone as formatPhoneDisplay, normalizePhone as cleanPhoneForSave } from '@/utils/phone'
+import { REGIONS_QUEBEC, detecterRegionParFSA } from '@/app/profil/constants'
 import type { MapboxFeature } from '@/types'
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
@@ -93,6 +94,7 @@ export default function InscriptionPage() {
   const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string }>>([])
   const [showVilleSuggestions, setShowVilleSuggestions] = useState(false)
   const [isLoadingVille, setIsLoadingVille] = useState(false)
+  const [regionNonDetectee, setRegionNonDetectee] = useState(false)
   const villeInputRef = useRef<HTMLInputElement>(null)
   const villeDropdownRef = useRef<HTMLDivElement>(null)
   const villeDebounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -336,7 +338,23 @@ export default function InscriptionPage() {
       .single()
     if (data) {
       setFormData(prev => ({ ...prev, region: data.region_administrative }))
+      setRegionNonDetectee(false)
       if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+    } else {
+      // Fallback : détecter par code postal (FSA)
+      const cp = formData.code_postal
+      if (cp && cp.length >= 3) {
+        const regionFSA = detecterRegionParFSA(cp)
+        if (regionFSA) {
+          setFormData(prev => ({ ...prev, region: regionFSA }))
+          setRegionNonDetectee(false)
+          if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+        } else {
+          setRegionNonDetectee(true)
+        }
+      } else {
+        setRegionNonDetectee(true)
+      }
     }
   }
 
@@ -361,7 +379,19 @@ export default function InscriptionPage() {
     if (codePostal && fieldErrors.code_postal) setFieldErrors(prev => ({ ...prev, code_postal: '' }))
     setShowAddressSuggestions(false)
     setAddressSuggestions([])
-    if (ville) lookupRegionFromVille(ville)
+    if (ville) {
+      // Lookup async par ville, avec fallback FSA intégré
+      lookupRegionFromVille(ville)
+    } else if (codePostal && codePostal.length >= 3) {
+      const regionFSA = detecterRegionParFSA(codePostal)
+      if (regionFSA) {
+        setFormData(prev => ({ ...prev, region: regionFSA }))
+        setRegionNonDetectee(false)
+        if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+      } else {
+        setRegionNonDetectee(true)
+      }
+    }
   }
 
   const searchVille = async (query: string) => {
@@ -390,6 +420,7 @@ export default function InscriptionPage() {
     setFormData(prev => ({ ...prev, ville: suggestion.municipalite, region: suggestion.region_administrative }))
     setShowVilleSuggestions(false)
     setVilleSuggestions([])
+    setRegionNonDetectee(false)
     if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
   }
 
@@ -778,8 +809,38 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
               </div>
               <div>
                 <label style={labelStyle}>Région administrative {requiredStar}</label>
-                <input type="text" value={formData.region} readOnly style={{ ...inputStyle, backgroundColor: formData.region ? '#f0fdf4' : '#f3f4f6', cursor: 'not-allowed', borderColor: formData.region ? '#86efac' : (fieldErrors.region ? '#dc2626' : '#d1d5db'), borderWidth: fieldErrors.region ? '2px' : '1px' }} placeholder="Détectée automatiquement selon la ville" />
-                {formData.region && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>✓ Détectée automatiquement</p>}
+                {regionNonDetectee && !formData.region ? (
+                  <>
+                    <div style={{ background: '#fff8e1', border: '1px solid #ffd166', borderRadius: '6px', padding: '7px 11px', marginBottom: '7px', fontSize: '12px', color: '#7a5c00', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚠️</span>
+                      <span>Région non détectée — veuillez la sélectionner.</span>
+                    </div>
+                    <select
+                      value={formData.region}
+                      onChange={e => {
+                        setFormData(prev => ({ ...prev, region: e.target.value }))
+                        if (fieldErrors.region) setFieldErrors(prev => ({ ...prev, region: '' }))
+                      }}
+                      style={{ ...inputStyle, borderColor: fieldErrors.region ? '#dc2626' : '#e74c3c', borderWidth: fieldErrors.region ? '2px' : '1.5px' }}
+                    >
+                      <option value="">— Sélectionner une région —</option>
+                      {REGIONS_QUEBEC.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </>
+                ) : formData.region ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input type="text" value={formData.region} readOnly style={{ ...inputStyle, backgroundColor: '#f0fdf4', cursor: 'not-allowed', borderColor: '#86efac', flex: 1 }} />
+                    <button
+                      type="button"
+                      onClick={() => { setRegionNonDetectee(true); setFormData(prev => ({ ...prev, region: '' })) }}
+                      style={{ padding: '8px', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', color: '#6b7280', flexShrink: 0 }}
+                      title="Modifier la région"
+                    >✏️</button>
+                  </div>
+                ) : (
+                  <input type="text" value="" readOnly style={{ ...inputStyle, backgroundColor: '#f3f4f6', cursor: 'not-allowed', borderColor: fieldErrors.region ? '#dc2626' : '#d1d5db', borderWidth: fieldErrors.region ? '2px' : '1px' }} placeholder="Détectée automatiquement selon la ville" />
+                )}
+                {formData.region && !regionNonDetectee && <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>✓ Détectée automatiquement</p>}
                 {fieldErrors.region && <p style={{ color: '#dc2626', fontSize: '12px', margin: '4px 0 0 0' }}>{fieldErrors.region}</p>}
               </div>
             </div>
