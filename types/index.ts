@@ -41,6 +41,7 @@ export interface Reserviste {
   remboursement_bottes_date?: string
   groupe_sanguin?: string
   responsable_groupe?: boolean
+  methode_connexion?: 'sms' | 'email'
 }
 
 // ─── Opérations (sinistres, demandes, déploiements) ─────────────────────────

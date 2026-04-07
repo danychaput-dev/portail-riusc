@@ -139,6 +139,7 @@ function ProfilPage() {
     contact_urgence_telephone: '',
     contact_urgence_lien: '',
     contact_urgence_courriel: '',
+    methode_connexion: 'sms' as 'sms' | 'email',
   })
   const [originalProfilData, setOriginalProfilData] = useState(profilData)
 
@@ -215,6 +216,7 @@ function ProfilPage() {
                 contact_urgence_telephone: formatPhoneDisplay(d.contact_urgence_telephone || ''),
                 contact_urgence_lien: d.contact_urgence_lien || '',
                 contact_urgence_courriel: d.contact_urgence_courriel || '',
+                methode_connexion: d.methode_connexion || 'sms',
               })
               setOriginalProfilData({
                 telephone: formatPhoneDisplay(d.telephone || ''),
@@ -229,6 +231,7 @@ function ProfilPage() {
                 contact_urgence_telephone: formatPhoneDisplay(d.contact_urgence_telephone || ''),
                 contact_urgence_lien: d.contact_urgence_lien || '',
                 contact_urgence_courriel: d.contact_urgence_courriel || '',
+                methode_connexion: d.methode_connexion || 'sms',
               })
 
               const loaded: DossierData = {
@@ -319,6 +322,7 @@ function ProfilPage() {
               contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
               contact_urgence_lien: fullData.contact_urgence_lien || '',
               contact_urgence_courriel: fullData.contact_urgence_courriel || '',
+              methode_connexion: fullData.methode_connexion || 'sms',
             })
 
             setOriginalProfilData({
@@ -334,6 +338,7 @@ function ProfilPage() {
               contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
               contact_urgence_lien: fullData.contact_urgence_lien || '',
               contact_urgence_courriel: fullData.contact_urgence_courriel || '',
+              methode_connexion: fullData.methode_connexion || 'sms',
             })
 
             // Charger dossier depuis Supabase
@@ -411,6 +416,7 @@ function ProfilPage() {
             contact_urgence_telephone: '(418) 555-9876',
             contact_urgence_lien: 'Conjoint',
             contact_urgence_courriel: 'jean.tremblay@example.com',
+            methode_connexion: 'sms',
           })
           setOriginalProfilData({
             telephone: '(418) 555-1234',
@@ -425,6 +431,7 @@ function ProfilPage() {
             contact_urgence_telephone: '(418) 555-9876',
             contact_urgence_lien: 'Conjoint',
             contact_urgence_courriel: 'jean.tremblay@example.com',
+            methode_connexion: 'sms',
           })
           setDossier({
             prenom: demoRes.prenom, nom: demoRes.nom, email: demoRes.email,
@@ -538,6 +545,7 @@ function ProfilPage() {
         contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
         contact_urgence_lien: reservisteData.contact_urgence_lien || '',
         contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
+        methode_connexion: reservisteData.methode_connexion || 'sms',
       })
 
       setOriginalProfilData({
@@ -553,6 +561,7 @@ function ProfilPage() {
         contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
         contact_urgence_lien: reservisteData.contact_urgence_lien || '',
         contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
+        methode_connexion: reservisteData.methode_connexion || 'sms',
       })
 
       // Charger organisations
@@ -981,6 +990,7 @@ function ProfilPage() {
             contact_urgence_telephone: cleanPhoneForSave(profilData.contact_urgence_telephone),
             contact_urgence_lien: profilData.contact_urgence_lien,
             contact_urgence_courriel: profilData.contact_urgence_courriel,
+            methode_connexion: profilData.methode_connexion,
           })
           .eq('id', reserviste.id)
 
@@ -1433,6 +1443,44 @@ function ProfilPage() {
                 ❌ Erreur lors de l&apos;envoi. Vérifiez votre numéro de téléphone.
               </div>
             )}
+          </div>
+
+          {/* Préférence de connexion */}
+          <div style={{ marginBottom: '16px', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+              Méthode de connexion préférée
+            </label>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => setProfilData(prev => ({ ...prev, methode_connexion: 'sms' }))}
+                style={{
+                  flex: 1, padding: '10px 14px', fontSize: '13px', fontWeight: '500',
+                  borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+                  backgroundColor: profilData.methode_connexion === 'sms' ? '#1e3a5f' : 'white',
+                  color: profilData.methode_connexion === 'sms' ? 'white' : '#374151',
+                  border: profilData.methode_connexion === 'sms' ? '2px solid #1e3a5f' : '2px solid #d1d5db',
+                }}
+              >
+                📱 Texto (SMS)
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfilData(prev => ({ ...prev, methode_connexion: 'email' }))}
+                style={{
+                  flex: 1, padding: '10px 14px', fontSize: '13px', fontWeight: '500',
+                  borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
+                  backgroundColor: profilData.methode_connexion === 'email' ? '#1e3a5f' : 'white',
+                  color: profilData.methode_connexion === 'email' ? 'white' : '#374151',
+                  border: profilData.methode_connexion === 'email' ? '2px solid #1e3a5f' : '2px solid #d1d5db',
+                }}
+              >
+                📧 Courriel
+              </button>
+            </div>
+            <p style={{ fontSize: '11px', color: '#6b7280', margin: '6px 0 0 0' }}>
+              Choisissez comment recevoir votre code de connexion. Les notifications opérationnelles (camps, déploiements) sont toujours envoyées par texto et courriel.
+            </p>
           </div>
 
           <TextInput

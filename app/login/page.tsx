@@ -223,8 +223,9 @@ function LoginContent() {
       }
 
       let smsSent = false
+      const prefereCourriel = reserviste.methode_connexion === 'email'
 
-      if (reserviste.telephone) {
+      if (reserviste.telephone && !prefereCourriel) {
         const formattedPhone = toE164(reserviste.telephone)
         const { error: smsError } = await supabase.auth.signInWithOtp({ phone: formattedPhone })
         if (!smsError) {
@@ -358,6 +359,22 @@ function LoginContent() {
     setShowJoinPrompt(false)
   }
 
+  // Basculer de SMS vers courriel sans revenir en arrière
+  const handleSwitchToEmail = async () => {
+    setLoading(true)
+    setError('')
+    setOtpCode('')
+    const { error: emailError } = await supabase.auth.signInWithOtp({ email: email.toLowerCase().trim() })
+    if (emailError) {
+      setError(<>Erreur d&apos;envoi du code par courriel.{contactLink}</>)
+      setFailCount(c => { const n = c + 1; updateTawkContext('Erreur fallback courriel', n); return n })
+    } else {
+      setOtpMethod('email')
+      setSuccess('Nouveau code envoyé par courriel.')
+    }
+    setLoading(false)
+  }
+
   // Construire les URLs avec le camp param + email pré-rempli
   const inscriptionUrl = (() => {
     const params = new URLSearchParams()
@@ -463,7 +480,7 @@ function LoginContent() {
               {loading ? 'Vérification en cours...' : email.trim().toLowerCase() === 'demoriusc' ? 'Accéder à la démo' : 'Recevoir un code de connexion'}
             </button>
             <p style={{ marginTop: '16px', fontSize: '13px', color: '#6b7280', textAlign: 'center', lineHeight: '1.5' }}>
-              Un code vous sera envoyé par SMS si votre numéro est enregistré, sinon par courriel.
+              Un code vous sera envoyé par texto ou par courriel selon votre préférence.
             </p>
             
             <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', textAlign: 'center' }}>
@@ -481,6 +498,14 @@ function LoginContent() {
               )}
               <br />
               <button type="button" onClick={handleReset} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', marginTop: '4px' }}>Changer de courriel</button>
+              {otpMethod === 'sms' && (
+                <>
+                  <br />
+                  <button type="button" onClick={handleSwitchToEmail} disabled={loading} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '13px', textDecoration: 'underline', marginTop: '2px' }}>
+                    Vous ne recevez pas le texto ? Recevoir par courriel
+                  </button>
+                </>
+              )}
             </p>
             
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Code de vérification (6 chiffres)</label>
