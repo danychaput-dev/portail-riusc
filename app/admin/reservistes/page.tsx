@@ -292,6 +292,25 @@ function ReservistesPage() {
       .catch(() => {})
   }, [authorized])
 
+  // Auto-refresh silencieux toutes les 60s (met à jour les données sans toucher l'UI)
+  useEffect(() => {
+    if (!authorized || !dataLoaded.current) return
+    const interval = setInterval(async () => {
+      try {
+        const params = new URLSearchParams()
+        params.set('groupes', 'Approuvé,Intérêt,Partenaires,Retrait temporaire')
+        if (urlCampSession) params.set('camp_session', urlCampSession)
+        if (urlCampStatut) params.set('camp_statut', urlCampStatut)
+        if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
+        if (urlStatut) params.set('statut', urlStatut)
+        const res = await fetch(`/api/admin/reservistes?${params}`)
+        const json = await res.json()
+        if (json.data) setAllData(json.data)
+      } catch { /* silencieux */ }
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [authorized])
+
   // Charger les notes non lues (benevole_ids)
   const fetchNotesNonLues = async () => {
     try {
