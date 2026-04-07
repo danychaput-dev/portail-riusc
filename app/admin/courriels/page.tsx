@@ -207,6 +207,9 @@ export default function CampagnesPage() {
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
 
+  // ─── Expand réponse (lecture plein écran) ───
+  const [expandedReply, setExpandedReply] = useState<string | null>(null)
+
   // ─── Menu contextuel (clic droit sur nom) ───
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; benevole_id: string; prenom: string; nom: string; email: string } | null>(null)
   useEffect(() => {
@@ -693,11 +696,19 @@ export default function CampagnesPage() {
                                             </span>
                                           </div>
                                           {rep.subject && <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>{rep.subject}</div>}
-                                          <div
-                                            style={{ fontSize: '12px', color: '#4b5563', lineHeight: '1.5', maxHeight: '120px', overflowY: 'auto', whiteSpace: rep.body_html ? undefined : 'pre-wrap' }}
-                                            dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
-                                          >
-                                            {!rep.body_html ? (rep.body_text || '') : undefined}
+                                          <div style={{ position: 'relative' }}>
+                                            <div
+                                              style={{ fontSize: '12px', color: '#4b5563', lineHeight: '1.5', maxHeight: expandedReply === rep.id ? 'none' : '120px', overflowY: expandedReply === rep.id ? 'visible' : 'hidden', whiteSpace: rep.body_html ? undefined : 'pre-wrap', transition: 'max-height 0.2s' }}
+                                              dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
+                                            >
+                                              {!rep.body_html ? (rep.body_text || '') : undefined}
+                                            </div>
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); setExpandedReply(expandedReply === rep.id ? null : rep.id) }}
+                                              style={{ marginTop: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: '#6b7280', backgroundColor: '#f3f4f6', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                              {expandedReply === rep.id ? '▲ Réduire' : '▼ Agrandir'}
+                                            </button>
                                           </div>
                                           {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
                                             <div style={{ marginTop: '4px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -934,11 +945,19 @@ export default function CampagnesPage() {
                                     <span style={{ fontSize: '11px', color: '#9ca3af' }}>{formatDateTime(rep.created_at)}</span>
                                   </div>
                                   {rep.subject && <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px', fontWeight: '500' }}>{rep.subject}</div>}
-                                  <div
-                                    style={{ fontSize: '13px', color: '#374151', lineHeight: '1.6', padding: '12px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', maxHeight: '200px', overflowY: 'auto', whiteSpace: rep.body_html ? undefined : 'pre-wrap' }}
-                                    dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
-                                  >
-                                    {!rep.body_html ? (rep.body_text || '') : undefined}
+                                  <div style={{ position: 'relative' }}>
+                                    <div
+                                      style={{ fontSize: '13px', color: '#374151', lineHeight: '1.6', padding: '12px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', maxHeight: expandedReply === rep.id ? 'none' : '200px', overflowY: expandedReply === rep.id ? 'visible' : 'hidden', whiteSpace: rep.body_html ? undefined : 'pre-wrap', transition: 'max-height 0.2s' }}
+                                      dangerouslySetInnerHTML={rep.body_html ? { __html: rep.body_html } : undefined}
+                                    >
+                                      {!rep.body_html ? (rep.body_text || '') : undefined}
+                                    </div>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setExpandedReply(expandedReply === rep.id ? null : rep.id) }}
+                                      style={{ marginTop: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: '#6b7280', backgroundColor: '#f3f4f6', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}
+                                    >
+                                      {expandedReply === rep.id ? '▲ Réduire' : '▼ Agrandir'}
+                                    </button>
                                   </div>
                                   {rep.pieces_jointes && rep.pieces_jointes.length > 0 && (
                                     <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
