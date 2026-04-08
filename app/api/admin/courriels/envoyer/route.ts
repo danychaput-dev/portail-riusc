@@ -85,21 +85,25 @@ export async function POST(req: NextRequest) {
 
     // Préparer les pièces jointes Resend AVANT le HTML (pour inserer les liens trackables)
     // L'API batch ne supporte PAS les attachments. Pour les envois avec PJ, on utilise
-    // l'API individuelle (POST /emails) avec des URLs signees Supabase (path).
-    const resendAttachments: { filename: string; path?: string; content?: Buffer }[] = []
+    // l'API individuelle (POST /emails) avec le contenu en Buffer (pas d'URL).
+    // IMPORTANT: On telecharge chaque fichier UNE SEULE FOIS en memoire, puis on envoie
+    // le Buffer a Resend pour chaque courriel. Cela evite que Resend telecharge le fichier
+    // depuis Supabase pour chacun des N courriels (cause de timeout sur les envois de masse).
+    const resendAttachments: { filename: string; content: Buffer }[] = []
     const attachmentLinks: { filename: string; url: string }[] = []
     for (const a of (attachments || [])) {
       if (a.storage_path) {
-        // URL signee valide 7 jours (604800 secondes)
-        const { data: signedData, error: signErr } = await supabaseAdmin.storage
+        // Telecharger le fichier UNE SEULE FOIS en memoire
+        const { data: fileData, error: dlErr } = await supabaseAdmin.storage
           .from('certificats')
-          .createSignedUrl(a.storage_path, 604800)
-        if (signErr || !signedData?.signedUrl) {
-          console.error('Erreur creation URL signee PJ:', signErr?.message, a.storage_path)
+          .download(a.storage_path)
+        if (dlErr || !fileData) {
+          console.error('Erreur telechargement PJ:', dlErr?.message, a.storage_path)
           continue
         }
-        console.log('URL signee PJ:', a.filename, '(' + a.storage_path + ')')
-        resendAttachments.push({ filename: a.filename, path: signedData.signedUrl })
+        const buffer = Buffer.from(await fileData.arrayBuffer())
+        console.log('PJ telechargee en memoire:', a.filename, '(' + a.storage_path + ')', buffer.length, 'octets')
+        resendAttachments.push({ filename: a.filename, content: buffer })
         // Lien permanent via route API (ne meurt jamais, genere l'URL signee au moment du clic)
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://portail.riusc.ca')
         attachmentLinks.push({ filename: a.filename, url: `${baseUrl}/api/admin/courriels/fichier?path=${encodeURIComponent(a.storage_path)}` })
@@ -139,9 +143,11 @@ export async function POST(req: NextRequest) {
     // Sans PJ, on utilise le batch pour la performance (lots de 100).
     if (prepared.length > 1 && hasAttachments) {
       // ── Mode individuel parallele avec PJ (batch Resend ne supporte pas les attachments) ──
-      // On envoie par lots de 10 en parallele pour la performance
-      const PARALLEL_SIZE = 10
-      console.log(`Envoi individuel parallele avec PJ: ${prepared.length} destinataires, lots de ${PARALLEL_SIZE}, PJ: ${resendAttachments.map(a => a.filename).join(', ')}`)
+      // Les PJ sont deja en memoire (Buffer), donc Resend n'a rien a telecharger.
+      // On peut augmenter le parallelisme a 20 en toute securite.
+      const PARALLEL_SIZE = 20
+      const startTime = Date.now()
+      console.log(`Envoi individuel parallele avec PJ: ${prepared.length} destinataires, lots de ${PARALLEL_SIZE}, PJ: ${resendAttachments.map(a => `${a.filename} (${a.content.length} octets)`).join(', ')}`)
 
       for (let i = 0; i < prepared.length; i += PARALLEL_SIZE) {
         const chunk = prepared.slice(i, i + PARALLEL_SIZE)
@@ -190,9 +196,12 @@ export async function POST(req: NextRequest) {
 
         resultats.push(...chunkResults)
 
-        // Log progression tous les 50 courriels
+        // Log progression avec temps ecoule
         const sent = Math.min(i + PARALLEL_SIZE, prepared.length)
-        if (sent % 50 < PARALLEL_SIZE) console.log(`Progression: ${sent}/${prepared.length} courriels envoyes`)
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
+        const ok = chunkResults.filter(r => r.ok).length
+        const fail = chunkResults.filter(r => !r.ok).length
+        console.log(`Progression: ${sent}/${prepared.length} (${elapsed}s) — lot: ${ok} ok, ${fail} echecs`)
       }
     } else if (prepared.length > 1) {
       // ── Mode batch sans PJ (performant, lots de 100) ──
@@ -310,6 +319,14 @@ export async function POST(req: NextRequest) {
 
     const envoyes = resultats.filter(r => r.ok).length
     const echoues = resultats.filter(r => !r.ok).length
+
+    // Mettre a jour le total reel de la campagne (utile si timeout partiel ou erreurs)
+    if (campagne_id) {
+      await supabaseAdmin.from('courriel_campagnes').update({
+        total_envoyes: envoyes,
+      }).eq('id', campagne_id)
+      if (echoues > 0) console.log(`Campagne ${campagne_id}: ${envoyes} envoyes, ${echoues} echoues sur ${destinataires.length} destinataires`)
+    }
 
     // ── Envoi unique CC pour les envois de masse ──
     // Le CC recoit une seule copie du courriel (sans variables personnalisées)
