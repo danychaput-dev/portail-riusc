@@ -5,6 +5,9 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { Resend } from 'resend'
 
+// Vercel Pro: max 300 secondes (5 min) pour les envois de masse avec PJ
+export const maxDuration = 300
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -133,51 +136,61 @@ export async function POST(req: NextRequest) {
     // Quand il y a des PJ, on envoie chaque courriel individuellement via POST /emails.
     // Sans PJ, on utilise le batch pour la performance (lots de 100).
     if (prepared.length > 1 && hasAttachments) {
-      // ── Mode individuel avec PJ (batch ne supporte pas les attachments) ──
-      console.log(`Envoi individuel avec PJ: ${prepared.length} destinataires, PJ: ${resendAttachments.map(a => a.filename).join(', ')}`)
-      for (let i = 0; i < prepared.length; i++) {
-        const dest = prepared[i]
+      // ── Mode individuel parallele avec PJ (batch Resend ne supporte pas les attachments) ──
+      // On envoie par lots de 10 en parallele pour la performance
+      const PARALLEL_SIZE = 10
+      console.log(`Envoi individuel parallele avec PJ: ${prepared.length} destinataires, lots de ${PARALLEL_SIZE}, PJ: ${resendAttachments.map(a => a.filename).join(', ')}`)
 
-        // Pré-créer l'enregistrement pour le Reply-To dynamique
-        const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
-          campagne_id, benevole_id: dest.benevole_id,
-          from_email: fromEmail, from_name: fromName, to_email: dest.email,
-          subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
-          pieces_jointes: attachmentNames,
-        }).select('id').single()
-        if (insertErr) console.error('Erreur pre-insert courriel:', insertErr.message, 'pour', dest.email)
-        const courrielId = row?.id
+      for (let i = 0; i < prepared.length; i += PARALLEL_SIZE) {
+        const chunk = prepared.slice(i, i + PARALLEL_SIZE)
 
-        try {
-          const { data: emailData, error: emailError } = await resend.emails.send({
-            from: `${fromName} <${fromEmail}>`,
-            to: [dest.email],
-            subject,
-            html: dest.html,
-            replyTo: courrielId ? `reply+${courrielId}@${inboundDomain}` : replyTo,
-            headers: { 'X-Entity-Ref-ID': dest.benevole_id },
-            tags: [{ name: 'source', value: 'portail-riusc' }],
-            attachments: resendAttachments,
-          })
+        const chunkResults = await Promise.all(
+          chunk.map(async (dest: any) => {
+            // Pre-creer l'enregistrement pour le Reply-To dynamique
+            const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
+              campagne_id, benevole_id: dest.benevole_id,
+              from_email: fromEmail, from_name: fromName, to_email: dest.email,
+              subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
+              pieces_jointes: attachmentNames,
+            }).select('id').single()
+            if (insertErr) console.error('Erreur pre-insert courriel:', insertErr.message, 'pour', dest.email)
+            const courrielId = row?.id
 
-          if (emailError) {
-            resultats.push({ benevole_id: dest.benevole_id, ok: false, error: emailError.message })
-            if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
-          } else {
-            if (courrielId) {
-              await supabaseAdmin.from('courriels').update({
-                resend_id: emailData?.id || null, statut: 'sent',
-              }).eq('id', courrielId)
+            try {
+              const { data: emailData, error: emailError } = await resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: [dest.email],
+                subject,
+                html: dest.html,
+                replyTo: courrielId ? `reply+${courrielId}@${inboundDomain}` : replyTo,
+                headers: { 'X-Entity-Ref-ID': dest.benevole_id },
+                tags: [{ name: 'source', value: 'portail-riusc' }],
+                attachments: resendAttachments,
+              })
+
+              if (emailError) {
+                if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
+                return { benevole_id: dest.benevole_id, ok: false, error: emailError.message }
+              } else {
+                if (courrielId) {
+                  await supabaseAdmin.from('courriels').update({
+                    resend_id: emailData?.id || null, statut: 'sent',
+                  }).eq('id', courrielId)
+                }
+                return { benevole_id: dest.benevole_id, ok: true }
+              }
+            } catch (err: any) {
+              if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
+              return { benevole_id: dest.benevole_id, ok: false, error: err.message }
             }
-            resultats.push({ benevole_id: dest.benevole_id, ok: true })
-          }
-        } catch (err: any) {
-          resultats.push({ benevole_id: dest.benevole_id, ok: false, error: err.message })
-          if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
-        }
+          })
+        )
+
+        resultats.push(...chunkResults)
 
         // Log progression tous les 50 courriels
-        if ((i + 1) % 50 === 0) console.log(`Progression: ${i + 1}/${prepared.length} courriels envoyes`)
+        const sent = Math.min(i + PARALLEL_SIZE, prepared.length)
+        if (sent % 50 < PARALLEL_SIZE) console.log(`Progression: ${sent}/${prepared.length} courriels envoyes`)
       }
     } else if (prepared.length > 1) {
       // ── Mode batch sans PJ (performant, lots de 100) ──
