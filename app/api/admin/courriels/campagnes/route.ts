@@ -27,7 +27,7 @@ export async function GET() {
     }
 
     // Récupérer les campagnes
-    const { data: campagnes, error: campErr } = await supabase
+    const { data: campagnes, error: campErr } = await supabaseAdmin
       .from('courriel_campagnes')
       .select('*')
       .order('created_at', { ascending: false })
@@ -35,23 +35,60 @@ export async function GET() {
 
     if (campErr) return NextResponse.json({ error: campErr.message }, { status: 500 })
 
-    // Pour chaque campagne, calculer les stats depuis les courriels
-    const stats = []
-    for (const c of campagnes || []) {
-      const { data: courriels } = await supabase
+    const campagneIds = (campagnes || []).map(c => c.id)
+    if (campagneIds.length === 0) return NextResponse.json({ campagnes: [] })
+
+    // UNE SEULE requête pour tous les courriels de toutes les campagnes (élimine boucle N+1)
+    const [courrielsResult, reponsesResult] = await Promise.allSettled([
+      supabaseAdmin
         .from('courriels')
-        .select('statut, ouvert_at')
-        .eq('campagne_id', c.id)
+        .select('id, campagne_id, statut, ouvert_at')
+        .in('campagne_id', campagneIds),
+      supabaseAdmin
+        .from('courriel_reponses')
+        .select('id, courriel_id, statut')
+        .not('courriel_id', 'is', null)
+    ])
 
-      const total = courriels?.length || 0
-      const delivered = courriels?.filter(e => ['delivered', 'opened', 'clicked'].includes(e.statut)).length || 0
-      const opened = courriels?.filter(e => ['opened', 'clicked'].includes(e.statut)).length || 0
-      const clicked = courriels?.filter(e => e.statut === 'clicked').length || 0
-      const bounced = courriels?.filter(e => e.statut === 'bounced').length || 0
-      const failed = courriels?.filter(e => e.statut === 'failed').length || 0
+    const allCourriels = courrielsResult.status === 'fulfilled' ? courrielsResult.value?.data || [] : []
+    const allReponses = reponsesResult.status === 'fulfilled' ? reponsesResult.value?.data || [] : []
 
-      stats.push({
+    // Grouper les courriels par campagne_id en mémoire
+    const courrielsByCampagne = new Map<string, typeof allCourriels>()
+    const courrielToCampagne = new Map<string, string>()
+    for (const c of allCourriels) {
+      if (!c.campagne_id) continue
+      if (!courrielsByCampagne.has(c.campagne_id)) courrielsByCampagne.set(c.campagne_id, [])
+      courrielsByCampagne.get(c.campagne_id)!.push(c)
+      courrielToCampagne.set(c.id, c.campagne_id)
+    }
+
+    // Compter les réponses par campagne
+    const replyCounts = new Map<string, { total: number; non_lues: number }>()
+    for (const rep of allReponses) {
+      const campId = courrielToCampagne.get(rep.courriel_id)
+      if (!campId) continue
+      const curr = replyCounts.get(campId) || { total: 0, non_lues: 0 }
+      curr.total++
+      if (rep.statut === 'recu') curr.non_lues++
+      replyCounts.set(campId, curr)
+    }
+
+    // Calculer les stats pour chaque campagne en mémoire
+    const stats = (campagnes || []).map(c => {
+      const courriels = courrielsByCampagne.get(c.id) || []
+      const total = courriels.length
+      const delivered = courriels.filter(e => ['delivered', 'opened', 'clicked'].includes(e.statut)).length
+      const opened = courriels.filter(e => ['opened', 'clicked'].includes(e.statut)).length
+      const clicked = courriels.filter(e => e.statut === 'clicked').length
+      const bounced = courriels.filter(e => e.statut === 'bounced').length
+      const failed = courriels.filter(e => e.statut === 'failed').length
+      const rc = replyCounts.get(c.id)
+
+      return {
         ...c,
+        reponses_total: rc?.total || 0,
+        reponses_non_lues: rc?.non_lues || 0,
         stats: {
           total,
           delivered,
@@ -62,51 +99,8 @@ export async function GET() {
           taux_ouverture: total > 0 ? Math.round((opened / total) * 100) : 0,
           taux_clics: total > 0 ? Math.round((clicked / total) * 100) : 0,
         }
-      })
-    }
-
-    // Compter les réponses non lues par campagne (courriel_reponses → courriels → campagne_id)
-    try {
-      const campagneIds = (campagnes || []).map(c => c.id)
-      if (campagneIds.length > 0) {
-        // Récupérer tous les courriels de campagne avec leur campagne_id
-        const { data: campCourriels } = await supabaseAdmin
-          .from('courriels')
-          .select('id, campagne_id')
-          .in('campagne_id', campagneIds)
-
-        if (campCourriels && campCourriels.length > 0) {
-          const courrielIds = campCourriels.map(c => c.id)
-          const courrielToCampagne = new Map(campCourriels.map(c => [c.id, c.campagne_id]))
-
-          // Récupérer les réponses non lues pour ces courriels
-          const { data: reponses } = await supabaseAdmin
-            .from('courriel_reponses')
-            .select('id, courriel_id, statut')
-            .in('courriel_id', courrielIds)
-
-          // Compter par campagne
-          const replyCounts = new Map<string, { total: number; non_lues: number }>()
-          for (const rep of reponses || []) {
-            const campId = courrielToCampagne.get(rep.courriel_id)
-            if (!campId) continue
-            const curr = replyCounts.get(campId) || { total: 0, non_lues: 0 }
-            curr.total++
-            if (rep.statut === 'recu') curr.non_lues++
-            replyCounts.set(campId, curr)
-          }
-
-          // Injecter dans les stats
-          for (const s of stats) {
-            const rc = replyCounts.get(s.id)
-            s.reponses_total = rc?.total || 0
-            s.reponses_non_lues = rc?.non_lues || 0
-          }
-        }
       }
-    } catch {
-      // Table courriel_reponses pas encore dispo — on continue sans
-    }
+    })
 
     return NextResponse.json({ campagnes: stats })
   } catch (err: any) {

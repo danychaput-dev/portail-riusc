@@ -230,24 +230,21 @@ export default function CampagnesPage() {
     init()
   }, [])
 
-  // ─── Load campagnes ───
+  // ─── Load campagnes + réponses en parallèle ───
   useEffect(() => {
     if (!authorized) return
-    fetch('/api/admin/courriels/campagnes')
-      .then(r => r.json())
-      .then(json => setCampagnes(json.campagnes || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-
-    // Compter les réponses non lues et synchroniser le badge sidebar
-    fetch('/api/admin/courriels/reponses?statut=recu&limit=200')
-      .then(r => r.json())
-      .then(json => {
-        const count = (json.reponses || []).length
+    Promise.allSettled([
+      fetch('/api/admin/courriels/campagnes').then(r => r.json()),
+      fetch('/api/admin/courriels/reponses?statut=recu&limit=200').then(r => r.json())
+    ]).then(([campResult, repResult]) => {
+      if (campResult.status === 'fulfilled') setCampagnes(campResult.value.campagnes || [])
+      if (repResult.status === 'fulfilled') {
+        const count = (repResult.value.reponses || []).length
         setReponsesNonLues(count)
         dispatchBadgeUpdate(count)
-      })
-      .catch(() => {})
+      }
+      setLoading(false)
+    })
   }, [authorized])
 
   // ─── Load individuels quand on switch d'onglet ───
