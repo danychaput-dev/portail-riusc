@@ -64,11 +64,12 @@ interface Props {
   onClose: () => void
   onSent?: (resultats: { envoyes: number; echoues: number }) => void
   initialSubject?: string
+  replyToCourrielId?: string  // ID du courriel parent pour enregistrer la reponse dans le fil
 }
 
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template' | 'cc_manage'
 
-export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject }: Props) {
+export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject, replyToCourrielId }: Props) {
   const supabase = createClient()
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
   const [subject, setSubject] = useState(initialSubject || '')
@@ -191,6 +192,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
         subject,
         body_html: bodyHtml.replace(/\n/g, '<br/>'),
         cc: ccEmails.length > 0 ? ccEmails : undefined,
+        reply_to_courriel_id: replyToCourrielId || undefined,
         attachments: attachments.map(a => a.storagePath
           ? { filename: a.filename, storage_path: a.storagePath, size: a.size }
           : { filename: a.filename, content: a.base64 }

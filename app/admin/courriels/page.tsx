@@ -220,6 +220,7 @@ export default function CampagnesPage() {
   // ─── Reply modal ───
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
+  const [replyToCourrielId, setReplyToCourrielId] = useState<string | null>(null)
 
   // ─── Expand réponse (lecture plein écran) ───
   const [expandedReply, setExpandedReply] = useState<string | null>(null)
@@ -471,11 +472,12 @@ export default function CampagnesPage() {
   }, [threadedIndiv, indivSearch, showOnlyWithReplies, filterSender, indivSort])
 
   // ─── Reply helpers ───
-  const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string) => {
+  const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string, courrielId?: string) => {
     setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`)
     setReplyDest([dest])
+    setReplyToCourrielId(courrielId || null)
   }
-  const handleReplyAll = (destinataires: Destinataire[], subject: string) => {
+  const handleReplyAll = (destinataires: Destinataire[], subject: string, courrielId?: string) => {
     setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`)
     setReplyDest(destinataires.map(d => ({
       benevole_id: d.benevole_id,
@@ -483,6 +485,7 @@ export default function CampagnesPage() {
       prenom: d.prenom || '',
       nom: d.nom || '',
     })))
+    setReplyToCourrielId(courrielId || null)
   }
 
   if (!authorized) return null
@@ -722,7 +725,7 @@ export default function CampagnesPage() {
                                       </div>
                                       <div style={{ textAlign: 'center' }}>
                                         <button
-                                          onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject)}
+                                          onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject, d.id)}
                                           style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                           ↩ Reply
@@ -732,13 +735,14 @@ export default function CampagnesPage() {
                                     {/* Réponses en fil (retrait) */}
                                     {d.reponses && d.reponses.map(rep => {
                                       const isRepNonLu = rep.statut === 'recu'
+                                      const isRepSortant = rep.statut === 'sortant'
                                       return (
-                                      <div key={rep.id} style={{ borderTop: `1px solid ${isRepNonLu ? '#fbbf24' : '#f3f4f6'}`, backgroundColor: isRepNonLu ? '#fffdf5' : '#f8fafc', padding: '10px 12px 10px 36px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                                      <div key={rep.id} style={{ borderTop: `1px solid ${isRepSortant ? '#93c5fd' : isRepNonLu ? '#fbbf24' : '#f3f4f6'}`, backgroundColor: isRepSortant ? '#f0f7ff' : isRepNonLu ? '#fffdf5' : '#f8fafc', padding: '10px 12px 10px 36px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                                         <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '2px' }}>↳</span>
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                            <span style={{ fontSize: '12px', fontWeight: isRepNonLu ? '700' : '600', color: isRepNonLu ? '#92400e' : '#1e40af' }}>
-                                              📨 Réponse de {rep.from_name || rep.from_email}
+                                            <span style={{ fontSize: '12px', fontWeight: isRepNonLu ? '700' : '600', color: isRepSortant ? '#1e3a5f' : isRepNonLu ? '#92400e' : '#1e40af' }}>
+                                              {isRepSortant ? '📤' : '📨'} {isRepSortant ? 'Envoyé par' : 'Réponse de'} {rep.from_name || rep.from_email}
                                             </span>
                                             {reponseStatutBadge(rep.statut)}
                                             <span style={{ fontSize: '11px', color: '#9ca3af' }}>
@@ -769,7 +773,7 @@ export default function CampagnesPage() {
                                           )}
                                           {/* Actions statut + répondre */}
                                           <div style={{ marginTop: '6px', display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                            {['recu', 'lu', 'traite', 'archive'].map(s => {
+                                            {!isRepSortant && ['recu', 'lu', 'traite', 'archive'].map(s => {
                                               const labels: Record<string, string> = { recu: '📨 Reçu', lu: '👁️ Lu', traite: '✅ Traité', archive: '📁 Archivé' }
                                               const isActive = rep.statut === s
                                               const isHighlight = s === 'lu' && rep.statut === 'recu'
@@ -780,12 +784,12 @@ export default function CampagnesPage() {
                                                 >{labels[s]}</button>
                                               )
                                             })}
-                                            <button
-                                              onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, rep.subject || c.subject)}
+                                            {!isRepSortant && <button
+                                              onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, rep.subject || c.subject, d.id)}
                                               style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                             >
                                               ↩ Répondre
-                                            </button>
+                                            </button>}
                                           </div>
                                         </div>
                                       </div>
@@ -958,7 +962,7 @@ export default function CampagnesPage() {
                                 email: c.to_email,
                                 prenom: c.nom_complet.split(' ')[0] || '',
                                 nom: c.nom_complet.split(' ').slice(1).join(' ') || '',
-                              }, c.subject)}
+                              }, c.subject, c.id)}
                               style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'white', backgroundColor: C, border: 'none', borderRadius: '6px', cursor: 'pointer' }}
                             >
                               ↩ Répondre
@@ -1044,7 +1048,7 @@ export default function CampagnesPage() {
                                         email: c.to_email,
                                         prenom: c.nom_complet.split(' ')[0] || '',
                                         nom: c.nom_complet.split(' ').slice(1).join(' ') || '',
-                                      }, rep.subject || c.subject)}
+                                      }, rep.subject || c.subject, c.id)}
                                       style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                     >
                                       ↩ Répondre
@@ -1199,9 +1203,11 @@ export default function CampagnesPage() {
           <ModalComposeCourriel
             destinataires={replyDest}
             initialSubject={replySubject}
-            onClose={() => setReplyDest(null)}
+            replyToCourrielId={replyToCourrielId || undefined}
+            onClose={() => { setReplyDest(null); setReplyToCourrielId(null) }}
             onSent={() => {
               setReplyDest(null)
+              setReplyToCourrielId(null)
               // Rafraîchir les données
               if (activeTab === 'individuels') {
                 const params = new URLSearchParams()

@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const { destinataires, subject, body_html, campagne_nom, attachments, cc } = await req.json()
+    const { destinataires, subject, body_html, campagne_nom, attachments, cc, reply_to_courriel_id } = await req.json()
     const ccList: string[] = Array.isArray(cc) ? cc.filter((e: any) => typeof e === 'string' && e.includes('@')) : []
 
     if (!destinataires || !Array.isArray(destinataires) || destinataires.length === 0) {
@@ -324,6 +324,29 @@ export async function POST(req: NextRequest) {
         console.log('✅ CC envoyé une seule fois à:', ccList.join(', '))
       } catch (err: any) {
         console.error('❌ Erreur envoi CC:', err.message)
+      }
+    }
+
+    // ── Enregistrer la reponse sortante dans courriel_reponses si c'est un reply ──
+    // Permet d'afficher la reponse admin dans le fil de discussion (campagne et individuel)
+    if (reply_to_courriel_id && envoyes > 0) {
+      try {
+        const dest = prepared[0]
+        const finalHtml = dest.html
+        await supabaseAdmin.from('courriel_reponses').insert({
+          courriel_id: reply_to_courriel_id,
+          benevole_id: dest.benevole_id,
+          from_email: fromEmail,
+          from_name: fromName,
+          to_email: dest.email,
+          subject,
+          body_html: finalHtml,
+          body_text: finalHtml.replace(/<[^>]*>/g, ''),
+          statut: 'sortant',
+        })
+        console.log('Reponse sortante enregistree dans courriel_reponses pour courriel_id:', reply_to_courriel_id)
+      } catch (err: any) {
+        console.error('Erreur insertion reponse sortante:', err.message)
       }
     }
 
