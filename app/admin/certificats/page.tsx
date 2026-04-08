@@ -324,40 +324,86 @@ export default function AdminCertificatsPage() {
       if (!reserviste || reserviste.role !== 'admin') { router.push('/'); return }
       setAdminBenevoleId(reserviste.benevole_id)
 
-      // Étape 1 — filtrer par monday_item_id déjà traité
+      // ═══ PHASE 1 : 3 requêtes indépendantes en parallèle ═══
       const mondayIds = MONDAY_RAW.map(i => i.monday_item_id)
-      const { data: existingMonday } = await supabase
-        .from('formations_benevoles')
-        .select('monday_item_id')
-        .in('monday_item_id', mondayIds)
-      const alreadyDone = new Set((existingMonday || []).map(r => r.monday_item_id))
+      const [mondayResult, portailResult, aCompleterResult] = await Promise.allSettled([
+        // Monday: quels items sont déjà traités?
+        supabase.from('formations_benevoles').select('monday_item_id').in('monday_item_id', mondayIds),
+        // Portail: certificats en attente d'approbation (avec fichier)
+        supabase.from('formations_benevoles')
+          .select('id, benevole_id, nom_complet, nom_formation, certificat_url')
+          .eq('resultat', 'En attente')
+          .not('certificat_url', 'is', null)
+          .is('date_reussite', null)
+          .is('monday_item_id', null)
+          .order('nom_complet'),
+        // À compléter: certificats déclarés sans fichier
+        supabase.from('formations_benevoles')
+          .select('id, benevole_id, nom_complet, nom_formation')
+          .eq('resultat', 'En attente')
+          .is('certificat_url', null)
+          .is('date_reussite', null)
+          .is('monday_item_id', null)
+          .order('nom_complet'),
+      ])
+
+      const existingMonday = mondayResult.status === 'fulfilled' ? mondayResult.value?.data || [] : []
+      const portailData = portailResult.status === 'fulfilled' ? portailResult.value?.data || [] : []
+      const aCompleterData = aCompleterResult.status === 'fulfilled' ? aCompleterResult.value?.data || [] : []
+
+      // ═══ PHASE 2 : Monday — résoudre emails + formations existantes en parallèle ═══
+      const alreadyDone = new Set(existingMonday.map((r: any) => r.monday_item_id))
       const remaining = MONDAY_RAW.filter(item => !alreadyDone.has(item.monday_item_id))
-
-      // Étape 2 — résoudre les benevole_ids par email pour les items restants
       const emails = remaining.map(i => i.email.toLowerCase())
-      const { data: reservistesFound } = await supabase
-        .from('reservistes')
-        .select('benevole_id, email')
-        .in('email', emails)
-      const emailToBenevoleId = new Map((reservistesFound || []).map(r => [r.email.toLowerCase(), r.benevole_id]))
 
-      // Étape 3 — vérifier si le réserviste a déjà une formation identique dans formations_benevoles
-      const benevoleIds = [...new Set([...emailToBenevoleId.values()])]
-      const { data: existingFormations } = await supabase
-        .from('formations_benevoles')
-        .select('benevole_id, nom_formation')
-        .in('benevole_id', benevoleIds)
-      // Map benevole_id → set de noms de formation normalisés
+      // Collecter tous les benevole_ids nécessaires pour portail + à compléter
+      const allPortailBIds = [...new Set(portailData.map((d: any) => d.benevole_id))]
+      const allACompleterBIds = [...new Set(aCompleterData.map((c: any) => c.benevole_id))]
+      const allBIdsNeeded = [...new Set([...allPortailBIds, ...allACompleterBIds])]
+
+      const [emailsResult, reservistesInfoResult] = await Promise.allSettled([
+        // Résoudre emails Monday → benevole_id
+        emails.length > 0
+          ? supabase.from('reservistes').select('benevole_id, email').in('email', emails)
+          : Promise.resolve({ data: [] }),
+        // Noms + emails pour portail ET à compléter (une seule requête bulk)
+        allBIdsNeeded.length > 0
+          ? supabase.from('reservistes').select('benevole_id, email, prenom, nom').in('benevole_id', allBIdsNeeded)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      const reservistesFound = emailsResult.status === 'fulfilled' ? (emailsResult.value as any)?.data || [] : []
+      const emailToBenevoleId = new Map(reservistesFound.map((r: any) => [r.email.toLowerCase(), r.benevole_id]))
+
+      // Map globale benevole_id → info (réutilisée pour portail + à compléter)
+      const reservistesInfo = reservistesInfoResult.status === 'fulfilled' ? (reservistesInfoResult.value as any)?.data || [] : []
+      const infoMap = new Map<string, { email: string; prenom: string; nom: string }>()
+      for (const r of reservistesInfo) infoMap.set(r.benevole_id, { email: r.email || '', prenom: r.prenom || '', nom: r.nom || '' })
+
+      // ═══ PHASE 3 : Formations existantes pour déduplication (Monday + Portail) en parallèle ═══
+      const mondayBenevoleIds = [...new Set([...emailToBenevoleId.values()])]
+      const allDeduplicationBIds = [...new Set([...mondayBenevoleIds, ...allPortailBIds])]
+
+      const { data: allExistingFormations } = allDeduplicationBIds.length > 0
+        ? await supabase.from('formations_benevoles').select('benevole_id, nom_formation, resultat').in('benevole_id', allDeduplicationBIds)
+        : { data: [] }
+
+      // Map benevole_id → set de toutes les formations
       const formationsByBenevole = new Map<string, Set<string>>()
-      for (const f of existingFormations || []) {
+      const approuveesByBenevole = new Map<string, Set<string>>()
+      for (const f of allExistingFormations || []) {
         if (!formationsByBenevole.has(f.benevole_id)) formationsByBenevole.set(f.benevole_id, new Set())
         formationsByBenevole.get(f.benevole_id)!.add(f.nom_formation.toLowerCase().trim())
+        if (f.resultat === 'Réussi') {
+          if (!approuveesByBenevole.has(f.benevole_id)) approuveesByBenevole.set(f.benevole_id, new Set())
+          approuveesByBenevole.get(f.benevole_id)!.add(f.nom_formation.toLowerCase().trim())
+        }
       }
 
-      // Étape 4 — filtrer les items où le réserviste a déjà la même formation
+      // ═══ Monday : filtrer et afficher ═══
       const finalItems = remaining.filter(item => {
         const benevoleId = emailToBenevoleId.get(item.email.toLowerCase())
-        if (!benevoleId) return true // pas trouvé → garder, on verra l'erreur à l'approbation
+        if (!benevoleId) return true
         const detectedFormation = detectFormation(item.files)
         const existing = formationsByBenevole.get(benevoleId)
         if (!existing) return true
@@ -368,67 +414,54 @@ export default function AdminCertificatsPage() {
         finalItems.map(item => ({ ...item, mState: { status: 'idle', formation: detectFormation(item.files), dateObtention: '', dateExpiration: '' } }))
       )
 
-      const { data } = await supabase
-        .from('formations_benevoles')
-        .select('id, benevole_id, nom_complet, nom_formation, certificat_url')
-        .eq('resultat', 'En attente')
-        .not('certificat_url', 'is', null)
-        .is('date_reussite', null)
-        .is('monday_item_id', null)
-        .order('nom_complet')
-      if (data) {
-        // Vérifier les doublons — exclure si le réserviste a déjà la même formation approuvée
-        const portailBenevoleIds = [...new Set(data.map(d => d.benevole_id))]
-        const { data: approuveesPortail } = await supabase
-          .from('formations_benevoles')
-          .select('benevole_id, nom_formation')
-          .in('benevole_id', portailBenevoleIds)
-          .eq('resultat', 'Réussi')
-        const approuveesByBenevole = new Map<string, Set<string>>()
-        for (const f of approuveesPortail || []) {
-          if (!approuveesByBenevole.has(f.benevole_id)) approuveesByBenevole.set(f.benevole_id, new Set())
-          approuveesByBenevole.get(f.benevole_id)!.add(f.nom_formation.toLowerCase().trim())
-        }
-        const dataFiltered = data.filter(item => {
+      // ═══ Portail : enrichir avec noms + signed URLs (batch, pas N+1) ═══
+      if (portailData.length > 0) {
+        const dataFiltered = portailData.filter((item: any) => {
           const existing = approuveesByBenevole.get(item.benevole_id)
           if (!existing) return true
           return ![...existing].some(f => formationsMatch(f, item.nom_formation))
         })
 
-        const enriched = await Promise.all(dataFiltered.map(async (item) => {
-          const { data: res } = await supabase.from('reservistes').select('email, prenom, nom').eq('benevole_id', item.benevole_id).single()
-          let signedUrl = ''
-          if (item.certificat_url?.startsWith('storage:')) {
-            const path = item.certificat_url.replace('storage:', '')
-            const { data: signed } = await supabase.storage.from('certificats').createSignedUrl(path, 3600)
-            signedUrl = signed?.signedUrl || ''
+        // Générer les signed URLs en batch (max 5 en parallèle pour éviter rate limit)
+        const storagePaths = dataFiltered
+          .filter((item: any) => item.certificat_url?.startsWith('storage:'))
+          .map((item: any) => ({ id: item.id, path: item.certificat_url.replace('storage:', '') }))
+
+        const signedUrlMap = new Map<string, string>()
+        // Batch de 10 signed URLs à la fois
+        for (let i = 0; i < storagePaths.length; i += 10) {
+          const batch = storagePaths.slice(i, i + 10)
+          const results = await Promise.allSettled(
+            batch.map(({ path }) => supabase.storage.from('certificats').createSignedUrl(path, 3600))
+          )
+          results.forEach((res, idx) => {
+            if (res.status === 'fulfilled' && res.value?.data?.signedUrl) {
+              signedUrlMap.set(batch[idx].id, res.value.data.signedUrl)
+            }
+          })
+        }
+
+        const enriched: CertificatEnAttente[] = dataFiltered.map((item: any) => {
+          const info = infoMap.get(item.benevole_id)
+          const nomComplet = item.nom_complet || (info ? `${info.prenom} ${info.nom}`.trim() : '') || 'Inconnu'
+          return {
+            ...item,
+            nom_complet: nomComplet,
+            email: info?.email || '',
+            signedUrl: signedUrlMap.get(item.id) || '',
+            dateInput: '',
+            dateExpiration: '',
+            statut: 'idle' as const,
           }
-          const nomComplet = item.nom_complet || `${res?.prenom || ''} ${res?.nom || ''}`.trim() || 'Inconnu'
-          return { ...item, nom_complet: nomComplet, email: res?.email || '', signedUrl, dateInput: '', dateExpiration: '', statut: 'idle' as const }
-        }))
+        })
         setCertificats(enriched)
       }
-      // Charger les certificats "à compléter" (déclarés sans fichier, certificat requis)
-      const { data: aCompleter } = await supabase
-        .from('formations_benevoles')
-        .select('id, benevole_id, nom_complet, nom_formation')
-        .eq('resultat', 'En attente')
-        .is('certificat_url', null)
-        .is('date_reussite', null)
-        .is('monday_item_id', null)
-        .order('nom_complet')
-      if (aCompleter) {
-        // Enrichir avec email + nom (nom_complet peut être null dans formations_benevoles)
-        const bIds = [...new Set(aCompleter.map(c => c.benevole_id))]
-        const infoMap = new Map<string, { email: string; nom: string }>()
-        for (let i = 0; i < bIds.length; i += 500) {
-          const batch = bIds.slice(i, i + 500)
-          const { data: res } = await supabase.from('reservistes').select('benevole_id, email, prenom, nom').in('benevole_id', batch)
-          for (const r of (res || [])) infoMap.set(r.benevole_id, { email: r.email || '', nom: `${r.prenom || ''} ${r.nom || ''}`.trim() })
-        }
-        setCertifsACompleter(aCompleter.map(c => ({
+
+      // ═══ À compléter : enrichir avec noms (déjà chargés dans infoMap) ═══
+      if (aCompleterData.length > 0) {
+        setCertifsACompleter(aCompleterData.map((c: any) => ({
           ...c,
-          nom_complet: c.nom_complet || infoMap.get(c.benevole_id)?.nom || 'Inconnu',
+          nom_complet: c.nom_complet || (infoMap.get(c.benevole_id) ? `${infoMap.get(c.benevole_id)!.prenom} ${infoMap.get(c.benevole_id)!.nom}`.trim() : '') || 'Inconnu',
           email: infoMap.get(c.benevole_id)?.email || '',
         })))
       }
