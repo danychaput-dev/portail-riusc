@@ -373,7 +373,7 @@ export default function AdminCertificatsPage() {
       ])
 
       const reservistesFound = emailsResult.status === 'fulfilled' ? (emailsResult.value as any)?.data || [] : []
-      const emailToBenevoleId = new Map(reservistesFound.map((r: any) => [r.email.toLowerCase(), r.benevole_id]))
+      const emailToBenevoleId = new Map<string, string>(reservistesFound.map((r: any) => [r.email.toLowerCase(), r.benevole_id]))
 
       // Map globale benevole_id → info (réutilisée pour portail + à compléter)
       const reservistesInfo = reservistesInfoResult.status === 'fulfilled' ? (reservistesInfoResult.value as any)?.data || [] : []
