@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       let html = linkifyUrls(body_html)
         .replace(/\{\{\s*prenom\s*\}\}/gi, dest.prenom || '')
         .replace(/\{\{\s*nom\s*\}\}/gi, dest.nom || '')
-      if (signature) html += `<br/><br/>--<br/>${signature}`
+      if (signature) html += `<br/><br/>${signature}`
       return { ...dest, html }
     })
 
