@@ -114,7 +114,7 @@ function FormationContent() {
 
           const bid = d.benevole_id;
           const [certResult, formResult, docsResult, lmsResult, campInscResult] = await Promise.allSettled([
-            supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
+            supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%"),
             supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
             supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
             supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle(),
@@ -181,14 +181,14 @@ function FormationContent() {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
             const [certResult, formResult, docsResult, lmsResult, campInscResult] = await Promise.allSettled([
-              supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
+              supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%"),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
               supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle(),
               supabase.from('inscriptions_camps').select('session_id, camp_nom, camp_dates, camp_lieu').eq('benevole_id', bid).neq('presence', 'annule').order('created_at', { ascending: false }).limit(1).maybeSingle()
             ]);
 
-            // Certificats (lecture directe Supabase — Monday retiré)
+            // Certificats S'initier (lecture directe Supabase — Monday retiré)
             if (certResult.status === 'fulfilled' && certResult.value?.data) {
               const certs = certResult.value.data;
               const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
@@ -320,7 +320,7 @@ function FormationContent() {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
         const [certResult, formResult, docsResult, lmsResult, campInscResult] = await Promise.allSettled([
-          supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
+          supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%"),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
           supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle(),
@@ -615,12 +615,13 @@ function FormationContent() {
           setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
           setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: signedUrl }] } : f));
         } else {
-          // Recharger la liste certificats depuis Supabase
+          // Recharger la liste certificats S'initier depuis Supabase
           const { data: certs } = await supabase
             .from('formations_benevoles')
             .select('id, nom_formation, certificat_url, date_reussite')
             .eq('benevole_id', reserviste.benevole_id)
-            .not('certificat_url', 'is', null);
+            .not('certificat_url', 'is', null)
+            .ilike('nom_formation', "%s'initier%");
           if (certs) {
             const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
               const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;

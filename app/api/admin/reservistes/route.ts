@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
         const batch = benevoleIdsArr.slice(i, i + 500)
         const { data: formations } = await supabaseAdmin
           .from('formations_benevoles')
-          .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
+          .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url, certificat_requis')
           .in('benevole_id', batch)
         for (const f of (formations || [])) {
           if (!formationsMapIds[f.benevole_id]) formationsMapIds[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
@@ -230,7 +230,7 @@ export async function GET(req: NextRequest) {
       const batch = benevoleIds.slice(i, i + 500)
       const { data: formations } = await supabaseAdmin
         .from('formations_benevoles')
-        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url')
+        .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url, certificat_requis')
         .in('benevole_id', batch)
       for (const f of (formations || [])) {
         if (!map[f.benevole_id]) map[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
@@ -238,6 +238,8 @@ export async function GET(req: NextRequest) {
         if (f.resultat === 'Réussi') {
           if (f.initiation_sc_completee === true || cat.includes('initier')) map[f.benevole_id].initiation_sc = true
           if (cat.includes('camp de qualification')) map[f.benevole_id].camp = true
+          // Formation réussie avec certificat requis mais fichier manquant
+          if (f.certificat_requis && !f.certificat_url) map[f.benevole_id].certifs_manquants++
         } else if (f.resultat === 'En attente' || f.resultat === 'Soumis') {
           if (f.certificat_url) map[f.benevole_id].certifs_en_attente++
           else map[f.benevole_id].certifs_manquants++

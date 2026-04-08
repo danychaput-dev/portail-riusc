@@ -169,12 +169,13 @@ export default function HomePage() {
   const loadCertificats = async (benevoleId: string) => {
     setLoadingCertificats(true)
     try {
-      // Lecture depuis formations_benevoles + Storage (remplace webhook n8n/Monday)
+      // Lecture certificats S'initier depuis formations_benevoles + Storage
       const { data: formations } = await supabase
         .from('formations_benevoles')
         .select('id, nom_formation, certificat_url, date_reussite')
         .eq('benevole_id', benevoleId)
         .not('certificat_url', 'is', null)
+        .ilike('nom_formation', "%s'initier%")
 
       if (formations && formations.length > 0) {
         const filesWithUrls = await Promise.all(
