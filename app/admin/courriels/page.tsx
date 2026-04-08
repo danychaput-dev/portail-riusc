@@ -19,6 +19,8 @@ interface CampagneStats {
   reponses_non_lues?: number
   stats: {
     total: number
+    envoyes: number
+    livres: number
     delivered: number
     opened: number
     clicked: number
