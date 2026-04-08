@@ -31,19 +31,90 @@ export async function POST(req: NextRequest) {
       .single()
 
     const body = await req.json()
-    const { benevole_id, file_name, file_base64, nom_complet, formation_id } = body
-
-    if (!benevole_id || !file_name || !file_base64) {
-      return NextResponse.json(
-        { success: false, error: 'benevole_id, file_name et file_base64 sont requis' },
-        { status: 400 }
-      )
-    }
+    const { benevole_id, file_name, file_base64, nom_complet, formation_id, storage_path } = body
 
     // Sécurité : le réserviste ne peut uploader que pour lui-même (sauf admin)
     const isAdmin = currentRes && ['admin', 'coordonnateur'].includes(currentRes.role)
     if (!isAdmin && currentRes?.benevole_id !== benevole_id) {
       return NextResponse.json({ success: false, error: 'Accès refusé' }, { status: 403 })
+    }
+
+    // --- Mode 1 : fichier déjà uploadé en Storage, juste mettre à jour la DB ---
+    if (storage_path) {
+      const certPath = 'storage:' + storage_path
+
+      if (formation_id) {
+        // Update la formation existante
+        const { error: updateErr } = await supabaseAdmin
+          .from('formations_benevoles')
+          .update({
+            certificat_url: certPath,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', formation_id)
+          .eq('benevole_id', benevole_id)
+
+        if (updateErr) {
+          console.error('Erreur update formation:', updateErr)
+          return NextResponse.json(
+            { success: false, error: 'Erreur lors de la mise à jour du certificat' },
+            { status: 500 }
+          )
+        }
+      } else {
+        // Flow "S'initier" (legacy)
+        let nomComplet = nom_complet
+        if (!nomComplet) {
+          const { data: res } = await supabaseAdmin
+            .from('reservistes')
+            .select('prenom, nom')
+            .eq('benevole_id', benevole_id)
+            .maybeSingle()
+          if (res) nomComplet = `${res.prenom} ${res.nom}`.trim()
+        }
+
+        const today = new Date().toISOString().split('T')[0]
+
+        const { data: existing } = await supabaseAdmin
+          .from('formations_benevoles')
+          .select('id')
+          .eq('benevole_id', benevole_id)
+          .eq('nom_formation', "S'initier à la sécurité civile")
+          .maybeSingle()
+
+        if (existing) {
+          await supabaseAdmin
+            .from('formations_benevoles')
+            .update({
+              certificat_url: certPath,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id)
+        } else {
+          await supabaseAdmin
+            .from('formations_benevoles')
+            .insert({
+              benevole_id,
+              nom_complet: nomComplet || '',
+              nom_formation: "S'initier à la sécurité civile",
+              date_reussite: today,
+              resultat: 'Réussi',
+              role: 'Participant',
+              source: 'portail',
+              certificat_url: certPath,
+            })
+        }
+      }
+
+      return NextResponse.json({ success: true, certificat_url: certPath, storage_path })
+    }
+
+    // --- Mode 2 : legacy base64 (rétrocompatibilité) ---
+    if (!benevole_id || !file_name || !file_base64) {
+      return NextResponse.json(
+        { success: false, error: 'benevole_id, file_name et file_base64 sont requis' },
+        { status: 400 }
+      )
     }
 
     // Détecter le type MIME
@@ -75,7 +146,6 @@ export async function POST(req: NextRequest) {
 
     const certPath = 'storage:' + storagePath
 
-    // Si formation_id fourni : update la formation existante
     if (formation_id) {
       const { error: updateErr } = await supabaseAdmin
         .from('formations_benevoles')
@@ -97,7 +167,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, certificat_url: certPath, storage_path: storagePath })
     }
 
-    // Sinon : flow "S'initier" (legacy)
+    // Flow "S'initier" (legacy base64)
     let nomComplet = nom_complet
     if (!nomComplet) {
       const { data: res } = await supabaseAdmin

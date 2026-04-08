@@ -587,53 +587,55 @@ function FormationContent() {
       return;
     }
     try {
-      // Upload via API route (service_role) pour contourner le RLS sur formations_benevoles
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve((reader.result as string).split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const uploadRes = await fetch('/api/certificat/upload', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          file_name: file.name,
-          file_base64: base64,
-          nom_complet: `${reserviste.prenom} ${reserviste.nom}`,
-          formation_id: uploadingForFormationId || undefined,
-        })
-      });
-      const uploadJson = await uploadRes.json();
-      if (!uploadJson.success) {
-        setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + (uploadJson.error || 'Erreur inconnue') });
+      // 1. Upload direct vers Supabase Storage (évite la limite 4.5MB de Vercel sur les API routes)
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+      const uuid = crypto.randomUUID();
+      const storagePath = `${reserviste.benevole_id}/${uuid}.${ext}`;
+      const { error: storageError } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: false });
+      if (storageError) {
+        setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi du fichier : " + storageError.message });
       } else {
-        const storagePath = uploadJson.storage_path;
-        if (uploadingForFormationId) {
-          const { data: signedData } = await supabase.storage.from('certificats').createSignedUrl(storagePath, 3600);
-          const signedUrl = signedData?.signedUrl || '#';
-          setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
-          setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: signedUrl }] } : f));
+        // 2. Appeler l'API route (service_role) pour mettre à jour la DB (contourne le RLS)
+        const certPath = 'storage:' + storagePath;
+        const uploadRes = await fetch('/api/certificat/upload', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            benevole_id: reserviste.benevole_id,
+            nom_complet: `${reserviste.prenom} ${reserviste.nom}`,
+            formation_id: uploadingForFormationId || undefined,
+            storage_path: storagePath,
+          })
+        });
+        const uploadJson = await uploadRes.json();
+        if (!uploadJson.success) {
+          setCertificatMessage({ type: 'error', text: "Erreur lors de la sauvegarde : " + (uploadJson.error || 'Erreur inconnue') });
         } else {
-          // Recharger la liste certificats S'initier depuis Supabase
-          const { data: certs } = await supabase
-            .from('formations_benevoles')
-            .select('id, nom_formation, certificat_url, date_reussite')
-            .eq('benevole_id', reserviste.benevole_id)
-            .not('certificat_url', 'is', null)
-            .ilike('nom_formation', "%s'initier%");
-          if (certs) {
-            const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
-              const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
-              const { data: sd } = await supabase.storage.from('certificats').createSignedUrl(url, 3600);
-              return { id: f.id, name: f.nom_formation || 'Certificat', url: sd?.signedUrl };
-            }));
-            setCertificats(filesWithUrls.filter((f: any) => f.url));
+          if (uploadingForFormationId) {
+            const { data: signedData } = await supabase.storage.from('certificats').createSignedUrl(storagePath, 3600);
+            const signedUrl = signedData?.signedUrl || '#';
+            setUploadedFormationIds(prev => new Set(prev).add(uploadingForFormationId));
+            setFormations(prev => prev.map(f => f.id === uploadingForFormationId ? { ...f, has_fichier: true, fichiers: [{ name: file.name, url: signedUrl }] } : f));
+          } else {
+            // Recharger la liste certificats S'initier depuis Supabase
+            const { data: certs } = await supabase
+              .from('formations_benevoles')
+              .select('id, nom_formation, certificat_url, date_reussite')
+              .eq('benevole_id', reserviste.benevole_id)
+              .not('certificat_url', 'is', null)
+              .ilike('nom_formation', "%s'initier%");
+            if (certs) {
+              const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
+                const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
+                const { data: sd } = await supabase.storage.from('certificats').createSignedUrl(url, 3600);
+                return { id: f.id, name: f.nom_formation || 'Certificat', url: sd?.signedUrl };
+              }));
+              setCertificats(filesWithUrls.filter((f: any) => f.url));
+            }
           }
+          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
         }
-        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' });
       }
-    } catch (e) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" }); }
+    } catch (e: any) { setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + (e.message || 'Erreur inconnue') }); }
     setUploadingCertificat(false);
     setUploadingForFormationId(null);
     setUploadingForFormationNom(null);

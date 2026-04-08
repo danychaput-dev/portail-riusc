@@ -241,40 +241,39 @@ export default function HomePage() {
     setCertificatMessage(null)
 
     try {
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result as string
-          const base64Data = result.split(',')[1]
-          resolve(base64Data)
-        }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      // 1. Upload direct vers Supabase Storage (évite la limite 4.5MB de Vercel)
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'pdf'
+      const uuid = crypto.randomUUID()
+      const storagePath = `${reserviste.benevole_id}/${uuid}.${ext}`
+      const { error: storageError } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: false })
 
-      const response = await fetch('/api/certificat/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          benevole_id: reserviste.benevole_id,
-          file_name: file.name,
-          file_base64: base64,
-          nom_complet: `${reserviste.nom} ${reserviste.prenom}`
-        })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
-        await loadCertificats(reserviste.benevole_id)
-        setHasSinitier(true)
+      if (storageError) {
+        setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi du fichier : " + storageError.message })
       } else {
-        setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de l'envoi" })
+        // 2. Appeler l'API route (service_role) pour mettre à jour la DB (contourne le RLS)
+        const response = await fetch('/api/certificat/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            benevole_id: reserviste.benevole_id,
+            nom_complet: `${reserviste.nom} ${reserviste.prenom}`,
+            storage_path: storagePath,
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setCertificatMessage({ type: 'success', text: 'Certificat ajouté avec succès !' })
+          await loadCertificats(reserviste.benevole_id)
+          setHasSinitier(true)
+        } else {
+          setCertificatMessage({ type: 'error', text: data.error || "Erreur lors de la sauvegarde" })
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur upload certificat:', error)
-      setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi" })
+      setCertificatMessage({ type: 'error', text: "Erreur lors de l'envoi : " + (error.message || 'Erreur inconnue') })
     }
 
     setUploadingCertificat(false)
