@@ -626,8 +626,8 @@ export default function CampagnesPage() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f3f4f6', color: '#374151' }}>{s.total - (s.failed || 0)} env.</span>
-                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a' }}>{s.delivered + s.opened + s.clicked} liv.</span>
+                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f3f4f6', color: '#374151' }}>{s.envoyes ?? (s.total - (s.failed || 0))} env.</span>
+                          <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a' }}>{s.livres ?? (s.delivered + s.opened + s.clicked)} liv.</span>
                           <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#eff6ff', color: '#2563eb' }}>{s.taux_ouverture}% ouv.</span>
                           {s.bounced > 0 && <span style={{ fontSize: '11px', fontWeight: '600', padding: '2px 8px', borderRadius: '8px', backgroundColor: '#fef2f2', color: '#dc2626' }}>{s.bounced} reb.</span>}
                           {(c.reponses_total || 0) > 0 && (

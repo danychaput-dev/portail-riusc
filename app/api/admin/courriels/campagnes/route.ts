@@ -55,12 +55,27 @@ export async function GET() {
     for (const row of repRows) repMap.set(row.campagne_id, row)
 
     // Assembler les résultats
+    // Les statuts Resend sont mutuellement exclusifs (priority-based):
+    //   queued → sent → delivered → opened → clicked   (et bounced/complained/failed)
+    // "envoyes" = tout ce qui a quitté Resend (sent + delivered + opened + clicked + bounced + complained)
+    // "livres"  = tout ce qui est arrivé chez le destinataire (delivered + opened + clicked)
+    // Ceci garantit que livres <= envoyes, toujours.
     const result = campagnes.map((c: any) => {
       const s = statsMap.get(c.id)
       const r = repMap.get(c.id)
       const total = s?.total || 0
+      const sent = s?.sent || 0
+      const delivered = s?.delivered || 0
       const opened = s?.opened || 0
       const clicked = s?.clicked || 0
+      const bounced = s?.bounced || 0
+      const complained = s?.complained || 0
+      const failed = s?.failed || 0
+
+      // envoyes = emails effectivement partis de Resend (exclut queued et failed)
+      const envoyes = sent + delivered + opened + clicked + bounced + complained
+      // livres = emails arrives a destination (exclut sent en transit et bounced)
+      const livres = delivered + opened + clicked
 
       return {
         ...c,
@@ -68,13 +83,15 @@ export async function GET() {
         reponses_non_lues: r?.non_lues || 0,
         stats: {
           total,
-          delivered: s?.delivered || 0,
+          envoyes,
+          livres,
+          delivered,
           opened,
           clicked,
-          bounced: s?.bounced || 0,
-          failed: s?.failed || 0,
-          taux_ouverture: total > 0 ? Math.round((opened / total) * 100) : 0,
-          taux_clics: total > 0 ? Math.round((clicked / total) * 100) : 0,
+          bounced,
+          failed,
+          taux_ouverture: envoyes > 0 ? Math.round((opened / envoyes) * 100) : 0,
+          taux_clics: envoyes > 0 ? Math.round((clicked / envoyes) * 100) : 0,
         }
       }
     })
