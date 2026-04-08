@@ -123,8 +123,8 @@ export async function GET(req: NextRequest) {
     const orphData = orphelinesResult.status === 'fulfilled' ? (orphelinesResult.value as any)?.data || [] : []
     if (orphData.length > 0) {
       // Vérifier si on a déjà les noms, sinon fetch les manquants
-      const orphBIds = [...new Set(orphData.map((r: any) => r.benevole_id).filter(Boolean))]
-      const missingBIds = orphBIds.filter(id => !nameMap.has(id))
+      const orphBIds: string[] = [...new Set(orphData.map((r: any) => r.benevole_id).filter(Boolean) as string[])]
+      const missingBIds = orphBIds.filter((id: string) => !nameMap.has(id))
       if (missingBIds.length > 0) {
         const { data: orphReservistes } = await supabaseAdmin
           .from('reservistes')
