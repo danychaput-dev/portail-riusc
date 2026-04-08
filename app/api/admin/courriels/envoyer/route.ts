@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
 
     // ── Batch API pour envois de masse (lots de 100) ──
     // Note: en batch, on pré-crée les IDs pour le Reply-To dynamique
+    // Note: CC est envoyé une seule fois après les batchs (pas sur chaque courriel individuel)
     if (prepared.length > 1) {
       const BATCH_SIZE = 100
       for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
@@ -129,7 +130,6 @@ export async function POST(req: NextRequest) {
             preInserts.map((dest: any) => ({
               from: `${fromName} <${fromEmail}>`,
               to: [dest.email],
-              ...(ccList.length > 0 ? { cc: ccList } : {}),
               subject,
               html: dest.html,
               replyTo: dest.courriel_id ? `reply+${dest.courriel_id}@${inboundDomain}` : replyTo,
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
         const { data: emailData, error: emailError } = await resend.emails.send({
           from: `${fromName} <${fromEmail}>`,
           to: [dest.email],
-          ...(ccList.length > 0 ? { cc: ccList } : {}),
+          ...(ccList.length > 0 && prepared.length === 1 ? { cc: ccList } : {}),
           subject,
           html: dest.html,
           replyTo: dynamicReplyTo,
@@ -224,6 +224,30 @@ export async function POST(req: NextRequest) {
 
     const envoyes = resultats.filter(r => r.ok).length
     const echoues = resultats.filter(r => !r.ok).length
+
+    // ── Envoi unique CC pour les envois de masse ──
+    // Le CC recoit une seule copie du courriel (sans variables personnalisées)
+    if (ccList.length > 0 && prepared.length > 1 && envoyes > 0) {
+      try {
+        let ccHtml = linkifyUrls(body_html)
+          .replace(/\{\{\s*prenom\s*\}\}/gi, '')
+          .replace(/\{\{\s*nom\s*\}\}/gi, '')
+        if (signature) ccHtml += `<br/><br/>${signature}`
+
+        await resend.emails.send({
+          from: `${fromName} <${fromEmail}>`,
+          to: ccList,
+          subject,
+          html: ccHtml,
+          replyTo,
+          tags: [{ name: 'source', value: 'portail-riusc' }, { name: 'type', value: 'cc-copie' }],
+          ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
+        })
+        console.log('✅ CC envoyé une seule fois à:', ccList.join(', '))
+      } catch (err: any) {
+        console.error('❌ Erreur envoi CC:', err.message)
+      }
+    }
 
     return NextResponse.json({ ok: true, envoyes, echoues, resultats, campagne_id })
   } catch (err: any) {
