@@ -113,11 +113,12 @@ function FormationContent() {
           setIsViewingOther(true);
 
           const bid = d.benevole_id;
-          const [certResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
+          const [certResult, formResult, docsResult, lmsResult, campInscResult] = await Promise.allSettled([
             supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
             supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
             supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
-            supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
+            supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle(),
+            supabase.from('inscriptions_camps').select('session_id, camp_nom, camp_dates, camp_lieu').eq('benevole_id', bid).neq('presence', 'annule').order('created_at', { ascending: false }).limit(1).maybeSingle()
           ]);
           if (certResult.status === 'fulfilled' && certResult.value?.data) {
             const certs = certResult.value.data;
@@ -135,7 +136,12 @@ function FormationContent() {
           const hasCampQualif = (formData || []).some((f: any) =>
             (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
           );
-          setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+          const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null;
+          if (campInsc) {
+            setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null });
+          } else {
+            setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+          }
           setLoadingCamp(false);
           if (docsResult.status === 'fulfilled') {
             const docs = docsResult.value?.data;
@@ -174,11 +180,12 @@ function FormationContent() {
           if (userData.benevole_id) {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
-            const [certResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
+            const [certResult, formResult, docsResult, lmsResult, campInscResult] = await Promise.allSettled([
               supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
-              supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
+              supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle(),
+              supabase.from('inscriptions_camps').select('session_id, camp_nom, camp_dates, camp_lieu').eq('benevole_id', bid).neq('presence', 'annule').order('created_at', { ascending: false }).limit(1).maybeSingle()
             ]);
 
             // Certificats (lecture directe Supabase — Monday retiré)
@@ -204,7 +211,12 @@ function FormationContent() {
             const hasCampQualif = (formData || []).some((f: any) =>
               (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
             );
-            setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+            const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null;
+            if (campInsc) {
+              setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null });
+            } else {
+              setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+            }
             setLoadingCamp(false);
 
             // Documents officiels + signed URLs
@@ -307,11 +319,12 @@ function FormationContent() {
       if (reservisteData.benevole_id) {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
-        const [certResult, formResult, docsResult, lmsResult] = await Promise.allSettled([
+        const [certResult, formResult, docsResult, lmsResult, campInscResult] = await Promise.allSettled([
           supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid }),
-          supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle()
+          supabase.from('lms_progression').select('statut, date_completion').eq('benevole_id', bid).eq('module_id', '148e3363-b889-41ce-85f2-72c9d5a36b3c').maybeSingle(),
+          supabase.from('inscriptions_camps').select('session_id, camp_nom, camp_dates, camp_lieu').eq('benevole_id', bid).neq('presence', 'annule').order('created_at', { ascending: false }).limit(1).maybeSingle()
         ]);
 
         // Certificats (lecture directe Supabase — Monday retiré)
@@ -337,7 +350,12 @@ function FormationContent() {
         const hasCampQualif = (formData || []).some((f: any) =>
           (f.nom_formation || '').toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi'
         );
-        setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null;
+        if (campInsc) {
+          setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null });
+        } else {
+          setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
+        }
         setLoadingCamp(false);
 
         // Documents officiels + signed URLs
