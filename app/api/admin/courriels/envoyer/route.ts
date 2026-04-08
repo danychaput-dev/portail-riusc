@@ -89,27 +89,24 @@ export async function POST(req: NextRequest) {
       return { ...dest, html }
     })
 
-    // Préparer les pièces jointes Resend
-    // Mode principal : URL signée Supabase (Resend télécharge le fichier lui-meme, payload leger)
-    // Fallback : base64 content pour legacy
-    const resendAttachments: { filename: string; path?: string; content?: Buffer }[] = []
+    // Préparer les pièces jointes Resend (Buffer content)
+    // On telecharge depuis Storage cote serveur puis on envoie le Buffer a Resend
+    const resendAttachments: { filename: string; content: Buffer }[] = []
     for (const a of (attachments || [])) {
       if (a.storage_path) {
-        // Generer une URL signée valide 1 heure - Resend fetch le fichier via cette URL
-        const { data: signedData, error: signErr } = await supabaseAdmin.storage
-          .from('certificats')
-          .createSignedUrl(a.storage_path, 3600)
-        if (signErr || !signedData?.signedUrl) {
-          console.error('Erreur creation URL signee PJ:', signErr?.message, a.storage_path)
+        const { data: fileData, error: dlErr } = await supabaseAdmin.storage.from('certificats').download(a.storage_path)
+        if (dlErr || !fileData) {
+          console.error('Erreur download PJ depuis Storage:', dlErr?.message, a.storage_path)
           continue
         }
-        console.log('URL signee PJ generee:', a.filename, signedData.signedUrl.substring(0, 80) + '...')
-        resendAttachments.push({ filename: a.filename, path: signedData.signedUrl })
+        const buffer = Buffer.from(await fileData.arrayBuffer())
+        console.log('PJ telechargee depuis Storage:', a.filename, buffer.length, 'octets')
+        resendAttachments.push({ filename: a.filename, content: buffer })
       } else if (a.content) {
-        // Fallback legacy : base64 directement dans le payload
         resendAttachments.push({ filename: a.filename, content: Buffer.from(a.content, 'base64') })
       }
     }
+    const hasAttachments = resendAttachments.length > 0
 
     const attachmentNames = (attachments || []).map((a: any) => a.filename).filter(Boolean)
 
@@ -122,7 +119,9 @@ export async function POST(req: NextRequest) {
     // Note: en batch, on pré-crée les IDs pour le Reply-To dynamique
     // Note: CC est envoyé une seule fois après les batchs (pas sur chaque courriel individuel)
     if (prepared.length > 1) {
-      const BATCH_SIZE = 100
+      // Reduire la taille des batchs quand il y a des PJ pour eviter les limites de payload Resend
+      const BATCH_SIZE = hasAttachments ? 10 : 100
+      console.log(`Envoi batch: ${prepared.length} destinataires, batch size=${BATCH_SIZE}, PJ=${hasAttachments ? resendAttachments.map(a => a.filename).join(', ') : 'aucune'}`)
       for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
         const batch = prepared.slice(i, i + BATCH_SIZE)
 
