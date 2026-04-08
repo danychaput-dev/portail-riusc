@@ -29,69 +29,62 @@ export async function GET(req: NextRequest) {
     const campagneId = req.nextUrl.searchParams.get('campagne_id')
     if (!campagneId) return NextResponse.json({ error: 'campagne_id requis' }, { status: 400 })
 
-    // Récupérer la campagne
-    const { data: campagne } = await supabaseAdmin
-      .from('courriel_campagnes')
-      .select('*')
-      .eq('id', campagneId)
-      .single()
+    // Étape 1 : campagne + courriels en parallèle
+    const [campResult, courrielsResult] = await Promise.allSettled([
+      supabaseAdmin.from('courriel_campagnes').select('*').eq('id', campagneId).single(),
+      supabaseAdmin
+        .from('courriels')
+        .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject, has_reply')
+        .eq('campagne_id', campagneId)
+        .order('created_at', { ascending: true }),
+    ])
 
+    const campagne = campResult.status === 'fulfilled' ? campResult.value?.data : null
     if (!campagne) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
 
-    // Récupérer tous les courriels de la campagne
-    let { data: courriels, error } = await supabaseAdmin
-      .from('courriels')
-      .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject, has_reply')
-      .eq('campagne_id', campagneId)
-      .order('created_at', { ascending: true })
+    let courriels = courrielsResult.status === 'fulfilled' ? courrielsResult.value?.data : null
+    const courrielsError = courrielsResult.status === 'fulfilled' ? courrielsResult.value?.error : null
 
     // Fallback si has_reply n'existe pas encore
-    if (error && error.message?.includes('has_reply')) {
+    if (courrielsError && courrielsError.message?.includes('has_reply')) {
       const r2 = await supabaseAdmin
         .from('courriels')
         .select('id, benevole_id, to_email, statut, ouvert_at, clics_count, created_at, body_html, subject')
         .eq('campagne_id', campagneId)
         .order('created_at', { ascending: true })
       courriels = r2.data as any
-      error = r2.error
     }
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    // Étape 2 : noms + réponses en parallèle (dépendent des courriels)
+    const bIds = [...new Set((courriels || []).map((c: any) => c.benevole_id).filter(Boolean))]
+    const courrielIds = (courriels || []).map((c: any) => c.id).filter(Boolean)
 
-    // Enrichir avec noms des réservistes
-    const bIds = [...new Set((courriels || []).map(c => c.benevole_id).filter(Boolean))]
+    const [namesResult, reponsesResult] = await Promise.allSettled([
+      bIds.length > 0
+        ? supabaseAdmin.from('reservistes').select('benevole_id, prenom, nom').in('benevole_id', bIds)
+        : Promise.resolve({ data: [] }),
+      courrielIds.length > 0
+        ? supabaseAdmin
+            .from('courriel_reponses')
+            .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
+            .in('courriel_id', courrielIds)
+            .order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] }),
+    ])
+
     const nameMap = new Map<string, { prenom: string; nom: string }>()
-    if (bIds.length > 0) {
-      const { data: reservistes } = await supabaseAdmin
-        .from('reservistes')
-        .select('benevole_id, prenom, nom')
-        .in('benevole_id', bIds)
-      for (const r of reservistes || []) {
-        nameMap.set(r.benevole_id, { prenom: r.prenom, nom: r.nom })
-      }
+    const reservistes = namesResult.status === 'fulfilled' ? (namesResult.value as any)?.data || [] : []
+    for (const r of reservistes) nameMap.set(r.benevole_id, { prenom: r.prenom, nom: r.nom })
+
+    const reponsesMap = new Map<string, any[]>()
+    const reponses = reponsesResult.status === 'fulfilled' ? (reponsesResult.value as any)?.data || [] : []
+    for (const rep of reponses) {
+      const list = reponsesMap.get(rep.courriel_id) || []
+      list.push(rep)
+      reponsesMap.set(rep.courriel_id, list)
     }
 
-    // Récupérer les réponses liées aux courriels de cette campagne (défensif)
-    const courrielIds = (courriels || []).map(c => c.id).filter(Boolean)
-    let reponsesMap = new Map<string, any[]>()
-    if (courrielIds.length > 0) {
-      try {
-        const { data: reponses } = await supabaseAdmin
-          .from('courriel_reponses')
-          .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
-          .in('courriel_id', courrielIds)
-          .order('created_at', { ascending: true })
-        for (const rep of reponses || []) {
-          const list = reponsesMap.get(rep.courriel_id) || []
-          list.push(rep)
-          reponsesMap.set(rep.courriel_id, list)
-        }
-      } catch {
-        // Table courriel_reponses pas encore créée — on continue sans
-      }
-    }
-
-    const enriched = (courriels || []).map(c => {
+    const enriched = (courriels || []).map((c: any) => {
       const r = nameMap.get(c.benevole_id)
       return {
         ...c,

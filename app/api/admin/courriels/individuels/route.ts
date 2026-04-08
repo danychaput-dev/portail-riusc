@@ -64,17 +64,38 @@ export async function GET(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Enrichir avec le nom du réserviste
+    // Étape 2 : noms, réponses et orphelines en PARALLÈLE
     const raw = courriels || []
     const bIds = [...new Set(raw.map(c => c.benevole_id).filter(Boolean))]
+    const courrielIds = raw.map(c => c.id).filter(Boolean)
+
+    const [namesResult, reponsesResult, orphelinesResult] = await Promise.allSettled([
+      // Noms des réservistes
+      bIds.length > 0
+        ? supabaseAdmin.from('reservistes').select('benevole_id, prenom, nom').in('benevole_id', bIds)
+        : Promise.resolve({ data: [] }),
+      // Réponses liées aux courriels
+      courrielIds.length > 0
+        ? supabaseAdmin
+            .from('courriel_reponses')
+            .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
+            .in('courriel_id', courrielIds)
+            .order('created_at', { ascending: true })
+        : Promise.resolve({ data: [] }),
+      // Réponses orphelines (sans courriel_id)
+      supabaseAdmin
+        .from('courriel_reponses')
+        .select('id, courriel_id, benevole_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
+        .is('courriel_id', null)
+        .order('created_at', { ascending: false })
+        .limit(50),
+    ])
+
+    // Noms
     const nameMap = new Map<string, string>()
-    if (bIds.length > 0) {
-      const { data: reservistes } = await supabaseAdmin
-        .from('reservistes')
-        .select('benevole_id, prenom, nom')
-        .in('benevole_id', bIds)
-      for (const r of reservistes || []) nameMap.set(r.benevole_id, `${r.prenom} ${r.nom}`)
-    }
+    const reservistes = namesResult.status === 'fulfilled' ? (namesResult.value as any)?.data || [] : []
+    for (const r of reservistes) nameMap.set(r.benevole_id, `${r.prenom} ${r.nom}`)
+
     let enriched: any[] = raw.map(c => ({ ...c, nom_complet: nameMap.get(c.benevole_id) || c.to_email }))
 
     // Filtre recherche côté serveur (nom ou courriel)
@@ -87,58 +108,34 @@ export async function GET(req: NextRequest) {
       )
     }
 
-    // Récupérer les réponses liées à ces courriels (défensif si table pas encore créée)
-    const courrielIds = enriched.map(c => c.id).filter(Boolean)
-    if (courrielIds.length > 0) {
-      try {
-        const { data: reponses } = await supabaseAdmin
-          .from('courriel_reponses')
-          .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
-          .in('courriel_id', courrielIds)
-          .order('created_at', { ascending: true })
-        const repMap = new Map<string, any[]>()
-        for (const rep of reponses || []) {
-          const list = repMap.get(rep.courriel_id) || []
-          list.push(rep)
-          repMap.set(rep.courriel_id, list)
-        }
-        enriched = enriched.map(c => ({ ...c, reponses: repMap.get(c.id) || [] }))
-      } catch {
-        // Table courriel_reponses pas encore créée — on continue sans
-      }
+    // Réponses liées
+    const allReponses = reponsesResult.status === 'fulfilled' ? (reponsesResult.value as any)?.data || [] : []
+    const repMap = new Map<string, any[]>()
+    for (const rep of allReponses) {
+      const list = repMap.get(rep.courriel_id) || []
+      list.push(rep)
+      repMap.set(rep.courriel_id, list)
     }
+    enriched = enriched.map(c => ({ ...c, reponses: repMap.get(c.id) || [] }))
 
-    // Récupérer les réponses orphelines (sans courriel_id ou avec un courriel_id qui n'existe pas dans nos courriels)
-    // Ces réponses apparaissent dans le dossier du réserviste mais pas ici sans ce fix
+    // Réponses orphelines — enrichir avec noms
     let reponsesOrphelines: any[] = []
-    try {
-      const { data: allReponses } = await supabaseAdmin
-        .from('courriel_reponses')
-        .select('id, courriel_id, benevole_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
-        .is('courriel_id', null)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (allReponses && allReponses.length > 0) {
-        // Enrichir avec le nom du réserviste
-        const orphBIds = [...new Set(allReponses.map(r => r.benevole_id).filter(Boolean))]
-        const orphNameMap = new Map<string, { prenom: string; nom: string }>()
-        if (orphBIds.length > 0) {
-          const { data: reservistes } = await supabaseAdmin
-            .from('reservistes')
-            .select('benevole_id, prenom, nom')
-            .in('benevole_id', orphBIds)
-          for (const r of reservistes || []) orphNameMap.set(r.benevole_id, { prenom: r.prenom, nom: r.nom })
-        }
-        reponsesOrphelines = allReponses.map(r => ({
-          ...r,
-          nom_complet: orphNameMap.get(r.benevole_id)
-            ? `${orphNameMap.get(r.benevole_id)!.prenom} ${orphNameMap.get(r.benevole_id)!.nom}`
-            : r.from_email,
-        }))
+    const orphData = orphelinesResult.status === 'fulfilled' ? (orphelinesResult.value as any)?.data || [] : []
+    if (orphData.length > 0) {
+      // Vérifier si on a déjà les noms, sinon fetch les manquants
+      const orphBIds = [...new Set(orphData.map((r: any) => r.benevole_id).filter(Boolean))]
+      const missingBIds = orphBIds.filter(id => !nameMap.has(id))
+      if (missingBIds.length > 0) {
+        const { data: orphReservistes } = await supabaseAdmin
+          .from('reservistes')
+          .select('benevole_id, prenom, nom')
+          .in('benevole_id', missingBIds)
+        for (const r of orphReservistes || []) nameMap.set(r.benevole_id, `${r.prenom} ${r.nom}`)
       }
-    } catch {
-      // Table pas encore prête — on continue
+      reponsesOrphelines = orphData.map((r: any) => ({
+        ...r,
+        nom_complet: nameMap.get(r.benevole_id) || r.from_email,
+      }))
     }
 
     return NextResponse.json({ courriels: enriched, reponses_orphelines: reponsesOrphelines })
