@@ -102,6 +102,27 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   // Pièces jointes
   const [attachments, setAttachments] = useState<PieceJointe[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+
+  // Insérer un lien hypertexte sur le texte sélectionné
+  const insererLien = () => {
+    const ta = bodyRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const selectedText = bodyHtml.substring(start, end)
+    const url = window.prompt('URL du lien :', 'https://')
+    if (!url) return
+    const texte = selectedText || window.prompt('Texte du lien :', '') || url
+    const lienHtml = `<a href="${url}">${texte}</a>`
+    const newBody = bodyHtml.substring(0, start) + lienHtml + bodyHtml.substring(end)
+    setBodyHtml(newBody)
+    setTimeout(() => {
+      ta.focus()
+      const cursorPos = start + lienHtml.length
+      ta.setSelectionRange(cursorPos, cursorPos)
+    }, 0)
+  }
 
   // CC
   const [ccContacts, setCcContacts] = useState<CcContact[]>([])
@@ -639,9 +660,12 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                   <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Message</label>
-                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Variables : {'{{ prenom }}'} {'{{ nom }}'}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button type="button" onClick={insererLien} title="Insérer un lien (sélectionnez du texte puis cliquez)" style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>🔗 Lien</button>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Variables : {'{{ prenom }}'} {'{{ nom }}'}</span>
+                  </div>
                 </div>
-                <textarea value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} placeholder="Bonjour {{ prenom }},&#10;&#10;Votre message ici..." rows={8} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }} />
+                <textarea ref={bodyRef} value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} placeholder="Bonjour {{ prenom }},&#10;&#10;Votre message ici..." rows={8} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }} />
               </div>
 
               {/* Pièces jointes */}
