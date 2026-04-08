@@ -80,20 +80,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Préparer les courriels avec variables remplacées
-    const prepared = destinataires.map((dest: any) => {
-      let html = linkifyUrls(body_html)
-        .replace(/\{\{\s*prenom\s*\}\}/gi, dest.prenom || '')
-        .replace(/\{\{\s*nom\s*\}\}/gi, dest.nom || '')
-      if (signature) html += `<br/><br/>${signature}`
-      return { ...dest, html }
-    })
-
-    // Préparer les pièces jointes Resend
+    // Préparer les pièces jointes Resend AVANT le HTML (pour inserer les liens trackables)
     // L'API batch ne supporte PAS les attachments. Pour les envois avec PJ, on utilise
     // l'API individuelle (POST /emails) avec des URLs signees Supabase (path).
-    // Resend telecharge le fichier lui-meme via l'URL, payload minimal.
     const resendAttachments: { filename: string; path?: string; content?: Buffer }[] = []
+    const attachmentLinks: { filename: string; url: string }[] = []
     for (const a of (attachments || [])) {
       if (a.storage_path) {
         // URL signee valide 1 heure
@@ -106,11 +97,29 @@ export async function POST(req: NextRequest) {
         }
         console.log('URL signee PJ:', a.filename, '(' + a.storage_path + ')')
         resendAttachments.push({ filename: a.filename, path: signedData.signedUrl })
+        attachmentLinks.push({ filename: a.filename, url: signedData.signedUrl })
       } else if (a.content) {
         resendAttachments.push({ filename: a.filename, content: Buffer.from(a.content, 'base64') })
       }
     }
     const hasAttachments = resendAttachments.length > 0
+
+    // Préparer les courriels avec variables remplacées
+    const prepared = destinataires.map((dest: any) => {
+      let html = linkifyUrls(body_html)
+        .replace(/\{\{\s*prenom\s*\}\}/gi, dest.prenom || '')
+        .replace(/\{\{\s*nom\s*\}\}/gi, dest.nom || '')
+      // Ajouter les liens vers les PJ (trackables par Resend via click tracking)
+      if (attachmentLinks.length > 0) {
+        html += '<br/><br/><table cellpadding="0" cellspacing="0" border="0">'
+        for (const link of attachmentLinks) {
+          html += `<tr><td style="padding:4px 0"><a href="${link.url}" target="_blank" style="color:#2563eb;text-decoration:underline">Consulter : ${link.filename}</a></td></tr>`
+        }
+        html += '</table>'
+      }
+      if (signature) html += `<br/><br/>${signature}`
+      return { ...dest, html }
+    })
 
     const attachmentNames = (attachments || []).map((a: any) => a.filename).filter(Boolean)
 
