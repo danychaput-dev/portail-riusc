@@ -90,18 +90,21 @@ export async function POST(req: NextRequest) {
     })
 
     // Préparer les pièces jointes Resend
-    // Supporte 2 modes : storage_path (téléchargé depuis Supabase Storage) ou content (base64 legacy)
-    const resendAttachments: { filename: string; content: Buffer }[] = []
+    // Mode principal : URL signée Supabase (Resend télécharge le fichier lui-meme, payload leger)
+    // Fallback : base64 content pour legacy
+    const resendAttachments: { filename: string; path?: string; content?: Buffer }[] = []
     for (const a of (attachments || [])) {
       if (a.storage_path) {
-        // Télécharger depuis Supabase Storage (évite PAYLOAD_TOO_LARGE)
-        const { data: fileData, error: dlErr } = await supabaseAdmin.storage.from('certificats').download(a.storage_path)
-        if (dlErr || !fileData) {
-          console.error('Erreur download PJ depuis Storage:', dlErr?.message, a.storage_path)
+        // Generer une URL signée valide 1 heure - Resend fetch le fichier via cette URL
+        const { data: signedData, error: signErr } = await supabaseAdmin.storage
+          .from('certificats')
+          .createSignedUrl(a.storage_path, 3600)
+        if (signErr || !signedData?.signedUrl) {
+          console.error('Erreur creation URL signee PJ:', signErr?.message, a.storage_path)
           continue
         }
-        const buffer = Buffer.from(await fileData.arrayBuffer())
-        resendAttachments.push({ filename: a.filename, content: buffer })
+        console.log('URL signee PJ generee:', a.filename, signedData.signedUrl.substring(0, 80) + '...')
+        resendAttachments.push({ filename: a.filename, path: signedData.signedUrl })
       } else if (a.content) {
         // Fallback legacy : base64 directement dans le payload
         resendAttachments.push({ filename: a.filename, content: Buffer.from(a.content, 'base64') })
