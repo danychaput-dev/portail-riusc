@@ -1014,7 +1014,12 @@ export default function HomePage() {
                 </div>
 
                 <p style={{ color: '#92400e', fontSize: '13px', margin: '0 0 24px 0', backgroundColor: '#fffbeb', padding: '12px 16px', borderRadius: '8px', borderLeft: '4px solid #f59e0b' }}>En confirmant, vous vous engagez à être présent aux deux journées complètes du camp.</p>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  {campStatus?.has_inscription && (
+                    <button onClick={() => { closeCampModal(); handleCancelInscription() }} disabled={inscriptionLoading || cancellingInscription} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '8px', fontSize: '14px', cursor: (inscriptionLoading || cancellingInscription) ? 'not-allowed' : 'pointer', fontWeight: '500', marginRight: 'auto' }}>
+                      {cancellingInscription ? 'Annulation...' : 'Je ne suis plus disponible'}
+                    </button>
+                  )}
                   <button onClick={closeCampModal} disabled={inscriptionLoading} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: inscriptionLoading ? 'not-allowed' : 'pointer', fontWeight: '500' }}>Annuler</button>
                   <button onClick={handleSubmitInscription} disabled={inscriptionLoading || !selectedSessionId || loadingSessions} style={{ padding: '12px 24px', backgroundColor: (inscriptionLoading || !selectedSessionId) ? '#9ca3af' : sessionCapacities[selectedSessionId]?.statut === 'liste_attente' ? '#d97706' : '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: (inscriptionLoading || !selectedSessionId) ? 'not-allowed' : 'pointer' }}>
                     {inscriptionLoading ? 'Traitement...' : sessionCapacities[selectedSessionId]?.statut === 'liste_attente' ? "S'inscrire sur la liste d'attente" : campStatus?.has_inscription ? 'Confirmer la modification' : "Confirmer mon inscription"}
