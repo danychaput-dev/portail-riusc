@@ -222,6 +222,11 @@ export default function CampagnesPage() {
   const [replySubject, setReplySubject] = useState('')
   const [replyToCourrielId, setReplyToCourrielId] = useState<string | null>(null)
 
+  // ─── Import liste ───
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importJson, setImportJson] = useState('')
+  const [importError, setImportError] = useState('')
+
   // ─── Expand réponse (lecture plein écran) ───
   const [expandedReply, setExpandedReply] = useState<string | null>(null)
 
@@ -512,6 +517,12 @@ export default function CampagnesPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Courriels</h1>
         </div>
+        <button
+          onClick={() => setShowImportModal(true)}
+          style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'white', backgroundColor: C, border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          Importer une liste
+        </button>
       </div>
 
         {/* Bandeau réponses non lues */}
@@ -1195,6 +1206,64 @@ export default function CampagnesPage() {
             >
               <span style={{ fontSize: '14px' }}>✉️</span> Envoyer un courriel
             </button>
+          </div>
+        )}
+
+        {/* ─── Modal Import Liste ─── */}
+        {showImportModal && (
+          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setShowImportModal(false)}>
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflow: 'auto' }}
+              onClick={e => e.stopPropagation()}>
+              <h2 style={{ margin: '0 0 12px', fontSize: '16px', fontWeight: '700', color: C }}>Importer une liste de destinataires</h2>
+              <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+                Collez un JSON avec les champs: benevole_id, email, prenom, nom
+              </p>
+              <textarea
+                value={importJson}
+                onChange={e => { setImportJson(e.target.value); setImportError('') }}
+                placeholder={'[\n  { "benevole_id": "123", "email": "test@mail.com", "prenom": "Jean", "nom": "Tremblay" }\n]'}
+                style={{ width: '100%', height: '300px', fontFamily: 'monospace', fontSize: '12px', padding: '12px', border: '1px solid #d1d5db', borderRadius: '8px', resize: 'vertical' }}
+              />
+              {importError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>{importError}</div>}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button onClick={() => { setShowImportModal(false); setImportJson(''); setImportError('') }}
+                  style={{ padding: '8px 16px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer' }}>
+                  Annuler
+                </button>
+                <button onClick={() => {
+                  try {
+                    const parsed = JSON.parse(importJson)
+                    if (!Array.isArray(parsed) || parsed.length === 0) {
+                      setImportError('Le JSON doit etre un tableau non vide.')
+                      return
+                    }
+                    const invalid = parsed.filter((d: any) => !d.email || !d.benevole_id)
+                    if (invalid.length > 0) {
+                      setImportError(`${invalid.length} entrees sans email ou benevole_id.`)
+                      return
+                    }
+                    const dests = parsed.map((d: any) => ({
+                      benevole_id: d.benevole_id,
+                      email: d.email,
+                      prenom: d.prenom || '',
+                      nom: d.nom || '',
+                    }))
+                    setReplyDest(dests)
+                    setReplySubject('')
+                    setReplyToCourrielId(null)
+                    setShowImportModal(false)
+                    setImportJson('')
+                    setImportError('')
+                  } catch {
+                    setImportError('JSON invalide. Verifiez le format.')
+                  }
+                }}
+                  style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'white', backgroundColor: C, border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                  Charger ({(() => { try { const p = JSON.parse(importJson); return Array.isArray(p) ? p.length : 0 } catch { return 0 } })()} destinataires)
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
