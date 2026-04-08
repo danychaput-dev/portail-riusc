@@ -89,19 +89,23 @@ export async function POST(req: NextRequest) {
       return { ...dest, html }
     })
 
-    // Préparer les pièces jointes Resend (Buffer content)
-    // On telecharge depuis Storage cote serveur puis on envoie le Buffer a Resend
-    const resendAttachments: { filename: string; content: Buffer }[] = []
+    // Préparer les pièces jointes Resend
+    // L'API batch ne supporte PAS les attachments. Pour les envois avec PJ, on utilise
+    // l'API individuelle (POST /emails) avec des URLs signees Supabase (path).
+    // Resend telecharge le fichier lui-meme via l'URL, payload minimal.
+    const resendAttachments: { filename: string; path?: string; content?: Buffer }[] = []
     for (const a of (attachments || [])) {
       if (a.storage_path) {
-        const { data: fileData, error: dlErr } = await supabaseAdmin.storage.from('certificats').download(a.storage_path)
-        if (dlErr || !fileData) {
-          console.error('Erreur download PJ depuis Storage:', dlErr?.message, a.storage_path)
+        // URL signee valide 1 heure
+        const { data: signedData, error: signErr } = await supabaseAdmin.storage
+          .from('certificats')
+          .createSignedUrl(a.storage_path, 3600)
+        if (signErr || !signedData?.signedUrl) {
+          console.error('Erreur creation URL signee PJ:', signErr?.message, a.storage_path)
           continue
         }
-        const buffer = Buffer.from(await fileData.arrayBuffer())
-        console.log('PJ telechargee depuis Storage:', a.filename, buffer.length, 'octets')
-        resendAttachments.push({ filename: a.filename, content: buffer })
+        console.log('URL signee PJ:', a.filename, '(' + a.storage_path + ')')
+        resendAttachments.push({ filename: a.filename, path: signedData.signedUrl })
       } else if (a.content) {
         resendAttachments.push({ filename: a.filename, content: Buffer.from(a.content, 'base64') })
       }
@@ -115,17 +119,64 @@ export async function POST(req: NextRequest) {
 
     const resultats: { benevole_id: string; ok: boolean; error?: string }[] = []
 
-    // ── Batch API pour envois de masse (lots de 100) ──
-    // Note: en batch, on pré-crée les IDs pour le Reply-To dynamique
-    // Note: CC est envoyé une seule fois après les batchs (pas sur chaque courriel individuel)
-    if (prepared.length > 1) {
-      // Reduire la taille des batchs quand il y a des PJ pour eviter les limites de payload Resend
-      const BATCH_SIZE = hasAttachments ? 10 : 100
-      console.log(`Envoi batch: ${prepared.length} destinataires, batch size=${BATCH_SIZE}, PJ=${hasAttachments ? resendAttachments.map(a => a.filename).join(', ') : 'aucune'}`)
+    // ── Envois de masse ──
+    // IMPORTANT: L'API batch de Resend (POST /emails/batch) ne supporte PAS les attachments.
+    // Quand il y a des PJ, on envoie chaque courriel individuellement via POST /emails.
+    // Sans PJ, on utilise le batch pour la performance (lots de 100).
+    if (prepared.length > 1 && hasAttachments) {
+      // ── Mode individuel avec PJ (batch ne supporte pas les attachments) ──
+      console.log(`Envoi individuel avec PJ: ${prepared.length} destinataires, PJ: ${resendAttachments.map(a => a.filename).join(', ')}`)
+      for (let i = 0; i < prepared.length; i++) {
+        const dest = prepared[i]
+
+        // Pré-créer l'enregistrement pour le Reply-To dynamique
+        const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
+          campagne_id, benevole_id: dest.benevole_id,
+          from_email: fromEmail, from_name: fromName, to_email: dest.email,
+          subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
+          pieces_jointes: attachmentNames,
+        }).select('id').single()
+        if (insertErr) console.error('Erreur pre-insert courriel:', insertErr.message, 'pour', dest.email)
+        const courrielId = row?.id
+
+        try {
+          const { data: emailData, error: emailError } = await resend.emails.send({
+            from: `${fromName} <${fromEmail}>`,
+            to: [dest.email],
+            subject,
+            html: dest.html,
+            replyTo: courrielId ? `reply+${courrielId}@${inboundDomain}` : replyTo,
+            headers: { 'X-Entity-Ref-ID': dest.benevole_id },
+            tags: [{ name: 'source', value: 'portail-riusc' }],
+            attachments: resendAttachments,
+          })
+
+          if (emailError) {
+            resultats.push({ benevole_id: dest.benevole_id, ok: false, error: emailError.message })
+            if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
+          } else {
+            if (courrielId) {
+              await supabaseAdmin.from('courriels').update({
+                resend_id: emailData?.id || null, statut: 'sent',
+              }).eq('id', courrielId)
+            }
+            resultats.push({ benevole_id: dest.benevole_id, ok: true })
+          }
+        } catch (err: any) {
+          resultats.push({ benevole_id: dest.benevole_id, ok: false, error: err.message })
+          if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
+        }
+
+        // Log progression tous les 50 courriels
+        if ((i + 1) % 50 === 0) console.log(`Progression: ${i + 1}/${prepared.length} courriels envoyes`)
+      }
+    } else if (prepared.length > 1) {
+      // ── Mode batch sans PJ (performant, lots de 100) ──
+      const BATCH_SIZE = 100
+      console.log(`Envoi batch sans PJ: ${prepared.length} destinataires`)
       for (let i = 0; i < prepared.length; i += BATCH_SIZE) {
         const batch = prepared.slice(i, i + BATCH_SIZE)
 
-        // Pré-créer les enregistrements courriels pour obtenir les IDs (pour le Reply-To)
         const preInserts = await Promise.all(
           batch.map(async (dest: any) => {
             const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
@@ -134,8 +185,7 @@ export async function POST(req: NextRequest) {
               subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
               pieces_jointes: attachmentNames,
             }).select('id').single()
-            if (insertErr) console.error('❌ Erreur pré-insert courriel:', insertErr.message, 'pour', dest.email)
-            else console.log('✅ Pré-insert OK:', row?.id, '→ Reply-To: reply+' + row?.id + '@' + inboundDomain)
+            if (insertErr) console.error('Erreur pre-insert courriel:', insertErr.message, 'pour', dest.email)
             return { ...dest, courriel_id: row?.id }
           })
         )
@@ -150,12 +200,10 @@ export async function POST(req: NextRequest) {
               replyTo: dest.courriel_id ? `reply+${dest.courriel_id}@${inboundDomain}` : replyTo,
               headers: { 'X-Entity-Ref-ID': dest.benevole_id },
               tags: [{ name: 'source', value: 'portail-riusc' }],
-              ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
             }))
           )
 
           if (batchError) {
-            // Batch entier échoué — marquer tous comme failed
             for (const dest of preInserts) {
               resultats.push({ benevole_id: dest.benevole_id, ok: false, error: batchError.message })
               if (dest.courriel_id) {
@@ -165,7 +213,6 @@ export async function POST(req: NextRequest) {
             continue
           }
 
-          // Batch réussi — mettre à jour avec resend_id
           const batchData = batchResult?.data || []
           for (let j = 0; j < preInserts.length; j++) {
             const dest = preInserts[j]
