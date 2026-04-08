@@ -32,7 +32,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
-    const { destinataires, subject, body_html, campagne_nom, attachments, cc, reply_to_courriel_id } = await req.json()
+    const body = await req.json()
+    const { destinataires, subject, body_html, campagne_nom, attachments, cc, reply_to_courriel_id } = body
+    // Support envoi chunke: le client peut envoyer un campagne_id existant + total_destinataires
+    const clientCampagneId: string | null = body.campagne_id || null
+    const totalDestinataires: number = body.total_destinataires || destinataires?.length || 0
     const ccList: string[] = Array.isArray(cc) ? cc.filter((e: any) => typeof e === 'string' && e.includes('@')) : []
 
     if (!destinataires || !Array.isArray(destinataires) || destinataires.length === 0) {
@@ -53,16 +57,16 @@ export async function POST(req: NextRequest) {
     const signature = config?.signature_html || ''
     const replyTo = config?.reply_to || fromEmail
 
-    // Créer une campagne si envoi de masse (> 1 destinataire)
-    let campagne_id: string | null = null
-    if (destinataires.length > 1) {
+    // Créer une campagne ou réutiliser celle du client (envoi chunke)
+    let campagne_id: string | null = clientCampagneId
+    if (!campagne_id && destinataires.length > 1) {
       const { data: campagne, error: campErr } = await supabaseAdmin
         .from('courriel_campagnes')
         .insert({
           nom: campagne_nom || subject,
           subject,
           body_html,
-          total_envoyes: destinataires.length,
+          total_envoyes: totalDestinataires,
           envoye_par: user.id,
         })
         .select('id')
@@ -142,67 +146,62 @@ export async function POST(req: NextRequest) {
     // Quand il y a des PJ, on envoie chaque courriel individuellement via POST /emails.
     // Sans PJ, on utilise le batch pour la performance (lots de 100).
     if (prepared.length > 1 && hasAttachments) {
-      // ── Mode individuel parallele avec PJ (batch Resend ne supporte pas les attachments) ──
-      // Les PJ sont deja en memoire (Buffer), donc Resend n'a rien a telecharger.
-      // On peut augmenter le parallelisme a 20 en toute securite.
-      const PARALLEL_SIZE = 20
-      const startTime = Date.now()
-      console.log(`Envoi individuel parallele avec PJ: ${prepared.length} destinataires, lots de ${PARALLEL_SIZE}, PJ: ${resendAttachments.map(a => `${a.filename} (${a.content.length} octets)`).join(', ')}`)
+      // ── Mode n8n: envoi de masse avec PJ deleguee a n8n (pas de timeout) ──
+      // 1. Pre-inserer tous les courriels en statut queued
+      // 2. Declencher n8n via webhook (n8n boucle et envoie via Resend a son rythme)
+      // 3. Retourner immediatement au client avec le statut "delegue"
+      console.log(`Delegation n8n: ${prepared.length} destinataires avec PJ`)
 
-      for (let i = 0; i < prepared.length; i += PARALLEL_SIZE) {
-        const chunk = prepared.slice(i, i + PARALLEL_SIZE)
+      const insertResults = await Promise.all(
+        prepared.map(async (dest: any) => {
+          const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
+            campagne_id, benevole_id: dest.benevole_id,
+            from_email: fromEmail, from_name: fromName, to_email: dest.email,
+            subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
+            pieces_jointes: attachmentNames,
+          }).select('id').single()
+          if (insertErr) console.error('Erreur pre-insert courriel:', insertErr.message, 'pour', dest.email)
+          return { benevole_id: dest.benevole_id, ok: !insertErr, courriel_id: row?.id }
+        })
+      )
 
-        const chunkResults = await Promise.all(
-          chunk.map(async (dest: any) => {
-            // Pre-creer l'enregistrement pour le Reply-To dynamique
-            const { data: row, error: insertErr } = await supabaseAdmin.from('courriels').insert({
-              campagne_id, benevole_id: dest.benevole_id,
-              from_email: fromEmail, from_name: fromName, to_email: dest.email,
-              subject, body_html: dest.html, statut: 'queued', envoye_par: user.id,
-              pieces_jointes: attachmentNames,
-            }).select('id').single()
-            if (insertErr) console.error('Erreur pre-insert courriel:', insertErr.message, 'pour', dest.email)
-            const courrielId = row?.id
+      const inserted = insertResults.filter(r => r.ok).length
+      console.log(`${inserted}/${prepared.length} courriels pre-inseres en queued`)
 
-            try {
-              const { data: emailData, error: emailError } = await resend.emails.send({
-                from: `${fromName} <${fromEmail}>`,
-                to: [dest.email],
-                subject,
-                html: dest.html,
-                replyTo: courrielId ? `reply+${courrielId}@${inboundDomain}` : replyTo,
-                headers: { 'X-Entity-Ref-ID': dest.benevole_id },
-                tags: [{ name: 'source', value: 'portail-riusc' }],
-                attachments: resendAttachments,
-              })
-
-              if (emailError) {
-                if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
-                return { benevole_id: dest.benevole_id, ok: false, error: emailError.message }
-              } else {
-                if (courrielId) {
-                  await supabaseAdmin.from('courriels').update({
-                    resend_id: emailData?.id || null, statut: 'sent',
-                  }).eq('id', courrielId)
-                }
-                return { benevole_id: dest.benevole_id, ok: true }
-              }
-            } catch (err: any) {
-              if (courrielId) await supabaseAdmin.from('courriels').update({ statut: 'failed' }).eq('id', courrielId)
-              return { benevole_id: dest.benevole_id, ok: false, error: err.message }
-            }
-          })
-        )
-
-        resultats.push(...chunkResults)
-
-        // Log progression avec temps ecoule
-        const sent = Math.min(i + PARALLEL_SIZE, prepared.length)
-        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1)
-        const ok = chunkResults.filter(r => r.ok).length
-        const fail = chunkResults.filter(r => !r.ok).length
-        console.log(`Progression: ${sent}/${prepared.length} (${elapsed}s) — lot: ${ok} ok, ${fail} echecs`)
+      // Declencher n8n (fire-and-forget, n8n repond 200 immediatement)
+      const n8nBaseUrl = process.env.NEXT_PUBLIC_N8N_BASE_URL || 'https://n8n.aqbrs.ca'
+      try {
+        await fetch(`${n8nBaseUrl}/webhook/riusc-envoi-campagne`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campagne_id,
+            attachments: (attachments || []).filter((a: any) => a.storage_path).map((a: any) => ({
+              filename: a.filename,
+              storage_path: a.storage_path,
+            })),
+            from_name: fromName,
+            from_email: fromEmail,
+            reply_to: replyTo,
+            signature_html: signature,
+            inbound_domain: inboundDomain,
+          }),
+        })
+        console.log('Webhook n8n declenche pour campagne:', campagne_id)
+      } catch (err: any) {
+        console.error('Erreur declenchement n8n:', err.message)
+        // Pas fatal: les courriels sont en queued, on peut relancer n8n manuellement
       }
+
+      // Retourner au client: tous les courriels sont queued, n8n prend la releve
+      return NextResponse.json({
+        ok: true,
+        envoyes: inserted,
+        echoues: prepared.length - inserted,
+        campagne_id,
+        delegue_n8n: true,
+        resultats: insertResults.map(r => ({ benevole_id: r.benevole_id, ok: r.ok })),
+      })
     } else if (prepared.length > 1) {
       // ── Mode batch sans PJ (performant, lots de 100) ──
       const BATCH_SIZE = 100
@@ -320,12 +319,23 @@ export async function POST(req: NextRequest) {
     const envoyes = resultats.filter(r => r.ok).length
     const echoues = resultats.filter(r => !r.ok).length
 
-    // Mettre a jour le total reel de la campagne (utile si timeout partiel ou erreurs)
+    // Mettre a jour le total reel de la campagne
+    // En mode chunke (clientCampagneId fourni), on additionne au total existant
+    // En mode normal, on ecrase avec le total du lot
     if (campagne_id) {
-      await supabaseAdmin.from('courriel_campagnes').update({
-        total_envoyes: envoyes,
-      }).eq('id', campagne_id)
-      if (echoues > 0) console.log(`Campagne ${campagne_id}: ${envoyes} envoyes, ${echoues} echoues sur ${destinataires.length} destinataires`)
+      if (clientCampagneId) {
+        // Mode chunke: incrementer le total existant
+        const { data: current } = await supabaseAdmin.from('courriel_campagnes').select('total_envoyes').eq('id', campagne_id).single()
+        const currentTotal = current?.total_envoyes || 0
+        await supabaseAdmin.from('courriel_campagnes').update({
+          total_envoyes: currentTotal + envoyes,
+        }).eq('id', campagne_id)
+      } else {
+        await supabaseAdmin.from('courriel_campagnes').update({
+          total_envoyes: envoyes,
+        }).eq('id', campagne_id)
+      }
+      if (echoues > 0) console.log(`Campagne ${campagne_id}: ${envoyes} envoyes, ${echoues} echoues sur ${destinataires.length} destinataires (lot)`)
     }
 
     // ── Envoi unique CC pour les envois de masse ──

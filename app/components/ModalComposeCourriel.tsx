@@ -85,6 +85,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     onClose()
   }
   const [sending, setSending] = useState(false)
+  const [sendProgress, setSendProgress] = useState<{ sent: number; failed: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ envoyes: number; echoues: number } | null>(null)
   const [config, setConfig] = useState<AdminEmailConfig | null>(null)
@@ -181,62 +182,139 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
 
     setSending(true)
     setError(null)
+    setSendProgress(null)
     try {
       // Construire la liste CC à partir des contacts sélectionnés
       const ccEmails = ccContacts.filter(c => selectedCc.has(c.id)).map(c => c.email)
 
-      // Envoyer les chemins Storage au lieu du base64 pour éviter PAYLOAD_TOO_LARGE
-      // Fallback : si pas de storagePath (vieux brouillon), envoyer le base64
-      const payload = JSON.stringify({
-        destinataires,
-        subject,
-        body_html: bodyHtml.replace(/\n/g, '<br/>'),
-        cc: ccEmails.length > 0 ? ccEmails : undefined,
-        reply_to_courriel_id: replyToCourrielId || undefined,
-        attachments: attachments.map(a => a.storagePath
-          ? { filename: a.filename, storage_path: a.storagePath, size: a.size }
-          : { filename: a.filename, content: a.base64 }
-        ),
-      })
+      const attPayload = attachments.map(a => a.storagePath
+        ? { filename: a.filename, storage_path: a.storagePath, size: a.size }
+        : { filename: a.filename, content: a.base64 }
+      )
+      const hasStorageAttachments = attachments.some(a => a.storagePath)
 
-      // Vérifier la taille avant envoi (Vercel limite à ~4.5 MB)
-      const payloadSizeMB = new Blob([payload]).size / (1024 * 1024)
-      if (payloadSizeMB > 4) {
-        setError(`Le message est trop volumineux (${payloadSizeMB.toFixed(1)} MB). Réduisez la taille des pièces jointes (max ~4 MB au total).`)
-        setSending(false)
-        return
+      // Pour les envois de masse avec PJ Storage, on delegue a n8n.
+      // L'API pre-insere les courriels en queued et declenche n8n.
+      // Le frontend poll la progression via Supabase.
+      const needsN8n = destinataires.length > 1 && hasStorageAttachments
+
+      if (needsN8n) {
+        const totalDest = destinataires.length
+        setSendProgress({ sent: 0, failed: 0, total: totalDest })
+
+        const payload = JSON.stringify({
+          destinataires,
+          subject,
+          body_html: bodyHtml.replace(/\n/g, '<br/>'),
+          cc: ccEmails.length > 0 ? ccEmails : undefined,
+          reply_to_courriel_id: replyToCourrielId || undefined,
+          attachments: attPayload,
+        })
+
+        const res = await fetch('/api/admin/courriels/envoyer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        })
+
+        const contentType = res.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          const text = await res.text()
+          setError(text.includes('Entity Too Large') || text.includes('too large')
+            ? 'Le message est trop volumineux.'
+            : `Erreur serveur: ${text.slice(0, 200)}`)
+          setSending(false)
+          return
+        }
+
+        const json = await res.json()
+        if (!res.ok) { setError(json.error || 'Erreur'); setSending(false); return }
+
+        const campagneId = json.campagne_id
+        if (!campagneId) {
+          setSuccess({ envoyes: json.envoyes, echoues: json.echoues })
+          onSent?.({ envoyes: json.envoyes, echoues: json.echoues })
+        } else {
+          // Poll la progression toutes les 3 secondes
+          const supabase = createClient()
+          let polling = true
+          while (polling) {
+            await new Promise(r => setTimeout(r, 3000))
+            const { data: stats } = await supabase
+              .from('courriels')
+              .select('statut')
+              .eq('campagne_id', campagneId)
+            if (!stats) continue
+            const sent = stats.filter((s: any) => ['sent', 'delivered', 'opened', 'clicked'].includes(s.statut)).length
+            const failed = stats.filter((s: any) => s.statut === 'failed').length
+            const queued = stats.filter((s: any) => s.statut === 'queued').length
+            setSendProgress({ sent, failed, total: stats.length })
+            // Terminer quand il ne reste plus de queued
+            if (queued === 0) polling = false
+          }
+          // Resultat final
+          const { data: finalStats } = await supabase
+            .from('courriels')
+            .select('statut')
+            .eq('campagne_id', campagneId)
+          const finalSent = (finalStats || []).filter((s: any) => !['queued', 'failed'].includes(s.statut)).length
+          const finalFailed = (finalStats || []).filter((s: any) => s.statut === 'failed').length
+          setSuccess({ envoyes: finalSent, echoues: finalFailed })
+          onSent?.({ envoyes: finalSent, echoues: finalFailed })
+        }
+
+        if (brouillonId) {
+          fetch(`/api/admin/courriels/brouillons?id=${brouillonId}`, { method: 'DELETE' }).catch(() => {})
+        }
+      } else {
+        // Envoi classique en un seul appel (petit volume ou pas de PJ Storage)
+        const payload = JSON.stringify({
+          destinataires,
+          subject,
+          body_html: bodyHtml.replace(/\n/g, '<br/>'),
+          cc: ccEmails.length > 0 ? ccEmails : undefined,
+          reply_to_courriel_id: replyToCourrielId || undefined,
+          attachments: attPayload,
+        })
+
+        const payloadSizeMB = new Blob([payload]).size / (1024 * 1024)
+        if (payloadSizeMB > 4) {
+          setError(`Le message est trop volumineux (${payloadSizeMB.toFixed(1)} MB). Reduisez la taille des pieces jointes (max ~4 MB au total).`)
+          setSending(false)
+          return
+        }
+
+        const res = await fetch('/api/admin/courriels/envoyer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+        })
+
+        const contentType = res.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          const text = await res.text()
+          setError(text.includes('Entity Too Large') || text.includes('too large')
+            ? 'Le message est trop volumineux. Reduisez la taille des pieces jointes.'
+            : `Erreur serveur: ${text.slice(0, 200)}`)
+          setSending(false)
+          return
+        }
+
+        const json = await res.json()
+        if (!res.ok) { setError(json.error || 'Erreur lors de l\'envoi'); setSending(false); return }
+
+        if (brouillonId) {
+          fetch(`/api/admin/courriels/brouillons?id=${brouillonId}`, { method: 'DELETE' }).catch(() => {})
+        }
+
+        setSuccess({ envoyes: json.envoyes, echoues: json.echoues })
+        onSent?.({ envoyes: json.envoyes, echoues: json.echoues })
       }
-
-      const res = await fetch('/api/admin/courriels/envoyer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-      })
-
-      // Gérer les réponses non-JSON (ex: erreur Vercel "Request Entity Too Large")
-      const contentType = res.headers.get('content-type') || ''
-      if (!contentType.includes('application/json')) {
-        const text = await res.text()
-        setError(text.includes('Entity Too Large') || text.includes('too large')
-          ? 'Le message est trop volumineux. Réduisez la taille des pièces jointes.'
-          : `Erreur serveur: ${text.slice(0, 200)}`)
-        setSending(false)
-        return
-      }
-
-      const json = await res.json()
-      if (!res.ok) { setError(json.error || 'Erreur lors de l\'envoi'); setSending(false); return }
-
-      if (brouillonId) {
-        fetch(`/api/admin/courriels/brouillons?id=${brouillonId}`, { method: 'DELETE' }).catch(() => {})
-      }
-
-      setSuccess({ envoyes: json.envoyes, echoues: json.echoues })
-      onSent?.({ envoyes: json.envoyes, echoues: json.echoues })
     } catch (err: any) {
       setError(err.message)
     }
     setSending(false)
+    setSendProgress(null)
   }
 
   const sauvegarderConfig = async () => {
@@ -775,7 +853,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={handleSafeClose} disabled={sending} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
                   <button onClick={envoyer} disabled={sending || !subject.trim() || !bodyHtml.trim()} style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: (sending || !subject.trim() || !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !subject.trim() || !bodyHtml.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {sending ? '⏳ Envoi en cours…' : `📨 Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
+                    {sending && sendProgress ? `Envoi ${sendProgress.sent + sendProgress.failed}/${sendProgress.total}...` : sending ? 'Envoi en cours...' : `Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
                   </button>
                 </div>
               </>
