@@ -235,11 +235,11 @@ export default function CampagnesPage() {
     if (!authorized) return
     Promise.allSettled([
       fetch('/api/admin/courriels/campagnes').then(r => r.json()),
-      fetch('/api/admin/courriels/reponses?statut=recu&limit=200').then(r => r.json())
+      fetch('/api/admin/courriels/reponses/count').then(r => r.json())
     ]).then(([campResult, repResult]) => {
       if (campResult.status === 'fulfilled') setCampagnes(campResult.value.campagnes || [])
       if (repResult.status === 'fulfilled') {
-        const count = (repResult.value.reponses || []).length
+        const count = repResult.value.count || 0
         setReponsesNonLues(count)
         dispatchBadgeUpdate(count)
       }

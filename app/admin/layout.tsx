@@ -43,11 +43,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       let notesNonLues = 0
       try {
         const [repRes, notesRes] = await Promise.all([
-          fetch('/api/admin/courriels/reponses?statut=recu&limit=200'),
+          fetch('/api/admin/courriels/reponses/count'),
           fetch('/api/admin/notes/non-lues'),
         ])
         const repJson = await repRes.json()
-        reponsesNonLues = (repJson.reponses || []).length
+        reponsesNonLues = repJson.count || 0
         const notesJson = await notesRes.json()
         notesNonLues = notesJson.count || 0
       } catch {}
