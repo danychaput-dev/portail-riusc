@@ -89,11 +89,24 @@ export async function POST(req: NextRequest) {
       return { ...dest, html }
     })
 
-    // Préparer les pièces jointes Resend (base64 → buffer)
-    const resendAttachments = (attachments || []).map((a: any) => ({
-      filename: a.filename,
-      content: Buffer.from(a.content, 'base64'),
-    }))
+    // Préparer les pièces jointes Resend
+    // Supporte 2 modes : storage_path (téléchargé depuis Supabase Storage) ou content (base64 legacy)
+    const resendAttachments: { filename: string; content: Buffer }[] = []
+    for (const a of (attachments || [])) {
+      if (a.storage_path) {
+        // Télécharger depuis Supabase Storage (évite PAYLOAD_TOO_LARGE)
+        const { data: fileData, error: dlErr } = await supabaseAdmin.storage.from('certificats').download(a.storage_path)
+        if (dlErr || !fileData) {
+          console.error('Erreur download PJ depuis Storage:', dlErr?.message, a.storage_path)
+          continue
+        }
+        const buffer = Buffer.from(await fileData.arrayBuffer())
+        resendAttachments.push({ filename: a.filename, content: buffer })
+      } else if (a.content) {
+        // Fallback legacy : base64 directement dans le payload
+        resendAttachments.push({ filename: a.filename, content: Buffer.from(a.content, 'base64') })
+      }
+    }
 
     const attachmentNames = (attachments || []).map((a: any) => a.filename).filter(Boolean)
 

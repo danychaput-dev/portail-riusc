@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
 const C = '#1e3a5f'
 
@@ -55,6 +56,7 @@ interface PieceJointe {
   filename: string
   base64: string
   size: number
+  storagePath?: string  // chemin Storage pour envoi côté serveur
 }
 
 interface Props {
@@ -67,6 +69,7 @@ interface Props {
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template' | 'cc_manage'
 
 export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject }: Props) {
+  const supabase = createClient()
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
   const [subject, setSubject] = useState(initialSubject || '')
   const defaultBody = 'Bonjour {{ prenom }},\n\n'
@@ -163,21 +166,35 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     if (!subject.trim()) { setError('L\'objet est requis'); return }
     if (!bodyHtml.trim()) { setError('Le contenu est requis'); return }
 
+    // Vérifier si des pièces jointes ont été perdues lors du chargement du brouillon
+    if (brouillonId && attachments.length === 0) {
+      // Vérifier si le brouillon original avait des PJ
+      const brouillonOriginal = brouillons.find(b => b.id === brouillonId)
+      if (brouillonOriginal?.pieces_jointes && brouillonOriginal.pieces_jointes.length > 0) {
+        const noms = brouillonOriginal.pieces_jointes.map((p: any) => p.filename || 'fichier').join(', ')
+        if (!window.confirm(`Ce brouillon contenait ${brouillonOriginal.pieces_jointes.length} pièce(s) jointe(s) (${noms}) qui ne sont plus attachées.\n\nVoulez-vous envoyer quand même sans pièce jointe ?`)) {
+          return
+        }
+      }
+    }
+
     setSending(true)
     setError(null)
     try {
       // Construire la liste CC à partir des contacts sélectionnés
       const ccEmails = ccContacts.filter(c => selectedCc.has(c.id)).map(c => c.email)
 
+      // Envoyer les chemins Storage au lieu du base64 pour éviter PAYLOAD_TOO_LARGE
+      // Fallback : si pas de storagePath (vieux brouillon), envoyer le base64
       const payload = JSON.stringify({
         destinataires,
         subject,
         body_html: bodyHtml.replace(/\n/g, '<br/>'),
         cc: ccEmails.length > 0 ? ccEmails : undefined,
-        attachments: attachments.map(a => ({
-          filename: a.filename,
-          content: a.base64,
-        })),
+        attachments: attachments.map(a => a.storagePath
+          ? { filename: a.filename, storage_path: a.storagePath, size: a.size }
+          : { filename: a.filename, content: a.base64 }
+        ),
       })
 
       // Vérifier la taille avant envoi (Vercel limite à ~4.5 MB)
@@ -265,14 +282,31 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
         const res = await fetch(`/api/admin/courriels/brouillons?id=${b.id}`)
         const json = await res.json()
         if (json.fichiers && json.fichiers.length > 0) {
-          setAttachments(json.fichiers.map((f: { filename: string; base64: string; size: number }) => ({
-            file: null,
-            filename: f.filename,
-            base64: f.base64,
-            size: f.size,
-          })))
+          // Re-upload vers Storage pour avoir un storagePath frais
+          const restored: PieceJointe[] = []
+          for (const f of json.fichiers) {
+            const storagePath = `courriel-pj/${Date.now()}-${f.filename}`
+            const buffer = Uint8Array.from(atob(f.base64), c => c.charCodeAt(0))
+            const blob = new Blob([buffer])
+            const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, blob, { upsert: true })
+            restored.push({
+              file: null,
+              filename: f.filename,
+              base64: f.base64,
+              size: f.size,
+              storagePath: upErr ? undefined : storagePath,
+            })
+          }
+          setAttachments(restored)
+        } else if (b.pieces_jointes.length > 0) {
+          // Les fichiers n'ont pas pu être rechargés depuis le Storage
+          const noms = b.pieces_jointes.map((p: any) => p.filename || 'fichier').join(', ')
+          alert(`Attention : ${b.pieces_jointes.length} pièce(s) jointe(s) du brouillon n'ont pas pu être rechargées (${noms}). Veuillez les ajouter de nouveau avant d'envoyer.`)
         }
-      } catch {}
+      } catch {
+        const noms = b.pieces_jointes.map((p: any) => p.filename || 'fichier').join(', ')
+        alert(`Erreur lors du chargement des pièces jointes du brouillon (${noms}). Veuillez les ajouter de nouveau avant d'envoyer.`)
+      }
     }
   }
 
@@ -356,16 +390,21 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
         setError(`Le fichier "${file.name}" dépasse 10 Mo`)
         continue
       }
+      // Upload vers Supabase Storage pour éviter PAYLOAD_TOO_LARGE
+      const storagePath = `courriel-pj/${Date.now()}-${file.name}`
+      const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: true })
+      if (upErr) {
+        setError(`Erreur upload "${file.name}" : ${upErr.message}`)
+        continue
+      }
+      // Garder aussi le base64 pour les brouillons et l'aperçu
       const base64: string = await new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => {
-          const result = reader.result as string
-          resolve(result.split(',')[1] || '')
-        }
+        reader.onload = () => resolve((reader.result as string).split(',')[1] || '')
         reader.onerror = reject
         reader.readAsDataURL(file)
       })
-      setAttachments(prev => [...prev, { file, filename: file.name, base64, size: file.size }])
+      setAttachments(prev => [...prev, { file, filename: file.name, base64, size: file.size, storagePath }])
     }
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
