@@ -200,6 +200,20 @@ export default function CampagnesPage() {
   // ─── Filtre envoyeur ───
   const [filterSender, setFilterSender] = useState('')
 
+  // ─── Tri colonnes ───
+  type SortDir = 'asc' | 'desc'
+  const [campSort, setCampSort] = useState<{ col: string; dir: SortDir }>({ col: 'created_at', dir: 'desc' })
+  const [indivSort, setIndivSort] = useState<{ col: string; dir: SortDir }>({ col: 'created_at', dir: 'desc' })
+  const [destSort, setDestSort] = useState<{ col: string; dir: SortDir }>({ col: 'nom_complet', dir: 'asc' })
+
+  const toggleSort = (current: { col: string; dir: SortDir }, col: string, setter: (v: { col: string; dir: SortDir }) => void) => {
+    if (current.col === col) setter({ col, dir: current.dir === 'asc' ? 'desc' : 'asc' })
+    else setter({ col, dir: 'asc' })
+  }
+
+  const sortArrow = (current: { col: string; dir: SortDir }, col: string) =>
+    current.col === col ? (current.dir === 'asc' ? ' ▲' : ' ▼') : ''
+
   // ─── Réponses orphelines (sans courriel_id) ───
   const [reponsesOrphelines, setReponsesOrphelines] = useState<(ReponseInline & { benevole_id?: string; nom_complet?: string })[]>([])
 
@@ -359,8 +373,19 @@ export default function CampagnesPage() {
     }
     if (campDateFrom) list = list.filter(c => c.created_at >= campDateFrom)
     if (campDateTo) list = list.filter(c => c.created_at.slice(0, 10) <= campDateTo)
+    // Tri
+    const dir = campSort.dir === 'asc' ? 1 : -1
+    list = [...list].sort((a, b) => {
+      switch (campSort.col) {
+        case 'subject': return dir * (a.subject || '').localeCompare(b.subject || '', 'fr')
+        case 'total': return dir * ((a.stats?.total || 0) - (b.stats?.total || 0))
+        case 'taux_ouverture': return dir * ((a.stats?.taux_ouverture || 0) - (b.stats?.taux_ouverture || 0))
+        case 'reponses': return dir * ((a.reponses_total || 0) - (b.reponses_total || 0))
+        case 'created_at': default: return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      }
+    })
     return list
-  }, [campagnes, campSearch, campDateFrom, campDateTo])
+  }, [campagnes, campSearch, campDateFrom, campDateTo, campSort])
 
   // ─── Liste des envoyeurs uniques (from_name ou from_email) pour le filtre ───
   const uniqueSenders = useMemo(() => {
@@ -412,7 +437,7 @@ export default function CampagnesPage() {
       parent.has_reply = allReplies.length > 0
       result.push(parent)
     }
-    return result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    return result
   }, [individuels])
 
   // ─── Filtrage individuels ───
@@ -432,8 +457,18 @@ export default function CampagnesPage() {
         (c.subject || '').toLowerCase().includes(s)
       )
     }
+    // Tri
+    const dir = indivSort.dir === 'asc' ? 1 : -1
+    list = [...list].sort((a, b) => {
+      switch (indivSort.col) {
+        case 'nom': return dir * (a.nom_complet || '').localeCompare(b.nom_complet || '', 'fr')
+        case 'subject': return dir * (a.subject || '').localeCompare(b.subject || '', 'fr')
+        case 'statut': return dir * (a.statut || '').localeCompare(b.statut || '', 'fr')
+        case 'created_at': default: return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      }
+    })
     return list
-  }, [threadedIndiv, indivSearch, showOnlyWithReplies, filterSender])
+  }, [threadedIndiv, indivSearch, showOnlyWithReplies, filterSender, indivSort])
 
   // ─── Reply helpers ───
   const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string) => {
@@ -546,6 +581,15 @@ export default function CampagnesPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* En-tête triable campagnes */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 130px 40px', gap: '12px', padding: '6px 16px', fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(campSort, 'subject', setCampSort)}>Objet{sortArrow(campSort, 'subject')}</div>
+                  <div style={{ cursor: 'pointer', userSelect: 'none', display: 'flex', gap: '12px' }}>
+                    <span onClick={() => toggleSort(campSort, 'total', setCampSort)}>Stats{sortArrow(campSort, 'total')}</span>
+                  </div>
+                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(campSort, 'created_at', setCampSort)}>Date{sortArrow(campSort, 'created_at')}</div>
+                  <div></div>
+                </div>
                 {filteredCampagnes.map(c => {
                   const s = c.stats
                   const isOpen = selectedCampagne === c.id
@@ -577,7 +621,6 @@ export default function CampagnesPage() {
                               fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '8px',
                               backgroundColor: (c.reponses_non_lues || 0) > 0 ? '#fef3c7' : '#dbeafe',
                               color: (c.reponses_non_lues || 0) > 0 ? '#92400e' : '#1e40af',
-                              animation: (c.reponses_non_lues || 0) > 0 ? 'none' : 'none',
                             }}>
                               💬 {c.reponses_total} rép.{(c.reponses_non_lues || 0) > 0 ? ` (${c.reponses_non_lues} ⬤)` : ''}
                             </span>
@@ -634,14 +677,24 @@ export default function CampagnesPage() {
                               {/* Table destinataires + réponses en fil */}
                               <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', backgroundColor: '#f1f5f9', padding: '8px 12px', fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>
-                                  <div>Nom</div>
-                                  <div>Courriel</div>
-                                  <div>Statut</div>
-                                  <div>Ouvert le</div>
-                                  <div style={{ textAlign: 'center' }}>Clics</div>
+                                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(destSort, 'nom_complet', setDestSort)}>Nom{sortArrow(destSort, 'nom_complet')}</div>
+                                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(destSort, 'to_email', setDestSort)}>Courriel{sortArrow(destSort, 'to_email')}</div>
+                                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(destSort, 'statut', setDestSort)}>Statut{sortArrow(destSort, 'statut')}</div>
+                                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(destSort, 'ouvert_at', setDestSort)}>Ouvert le{sortArrow(destSort, 'ouvert_at')}</div>
+                                  <div style={{ textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(destSort, 'clics_count', setDestSort)}>Clics{sortArrow(destSort, 'clics_count')}</div>
                                   <div style={{ textAlign: 'center' }}>Action</div>
                                 </div>
-                                {campagneDetail.destinataires.map(d => (
+                                {[...campagneDetail.destinataires].sort((a, b) => {
+                                  const dir = destSort.dir === 'asc' ? 1 : -1
+                                  switch (destSort.col) {
+                                    case 'nom_complet': return dir * (a.nom_complet || '').localeCompare(b.nom_complet || '', 'fr')
+                                    case 'to_email': return dir * (a.to_email || '').localeCompare(b.to_email || '', 'fr')
+                                    case 'statut': return dir * (a.statut || '').localeCompare(b.statut || '', 'fr')
+                                    case 'ouvert_at': return dir * ((a.ouvert_at || '').localeCompare(b.ouvert_at || ''))
+                                    case 'clics_count': return dir * ((a.clics_count || 0) - (b.clics_count || 0))
+                                    default: return 0
+                                  }
+                                }).map(d => (
                                   <div key={d.id}>
                                     {/* Ligne destinataire */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu') ? '#fffdf5' : d.reponses && d.reponses.length > 0 ? '#f0f9ff' : 'white', alignItems: 'center' }}>
@@ -798,6 +851,15 @@ export default function CampagnesPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* En-tête triable individuels */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 130px 70px 40px', gap: '8px', padding: '6px 16px', fontSize: '11px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>
+                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(indivSort, 'nom', setIndivSort)}>Destinataire{sortArrow(indivSort, 'nom')}</div>
+                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(indivSort, 'subject', setIndivSort)}>Objet{sortArrow(indivSort, 'subject')}</div>
+                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(indivSort, 'statut', setIndivSort)}>Statut{sortArrow(indivSort, 'statut')}</div>
+                  <div style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(indivSort, 'created_at', setIndivSort)}>Date{sortArrow(indivSort, 'created_at')}</div>
+                  <div></div>
+                  <div></div>
+                </div>
                 {filteredIndiv.map(c => {
                   const isOpen = selectedIndiv === c.id
                   const hasUnread = c.reponses?.some(r => r.statut === 'recu')
