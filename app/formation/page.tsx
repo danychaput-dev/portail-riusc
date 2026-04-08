@@ -394,7 +394,7 @@ function FormationContent() {
   }
 
   const openCampModal = async () => {
-    setShowCampModal(true); setLoadingSessions(true); setInscriptionError(null); setInscriptionSuccess(false); setSelectedSessionId('');
+    setShowCampModal(true); setLoadingSessions(true); setInscriptionError(null); setInscriptionSuccess(false); setSelectedSessionId(campStatus?.session_id || '');
     setModalAllergiesAlim(reserviste?.allergies_alimentaires || '');
     setModalAllergiesAutres(reserviste?.allergies_autres || '');
     setModalConditions(reserviste?.conditions_medicales || '');

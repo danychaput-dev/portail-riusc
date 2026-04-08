@@ -661,7 +661,7 @@ export default function HomePage() {
     setLoadingSessions(true)
     setInscriptionError(null)
     setInscriptionSuccess(false)
-    setSelectedSessionId('')
+    setSelectedSessionId(campStatus?.session_id || '')
 
     // 🎯 Mode démo : données fictives pour les sessions
     if (isDemoMode) {
