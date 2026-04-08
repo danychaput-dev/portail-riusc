@@ -303,6 +303,13 @@ export async function POST(req: NextRequest) {
         let ccHtml = linkifyUrls(body_html)
           .replace(/\{\{\s*prenom\s*\}\}/gi, '')
           .replace(/\{\{\s*nom\s*\}\}/gi, '')
+        if (attachmentLinks.length > 0) {
+          ccHtml += '<br/><br/><table cellpadding="0" cellspacing="0" border="0">'
+          for (const link of attachmentLinks) {
+            ccHtml += `<tr><td style="padding:4px 0"><a href="${link.url}" target="_blank" style="color:#2563eb;text-decoration:underline">Consulter : ${link.filename}</a></td></tr>`
+          }
+          ccHtml += '</table>'
+        }
         if (signature) ccHtml += `<br/><br/>${signature}`
 
         await resend.emails.send({
