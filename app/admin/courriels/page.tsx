@@ -1233,7 +1233,11 @@ export default function CampagnesPage() {
                 </button>
                 <button onClick={() => {
                   try {
-                    const parsed = JSON.parse(importJson)
+                    let parsed = JSON.parse(importJson)
+                    // Accepter le format Supabase SQL Editor: [{"json_agg": [...]}]
+                    if (Array.isArray(parsed) && parsed.length === 1 && parsed[0]?.json_agg && Array.isArray(parsed[0].json_agg)) {
+                      parsed = parsed[0].json_agg
+                    }
                     if (!Array.isArray(parsed) || parsed.length === 0) {
                       setImportError('Le JSON doit etre un tableau non vide.')
                       return
@@ -1260,7 +1264,7 @@ export default function CampagnesPage() {
                   }
                 }}
                   style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'white', backgroundColor: C, border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                  Charger ({(() => { try { const p = JSON.parse(importJson); return Array.isArray(p) ? p.length : 0 } catch { return 0 } })()} destinataires)
+                  Charger ({(() => { try { let p = JSON.parse(importJson); if (Array.isArray(p) && p.length === 1 && p[0]?.json_agg) p = p[0].json_agg; return Array.isArray(p) ? p.length : 0 } catch { return 0 } })()} destinataires)
                 </button>
               </div>
             </div>
