@@ -90,17 +90,19 @@ export async function POST(req: NextRequest) {
     const attachmentLinks: { filename: string; url: string }[] = []
     for (const a of (attachments || [])) {
       if (a.storage_path) {
-        // URL signee valide 1 heure
+        // URL signee valide 7 jours (604800 secondes)
         const { data: signedData, error: signErr } = await supabaseAdmin.storage
           .from('certificats')
-          .createSignedUrl(a.storage_path, 3600)
+          .createSignedUrl(a.storage_path, 604800)
         if (signErr || !signedData?.signedUrl) {
           console.error('Erreur creation URL signee PJ:', signErr?.message, a.storage_path)
           continue
         }
         console.log('URL signee PJ:', a.filename, '(' + a.storage_path + ')')
         resendAttachments.push({ filename: a.filename, path: signedData.signedUrl })
-        attachmentLinks.push({ filename: a.filename, url: signedData.signedUrl })
+        // Lien permanent via route API (ne meurt jamais, genere l'URL signee au moment du clic)
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://portail.riusc.ca')
+        attachmentLinks.push({ filename: a.filename, url: `${baseUrl}/api/admin/courriels/fichier?path=${encodeURIComponent(a.storage_path)}` })
       } else if (a.content) {
         resendAttachments.push({ filename: a.filename, content: Buffer.from(a.content, 'base64') })
       }
