@@ -75,8 +75,24 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       }
     }
 
+    // Bloquer les changements de valeur sur checkboxes/radio/select verrouilles
+    const handleChange = (e: Event) => {
+      const target = e.target as HTMLElement
+      const field = target.closest('input, select, textarea') as HTMLElement | null
+      if (!field) return
+      if (field.hasAttribute('data-impersonate-unlocked')) return
+      e.preventDefault()
+      e.stopPropagation()
+      // Remettre la valeur d'origine pour les checkboxes
+      const input = field as HTMLInputElement
+      if (input.type === 'checkbox') input.checked = !input.checked
+      if (input.type === 'radio') input.checked = false
+    }
+
     // Capturer les evenements sur les champs
     document.addEventListener('mousedown', handleInteraction, true)
+    document.addEventListener('click', handleInteraction, true)
+    document.addEventListener('change', handleChange, true)
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       const field = target.closest('input, select, textarea') as HTMLElement | null
