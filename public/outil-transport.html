@@ -4,30 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RIUSC — Calculateur de transport dynamique</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-:root{--bleu:#1B3A6B;--bleu-mid:#2E5FAC;--vert:#1A7A5C;--vert-pale:#E6F6F1;--ambre:#C96A00;--ambre-pale:#FFF4E5;--rouge:#B03030;--rouge-pale:#FDF0F0;--violet:#5B3FA6;--gris-fond:#F4F6FB;--gris-bord:#DDE3EF;--gris-text:#6B748A}
+:root{--bleu:#1e3a5f;--bleu-mid:#2563eb;--vert:#059669;--vert-pale:#ecfdf5;--ambre:#d97706;--ambre-pale:#fffbeb;--rouge:#dc2626;--rouge-pale:#fef2f2;--violet:#7c3aed;--gris-fond:#f8fafc;--gris-bord:#e5e7eb;--gris-text:#6b7280}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;font-size:14px;line-height:1.6}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--gris-fond);color:#111827;font-size:14px;line-height:1.6}
 .cover{background:var(--bleu);color:white;padding:52px 72px 44px;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
 .cover::before{content:'';position:absolute;top:-80px;right:-80px;width:380px;height:380px;border-radius:50%;border:55px solid rgba(255,255,255,0.06)}
 .badge{display:inline-block;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 14px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:18px}
-.cover h1{font-family:'DM Serif Display',serif;font-size:42px;line-height:1.1;margin-bottom:10px}
+.cover h1{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:42px;line-height:1.1;margin-bottom:10px}
 .cover h1 em{font-style:italic;color:#7EC8E3}
 .cover-sub{font-size:15px;color:rgba(255,255,255,0.7);margin-bottom:28px;max-width:520px;text-align:center}
 .cover-meta{display:flex;gap:32px;flex-wrap:wrap;justify-content:center}
 .cover-meta strong{display:block;font-size:13px;color:white;font-weight:600}
 .cover-meta span{font-size:11px;color:rgba(255,255,255,0.5)}
 .page{max-width:1480px;margin:0 auto;padding:32px 28px}
-.st{font-family:'DM Serif Display',serif;font-size:26px;color:var(--bleu);margin-bottom:4px}
+.st{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;color:var(--bleu);margin-bottom:4px}
 .ss{color:var(--gris-text);font-size:13px;margin-bottom:22px;padding-bottom:12px;border-bottom:2px solid var(--gris-bord)}
 .divider{border:none;border-top:2px solid var(--gris-bord);margin:36px 0}
-.panel{background:white;border:2px solid var(--bleu-mid);border-radius:14px;padding:24px;margin-bottom:28px;position:relative}
-.panel-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--bleu);margin-bottom:3px;display:flex;align-items:center;gap:10px}
+.panel{background:white;border:1px solid var(--gris-bord);border-radius:10px;padding:24px;margin-bottom:28px;position:relative;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.panel-title{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:20px;color:var(--bleu);margin-bottom:3px;display:flex;align-items:center;gap:10px}
 .live-badge{font-size:10px;font-weight:600;background:#E6F6F1;color:var(--vert);padding:2px 9px;border-radius:12px}
 .panel-sub{font-size:12px;color:var(--gris-text);margin-bottom:18px}
-.reset-btn{position:absolute;top:18px;right:20px;font-size:11px;color:var(--gris-text);background:none;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.reset-btn{position:absolute;top:18px;right:20px;font-size:11px;color:var(--gris-text);background:none;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:Arial,Helvetica,sans-serif}
 .reset-btn:hover{border-color:var(--bleu-mid);color:var(--bleu-mid)}
 .vg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .vbox{background:var(--gris-fond);border-radius:10px;padding:14px}
@@ -36,7 +35,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;
 .vr:last-child{margin-bottom:0}
 .vl{font-size:12px;color:#111827;flex:1;line-height:1.3}
 .vl small{display:block;font-size:10px;color:var(--gris-text);margin-top:1px}
-.vi{width:80px;text-align:right;border:1px solid var(--gris-bord);border-radius:6px;padding:4px 7px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:'DM Sans',sans-serif}
+.vi{width:80px;text-align:right;border:1px solid var(--gris-bord);border-radius:6px;padding:4px 7px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:Arial,Helvetica,sans-serif}
 .vi:focus{outline:none;border-color:var(--bleu-mid);box-shadow:0 0 0 2px rgba(46,95,172,0.12)}
 .vi.ro{background:#F8FAFF;color:var(--gris-text);cursor:not-allowed}
 .vs{font-size:10px;color:var(--gris-text);min-width:26px}
@@ -52,7 +51,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;
 .dur-card:hover{border-color:var(--bleu-mid)}
 .dur-card.active{border-color:var(--bleu-mid);background:#EEF3FC}
 .dur-card input[type=radio]{display:none}
-.dur-n{font-family:'DM Serif Display',serif;font-size:22px;color:var(--bleu);line-height:1}
+.dur-n{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:22px;color:var(--bleu);line-height:1}
 .dur-lbl{font-size:11px;color:var(--gris-text);margin-top:2px}
 .dur-dispo{font-size:10px;font-weight:600;color:var(--bleu-mid);margin-top:4px}
 .cg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px}
@@ -62,11 +61,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;
 .cc-row{display:flex;align-items:center;gap:5px}
 .cc-fill{font-size:11px;font-weight:600;margin-top:5px;text-align:center;height:16px}
 .cc-sel{font-size:10px;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 3px;color:var(--bleu);background:white;flex:1;min-width:0}
-.cc-n{width:50px;text-align:right;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 5px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:'DM Sans',sans-serif}
+.cc-n{width:50px;text-align:right;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 5px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:Arial,Helvetica,sans-serif}
 .sg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
 .sc{background:white;border:1px solid var(--gris-bord);border-radius:10px;padding:14px}
 .sc-lbl{font-size:11px;color:var(--gris-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px}
-.sc-val{font-family:'DM Serif Display',serif;font-size:26px;color:var(--bleu);line-height:1;margin-bottom:2px}
+.sc-val{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:26px;color:var(--bleu);line-height:1;margin-bottom:2px}
 .sc-note{font-size:11px;color:var(--gris-text)}
 .sc.hi{border:2px solid var(--bleu-mid)}
 .sc.hi2{border:2px solid var(--vert)}
@@ -83,11 +82,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;
 .rtbl tr:nth-child(even) td{background:#F8FAFF}
 .rtbl tr:last-child td{border-bottom:none}
 .rtbl tr.rt td{background:#EEF3FC;font-weight:600}
-.ri{width:48px;text-align:center;border:1px solid var(--gris-bord);border-radius:5px;padding:3px 4px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:'DM Sans',sans-serif}
+.ri{width:48px;text-align:center;border:1px solid var(--gris-bord);border-radius:5px;padding:3px 4px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:Arial,Helvetica,sans-serif}
 .ri:focus{outline:none;border-color:var(--bleu-mid)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
 .chc{background:white;border:1px solid var(--gris-bord);border-radius:10px;padding:20px}
-.chc h3{font-family:'DM Serif Display',serif;font-size:16px;color:var(--bleu);margin-bottom:3px}
+.chc h3{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-size:16px;color:var(--bleu);margin-bottom:3px}
 .chc .cs{font-size:11px;color:var(--gris-text);margin-bottom:14px}
 .cn{font-size:10px;color:var(--gris-text);margin-top:8px;font-style:italic;border-top:1px solid var(--gris-bord);padding-top:7px}
 .alert{border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start}
@@ -96,19 +95,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;
 .alert.amber{background:var(--ambre-pale);border-left:4px solid var(--ambre)}
 .alert.green{background:var(--vert-pale);border-left:4px solid var(--vert)}
 .pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px}
-.footer{background:var(--bleu);color:rgba(255,255,255,0.45);text-align:center;padding:16px;font-size:11px;margin-top:32px}
+.footer{background:white;color:var(--gris-text);text-align:center;padding:16px;font-size:11px;margin-top:32px;border-top:1px solid var(--gris-bord)}
 </style>
 </head>
 <body>
 
-<div class="cover">
-  <div class="badge">RIUSC</div>
-  <h1>Calculateur de transport<br><em>dynamique</em></h1>
-  <p class="cover-sub">Covoiturage vs autobus nolisé · Grille par rotation · Impact de la durée · Politique provinciale MSP</p>
-  <div class="cover-meta">
-    <div><strong>Scénario</strong><span>Déploiement à La Tuque</span></div>
-    <div><strong>Pool disponible</strong><span>347 réservistes · 5 corridors</span></div>
-    <div><strong>Statut</strong><span>Estimations — soumissions requises</span></div>
+<div style="background:white;border-bottom:1px solid var(--gris-bord);padding:20px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+  <div>
+    <h1 style="font-size:22px;font-weight:700;color:var(--bleu);margin:0">Calculateur de transport dynamique</h1>
+    <p style="font-size:13px;color:var(--gris-text);margin:4px 0 0">Covoiturage vs autobus nolise  ·  Grille par rotation  ·  Impact de la duree  ·  Politique provinciale MSP</p>
+  </div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap">
+    <div style="text-align:center"><div style="font-size:12px;font-weight:600;color:var(--bleu)">Scenario</div><div style="font-size:11px;color:var(--gris-text)">Deploiement a La Tuque</div></div>
+    <div style="text-align:center"><div style="font-size:12px;font-weight:600;color:var(--bleu)">Pool disponible</div><div style="font-size:11px;color:var(--gris-text)">347 reservistes · 5 corridors</div></div>
+    <div style="text-align:center"><div style="font-size:12px;font-weight:600;color:var(--bleu)">Statut</div><div style="font-size:11px;color:var(--gris-text)">Estimations</div></div>
   </div>
 </div>
 
@@ -166,7 +166,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;
   <!-- CORRIDORS TEMPLATE -->
   <div style="margin-top:16px">
     <div class="vbox">
-      <div class="vbox-t" style="display:flex;align-items:center;gap:10px;justify-content:space-between">👥 Composition type d'une rotation &nbsp;<button onclick="applyTemplateToGrid()" style="font-size:11px;font-weight:600;color:var(--bleu-mid);background:#EEF3FC;border:1px solid var(--bleu-mid);border-radius:6px;padding:3px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">↓ Appliquer à toutes les rotations</button></div>
+      <div class="vbox-t" style="display:flex;align-items:center;gap:10px;justify-content:space-between">👥 Composition type d'une rotation &nbsp;<button onclick="applyTemplateToGrid()" style="font-size:11px;font-weight:600;color:var(--bleu-mid);background:#EEF3FC;border:1px solid var(--bleu-mid);border-radius:6px;padding:3px 12px;cursor:pointer;font-family:Arial,Helvetica,sans-serif;flex-shrink:0">↓ Appliquer à toutes les rotations</button></div>
       <div style="font-size:11px;color:var(--ambre);background:var(--ambre-pale);border-left:3px solid var(--ambre);border-radius:4px;padding:6px 10px;margin-bottom:10px;line-height:1.4"><strong>⚠ Template ≠ Grille</strong> — Changer ces chiffres ne modifie pas les lignes déjà dans la grille. Cliquez <strong>↓ Appliquer</strong> pour tout mettre à jour.</div>
       <div class="cg">
         <div class="cc"><div class="cc-name" style="color:var(--bleu-mid)">Montréal</div><div class="cc-info">225 km · Bassin 143</div><div class="cc-row"><input class="cc-n" id="n_mtl" type="number" value="20" min="0" max="55" oninput="autoSz('mtl');fillGrid()"><span style="font-size:10px;color:var(--gris-text)">pers.</span><select class="cc-sel" id="s_mtl" onchange="updFill('mtl');calc()"><option value="covoit">Auto perso</option><option value="rent_car">Auto louée</option><option value="minivan">Minivan perso</option><option value="rent_van">Minivan louée</option><option value="14">14 pl.</option><option value="24" selected>24 pl.</option><option value="50">Scolaire 50</option><option value="55">Autocar 55</option></select></div><div class="cc-fill" id="f_mtl"></div></div>

@@ -14,32 +14,35 @@ export default function OutilTransportsPage() {
 
   useEffect(() => {
     if (authLoading) return
-    if (!authUser) { router.push('/login'); return }
+    const init = async () => {
+      if (!authUser) { router.push('/login'); return }
 
-    const checkAccess = async () => {
-      const userId = 'isImpersonated' in authUser && authUser.isImpersonated
-        ? authUser.benevole_id
-        : authUser.id
+      let role: string | null = null
 
-      // Chercher par user_id pour les vrais users, par benevole_id pour impersonation
-      let res: any = null
+      // CAS 1 : Emprunt d'identite
       if ('isImpersonated' in authUser && authUser.isImpersonated) {
-        const { data } = await supabase.from('reservistes').select('role').eq('benevole_id', userId).single()
-        res = data
+        const { data: rpcData } = await supabase
+          .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
+        if (rpcData?.[0]) role = rpcData[0].role
       } else {
-        const { data } = await supabase.from('reservistes').select('role').eq('user_id', userId).single()
-        res = data
+        // CAS 2 : Auth normale
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.push('/login'); return }
+        const { data } = await supabase
+          .from('reservistes')
+          .select('role')
+          .eq('user_id', user.id)
+          .maybeSingle()
+        role = data?.role || null
       }
-
-      if (!res) { router.push('/'); return }
 
       // Accessible aux admins, coordonnateurs, adjoints et partenaires
       const allowed = ['admin', 'coordonnateur', 'adjoint', 'partenaire']
-      if (!allowed.includes(res.role)) { router.push('/'); return }
+      if (!role || !allowed.includes(role)) { router.push('/'); return }
 
       setAuthorized(true)
     }
-    checkAccess()
+    init()
   }, [authUser, authLoading])
 
   if (!authorized) {
