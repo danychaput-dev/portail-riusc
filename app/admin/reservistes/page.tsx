@@ -379,7 +379,7 @@ function ReservistesPage() {
       const normalize = (s: string) => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
       const mots = normalize(recherche).split(/\s+/).filter(Boolean)
       filtered = filtered.filter(r => {
-        const champs = normalize(`${r.prenom} ${r.nom} ${r.email} ${r.ville} ${r.telephone}`)
+        const champs = normalize(`${r.prenom} ${r.nom} ${r.email} ${r.ville} ${r.region} ${r.telephone} ${r.org_principale}`)
         return mots.every(mot => champs.includes(mot))
       })
     }
