@@ -233,15 +233,30 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
   }, [])
 
   // Détecter si l'utilisateur est admin pour les drill-downs
+  // Respecte l'impersonation : si on emprunte un compte partenaire, isAdmin = false
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    const checkRole = async () => {
+      const supabase = createClient()
+      // Vérifier d'abord si on est en impersonation
+      try {
+        const impRes = await fetch('/api/check-impersonate', { credentials: 'include' })
+        if (impRes.ok) {
+          const impData = await impRes.json()
+          if (impData.isImpersonating && impData.benevole_id) {
+            // En impersonation, vérifier le rôle du compte emprunté
+            const { data } = await supabase.from('reservistes').select('role').eq('benevole_id', impData.benevole_id).single()
+            if (data && ['admin', 'coordonnateur', 'adjoint'].includes(data.role)) setIsAdmin(true)
+            return
+          }
+        }
+      } catch {}
+      // Pas en impersonation : vérifier le rôle réel
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      supabase.from('reservistes').select('role').eq('user_id', user.id).single().then(({ data }) => {
-        if (!data) return
-        if (['admin', 'coordonnateur', 'adjoint'].includes(data.role)) setIsAdmin(true)
-      })
-    })
+      const { data } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
+      if (data && ['admin', 'coordonnateur', 'adjoint'].includes(data.role)) setIsAdmin(true)
+    }
+    checkRole()
   }, [])
 
   // Helper pour construire les URLs de drill-down vers /admin/reservistes
