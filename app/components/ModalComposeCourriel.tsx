@@ -96,6 +96,15 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   const effectiveDests = isForward ? forwardDests : destinataires
 
   // Recherche de reservistes pour le transfert
+  const isEmailLike = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
+  const addExternalEmail = () => {
+    const email = forwardSearch.trim()
+    if (!isEmailLike(email)) return
+    if (forwardDests.some(d => d.email === email)) { setForwardSearch(''); return }
+    setForwardDests(prev => [...prev, { benevole_id: `ext_${Date.now()}`, email, prenom: email.split('@')[0], nom: '' }])
+    setForwardSearch('')
+    setForwardResults([])
+  }
   useEffect(() => {
     if (!isForward || forwardSearch.length < 2) { setForwardResults([]); return }
     const timer = setTimeout(async () => {
@@ -820,7 +829,8 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                       type="text"
                       value={forwardSearch}
                       onChange={e => setForwardSearch(e.target.value)}
-                      placeholder="Rechercher un réserviste (nom, prénom ou courriel)..."
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addExternalEmail() } }}
+                      placeholder="Nom, courriel d'un réserviste ou courriel externe..."
                       style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', boxSizing: 'border-box' }}
                     />
                     {searchingForward && <span style={{ position: 'absolute', right: '12px', top: '9px', fontSize: '12px', color: '#9ca3af' }}>...</span>}
@@ -839,16 +849,31 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                         ))}
                       </div>
                     )}
+                    {isEmailLike(forwardSearch) && forwardResults.length === 0 && !searchingForward && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginTop: '2px' }}>
+                        <button
+                          onClick={addExternalEmail}
+                          style={{ display: 'block', width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151' }}
+                          onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f0f4ff')}
+                          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          ✉️ Ajouter <strong>{forwardSearch.trim()}</strong> <span style={{ color: '#6b7280', fontSize: '12px' }}>(externe)</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '80px', overflowY: 'auto', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                   {effectiveDests.length === 0 && <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>Aucun destinataire</span>}
-                  {effectiveDests.slice(0, 20).map(d => (
-                    <span key={d.benevole_id} style={{ padding: '3px 10px', borderRadius: '12px', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      {d.prenom} {d.nom}
-                      {isForward && <button onClick={() => setForwardDests(prev => prev.filter(fd => fd.benevole_id !== d.benevole_id))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6366f1', padding: 0, lineHeight: 1 }} title="Retirer">&times;</button>}
+                  {effectiveDests.slice(0, 20).map(d => {
+                    const isExt = d.benevole_id.startsWith('ext_')
+                    return (
+                    <span key={d.benevole_id} style={{ padding: '3px 10px', borderRadius: '12px', backgroundColor: isExt ? '#fef3c7' : '#e0e7ff', color: isExt ? '#92400e' : '#3730a3', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {isExt ? d.email : `${d.prenom} ${d.nom}`}
+                      {isForward && <button onClick={() => setForwardDests(prev => prev.filter(fd => fd.benevole_id !== d.benevole_id))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: isExt ? '#b45309' : '#6366f1', padding: 0, lineHeight: 1 }} title="Retirer">&times;</button>}
                     </span>
-                  ))}
+                    )
+                  })}
                   {effectiveDests.length > 20 && <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{effectiveDests.length - 20} autres</span>}
                 </div>
               </div>
