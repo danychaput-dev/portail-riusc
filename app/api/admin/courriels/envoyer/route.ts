@@ -185,6 +185,10 @@ export async function POST(req: NextRequest) {
             reply_to: replyTo,
             signature_html: signature,
             inbound_domain: inboundDomain,
+            // Passer les cles a n8n (pas de $env dispo en plan community)
+            resend_api_key: process.env.RESEND_API_KEY,
+            supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+            supabase_service_key: process.env.SUPABASE_SERVICE_ROLE_KEY,
           }),
         })
         console.log('Webhook n8n declenche pour campagne:', campagne_id)
