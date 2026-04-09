@@ -50,6 +50,8 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   const [savingNote, setSavingNote] = useState(false)
   const [showCompose, setShowCompose] = useState(false)
   const [replySubject, setReplySubject] = useState<string | undefined>(undefined)
+  const [isForwardMode, setIsForwardMode] = useState(false)
+  const [forwardBody, setForwardBody] = useState('')
   const [historiqueRefreshKey, setHistoriqueRefreshKey] = useState(0)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [impersonating, setImpersonating] = useState(false)
@@ -264,7 +266,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
 
             {/* Onglet Courriels */}
             {onglet === 'courriels' && (
-              <HistoriqueCourriels benevoleId={reserviste.benevole_id} refreshKey={historiqueRefreshKey} onReply={(subject) => { setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`); setShowCompose(true) }} />
+              <HistoriqueCourriels benevoleId={reserviste.benevole_id} refreshKey={historiqueRefreshKey} onReply={(subject) => { setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`); setIsForwardMode(false); setForwardBody(''); setShowCompose(true) }} onForward={(subject, bodyHtml) => { setReplySubject(subject.startsWith('Fwd: ') ? subject : `Fwd: ${subject}`); setIsForwardMode(true); setForwardBody(bodyHtml); setShowCompose(true) }} />
             )}
 
             {/* Onglet Notes */}
@@ -410,9 +412,11 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
       {/* Modal composition courriel */}
       {showCompose && (
         <ModalComposeCourriel
-          destinataires={[{ benevole_id: reserviste.benevole_id, email: reserviste.email, prenom: reserviste.prenom, nom: reserviste.nom }]}
+          destinataires={isForwardMode ? [] : [{ benevole_id: reserviste.benevole_id, email: reserviste.email, prenom: reserviste.prenom, nom: reserviste.nom }]}
           initialSubject={replySubject}
-          onClose={() => { setShowCompose(false); setReplySubject(undefined); setHistoriqueRefreshKey(k => k + 1) }}
+          isForward={isForwardMode}
+          forwardBody={isForwardMode ? forwardBody : undefined}
+          onClose={() => { setShowCompose(false); setReplySubject(undefined); setIsForwardMode(false); setForwardBody(''); setHistoriqueRefreshKey(k => k + 1) }}
         />
       )}
     </>

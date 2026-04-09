@@ -40,9 +40,10 @@ interface Props {
   benevoleId: string
   refreshKey?: number
   onReply?: (subject: string, courrielId?: string) => void
+  onForward?: (subject: string, bodyHtml: string) => void
 }
 
-export default function HistoriqueCourriels({ benevoleId, refreshKey, onReply }: Props) {
+export default function HistoriqueCourriels({ benevoleId, refreshKey, onReply, onForward }: Props) {
   const [courriels, setCourriels] = useState<Courriel[]>([])
   const [reponses, setReponses] = useState<CourrielReponse[]>([])
   const [loading, setLoading] = useState(true)
@@ -157,7 +158,7 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey, onReply }:
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {timeline.map(item => {
           if (item.type === 'envoi') {
-            return <CourrielEnvoyeCard key={`e-${item.data.id}`} c={item.data} expandedId={expandedId} setExpandedId={setExpandedId} onReply={onReply} />
+            return <CourrielEnvoyeCard key={`e-${item.data.id}`} c={item.data} expandedId={expandedId} setExpandedId={setExpandedId} onReply={onReply} onForward={onForward} />
           } else {
             return (
               <ReponseRecueCard
@@ -168,6 +169,7 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey, onReply }:
                 onUpdateStatut={updateStatut}
                 updatingStatut={updatingStatut}
                 onReply={onReply}
+                onForward={onForward}
               />
             )
           }
@@ -178,8 +180,8 @@ export default function HistoriqueCourriels({ benevoleId, refreshKey, onReply }:
 }
 
 // ── Carte courriel envoyé (existant, refactorisé en composant) ──
-function CourrielEnvoyeCard({ c, expandedId, setExpandedId, onReply }: {
-  c: Courriel; expandedId: string | null; setExpandedId: (id: string | null) => void; onReply?: (subject: string, courrielId?: string) => void
+function CourrielEnvoyeCard({ c, expandedId, setExpandedId, onReply, onForward }: {
+  c: Courriel; expandedId: string | null; setExpandedId: (id: string | null) => void; onReply?: (subject: string, courrielId?: string) => void; onForward?: (subject: string, bodyHtml: string) => void
 }) {
   const cfg = STATUT_CONFIG[c.statut] || STATUT_CONFIG.sent
   const date = new Date(c.created_at)
@@ -295,9 +297,9 @@ function CourrielEnvoyeCard({ c, expandedId, setExpandedId, onReply }: {
               />
             </>
           )}
-          {onReply && (
-            <div style={{ marginTop: '10px' }}>
-              <button
+          {(onReply || onForward) && (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+              {onReply && <button
                 onClick={(e) => { e.stopPropagation(); onReply(c.subject, c.id) }}
                 style={{
                   padding: '6px 14px', fontSize: '12px', fontWeight: '600',
@@ -306,7 +308,17 @@ function CourrielEnvoyeCard({ c, expandedId, setExpandedId, onReply }: {
                 }}
               >
                 ↩ Répondre
-              </button>
+              </button>}
+              {onForward && <button
+                onClick={(e) => { e.stopPropagation(); onForward(c.subject, c.body_html || '') }}
+                style={{
+                  padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                  borderRadius: '6px', border: '1px solid #bbf7d0', cursor: 'pointer',
+                  backgroundColor: '#f0fdf4', color: '#16a34a',
+                }}
+              >
+                ➡ Transférer
+              </button>}
             </div>
           )}
         </div>
@@ -316,9 +328,9 @@ function CourrielEnvoyeCard({ c, expandedId, setExpandedId, onReply }: {
 }
 
 // ── Carte réponse reçue (NOUVEAU) ──
-function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updatingStatut, onReply }: {
+function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updatingStatut, onReply, onForward }: {
   r: CourrielReponse; expandedId: string | null; setExpandedId: (id: string | null) => void
-  onUpdateStatut: (id: string, statut: string) => void; updatingStatut: string | null; onReply?: (subject: string, courrielId?: string) => void
+  onUpdateStatut: (id: string, statut: string) => void; updatingStatut: string | null; onReply?: (subject: string, courrielId?: string) => void; onForward?: (subject: string, bodyHtml: string) => void
 }) {
   const cfg = REPONSE_STATUT[r.statut] || REPONSE_STATUT.recu
   const date = new Date(r.created_at)
@@ -447,12 +459,11 @@ function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updati
               Aucun contenu texte (le courriel ne contenait peut-être que des pièces jointes)
             </div>
           )}
-          {onReply && (
-            <div style={{ marginTop: '10px' }}>
-              <button
+          {(onReply || onForward) && (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+              {onReply && <button
                 onClick={(e) => {
                   e.stopPropagation()
-                  // Marquer cette reponse comme lue si non lue
                   if (r.statut === 'recu') {
                     onUpdateStatut(r.id, 'lu')
                   }
@@ -465,7 +476,17 @@ function ReponseRecueCard({ r, expandedId, setExpandedId, onUpdateStatut, updati
                 }}
               >
                 ↩ Répondre
-              </button>
+              </button>}
+              {onForward && <button
+                onClick={(e) => { e.stopPropagation(); onForward(r.subject || '', r.body_html || r.body_text || '') }}
+                style={{
+                  padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                  borderRadius: '6px', border: '1px solid #bbf7d0', cursor: 'pointer',
+                  backgroundColor: '#f0fdf4', color: '#16a34a',
+                }}
+              >
+                ➡ Transférer
+              </button>}
             </div>
           )}
         </div>
