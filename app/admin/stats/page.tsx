@@ -283,9 +283,10 @@ export default function StatsPage() {
     (async () => {
       setLoading(true);
 
-      // Utiliser la meme API que la page reservistes pour avoir les memes filtres
+      // Utiliser la meme API que la page admin/reservistes avec filtre statut Actif
+      // pour avoir exactement les memes chiffres que le dashboard
       const fetchAllReservistes = async () => {
-        const res = await fetch('/api/admin/reservistes?groupes=Approuvé,Intérêt,Retrait temporaire,Formation incomplète');
+        const res = await fetch('/api/admin/reservistes?groupes=Approuvé,Intérêt,Retrait temporaire,Formation incomplète&statut=Actif');
         const json = await res.json();
         return (json.data || []) as Reserviste[];
       };
