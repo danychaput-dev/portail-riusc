@@ -294,6 +294,8 @@ export default function StatsPage() {
             .from('reservistes')
             .select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id')
             .neq('groupe', 'Partenaires')
+            .not('nom', 'is', null)
+            .neq('nom', '')
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
           if (data && data.length > 0) {
             allRows = allRows.concat(data as Reserviste[]);
