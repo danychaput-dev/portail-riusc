@@ -1557,6 +1557,76 @@ function ReservistesPage() {
               >
                 <span style={{ fontSize: '14px' }}>🎭</span> Emprunt d{"'"}identité
               </button>
+              <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+              {contextMenu.reserviste.groupe !== 'Approuvé' && (
+                <button
+                  onClick={async () => {
+                    const r = contextMenu.reserviste
+                    const res = await fetch('/api/admin/reservistes/groupe', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ benevole_id: r.benevole_id, groupe: 'Approuvé' }),
+                    })
+                    if (res.ok) {
+                      setReservistes(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Approuvé' } : x))
+                    }
+                    setContextMenu(null)
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#16a34a', textAlign: 'left' }}
+                  onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f0fdf4')}
+                  onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <span style={{ fontSize: '14px' }}>✅</span> Approuver
+                </button>
+              )}
+              {contextMenu.reserviste.groupe !== 'Retrait temporaire' && (
+                <button
+                  onClick={async () => {
+                    const r = contextMenu.reserviste
+                    const res = await fetch('/api/admin/reservistes/groupe', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ benevole_id: r.benevole_id, groupe: 'Retrait temporaire' }),
+                    })
+                    if (res.ok) {
+                      setReservistes(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Retrait temporaire' } : x))
+                    }
+                    setContextMenu(null)
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#d97706', textAlign: 'left' }}
+                  onMouseOver={e => (e.currentTarget.style.backgroundColor = '#fffbeb')}
+                  onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <span style={{ fontSize: '14px' }}>⏸️</span> Retrait temporaire
+                </button>
+              )}
+              <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+              <button
+                onClick={async () => {
+                  const r = contextMenu.reserviste
+                  if (!window.confirm(`Supprimer ${r.prenom} ${r.nom} et toutes ses données? Cette action est irréversible.`)) {
+                    setContextMenu(null)
+                    return
+                  }
+                  const res = await fetch('/api/admin/reservistes/delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ benevole_id: r.benevole_id }),
+                  })
+                  if (res.ok) {
+                    setReservistes(prev => prev.filter(x => x.benevole_id !== r.benevole_id))
+                  } else {
+                    const err = await res.json()
+                    alert(`Erreur: ${err.error || 'Echec de la suppression'}`)
+                  }
+                  setContextMenu(null)
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626', textAlign: 'left' }}
+                onMouseOver={e => (e.currentTarget.style.backgroundColor = '#fef2f2')}
+                onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <span style={{ fontSize: '14px' }}>🗑️</span> Supprimer le compte
+              </button>
             </>
           )}
         </div>
