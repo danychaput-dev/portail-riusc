@@ -94,6 +94,8 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     }
     onClose()
   }
+  const [correcting, setCorrecting] = useState(false)
+  const [corrected, setCorrected] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendProgress, setSendProgress] = useState<{ sent: number; failed: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -184,6 +186,35 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     const res = await fetch('/api/admin/courriels/templates')
     const json = await res.json()
     setTemplates(json.templates || [])
+  }
+
+  // Correction IA du texte
+  const corrigerTexte = async () => {
+    if (!bodyHtml.trim() && !subject.trim()) return
+    setCorrecting(true)
+    setCorrected(false)
+    setError(null)
+    try {
+      const res = await fetch('/api/corriger-texte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texte: bodyHtml, objet: subject }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        setError(`Erreur correction: ${err.error || 'Echec'}`)
+        return
+      }
+      const data = await res.json()
+      if (data.texte) setBodyHtml(data.texte)
+      if (data.objet) setSubject(data.objet)
+      setCorrected(true)
+      setTimeout(() => setCorrected(false), 3000)
+    } catch {
+      setError('Erreur de connexion pour la correction')
+    } finally {
+      setCorrecting(false)
+    }
   }
 
   const envoyer = async () => {
@@ -874,7 +905,25 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                     {editingTemplateId ? '📋 Maj template' : '📋 Template'}
                   </button>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={corrigerTexte}
+                    disabled={correcting || sending || (!bodyHtml.trim() && !subject.trim())}
+                    title="Corriger l'orthographe et la grammaire avec l'IA"
+                    style={{
+                      padding: '9px 16px', borderRadius: '8px',
+                      border: corrected ? '1px solid #16a34a' : '1px solid #a78bfa',
+                      backgroundColor: corrected ? '#f0fdf4' : '#f5f3ff',
+                      color: corrected ? '#16a34a' : '#7c3aed',
+                      fontSize: '13px', fontWeight: '600',
+                      cursor: (correcting || sending || (!bodyHtml.trim() && !subject.trim())) ? 'not-allowed' : 'pointer',
+                      opacity: (!bodyHtml.trim() && !subject.trim()) ? 0.4 : 1,
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {correcting ? '⏳ Correction...' : corrected ? '✅ Corrigé!' : '✨ Corriger'}
+                  </button>
                   <button onClick={handleSafeClose} disabled={sending} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
                   <button onClick={envoyer} disabled={sending || !subject.trim() || !bodyHtml.trim()} style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: (sending || !subject.trim() || !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !subject.trim() || !bodyHtml.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {sending && sendProgress ? `Envoi ${sendProgress.sent + sendProgress.failed}/${sendProgress.total}...` : sending ? 'Envoi en cours...' : `Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
