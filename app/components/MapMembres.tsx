@@ -17,10 +17,17 @@ interface MembrePosition {
 
 type FiltreGroupe = 'Tous' | 'Approuvé' | 'Intérêt'
 
+interface PinReference {
+  nom: string
+  latitude: number
+  longitude: number
+}
+
 // ─── Constantes ─────────────────────────────────────────────────────────────
 
 const NAVY  = '#1e3a5f'
 const AMBER = '#d97706'
+const RED   = '#dc2626'
 const MUTED = '#6b7280'
 const BORDER = '#e5e7eb'
 const WHITE = '#ffffff'
@@ -43,7 +50,6 @@ function loadMapboxGL(): Promise<any> {
   if (mapboxPromise) return mapboxPromise
 
   mapboxPromise = new Promise((resolve, reject) => {
-    // CSS
     if (!document.querySelector(`link[href="${MAPBOX_CSS}"]`)) {
       const link = document.createElement('link')
       link.rel = 'stylesheet'
@@ -51,7 +57,6 @@ function loadMapboxGL(): Promise<any> {
       document.head.appendChild(link)
     }
 
-    // JS — si deja charge
     if ((window as any).mapboxgl) {
       resolve((window as any).mapboxgl)
       return
@@ -67,12 +72,46 @@ function loadMapboxGL(): Promise<any> {
   return mapboxPromise
 }
 
+// ─── Geocoding ──────────────────────────────────────────────────────────────
+
+async function geocodeVille(query: string): Promise<{ nom: string; lat: number; lng: number } | null> {
+  // Si l'utilisateur entre des coordonnees (ex: "47.5, -72.8")
+  const coordMatch = query.match(/^(-?\d+\.?\d*)\s*[,;]\s*(-?\d+\.?\d*)$/)
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1])
+    const lng = parseFloat(coordMatch[2])
+    if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      return { nom: `${lat.toFixed(3)}, ${lng.toFixed(3)}`, lat, lng }
+    }
+  }
+
+  // Sinon, geocoder via Mapbox
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&country=ca&limit=1&language=fr`
+    const res = await fetch(url)
+    const data = await res.json()
+    if (data.features?.length > 0) {
+      const f = data.features[0]
+      return {
+        nom: f.place_name_fr || f.place_name || query,
+        lat: f.center[1],
+        lng: f.center[0],
+      }
+    }
+  } catch (err) {
+    console.error('Erreur geocodage:', err)
+  }
+  return null
+}
+
 // ─── Composant ──────────────────────────────────────────────────────────────
 
 export default function MapMembres() {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const pinMarkerRef = useRef<any>(null)
+  const pinPopupRef = useRef<any>(null)
   const popupRef = useRef<any>(null)
 
   const [membres, setMembres] = useState<MembrePosition[]>([])
@@ -80,6 +119,11 @@ export default function MapMembres() {
   const [filtre, setFiltre] = useState<FiltreGroupe>('Tous')
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState(false)
+
+  // Pin de reference
+  const [searchInput, setSearchInput] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [pin, setPin] = useState<PinReference | null>(null)
 
   // Charger les positions des membres
   useEffect(() => {
@@ -159,7 +203,7 @@ export default function MapMembres() {
   useEffect(() => {
     if (!mapReady || !mapRef.current) return
 
-    // Supprimer les anciens markers
+    // Supprimer les anciens markers membres (pas le pin)
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
     if (popupRef.current) {
@@ -171,7 +215,6 @@ export default function MapMembres() {
     if (!mapboxgl) return
 
     membresFiltres.forEach(m => {
-      // Creer le dot
       const el = document.createElement('div')
       el.style.width = '12px'
       el.style.height = '12px'
@@ -187,8 +230,6 @@ export default function MapMembres() {
 
       el.addEventListener('click', (e) => {
         e.stopPropagation()
-
-        // Fermer le popup precedent
         if (popupRef.current) popupRef.current.remove()
 
         const popup = new mapboxgl.Popup({ offset: 8, closeOnClick: false, maxWidth: '220px' })
@@ -211,6 +252,82 @@ export default function MapMembres() {
     })
   }, [membresFiltres, mapReady])
 
+  // Placer/retirer le pin de reference
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+
+    const mapboxgl = (window as any).mapboxgl
+    if (!mapboxgl) return
+
+    // Supprimer l'ancien pin et son popup
+    if (pinMarkerRef.current) {
+      pinMarkerRef.current.remove()
+      pinMarkerRef.current = null
+    }
+    if (pinPopupRef.current) {
+      pinPopupRef.current.remove()
+      pinPopupRef.current = null
+    }
+
+    if (!pin) return
+
+    // Creer le pin rouge distinctif (SVG drop pin)
+    const el = document.createElement('div')
+    el.innerHTML = `
+      <svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));cursor:pointer">
+        <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z" fill="${RED}"/>
+        <circle cx="16" cy="15" r="7" fill="white"/>
+        <circle cx="16" cy="15" r="3.5" fill="${RED}"/>
+      </svg>
+    `
+    el.style.cursor = 'pointer'
+
+    const pinMarker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+      .setLngLat([pin.longitude, pin.latitude])
+      .addTo(mapRef.current)
+
+    // Popup permanent sur le pin
+    const pinPopup = new mapboxgl.Popup({ offset: [0, -42], closeButton: false, closeOnClick: false, className: 'pin-ref-popup' })
+      .setLngLat([pin.longitude, pin.latitude])
+      .setHTML(`<div style="padding:3px 8px;font-size:12px;font-weight:700;color:${RED};font-family:system-ui,-apple-system,sans-serif;white-space:nowrap">${pin.nom}</div>`)
+      .addTo(mapRef.current)
+    pinPopupRef.current = pinPopup
+
+    pinMarkerRef.current = pinMarker
+
+    // Centrer la carte sur le pin avec un zoom raisonnable
+    mapRef.current.flyTo({ center: [pin.longitude, pin.latitude], zoom: 7, duration: 1200 })
+  }, [pin, mapReady])
+
+  // Recherche
+  const handleSearch = async () => {
+    const q = searchInput.trim()
+    if (!q) return
+
+    setSearching(true)
+    const result = await geocodeVille(q)
+    setSearching(false)
+
+    if (result) {
+      setPin({ nom: result.nom, latitude: result.lat, longitude: result.lng })
+    } else {
+      alert(`Lieu introuvable : "${q}"`)
+    }
+  }
+
+  const handleClearPin = () => {
+    setPin(null)
+    setSearchInput('')
+    // Retirer le popup du pin aussi
+    if (mapRef.current) {
+      // Les popups permanents sont des enfants du container, on les laisse se nettoyer avec le marker
+    }
+    // Recentrer
+    if (mapRef.current) {
+      mapRef.current.flyTo({ center: [-71.5, 47.0], zoom: 5.5, duration: 800 })
+    }
+  }
+
   const filtres: { key: FiltreGroupe; label: string; count: number; color: string }[] = [
     { key: 'Tous',     label: 'Tous',      count: counts.total,     color: MUTED },
     { key: 'Approuvé', label: 'Qualifiés',  count: counts.approuves, color: NAVY },
@@ -227,7 +344,7 @@ export default function MapMembres() {
 
   return (
     <div>
-      {/* Barre de filtres */}
+      {/* Barre de filtres + recherche */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         {filtres.map(f => {
           const active = filtre === f.key
@@ -256,6 +373,51 @@ export default function MapMembres() {
           )
         })}
 
+        {/* Separateur */}
+        <div style={{ width: 1, height: 24, backgroundColor: BORDER, margin: '0 4px' }} />
+
+        {/* Recherche lieu */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleSearch() }}
+            placeholder="Placer un repere (ville ou lat, lng)"
+            style={{
+              padding: '5px 10px', borderRadius: 8, fontSize: 12,
+              border: `1.5px solid ${pin ? RED : BORDER}`,
+              outline: 'none', width: 220, color: '#374151',
+              backgroundColor: pin ? '#fef2f2' : WHITE,
+            }}
+          />
+          {!pin ? (
+            <button
+              onClick={handleSearch}
+              disabled={searching || !searchInput.trim()}
+              style={{
+                padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                border: `1.5px solid ${BORDER}`, backgroundColor: WHITE, color: NAVY,
+                cursor: searching || !searchInput.trim() ? 'default' : 'pointer',
+                opacity: searching || !searchInput.trim() ? 0.5 : 1,
+              }}
+            >
+              {searching ? '...' : 'Placer'}
+            </button>
+          ) : (
+            <button
+              onClick={handleClearPin}
+              style={{
+                padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
+                border: `1.5px solid ${RED}`, backgroundColor: '#fef2f2', color: RED,
+                cursor: 'pointer',
+              }}
+            >
+              Retirer
+            </button>
+          )}
+        </div>
+
         {loading && (
           <span style={{ fontSize: 12, color: MUTED, marginLeft: 8 }}>Chargement...</span>
         )}
@@ -273,7 +435,7 @@ export default function MapMembres() {
       </div>
 
       {/* Légende */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: MUTED }}>
+      <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: MUTED, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: NAVY }} />
           Qualifiés
@@ -282,6 +444,12 @@ export default function MapMembres() {
           <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: AMBER }} />
           Intérêt
         </div>
+        {pin && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: RED, fontWeight: 600 }}>
+            <svg width="10" height="14" viewBox="0 0 32 42" fill={RED}><path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z"/></svg>
+            {pin.nom}
+          </div>
+        )}
         <span style={{ marginLeft: 'auto' }}>
           {membresFiltres.length} membre{membresFiltres.length > 1 ? 's' : ''} géolocalisé{membresFiltres.length > 1 ? 's' : ''}
         </span>
