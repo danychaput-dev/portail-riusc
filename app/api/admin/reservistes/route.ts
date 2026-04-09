@@ -193,9 +193,11 @@ export async function GET(req: NextRequest) {
     // Filtrer même si inscriptions est vide (0 inscrits = 0 résultats)
     const inscriptionsList = inscriptions || []
     const benevoleIds = new Set(
-      campStatut
-        ? inscriptionsList.filter(i => (i as any).presence === campStatut).map(i => i.benevole_id)
-        : inscriptionsList.map(i => i.benevole_id)
+      campStatut === 'non_annule'
+        ? inscriptionsList.filter(i => (i as any).presence !== 'annule').map(i => i.benevole_id)
+        : campStatut
+          ? inscriptionsList.filter(i => (i as any).presence === campStatut).map(i => i.benevole_id)
+          : inscriptionsList.map(i => i.benevole_id)
     )
     reservistes = reservistes.filter(r => benevoleIds.has(r.benevole_id))
   }
