@@ -89,34 +89,38 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       if (input.type === 'radio') input.checked = false
     }
 
-    // Capturer les evenements sur les champs
-    document.addEventListener('mousedown', handleInteraction, true)
-    document.addEventListener('click', handleInteraction, true)
-    document.addEventListener('change', handleChange, true)
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
+    const handleKeydown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
       const field = target.closest('input, select, textarea') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
-      // Bloquer la frappe clavier dans les champs verrouilles
       e.preventDefault()
-    }, true)
+    }
 
-    // Bloquer le focus automatique sur les champs verrouilles
-    document.addEventListener('focusin', (e: FocusEvent) => {
+    const handleFocusin = (e: FocusEvent) => {
       const target = e.target as HTMLElement
       const field = target.closest('input, select, textarea') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       ;(field as HTMLInputElement).blur?.()
-    }, true)
+    }
+
+    // Capturer les evenements sur les champs
+    document.addEventListener('mousedown', handleInteraction, true)
+    document.addEventListener('click', handleInteraction, true)
+    document.addEventListener('change', handleChange, true)
+    document.addEventListener('keydown', handleKeydown, true)
+    document.addEventListener('focusin', handleFocusin, true)
 
     return () => {
       document.body.classList.remove('impersonate-readonly')
       const existingStyle = document.getElementById('impersonate-readonly-style')
       if (existingStyle) existingStyle.remove()
-      // Note: les listeners ne sont pas cleanup proprement car on utilise des fonctions anonymes
-      // mais ca marche car le composant ne se demonte que lors d'un changement de page complet
+      document.removeEventListener('mousedown', handleInteraction, true)
+      document.removeEventListener('click', handleInteraction, true)
+      document.removeEventListener('change', handleChange, true)
+      document.removeEventListener('keydown', handleKeydown, true)
+      document.removeEventListener('focusin', handleFocusin, true)
     }
   }, [isImpersonating])
 
