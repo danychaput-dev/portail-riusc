@@ -76,6 +76,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   const defaultBody = 'Bonjour {{ prenom }},\n\n'
   const [bodyHtml, setBodyHtml] = useState(defaultBody)
 
+
   // Fermeture sécurisée: confirmer si du contenu a été saisi
   const handleSafeClose = () => {
     const hasContent = subject.trim() !== (initialSubject || '').trim() || bodyHtml.trim() !== defaultBody.trim()
@@ -128,6 +129,18 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
       ta.setSelectionRange(cursorPos, cursorPos)
     }, 0)
   }
+
+  // Placer le curseur apres "Bonjour prenom," quand le modal s'ouvre
+  useEffect(() => {
+    const ta = bodyRef.current
+    if (ta) {
+      setTimeout(() => {
+        ta.focus()
+        const pos = defaultBody.length
+        ta.setSelectionRange(pos, pos)
+      }, 150)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // CC
   const [ccContacts, setCcContacts] = useState<CcContact[]>([])
@@ -745,7 +758,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: showCc ? '6px' : '0' }}>
                     <button onClick={() => setShowCc(!showCc)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', fontWeight: '600', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ fontSize: '10px', transition: 'transform 0.15s', transform: showCc ? 'rotate(90deg)' : 'rotate(0)' }}>&#9654;</span>
-                      CC {selectedCc.size > 0 && <span style={{ padding: '1px 7px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '11px', fontWeight: '700' }}>{selectedCc.size}</span>}
+                      Ajouter en CC {selectedCc.size > 0 && <span style={{ padding: '1px 7px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '11px', fontWeight: '700' }}>{selectedCc.size}</span>}
                     </button>
                     <button onClick={() => setPanel('cc_manage')} style={{ background: 'none', border: 'none', fontSize: '11px', color: '#94a3b8', cursor: 'pointer', textDecoration: 'underline' }}>modifier la liste</button>
                   </div>
