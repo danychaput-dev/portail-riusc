@@ -1568,7 +1568,7 @@ function ReservistesPage() {
                       body: JSON.stringify({ benevole_id: r.benevole_id, groupe: 'Approuvé' }),
                     })
                     if (res.ok) {
-                      setReservistes(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Approuvé' } : x))
+                      setAllData(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Approuvé' } : x))
                     }
                     setContextMenu(null)
                   }}
@@ -1589,7 +1589,7 @@ function ReservistesPage() {
                       body: JSON.stringify({ benevole_id: r.benevole_id, groupe: 'Retrait temporaire' }),
                     })
                     if (res.ok) {
-                      setReservistes(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Retrait temporaire' } : x))
+                      setAllData(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Retrait temporaire' } : x))
                     }
                     setContextMenu(null)
                   }}
@@ -1614,7 +1614,7 @@ function ReservistesPage() {
                     body: JSON.stringify({ benevole_id: r.benevole_id }),
                   })
                   if (res.ok) {
-                    setReservistes(prev => prev.filter(x => x.benevole_id !== r.benevole_id))
+                    setAllData(prev => prev.filter(x => x.benevole_id !== r.benevole_id))
                   } else {
                     const err = await res.json()
                     alert(`Erreur: ${err.error || 'Echec de la suppression'}`)
