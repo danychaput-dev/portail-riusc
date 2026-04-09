@@ -702,17 +702,51 @@ export default function CampagnesPage() {
                                   <div style={{ textAlign: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort(destSort, 'clics_count', setDestSort)}>Clics{sortArrow(destSort, 'clics_count')}</div>
                                   <div style={{ textAlign: 'center' }}>Action</div>
                                 </div>
-                                {[...campagneDetail.destinataires].sort((a, b) => {
-                                  const dir = destSort.dir === 'asc' ? 1 : -1
-                                  switch (destSort.col) {
-                                    case 'nom_complet': return dir * (a.nom_complet || '').localeCompare(b.nom_complet || '', 'fr')
-                                    case 'to_email': return dir * (a.to_email || '').localeCompare(b.to_email || '', 'fr')
-                                    case 'statut': return dir * (a.statut || '').localeCompare(b.statut || '', 'fr')
-                                    case 'ouvert_at': return dir * ((a.ouvert_at || '').localeCompare(b.ouvert_at || ''))
-                                    case 'clics_count': return dir * ((a.clics_count || 0) - (b.clics_count || 0))
-                                    default: return 0
+                                {(() => {
+                                  // Regrouper les destinataires par "vague" (subject + tranche horaire)
+                                  const sorted = [...campagneDetail.destinataires].sort((a, b) =>
+                                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                  )
+                                  const vagues: { subject: string; minDate: string; dests: Destinataire[] }[] = []
+                                  for (const d of sorted) {
+                                    const subj = d.subject || c.subject || ''
+                                    const last = vagues[vagues.length - 1]
+                                    // Meme vague si meme subject et moins de 5 min d'ecart
+                                    if (last && last.subject === subj && (new Date(d.created_at).getTime() - new Date(last.minDate).getTime()) < 5 * 60 * 1000) {
+                                      last.dests.push(d)
+                                    } else {
+                                      vagues.push({ subject: subj, minDate: d.created_at, dests: [d] })
+                                    }
                                   }
-                                }).map(d => (
+                                  const hasMultipleVagues = vagues.length > 1
+                                  // Trier chaque vague selon le tri choisi par l'utilisateur
+                                  const sortDests = (arr: Destinataire[]) => [...arr].sort((a, b) => {
+                                    const dir = destSort.dir === 'asc' ? 1 : -1
+                                    switch (destSort.col) {
+                                      case 'nom_complet': return dir * (a.nom_complet || '').localeCompare(b.nom_complet || '', 'fr')
+                                      case 'to_email': return dir * (a.to_email || '').localeCompare(b.to_email || '', 'fr')
+                                      case 'statut': return dir * (a.statut || '').localeCompare(b.statut || '', 'fr')
+                                      case 'ouvert_at': return dir * ((a.ouvert_at || '').localeCompare(b.ouvert_at || ''))
+                                      case 'clics_count': return dir * ((a.clics_count || 0) - (b.clics_count || 0))
+                                      default: return 0
+                                    }
+                                  })
+                                  return vagues.flatMap((vague, vi) => {
+                                    const rows: React.ReactNode[] = []
+                                    if (hasMultipleVagues) {
+                                      rows.push(
+                                        <div key={`vague-${vi}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: vi === 0 ? '#f0fdf4' : '#eff6ff', borderTop: vi > 0 ? '2px solid #cbd5e1' : undefined }}>
+                                          <span style={{ fontSize: '12px', fontWeight: '700', color: vi === 0 ? '#166534' : '#1e40af' }}>
+                                            {vi === 0 ? '📤 Envoi initial' : `↩ ${vague.subject}`}
+                                          </span>
+                                          <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                                            {formatDateTime(vague.minDate)} - {vague.dests.length} destinataire{vague.dests.length > 1 ? 's' : ''}
+                                          </span>
+                                        </div>
+                                      )
+                                    }
+                                    for (const d of sortDests(vague.dests)) {
+                                      rows.push(
                                   <div key={d.id}>
                                     {/* Ligne destinataire */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu') ? '#fffdf5' : d.reponses && d.reponses.length > 0 ? '#f0f9ff' : 'white', alignItems: 'center' }}>
@@ -811,7 +845,11 @@ export default function CampagnesPage() {
                                       )
                                     })}
                                   </div>
-                                ))}
+                                      )
+                                    }
+                                    return rows
+                                  })
+                                })()}
                               </div>
 
                               {/* Aperçu du contenu */}
