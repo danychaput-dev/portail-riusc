@@ -194,7 +194,7 @@ function ReservistesPage() {
   const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null })
   const [filtreDeployable, setFiltreDeployable] = useState<FilterState>(null)
   const [filtreCertifsManquants, setFiltreCertifsManquants] = useState(false)
-  const [commsCount,     setCommsCount]     = useState<Record<string, { courriels: number; notes: number }>>({})
+  const [commsCount,     setCommsCount]     = useState<Record<string, { courriels: number; notes: number; non_lus?: number }>>({})
   const [modal,          setModal]          = useState<ModalAntecedents | null>(null)
   const [modalDate,      setModalDate]      = useState('')
   const [modalStatut,    setModalStatut]    = useState('verifie')
@@ -1183,19 +1183,24 @@ function ReservistesPage() {
                 <div
                   onClick={(e) => { e.stopPropagation(); setModalReserviste(r) }}
                   style={{ padding: '8px 2px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                  title={(() => { const cc = commsCount[r.benevole_id]; return cc ? `${cc.courriels} courriel${cc.courriels !== 1 ? 's' : ''}, ${cc.notes} note${cc.notes !== 1 ? 's' : ''}` : 'Aucun historique' })()}
+                  title={(() => { const cc = commsCount[r.benevole_id]; if (!cc) return 'Aucun historique'; let t = `${cc.courriels} courriel${cc.courriels !== 1 ? 's' : ''}, ${cc.notes} note${cc.notes !== 1 ? 's' : ''}`; if (cc.non_lus) t += `\n${cc.non_lus} reponse${cc.non_lus > 1 ? 's' : ''} non lue${cc.non_lus > 1 ? 's' : ''}`; return t })()}
                 >
                   {(() => {
                     const cc = commsCount[r.benevole_id]
                     const total = cc ? cc.courriels + cc.notes : 0
+                    const nonLus = cc?.non_lus || 0
+                    const hasNonLus = nonLus > 0
+                    const strokeColor = hasNonLus ? '#059669' : total > 0 ? '#0369a1' : '#94a3b8'
+                    const fillColor = hasNonLus ? '#d1fae5' : total > 0 ? '#e0f2fe' : '#f8fafc'
+                    const badgeColor = hasNonLus ? '#059669' : '#0369a1'
                     return (
                       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ opacity: total > 0 ? 1 : 0.3 }}>
-                          <rect x="2" y="4" width="16" height="12" rx="2" stroke={total > 0 ? '#0369a1' : '#94a3b8'} strokeWidth="1.5" fill={total > 0 ? '#e0f2fe' : '#f8fafc'} />
-                          <path d="M2 6l8 5 8-5" stroke={total > 0 ? '#0369a1' : '#94a3b8'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          <rect x="2" y="4" width="16" height="12" rx="2" stroke={strokeColor} strokeWidth="1.5" fill={fillColor} />
+                          <path d="M2 6l8 5 8-5" stroke={strokeColor} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                         </svg>
                         {total > 0 && (
-                          <span style={{ position: 'absolute', top: '-4px', right: '-6px', fontSize: '9px', fontWeight: '700', color: 'white', backgroundColor: '#0369a1', borderRadius: '6px', padding: '0 3px', minWidth: '14px', textAlign: 'center', lineHeight: '14px' }}>
+                          <span style={{ position: 'absolute', top: '-4px', right: '-6px', fontSize: '9px', fontWeight: '700', color: 'white', backgroundColor: badgeColor, borderRadius: '6px', padding: '0 3px', minWidth: '14px', textAlign: 'center', lineHeight: '14px' }}>
                             {total}
                           </span>
                         )}
