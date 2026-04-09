@@ -1339,9 +1339,9 @@ function ReservistesPage() {
                           width: '26px', height: '26px', borderRadius: '6px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '12px',
-                          backgroundColor: ok ? '#f0fdf4' : campInscrit ? '#fffbeb' : '#fef2f2',
-                          border: `1px solid ${ok ? '#bbf7d0' : campInscrit ? '#fde68a' : '#fecaca'}`,
-                          color: ok ? '#16a34a' : campInscrit ? '#d97706' : '#dc2626',
+                          backgroundColor: ok ? '#f0fdf4' : campInscrit ? '#fffbeb' : 'white',
+                          border: `1px solid ${ok ? '#bbf7d0' : campInscrit ? '#fde68a' : '#fca5a5'}`,
+                          color: ok ? '#16a34a' : campInscrit ? '#d97706' : '#f87171',
                           fontWeight: '700',
                         }}
                       >
@@ -1367,9 +1367,9 @@ function ReservistesPage() {
                           width: '26px', height: '26px', borderRadius: '6px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '10px', fontWeight: '700',
-                          backgroundColor: hasManquants ? '#fef2f2' : '#fffbeb',
-                          border: `1px solid ${hasManquants ? '#fecaca' : '#fde68a'}`,
-                          color: hasManquants ? '#dc2626' : '#d97706',
+                          backgroundColor: hasManquants ? 'white' : '#fffbeb',
+                          border: `1px solid ${hasManquants ? '#fca5a5' : '#fde68a'}`,
+                          color: hasManquants ? '#f87171' : '#d97706',
                         }}
                       >
                         {total}

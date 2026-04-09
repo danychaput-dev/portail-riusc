@@ -480,10 +480,25 @@ export default function CampagnesPage() {
   }, [threadedIndiv, indivSearch, showOnlyWithReplies, filterSender, indivSort])
 
   // ─── Reply helpers ───
-  const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string, courrielId?: string) => {
+  const handleReply = (dest: { benevole_id: string; email: string; prenom: string; nom: string }, subject: string, courrielId?: string, unreadReponseIds?: string[]) => {
     setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`)
     setReplyDest([dest])
     setReplyToCourrielId(courrielId || null)
+    // Marquer les reponses comme lues quand on reply
+    if (unreadReponseIds && unreadReponseIds.length > 0) {
+      fetch('/api/admin/courriels/reponses', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reponse_ids: unreadReponseIds, statut: 'lu' }),
+      }).then(() => {
+        setIndividuels(prev => prev.map(c => ({
+          ...c,
+          reponses: c.reponses?.map(r => unreadReponseIds.includes(r.id) ? { ...r, statut: 'lu' } : r),
+        })))
+        setReponsesNonLues(prev => Math.max(0, prev - unreadReponseIds.length))
+        dispatchBadgeUpdate(Math.max(0, reponsesNonLues - unreadReponseIds.length))
+      }).catch(() => {})
+    }
   }
   const handleReplyAll = (destinataires: Destinataire[], subject: string, courrielId?: string, campagneId?: string) => {
     setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`)
@@ -797,7 +812,7 @@ export default function CampagnesPage() {
                                       </div>
                                       <div style={{ textAlign: 'center' }}>
                                         <button
-                                          onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject, d.id)}
+                                          onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject, d.id, d.reponses?.filter(r => r.statut === 'recu').map(r => r.id))}
                                           style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                           ↩ Reply
@@ -857,7 +872,7 @@ export default function CampagnesPage() {
                                               )
                                             })}
                                             {!isRepSortant && <button
-                                              onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, rep.subject || c.subject, d.id)}
+                                              onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, rep.subject || c.subject, d.id, rep.statut === 'recu' ? [rep.id] : undefined)}
                                               style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                             >
                                               ↩ Répondre
@@ -1036,7 +1051,7 @@ export default function CampagnesPage() {
                                 email: c.to_email,
                                 prenom: c.nom_complet.split(' ')[0] || '',
                                 nom: c.nom_complet.split(' ').slice(1).join(' ') || '',
-                              }, c.subject, c.id)}
+                              }, c.subject, c.id, c.reponses?.filter(r => r.statut === 'recu').map(r => r.id))}
                               style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: 'white', backgroundColor: C, border: 'none', borderRadius: '6px', cursor: 'pointer' }}
                             >
                               ↩ Répondre
@@ -1122,7 +1137,7 @@ export default function CampagnesPage() {
                                         email: c.to_email,
                                         prenom: c.nom_complet.split(' ')[0] || '',
                                         nom: c.nom_complet.split(' ').slice(1).join(' ') || '',
-                                      }, rep.subject || c.subject, c.id)}
+                                      }, rep.subject || c.subject, c.id, rep.statut === 'recu' ? [rep.id] : undefined)}
                                       style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                     >
                                       ↩ Répondre
