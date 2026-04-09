@@ -195,6 +195,8 @@ export default function CampagnesPage() {
   // ─── Réponses non lues ───
   const [reponsesNonLues, setReponsesNonLues] = useState(0)
   const [showOnlyWithReplies, setShowOnlyWithReplies] = useState(false)
+  const [nonLuNavIndex, setNonLuNavIndex] = useState(-1)
+  const [nonLuNavLoading, setNonLuNavLoading] = useState(false)
 
   // ─── Reply statut management ───
   const [updatingStatut, setUpdatingStatut] = useState<string | null>(null)
@@ -303,6 +305,7 @@ export default function CampagnesPage() {
         body: JSON.stringify({ bulk_statut_from: 'recu', statut: 'lu' }),
       })
       setReponsesNonLues(0)
+      setNonLuNavIndex(-1)
       dispatchBadgeUpdate(0)
       // Update inline data
       setCampagneDetail(prev => {
@@ -371,6 +374,57 @@ export default function CampagnesPage() {
       setCampagneDetail(json)
     } catch { setCampagneDetail(null) }
     setLoadingDetail(false)
+  }
+
+  // ─── Navigation réponses non lues (campagnes) ───
+  const campagnesAvecNonLus = useMemo(() =>
+    campagnes.filter(c => (c.reponses_non_lues || 0) > 0),
+  [campagnes])
+
+  const naviguerNonLu = async (direction: 'next' | 'prev' = 'next') => {
+    if (campagnesAvecNonLus.length === 0) return
+
+    // Determiner l'index de la campagne cible
+    let nextIdx: number
+    if (direction === 'next') {
+      nextIdx = nonLuNavIndex + 1 >= campagnesAvecNonLus.length ? 0 : nonLuNavIndex + 1
+    } else {
+      nextIdx = nonLuNavIndex - 1 < 0 ? campagnesAvecNonLus.length - 1 : nonLuNavIndex - 1
+    }
+    setNonLuNavIndex(nextIdx)
+
+    const cible = campagnesAvecNonLus[nextIdx]
+    setActiveTab('campagnes')
+    setNonLuNavLoading(true)
+
+    // Ouvrir le detail de la campagne si pas deja ouverte
+    if (selectedCampagne !== cible.id) {
+      setSelectedCampagne(cible.id)
+      setLoadingDetail(true)
+      try {
+        const res = await fetch(`/api/admin/courriels/campagne-detail?campagne_id=${cible.id}`)
+        const json = await res.json()
+        setCampagneDetail(json)
+      } catch { setCampagneDetail(null) }
+      setLoadingDetail(false)
+    }
+
+    // Attendre le rendu, puis scroller vers le premier destinataire non lu
+    setTimeout(() => {
+      const el = document.querySelector(`[data-campagne="${cible.id}"] [data-non-lu="true"]`) as HTMLElement
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        // Flash highlight
+        el.style.outline = '2px solid #f59e0b'
+        el.style.outlineOffset = '-2px'
+        setTimeout(() => { el.style.outline = ''; el.style.outlineOffset = '' }, 2000)
+      } else {
+        // Scroller vers la campagne elle-meme
+        const campEl = document.querySelector(`[data-campagne="${cible.id}"]`) as HTMLElement
+        if (campEl) campEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      setNonLuNavLoading(false)
+    }, 400)
   }
 
   // ─── Filtrage campagnes ───
@@ -554,30 +608,49 @@ export default function CampagnesPage() {
             <span style={{ fontSize: '16px' }}>📨</span>
             <span style={{ fontSize: '13px', color: '#92400e', fontWeight: '600', flex: 1 }}>
               {reponsesNonLues} réponse{reponsesNonLues > 1 ? 's' : ''} non lue{reponsesNonLues > 1 ? 's' : ''}
+              {campagnesAvecNonLus.length > 0 && (
+                <span style={{ fontSize: '11px', fontWeight: '400', color: '#b45309', marginLeft: '6px' }}>
+                  dans {campagnesAvecNonLus.length} campagne{campagnesAvecNonLus.length > 1 ? 's' : ''}
+                </span>
+              )}
             </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => {
-                  // Trouver la première campagne avec réponses non lues
-                  const campAvecReponses = campagnes.find(c => (c.reponses_non_lues || 0) > 0)
-                  if (campAvecReponses) {
-                    setActiveTab('campagnes')
-                    openCampagneDetail(campAvecReponses.id)
-                  } else {
-                    // Fallback: réponses individuelles
-                    setShowOnlyWithReplies(!showOnlyWithReplies)
-                    setActiveTab('individuels')
-                  }
-                }}
-                style={{
-                  padding: '5px 14px', fontSize: '12px', fontWeight: '600',
-                  borderRadius: '6px', border: '1px solid #f59e0b', cursor: 'pointer',
-                  backgroundColor: showOnlyWithReplies ? '#f59e0b' : 'white',
-                  color: showOnlyWithReplies ? 'white' : '#92400e',
-                }}
-              >
-                {showOnlyWithReplies ? '✕ Voir tous' : 'Voir les réponses'}
-              </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {/* Navigation entre campagnes avec non-lus */}
+              {campagnesAvecNonLus.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  <button
+                    onClick={() => naviguerNonLu('prev')}
+                    disabled={nonLuNavLoading}
+                    style={{
+                      padding: '5px 8px', fontSize: '14px', fontWeight: '700',
+                      borderRadius: '6px 0 0 6px', border: '1px solid #f59e0b', cursor: nonLuNavLoading ? 'wait' : 'pointer',
+                      backgroundColor: 'white', color: '#92400e', lineHeight: 1,
+                    }}
+                    title="Campagne précédente avec non-lus"
+                  >
+                    ‹
+                  </button>
+                  <span style={{
+                    padding: '5px 10px', fontSize: '11px', fontWeight: '700',
+                    border: '1px solid #f59e0b', borderLeft: 'none', borderRight: 'none',
+                    backgroundColor: '#fffbeb', color: '#92400e', whiteSpace: 'nowrap',
+                  }}>
+                    {nonLuNavIndex >= 0 ? `${nonLuNavIndex + 1}/${campagnesAvecNonLus.length}` : `${campagnesAvecNonLus.length}`}
+                  </span>
+                  <button
+                    onClick={() => naviguerNonLu('next')}
+                    disabled={nonLuNavLoading}
+                    style={{
+                      padding: '5px 8px', fontSize: '14px', fontWeight: '700',
+                      borderRadius: '0 6px 6px 0', border: '1px solid #f59e0b', cursor: nonLuNavLoading ? 'wait' : 'pointer',
+                      backgroundColor: '#f59e0b', color: 'white', lineHeight: 1,
+                    }}
+                    title="Campagne suivante avec non-lus"
+                  >
+                    ›
+                  </button>
+                </div>
+              )}
               <button
                 onClick={markAllAsRead}
                 disabled={markingAllRead}
@@ -628,7 +701,7 @@ export default function CampagnesPage() {
                   const isOpen = selectedCampagne === c.id
 
                   return (
-                    <div key={c.id} style={{ backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', border: '1px solid transparent' }}>
+                    <div key={c.id} data-campagne={c.id} style={{ backgroundColor: 'white', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden', border: '1px solid transparent' }}>
                       {/* Ligne résumé — cliquable */}
                       <div
                         onClick={() => openCampagneDetail(c.id)}
@@ -784,8 +857,9 @@ export default function CampagnesPage() {
                                       )
                                     }
                                     const d = item.dest!
+                                    const hasNonLu = d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu')
                                     return (
-                                  <div key={d.id}>
+                                  <div key={d.id} data-non-lu={hasNonLu ? 'true' : undefined} data-dest-id={d.benevole_id}>
                                     {/* Ligne destinataire */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu') ? '#fffdf5' : d.reponses && d.reponses.length > 0 ? '#f0f9ff' : 'white', alignItems: 'center' }}>
                                       <div style={{ fontWeight: '500', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
