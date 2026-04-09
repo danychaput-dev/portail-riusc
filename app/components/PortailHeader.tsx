@@ -601,6 +601,14 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 )}
 
 
+                {(isAdmin || isAdjoint || isPartenaire) && (
+                  <a href="/outils/transports" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#0891b2', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ecfeff'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                    <span style={{ fontSize: '18px' }}>🚌</span>
+                    Estimation transports
+                  </a>
+                )}
+
                 <button
                   onClick={() => {
                     setShowUserMenu(false)

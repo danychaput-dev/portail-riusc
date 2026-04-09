@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIUSC — Calculateur de transport dynamique</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{--bleu:#1B3A6B;--bleu-mid:#2E5FAC;--vert:#1A7A5C;--vert-pale:#E6F6F1;--ambre:#C96A00;--ambre-pale:#FFF4E5;--rouge:#B03030;--rouge-pale:#FDF0F0;--violet:#5B3FA6;--gris-fond:#F4F6FB;--gris-bord:#DDE3EF;--gris-text:#6B748A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--gris-fond);color:#111827;font-size:14px;line-height:1.6}
+.cover{background:var(--bleu);color:white;padding:52px 72px 44px;position:relative;overflow:hidden;text-align:center;display:flex;flex-direction:column;align-items:center}
+.cover::before{content:'';position:absolute;top:-80px;right:-80px;width:380px;height:380px;border-radius:50%;border:55px solid rgba(255,255,255,0.06)}
+.badge{display:inline-block;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;padding:3px 14px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:18px}
+.cover h1{font-family:'DM Serif Display',serif;font-size:42px;line-height:1.1;margin-bottom:10px}
+.cover h1 em{font-style:italic;color:#7EC8E3}
+.cover-sub{font-size:15px;color:rgba(255,255,255,0.7);margin-bottom:28px;max-width:520px;text-align:center}
+.cover-meta{display:flex;gap:32px;flex-wrap:wrap;justify-content:center}
+.cover-meta strong{display:block;font-size:13px;color:white;font-weight:600}
+.cover-meta span{font-size:11px;color:rgba(255,255,255,0.5)}
+.page{max-width:1480px;margin:0 auto;padding:32px 28px}
+.st{font-family:'DM Serif Display',serif;font-size:26px;color:var(--bleu);margin-bottom:4px}
+.ss{color:var(--gris-text);font-size:13px;margin-bottom:22px;padding-bottom:12px;border-bottom:2px solid var(--gris-bord)}
+.divider{border:none;border-top:2px solid var(--gris-bord);margin:36px 0}
+.panel{background:white;border:2px solid var(--bleu-mid);border-radius:14px;padding:24px;margin-bottom:28px;position:relative}
+.panel-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--bleu);margin-bottom:3px;display:flex;align-items:center;gap:10px}
+.live-badge{font-size:10px;font-weight:600;background:#E6F6F1;color:var(--vert);padding:2px 9px;border-radius:12px}
+.panel-sub{font-size:12px;color:var(--gris-text);margin-bottom:18px}
+.reset-btn{position:absolute;top:18px;right:20px;font-size:11px;color:var(--gris-text);background:none;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 10px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.reset-btn:hover{border-color:var(--bleu-mid);color:var(--bleu-mid)}
+.vg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.vbox{background:var(--gris-fond);border-radius:10px;padding:14px}
+.vbox-t{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--gris-text);margin-bottom:10px}
+.vr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px}
+.vr:last-child{margin-bottom:0}
+.vl{font-size:12px;color:#111827;flex:1;line-height:1.3}
+.vl small{display:block;font-size:10px;color:var(--gris-text);margin-top:1px}
+.vi{width:80px;text-align:right;border:1px solid var(--gris-bord);border-radius:6px;padding:4px 7px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:'DM Sans',sans-serif}
+.vi:focus{outline:none;border-color:var(--bleu-mid);box-shadow:0 0 0 2px rgba(46,95,172,0.12)}
+.vi.ro{background:#F8FAFF;color:var(--gris-text);cursor:not-allowed}
+.vs{font-size:10px;color:var(--gris-text);min-width:26px}
+.tgl{position:relative;display:inline-block;width:38px;height:20px}
+.tgl input{opacity:0;width:0;height:0}
+.tsl{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:20px;transition:.3s}
+.tsl:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.tgl input:checked+.tsl{background:var(--bleu-mid)}
+.tgl input:checked+.tsl:before{transform:translateX(18px)}
+.drv-sec{display:none}.drv-sec.vis{display:block}
+.dur-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dur-card{border:2px solid var(--gris-bord);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.2s;background:white}
+.dur-card:hover{border-color:var(--bleu-mid)}
+.dur-card.active{border-color:var(--bleu-mid);background:#EEF3FC}
+.dur-card input[type=radio]{display:none}
+.dur-n{font-family:'DM Serif Display',serif;font-size:22px;color:var(--bleu);line-height:1}
+.dur-lbl{font-size:11px;color:var(--gris-text);margin-top:2px}
+.dur-dispo{font-size:10px;font-weight:600;color:var(--bleu-mid);margin-top:4px}
+.cg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px}
+.cc{background:var(--gris-fond);border-radius:8px;padding:12px}
+.cc-name{font-size:12px;font-weight:600;margin-bottom:2px}
+.cc-info{font-size:10px;color:var(--gris-text);margin-bottom:8px}
+.cc-row{display:flex;align-items:center;gap:5px}
+.cc-fill{font-size:11px;font-weight:600;margin-top:5px;text-align:center;height:16px}
+.cc-sel{font-size:10px;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 3px;color:var(--bleu);background:white;flex:1;min-width:0}
+.cc-n{width:50px;text-align:right;border:1px solid var(--gris-bord);border-radius:6px;padding:3px 5px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:'DM Sans',sans-serif}
+.sg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
+.sc{background:white;border:1px solid var(--gris-bord);border-radius:10px;padding:14px}
+.sc-lbl{font-size:11px;color:var(--gris-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px}
+.sc-val{font-family:'DM Serif Display',serif;font-size:26px;color:var(--bleu);line-height:1;margin-bottom:2px}
+.sc-note{font-size:11px;color:var(--gris-text)}
+.sc.hi{border:2px solid var(--bleu-mid)}
+.sc.hi2{border:2px solid var(--vert)}
+.itbl{width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:10px;overflow:hidden;border:1px solid var(--gris-bord);margin-bottom:20px}
+.itbl th{background:var(--bleu);color:white;padding:9px 12px;text-align:left;font-weight:500;font-size:11px;text-transform:uppercase}
+.itbl td{padding:9px 12px;border-bottom:1px solid var(--gris-bord);vertical-align:top}
+.itbl tr:last-child td{border-bottom:none}
+.itbl tr.act td{background:#EEF3FC;font-weight:600}
+.rot-wrap{overflow-x:auto;margin-bottom:20px}
+.rtbl{width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:10px;overflow:hidden;border:1px solid var(--gris-bord)}
+.rtbl th{background:var(--bleu);color:white;padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;white-space:nowrap}
+.rtbl th.l{text-align:left}
+.rtbl td{padding:7px 8px;border-bottom:1px solid var(--gris-bord);text-align:center;vertical-align:middle}
+.rtbl tr:nth-child(even) td{background:#F8FAFF}
+.rtbl tr:last-child td{border-bottom:none}
+.rtbl tr.rt td{background:#EEF3FC;font-weight:600}
+.ri{width:48px;text-align:center;border:1px solid var(--gris-bord);border-radius:5px;padding:3px 4px;font-size:12px;font-weight:600;color:var(--bleu);background:white;font-family:'DM Sans',sans-serif}
+.ri:focus{outline:none;border-color:var(--bleu-mid)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.chc{background:white;border:1px solid var(--gris-bord);border-radius:10px;padding:20px}
+.chc h3{font-family:'DM Serif Display',serif;font-size:16px;color:var(--bleu);margin-bottom:3px}
+.chc .cs{font-size:11px;color:var(--gris-text);margin-bottom:14px}
+.cn{font-size:10px;color:var(--gris-text);margin-top:8px;font-style:italic;border-top:1px solid var(--gris-bord);padding-top:7px}
+.alert{border-radius:8px;padding:12px 16px;font-size:13px;line-height:1.6;margin-bottom:18px;display:flex;gap:10px;align-items:flex-start}
+.ai{font-size:17px;flex-shrink:0}
+.alert.blue{background:#EEF3FC;border-left:4px solid var(--bleu-mid)}
+.alert.amber{background:var(--ambre-pale);border-left:4px solid var(--ambre)}
+.alert.green{background:var(--vert-pale);border-left:4px solid var(--vert)}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px}
+.footer{background:var(--bleu);color:rgba(255,255,255,0.45);text-align:center;padding:16px;font-size:11px;margin-top:32px}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="badge">RIUSC</div>
+  <h1>Calculateur de transport<br><em>dynamique</em></h1>
+  <p class="cover-sub">Covoiturage vs autobus nolisé · Grille par rotation · Impact de la durée · Politique provinciale MSP</p>
+  <div class="cover-meta">
+    <div><strong>Scénario</strong><span>Déploiement à La Tuque</span></div>
+    <div><strong>Pool disponible</strong><span>347 réservistes · 5 corridors</span></div>
+    <div><strong>Statut</strong><span>Estimations — soumissions requises</span></div>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- VARIABLES -->
+<div class="panel">
+  <button class="reset-btn" onclick="resetAll()">↺ Réinitialiser</button>
+  <div class="panel-title">Tableau de variables <span class="live-badge">⚡ Temps réel</span></div>
+  <p class="panel-sub">Entrez les valeurs réelles dès que vous les avez — tout se recalcule instantanément.</p>
+  <div class="vg">
+    <div class="vbox">
+      <div class="vbox-t">🚌 Location autobus ($/jour · véhicule seul)</div>
+      <div class="vr"><span class="vl">Minibus 14 pl.<small>Petits groupes</small></span><input class="vi" id="b14" type="number" value="450" min="0" step="50" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+      <div class="vr"><span class="vl">Minibus 24 pl.<small>Groupes moyens</small></span><input class="vi" id="b24" type="number" value="700" min="0" step="50" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+      <div class="vr"><span class="vl">Autobus scolaire 50 pl.<small>Rotation complète</small></span><input class="vi" id="b50" type="number" value="1000" min="0" step="50" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+      <div class="vr"><span class="vl">Autocar 55 pl.<small>Long parcours</small></span><input class="vi" id="b55" type="number" value="1200" min="0" step="50" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+    </div>
+    <div class="vbox">
+      <div class="vbox-t">👤 Chauffeur &amp; frais accessoires</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <label class="tgl"><input type="checkbox" id="own_drv" onchange="toggleDrv();renderGrid();calc()"><span class="tsl"></span></label>
+        <span style="font-size:12px" id="drv_lbl">Chauffeur inclus dans le forfait</span>
+      </div>
+      <div class="drv-sec" id="drv_sec">
+        <div class="vr"><span class="vl">Salaire chauffeur / jour<small>~24–28 $/h · Teamsters</small></span><input class="vi" id="drv_d" type="number" value="240" min="0" step="20" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+      </div>
+      <div class="vr"><span class="vl">Hébergement chauffeur<small>Si nuitée sur place</small></span><input class="vi" id="hotel" type="number" value="120" min="0" step="10" oninput="renderGrid();calc()"><span class="vs">$/nuit</span></div>
+      <div class="vr"><span class="vl">Nuits sur place / rotation<small>0 = A-R le même jour</small></span><input class="vi" id="nights" type="number" value="0" min="0" max="5" step="1" oninput="renderGrid();calc()"><span class="vs">nuits</span></div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--gris-bord)">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--gris-text);margin-bottom:6px">🚗 Location véhicule léger ($/jour)</div>
+        <div class="vr"><span class="vl">Auto 4 pl. louée<small>+ assurance + ~0,20 $/km</small></span><input class="vi" id="rent_car" type="number" value="80" min="0" step="5" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+        <div class="vr"><span class="vl">Minivan 7 pl. louée<small>+ assurance + ~0,20 $/km</small></span><input class="vi" id="rent_van" type="number" value="105" min="0" step="5" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+        <div class="vr"><span class="vl">Assurance collision<small>Par véhicule loué / jour</small></span><input class="vi" id="rent_ins" type="number" value="19" min="0" step="1" oninput="renderGrid();calc()"><span class="vs">$/j</span></div>
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px dashed var(--gris-bord)">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--gris-text);margin-bottom:6px">Taux provinciaux MSP (fixes)</div>
+        <div class="vr"><span class="vl">Covoit. 3+ pers.</span><input class="vi ro" type="number" value="0.806" readonly><span class="vs">$/km</span></div>
+        <div class="vr"><span class="vl">Véhicule solo</span><input class="vi ro" type="number" value="0.645" readonly><span class="vs">$/km</span></div>
+      </div>
+    </div>
+    <div class="vbox">
+      <div class="vbox-t">📅 Durée sur place par rotation</div>
+      <p style="font-size:11px;color:var(--gris-text);margin-bottom:10px">Dispo requise = jours sur place + 2 jours transit</p><p id="dur_sc_note" style="font-size:10px;display:none;margin-bottom:8px;padding:4px 8px;border-radius:6px;background:#EEF3FC;color:var(--bleu-mid)"></p>
+      <div class="dur-grid">
+        <label class="dur-card active" onclick="setDur(2)"><input type="radio" name="dur" value="2" checked><div class="dur-n">2</div><div class="dur-lbl">jours sur place</div><div class="dur-dispo">→ 4 j. dispo</div></label>
+        <label class="dur-card" onclick="setDur(3)"><input type="radio" name="dur" value="3"><div class="dur-n">3</div><div class="dur-lbl">jours sur place</div><div class="dur-dispo">→ 5 j. dispo</div></label>
+        <label class="dur-card" onclick="setDur(4)"><input type="radio" name="dur" value="4"><div class="dur-n">4</div><div class="dur-lbl">jours sur place</div><div class="dur-dispo">→ 6 j. dispo</div></label>
+      </div>
+      <div style="margin-top:12px">
+        <div class="vr"><span class="vl">Durée totale de l'opération<small>En jours calendrier</small></span><input class="vi" id="op_days" type="number" value="14" min="2" max="60" step="1" oninput="ACTIVE_SC=null;renderScCards();fillGrid()"><span class="vs">jours</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- CORRIDORS TEMPLATE -->
+  <div style="margin-top:16px">
+    <div class="vbox">
+      <div class="vbox-t" style="display:flex;align-items:center;gap:10px;justify-content:space-between">👥 Composition type d'une rotation &nbsp;<button onclick="applyTemplateToGrid()" style="font-size:11px;font-weight:600;color:var(--bleu-mid);background:#EEF3FC;border:1px solid var(--bleu-mid);border-radius:6px;padding:3px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">↓ Appliquer à toutes les rotations</button></div>
+      <div style="font-size:11px;color:var(--ambre);background:var(--ambre-pale);border-left:3px solid var(--ambre);border-radius:4px;padding:6px 10px;margin-bottom:10px;line-height:1.4"><strong>⚠ Template ≠ Grille</strong> — Changer ces chiffres ne modifie pas les lignes déjà dans la grille. Cliquez <strong>↓ Appliquer</strong> pour tout mettre à jour.</div>
+      <div class="cg">
+        <div class="cc"><div class="cc-name" style="color:var(--bleu-mid)">Montréal</div><div class="cc-info">225 km · Bassin 143</div><div class="cc-row"><input class="cc-n" id="n_mtl" type="number" value="20" min="0" max="55" oninput="autoSz('mtl');fillGrid()"><span style="font-size:10px;color:var(--gris-text)">pers.</span><select class="cc-sel" id="s_mtl" onchange="updFill('mtl');calc()"><option value="covoit">Auto perso</option><option value="rent_car">Auto louée</option><option value="minivan">Minivan perso</option><option value="rent_van">Minivan louée</option><option value="14">14 pl.</option><option value="24" selected>24 pl.</option><option value="50">Scolaire 50</option><option value="55">Autocar 55</option></select></div><div class="cc-fill" id="f_mtl"></div></div>
+        <div class="cc"><div class="cc-name" style="color:var(--rouge)">Québec</div><div class="cc-info">139 km · Bassin 81</div><div class="cc-row"><input class="cc-n" id="n_qc" type="number" value="12" min="0" max="55" oninput="autoSz('qc');fillGrid()"><span style="font-size:10px;color:var(--gris-text)">pers.</span><select class="cc-sel" id="s_qc" onchange="updFill('qc');calc()"><option value="covoit">Auto perso</option><option value="rent_car">Auto louée</option><option value="minivan">Minivan perso</option><option value="rent_van">Minivan louée</option><option value="14">14 pl.</option><option value="24" selected>24 pl.</option><option value="50">Scolaire 50</option><option value="55">Autocar 55</option></select></div><div class="cc-fill" id="f_qc"></div></div>
+        <div class="cc"><div class="cc-name" style="color:var(--vert)">Saguenay 🆕</div><div class="cc-info">168 km · Bassin 51</div><div class="cc-row"><input class="cc-n" id="n_sag" type="number" value="8" min="0" max="55" oninput="autoSz('sag');fillGrid()"><span style="font-size:10px;color:var(--gris-text)">pers.</span><select class="cc-sel" id="s_sag" onchange="updFill('sag');calc()"><option value="covoit">Auto perso</option><option value="rent_car">Auto louée</option><option value="minivan">Minivan perso</option><option value="rent_van">Minivan louée</option><option value="14" selected>14 pl.</option><option value="24">24 pl.</option><option value="50">Scolaire 50</option><option value="55">Autocar 55</option></select></div><div class="cc-fill" id="f_sag"></div></div>
+        <div class="cc"><div class="cc-name" style="color:var(--ambre)">Mauricie</div><div class="cc-info">125 km · Bassin 42</div><div class="cc-row"><input class="cc-n" id="n_mau" type="number" value="6" min="0" max="55" oninput="autoSz('mau');fillGrid()"><span style="font-size:10px;color:var(--gris-text)">pers.</span><select class="cc-sel" id="s_mau" onchange="updFill('mau');calc()"><option value="covoit" selected>Auto perso</option><option value="rent_car">Auto louée</option><option value="minivan">Minivan perso</option><option value="rent_van">Minivan louée</option><option value="14">14 pl.</option><option value="24">24 pl.</option><option value="50">Scolaire 50</option><option value="55">Autocar 55</option></select></div><div class="cc-fill" id="f_mau"></div></div>
+        <div class="cc"><div class="cc-name" style="color:var(--violet)">Estrie</div><div class="cc-info">238 km · Bassin 21</div><div class="cc-row"><input class="cc-n" id="n_est" type="number" value="4" min="0" max="55" oninput="autoSz('est');fillGrid()"><span style="font-size:10px;color:var(--gris-text)">pers.</span><select class="cc-sel" id="s_est" onchange="updFill('est');calc()"><option value="covoit" selected>Auto perso</option><option value="rent_car">Auto louée</option><option value="minivan">Minivan perso</option><option value="rent_van">Minivan louée</option><option value="14">14 pl.</option><option value="24">24 pl.</option><option value="50">Scolaire 50</option><option value="55">Autocar 55</option></select></div><div class="cc-fill" id="f_est"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IMPACT DURÉE -->
+<!-- BREAKEVEN SECTION -->
+<p class="st">Point de bascule — Bus vs Covoiturage</p>
+<p class="ss">À combien de personnes le bus nolisé devient-il moins cher que le covoiturage? Calculé avec vos prix actuels.</p>
+
+<div style="background:#EEF3FC;border-left:4px solid var(--bleu-mid);border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:20px;line-height:1.6">
+  <strong>Réponse courte :</strong> Dès <strong id="be_headline">5 personnes</strong>, une minivan personnelle (taux provincial 0,806 $/km) bat le covoiturage en autos. Le minibus 14 pl. devient rentable un peu au-delà. La règle d'or : 1–4 pers. → auto, 5–7 pers. → minivan, 8+ pers. → véhicule nolisé.
+</div>
+
+<div style="overflow-x:auto;margin-bottom:20px">
+  <table class="itbl" id="be_table">
+    <thead>
+      <tr>
+        <th>Corridor</th>
+        <th>Distance totale A-R<br><span style="font-weight:400;font-size:10px">incl. domicile→hub</span></th>
+        <th style="color:#86EFAC">Minivan 7 pl.<br><span style="font-weight:400;font-size:10px">taux provincial</span></th>
+        <th style="color:#9FE1CB">Minibus 14 pl.</th>
+        <th style="color:#90CAF9">Minibus 24 pl.</th>
+        <th style="color:#FFCC80">Autobus scolaire 50 pl.</th>
+        <th style="color:#CE93D8">Autocar 55 pl.</th>
+        <th>Auto (4 pers.) gagne si...</th>
+      </tr>
+    </thead>
+    <tbody id="be_body"></tbody>
+  </table>
+</div>
+<div style="font-size:12px;color:var(--gris-text);margin-bottom:28px;padding:10px 14px;background:var(--gris-fond);border-radius:8px;line-height:1.6">
+  <strong style="color:var(--noir)">Auto louée (80 $/j) vs taux provincial (0,806 $/km) :</strong>
+  Point de bascule = <strong id="be_dist_note">—</strong> km aller.
+  En-dessous → louer est moins cher. Au-dessus → le taux provincial gagne.<br>
+  <em>Les cases ci-dessus comparent toutes les options vs l'auto personnelle au taux provincial. "N/A" = cette option est toujours plus chère.</em>
+</div>
+
+<p class="st">Impact de la durée sur place</p>
+<p class="ss" id="imp_sub">Pour 14 jours d'opération avec 50 réservistes actifs en tout temps</p>
+<table class="itbl"><thead><tr><th>Durée sur place</th><th>Dispo requise/pers.</th><th>Rotations</th><th>Pers-rotations uniques</th><th>Coût/rotation</th><th>Coût total transport</th><th>Coût/personne-jour</th></tr></thead><tbody id="imp_body"></tbody></table>
+<div class="alert blue"><span class="ai">💡</span><div><strong>Lecture :</strong> Plus les réservistes restent longtemps sur place, moins il faut de rotations d'autobus. Le coût total baisse et le coût par personne-jour aussi. La contrainte inverse : les gens doivent bloquer plus de jours d'affilée dans leur agenda.</div></div>
+
+<!-- RÉSUMÉ -->
+<p class="st">Résumé — scénario actuel</p>
+<p class="ss" id="ss_sub">14 jours · 2 jours sur place · 4 jours de disponibilité requis</p>
+<div class="sg">
+  <div class="sc"><div class="sc-lbl">Rotations</div><div class="sc-val" id="s_rots">7</div><div class="sc-note" id="s_rots_n">pour 14 jours</div></div>
+  <div class="sc"><div class="sc-lbl">Pers./rotation</div><div class="sc-val" id="s_pax">50</div><div class="sc-note">sur 5 corridors</div></div>
+  <div class="sc"><div class="sc-lbl">Coût/rotation</div><div class="sc-val" id="s_cpr">—</div><div class="sc-note">bus + remb. km</div></div>
+  <div class="sc hi"><div class="sc-lbl">Coût total transport</div><div class="sc-val" id="s_tot" style="color:var(--ambre)">—</div><div class="sc-note" id="s_tot_n">opération complète</div></div>
+  <div class="sc hi2"><div class="sc-lbl">Coût/personne-jour</div><div class="sc-val" id="s_ppd" style="color:var(--vert)">—</div><div class="sc-note">transport seulement</div></div>
+</div>
+
+<!-- SCÉNARIOS PRÉDÉFINIS -->
+<p class="st">Scénarios prédéfinis</p>
+<p class="ss">Sélectionnez un point de départ — la grille se remplit automatiquement. Modifiez ensuite chaque cellule librement.</p>
+<div id="sc_cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px"></div>
+
+<!-- GRILLE PAR ROTATION -->
+<p class="st">Grille par rotation</p>
+<p class="ss">Chaque cellule est éditable — entrez les disponibilités réelles corridor par corridor pour chaque rotation. Le mode transport et les coûts se recalculent automatiquement.</p>
+<div class="rot-wrap">
+  <table class="rtbl">
+    <thead><tr><th class="l">Rotation</th><th>Jours</th><th style="color:#90CAF9">Montréal</th><th style="color:#EF9A9A">Québec</th><th style="color:#A5D6A7">Saguenay</th><th style="color:#FFCC80">Mauricie</th><th style="color:#CE93D8">Estrie</th><th>Total</th><th>Transport</th><th>Coût rot.</th><th>$/pers-jour</th></tr></thead>
+    <tbody id="rot_body"></tbody>
+    <tfoot><tr class="rt" id="rot_foot"></tr></tfoot>
+  </table>
+</div>
+<div class="alert amber"><span class="ai">⚠️</span><div>Les valeurs par défaut sont proportionnelles au bassin disponible. Modifiez chaque rotation selon les disponibilités réelles que l'agent IA produira lors d'un vrai sinistre. Règle d'auto-sélection du véhicule : ≤8 pers. → covoiturage · 9–14 pl. → minibus 14 pl. · 15–24 → minibus · 25–50 → autobus scolaire 50 pl. · 51+ → 55 pl.</div></div>
+
+<!-- GRAPHIQUES -->
+<div class="g2">
+  <div class="chc"><h3>Coût cumulatif par rotation</h3><p class="cs">Évolution du budget transport sur l'opération</p><div style="position:relative;height:230px"><canvas id="chCumul"></canvas></div></div>
+  <div class="chc"><h3>Coût / personne-jour par rotation</h3><p class="cs">Efficacité transport à chaque rotation</p><div style="position:relative;height:230px"><canvas id="chPPD"></canvas></div><p class="cn">Un coût élevé indique un sous-remplissage des véhicules ou peu de personnes pour une longue distance.</p></div>
+</div>
+<div class="g2">
+  <div class="chc"><h3>Composition par corridor et par rotation</h3><p class="cs">Nombre de réservistes par corridor à chaque rotation</p><div style="position:relative;height:230px"><canvas id="chComp"></canvas></div></div>
+  <div class="chc"><h3>Impact durée sur place — coût total comparé</h3><p class="cs">Pour <span id="ch_days">14</span> jours · avec votre coût/rotation actuel</p><div style="position:relative;height:230px"><canvas id="chDur"></canvas></div><p class="cn" id="dur_note">—</p></div>
+</div>
+<div class="alert green"><span class="ai">✅</span><div><strong>Politique MSP :</strong> Covoiturage remboursé à 0,806 $/km (3+ pers.) via le budget de déploiement — pas débité au réserviste. Inclut les km domicile → point d'embarquement. Transport camp de base ↔ site opérationnel : hors mandat.</div></div>
+
+</div>
+<div class="footer">Analyse préliminaire · RIUSC · Avril 2026 · Estimations — soumissions réelles requises</div>
+
+<script>
+Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#6B748A';
+
+const CRS=[
+  {id:'mtl',name:'Montréal', color:'#2E5FAC',dist:225,homeKm:40},
+  {id:'qc', name:'Québec',   color:'#B03030',dist:139,homeKm:40},
+  {id:'sag',name:'Saguenay', color:'#1A7A5C',dist:168,homeKm:20},
+  {id:'mau',name:'Mauricie', color:'#C96A00',dist:125,homeKm:30},
+  {id:'est',name:'Estrie',   color:'#5B3FA6',dist:238,homeKm:50},
+];
+const BK={14:'b14',24:'b24',50:'b50',55:'b55'};
+let DUR=2;
+let GRID=[];
+
+const g=id=>parseFloat(document.getElementById(id)?.value)||0;
+const gi=id=>document.getElementById(id)?.value||'';
+const fmt=n=>Math.round(n).toLocaleString('fr-CA')+' $';
+const fmtk=n=>n>=10000?(n/1000).toFixed(1)+'k $':fmt(n);
+const nRots=(d,dur)=>Math.max(1,Math.ceil(d/dur));
+
+function optBus(n){
+  if(n<=0)return'covoit';
+  if(n<=4)return'covoit';
+  if(n<=7)return'minivan';
+  if(n<=14)return'14';
+  if(n<=24)return'24';
+  if(n<=50)return'50';
+  return'55';
+}
+
+function bprice(mode){
+  if(mode==='covoit')return 0;
+  const t=parseInt(mode);
+  return g(BK[t])||0;
+}
+
+function corrCost(dist,homeKm,n,mode){
+  if(n<=0)return{veh:0,drv:0,htl:0,remb:0,tot:0};
+  const ar=dist*2;
+  if(mode==='covoit'){
+    const nc=Math.ceil(n/4);
+    const remb=Math.round(nc*0.806*(ar+homeKm*2));
+    return{veh:0,drv:0,htl:0,remb,tot:remb};
+  }
+  if(mode==='minivan'){
+    const nv=Math.ceil(n/7);
+    const remb=Math.round(nv*0.806*(ar+homeKm*2));
+    return{veh:0,drv:0,htl:0,remb,tot:remb};
+  }
+  if(mode==='rent_car'){
+    const nc=Math.ceil(n/4);
+    const ins=g('rent_ins')||0;
+    const veh=Math.round(nc*(g('rent_car')+ins+0.20*(ar+homeKm*2)));
+    return{veh,drv:0,htl:0,remb:0,tot:veh};
+  }
+  if(mode==='rent_van'){
+    const nv=Math.ceil(n/7);
+    const ins=g('rent_ins')||0;
+    const veh=Math.round(nv*(g('rent_van')+ins+0.20*(ar+homeKm*2)));
+    return{veh,drv:0,htl:0,remb:0,tot:veh};
+  }
+  const bp=bprice(mode);
+  const kr=parseInt(mode)<=14?0.90:parseInt(mode)<=24?1.10:parseInt(mode)<=50?1.40:1.55;
+  const veh=Math.round(bp+Math.max(0,ar-200)*kr);
+  const own=document.getElementById('own_drv').checked;
+  const drv=own?Math.round(g('drv_d')):0;
+  const htl=Math.round(g('nights')*g('hotel'));
+  const remb=Math.round(0.806*(homeKm*2)/3*n);
+  return{veh,drv,htl,remb,tot:veh+drv+htl+remb};
+}
+
+function updFill(id){
+  const n=Math.round(g('n_'+id));
+  const m=gi('s_'+id);
+  const el=document.getElementById('f_'+id);
+  if(!el)return;
+  if(n===0){el.textContent='—';el.style.color='var(--gris-text)';return;}
+  if(m==='covoit'){const nc=Math.ceil(n/4);el.textContent=nc+' auto'+(nc>1?'s':'');el.style.color='var(--vert)';return;}
+  if(m==='minivan'){const nv=Math.ceil(n/7);el.textContent=nv+' van perso';el.style.color='var(--vert-mid)';return;}
+  if(m==='rent_car'){const nc=Math.ceil(n/4);el.textContent=nc+' auto louée'+(nc>1?'s':'');el.style.color='var(--ambre)';return;}
+  if(m==='rent_van'){const nv=Math.ceil(n/7);el.textContent=nv+' van louée'+(nv>1?'s':'');el.style.color='var(--ambre)';return;}
+  const pct=Math.round(n/parseInt(m)*100);
+  el.textContent=pct+'%';
+  el.style.color=pct>=70?'var(--vert)':pct>=40?'var(--ambre)':'var(--rouge)';
+}
+
+function autoSz(id){
+  const n=parseInt(document.getElementById('n_'+id).value)||0;
+  const opt=optBus(n);
+  const sel=document.getElementById('s_'+id);
+  // Force-select the right option by iterating (more reliable than .value)
+  for(var i=0;i<sel.options.length;i++){
+    sel.options[i].selected=(sel.options[i].value===opt);
+  }
+  updFill(id);
+}
+
+function setDur(d){
+  DUR=d;
+  // If user manually changes duration, clear active scenario
+  // (unless called from loadSc which sets DUR directly)
+  if(ACTIVE_SC!==null){
+    const sc=SCENARIOS.find(function(s){return s.id===ACTIVE_SC;});
+    if(sc&&sc.dur!==d){
+      ACTIVE_SC=null;
+      renderScCards();
+    }
+  }
+  document.querySelectorAll('.dur-card').forEach(el=>{
+    el.classList.toggle('active',parseInt(el.querySelector('input').value)===d);
+  });
+  fillGrid();
+}
+
+function fillGrid(){
+  const od=Math.round(g('op_days'))||14;
+  const nr=nRots(od,DUR);
+  // Grow grid if needed, init new rows from template
+  while(GRID.length<nr){
+    GRID.push(CRS.map(c=>({n:Math.round(g('n_'+c.id))||0,mode:gi('s_'+c.id)||optBus(Math.round(g('n_'+c.id)))})));
+  }
+  GRID=GRID.slice(0,nr);
+  renderGrid();
+  calc();
+}
+
+function renderGrid(){
+  const od=Math.round(g('op_days'))||14;
+  const nr=nRots(od,DUR);
+  let html='',tc=0,tp=0;
+  const costs=[];
+
+  for(let r=0;r<nr;r++){
+    const cells=GRID[r]||CRS.map(c=>({n:0,mode:'covoit'}));
+    const pax=cells.reduce((s,c)=>s+(parseInt(c.n)||0),0);
+    const j1=r*DUR+1, j2=Math.min(j1+DUR-1,od);
+    let rc=0;
+    CRS.forEach((cr,ci)=>{rc+=corrCost(cr.dist,cr.homeKm,cells[ci].n,cells[ci].mode).tot;});
+    costs.push(rc); tc+=rc; tp+=pax;
+    const ppd=pax>0&&DUR>0?Math.round(rc/(pax*DUR)):0;
+    const lightModes=['covoit','rent_car','minivan','rent_van'];
+    // Build detailed lists per transport type
+    const modeLabel=function(m){
+      if(m==='covoit')return'auto perso';
+      if(m==='rent_car')return'auto louée';
+      if(m==='minivan')return'minivan perso';
+      if(m==='rent_van')return'minivan louée';
+      if(m==='14')return'Minibus 14 pl.';
+      if(m==='24')return'Minibus 24 pl.';
+      if(m==='50')return'Autobus scolaire 50 pl.';
+      if(m==='55')return'Autocar 55 pl.';
+      return m;
+    };
+    const busRows=CRS.map(function(cr,ci){return cells[ci]&&cells[ci].n>0&&lightModes.indexOf(cells[ci].mode)<0?cr.name+' : '+cells[ci].n+' pers. ('+modeLabel(cells[ci].mode)+')':null;}).filter(Boolean);
+    const vanRows=CRS.map(function(cr,ci){return cells[ci]&&cells[ci].n>0&&(cells[ci].mode==='minivan'||cells[ci].mode==='rent_van')?cr.name+' : '+cells[ci].n+' pers. ('+modeLabel(cells[ci].mode)+')':null;}).filter(Boolean);
+    const carRows=CRS.map(function(cr,ci){return cells[ci]&&cells[ci].n>0&&(cells[ci].mode==='covoit'||cells[ci].mode==='rent_car')?cr.name+' : '+cells[ci].n+' pers. ('+modeLabel(cells[ci].mode)+')':null;}).filter(Boolean);
+    const nBus=busRows.length, nCov=carRows.length, nVan=vanRows.length;
+    const busTitle='🚌 Autobus / Autocar\n'+busRows.join('\n');
+    const vanTitle='🚐 Minivan (7 pl.)\n'+vanRows.join('\n');
+    const carTitle='🚗 Auto / Covoiturage\n'+carRows.join('\n');
+    const mkSpan=function(emoji,count,title){
+      return '<span title="'+title+'" style="cursor:help;white-space:nowrap;border-bottom:1px dotted var(--gris-bord)">'+emoji+'×'+count+'</span>';
+    };
+    const transportStr=(nBus>0?mkSpan('🚌',nBus,busTitle):'')+(nBus>0&&(nCov>0||nVan>0)?' ':'')+(nVan>0?mkSpan('🚐',nVan,vanTitle):'')+(nVan>0&&nCov>0?' ':'')+(nCov>0?mkSpan('🚗',nCov,carTitle):'');
+    // vs previous rotation
+    const prev=r>0?costs[r-1]:null;
+    const diff=prev!=null?rc-prev:null;
+    const diffStr=diff===null?'':diff>0?`<span style="color:var(--rouge);font-size:10px">▲ ${fmt(diff)}</span>`:diff<0?`<span style="color:var(--vert);font-size:10px">▼ ${fmt(Math.abs(diff))}</span>`:`<span style="color:var(--gris-text);font-size:10px">=</span>`;
+    html+=`<tr>
+      <td style="text-align:left;font-weight:600">Rot.${r+1}</td>
+      <td style="font-size:10px;color:var(--gris-text)">J${j1}–J${j2}</td>
+      ${CRS.map((cr,ci)=>{
+        const cell=cells[ci];
+        return`<td><input class="ri" type="number" min="0" max="55" value="${cell.n}" oninput="setCell(${r},${ci},this.value)"></td>`;
+      }).join('')}
+      <td style="font-weight:600;color:${pax>=45&&pax<=55?'var(--vert)':pax<40?'var(--rouge)':'var(--ambre)'}">${pax}</td>
+      <td style="font-size:11px;white-space:nowrap">${transportStr}</td>
+      <td style="font-weight:600;color:var(--bleu)">${fmt(rc)}<br>${diffStr}</td>
+      <td style="font-size:11px;color:var(--gris-text)">${ppd>0?ppd+' $':'—'}</td>
+    </tr>`;
+  }
+
+  document.getElementById('rot_body').innerHTML=html;
+  const avgPax=nr>0?Math.round(tp/nr):0;
+  const avgPPD=tp>0?Math.round(tc/(tp*DUR/nr)):0;
+  document.getElementById('rot_foot').innerHTML=`
+    <td style="text-align:left">TOTAL</td><td style="font-size:10px;color:var(--gris-text)">${od} jours</td>
+    ${CRS.map(()=>'<td></td>').join('')}
+    <td>${avgPax}<small style="color:var(--gris-text);font-weight:400">/rot.</small></td>
+    <td></td><td>${fmtk(tc)}</td><td style="font-size:11px;color:var(--gris-text)">${avgPPD>0?'~'+avgPPD+' $':'—'}</td>`;
+
+  updateCharts(costs,nr,od);
+}
+
+function setCell(r,ci,val){
+  if(!GRID[r])return;
+  const n=parseInt(val)||0;
+  GRID[r][ci].n=n;
+  GRID[r][ci].mode=optBus(n);
+  renderGrid();
+}
+
+// SCENARIOS
+const SCENARIOS=[
+  {id:1,name:"Proximit\u00e9 d'abord",icon:"\u{1F4CD}",color:"#1A7A5C",dur:2,
+   desc:"Corridors les plus proches en rot.1-3 (Mauricie, Saguenay, Qu\u00e9bec). Montr\u00e9al prend le relais en rot.4-7 quand les bassins locaux s'allument.",
+   rows:[[5,15,15,10,5],[8,14,12,10,6],[12,14,11,8,5],[22,13,9,5,1],[30,12,6,2,0],[35,10,4,1,0],[38,8,4,0,0]]},
+  {id:2,name:"Montr\u00e9al en priorit\u00e9",icon:"\u{1F3D9}",color:"#2E5FAC",dur:2,
+   desc:"Grand bassin Montr\u00e9al (143 pers.) d\u00e9ploy\u00e9 en premier pour le lib\u00e9rer et permettre une 2e rotation fin op\u00e9ration.",
+   rows:[[42,8,0,0,0],[40,10,0,0,0],[35,10,5,0,0],[20,15,8,5,2],[5,18,13,9,5],[0,18,13,12,7],[0,15,12,12,6]]},
+  {id:3,name:"\u00c9quilibr\u00e9",icon:"\u2696\uFE0F",color:"#C96A00",dur:2,
+   desc:"M\u00eame proportion de chaque corridor \u00e0 chaque rotation. Simple et pr\u00e9visible, mais pas optimal en co\u00fbt.",
+   rows:[[21,12,8,6,3],[21,12,8,6,3],[21,12,8,6,3],[21,12,8,6,3],[21,12,8,6,3],[21,12,8,6,3],[21,12,8,6,3]]},
+  {id:4,name:"Rotation 4 jours",icon:"\u{1F4C5}",color:"#5B3FA6",dur:4,
+   desc:"4 jours sur place = 4 rotations pour 16 jours. Moins de voyages d'autobus, co\u00fbt total plus bas.",
+   rows:[[8,10,12,12,8],[20,12,10,5,3],[32,12,4,2,0],[38,7,5,0,0]]}
+];
+let ACTIVE_SC=null;
+
+function renderScCards(){
+  const div=document.getElementById('sc_cards');
+  if(!div)return;
+  div.innerHTML=SCENARIOS.map(sc=>{
+    const active=ACTIVE_SC===sc.id;
+    return '<div onclick="loadSc('+sc.id+')" style="background:white;border:2px solid '+(active?sc.color:'var(--gris-bord)')+';border-radius:12px;padding:16px;cursor:pointer;'+(active?'box-shadow:0 0 0 3px '+sc.color+'33;':'')+'">'
+      +'<div style="font-size:22px;margin-bottom:6px">'+sc.icon+'</div>'
+      +'<div style="font-size:13px;font-weight:600;color:'+sc.color+';margin-bottom:4px">'+sc.name+'</div>'
+      +'<div style="font-size:10px;color:var(--gris-text);line-height:1.4;margin-bottom:8px">'+sc.desc+'</div>'
+      +'<div style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;display:inline-block;background:'+sc.color+'22;color:'+sc.color+'">'+sc.dur+'j sur place &middot; '+sc.rows.length+' rotations</div>'
+      +(active?'<div style="font-size:10px;margin-top:6px;font-weight:600;color:'+sc.color+'">&#10003; Actif</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+function loadSc(id){
+  const sc=SCENARIOS.find(function(s){return s.id===id;});
+  if(!sc)return;
+  ACTIVE_SC=id;
+  // Set duration directly (bypass fillGrid reset)
+  DUR=sc.dur;
+  document.getElementById('op_days').value=sc.rows.length*sc.dur;
+  // Update duration buttons visually
+  document.querySelectorAll('.dur-card').forEach(function(el){
+    el.classList.toggle('active',parseInt(el.querySelector('input').value)===sc.dur);
+  });
+  // Load grid data
+  GRID=sc.rows.map(function(row){return CRS.map(function(c,i){return{n:row[i]||0,mode:optBus(row[i]||0)};});});
+  renderScCards();
+  renderGrid();
+  calc();
+}
+
+
+function applyTemplateToGrid(){
+  const nr=GRID.length;
+  if(nr===0){fillGrid();return;}
+  // Push template values to every grid row
+  GRID=GRID.map(function(){
+    return CRS.map(function(c){
+      const n=Math.round(g('n_'+c.id))||0;
+      const mode=gi('s_'+c.id)||optBus(n);
+      return{n:n,mode:mode};
+    });
+  });
+  ACTIVE_SC=null;
+  renderScCards();
+  renderGrid();
+  calc();
+}
+
+
+function calcBreakeven(){
+  const beBody=document.getElementById('be_body');
+  if(!beBody)return;
+
+  const busTypes=[
+    {size:7, key:null, kmRate:0, color:'#F0FDF4', isMinivan:true},
+    {size:14,key:'b14',kmRate:0.90,color:'#E6F6F1'},
+    {size:24,key:'b24',kmRate:1.10,color:'#EEF3FC'},
+    {size:50,key:'b50',kmRate:1.40,color:'#FFF4E5'},
+    {size:55,key:'b55',kmRate:1.55,color:'#F9F4FF'},
+  ];
+
+  let minBE=999;
+
+  const rows=CRS.map(function(c){
+    const totalKm=(c.dist+c.homeKm)*2; // full trip covoit
+    const ar=c.dist*2;
+
+    const cells=busTypes.map(function(bt){
+      if(bt.isMinivan){
+        // Minivan beats auto when ceil(N/7) < ceil(N/4) → always at N=5
+        const beN=5;
+        // Cost for the ACTUAL number of people N (not just 1 van)
+        const nForRow=Math.round(g('n_'+c.id))||0;
+        const nVans=nForRow>0?Math.ceil(nForRow/7):1;
+        const costPerVan=Math.round(0.806*totalKm);
+        const totalVanCost=nVans*costPerVan;
+        const vanLabel=nForRow>0
+          ?(nVans+' minivan'+(nVans>1?'s':'')+' = '+totalVanCost.toLocaleString('fr-CA')+' $')
+          :('1 minivan = '+costPerVan.toLocaleString('fr-CA')+' $');
+        return{beN:beN,busCost:totalVanCost,bg:bt.color,label:vanLabel,isMinivan:true,nVans:nVans};
+      }
+      const costPerBus=g(bt.key)+Math.max(0,ar-200)*bt.kmRate;
+      // How many buses needed for actual N people?
+      const nForRow=Math.round(g('n_'+c.id))||0;
+      const nBusNeeded=nForRow>0?Math.ceil(nForRow/bt.size):1;
+      const totalBusCost=Math.round(nBusNeeded*costPerBus);
+      // Breakeven: smallest N where ceil(N/bt.size)*costPerBus < ceil(N/4)*0.806*totalKm
+      var beN=null;
+      for(var testN=1;testN<=bt.size*3;testN++){
+        var busC=Math.ceil(testN/bt.size)*costPerBus;
+        var covC=Math.ceil(testN/4)*0.806*totalKm;
+        if(busC<covC){beN=testN;break;}
+      }
+      var busLabel=nForRow>0?(nBusNeeded>1?nBusNeeded+' bus = '+totalBusCost.toLocaleString('fr-CA')+' $':totalBusCost.toLocaleString('fr-CA')+' $'):costPerBus.toFixed(0)+' $';
+      return{beN:beN,busCost:totalBusCost,busLabel:busLabel,bg:bt.color};
+    });
+
+    // Min BE across all bus types
+    const validBEs=cells.filter(function(c){return c.beN!==null;}).map(function(c){return c.beN;});
+    const minBEcorr=validBEs.length>0?Math.min.apply(null,validBEs):null;
+    if(minBEcorr&&minBEcorr<minBE)minBE=minBEcorr;
+
+    // "covoit wins if" = 1 to min(BE)-1 people
+    const covoitRange=minBEcorr?('1–'+(minBEcorr-1)+' pers.'):'Toujours';
+
+    return{c,totalKm,cells,covoitRange,minBEcorr};
+  });
+
+  // Update headline
+  const headline=document.getElementById('be_headline');
+  if(headline)headline.textContent='dès '+minBE+' personnes';
+  // Location vs provincial breakeven distance
+  const distNote=document.getElementById('be_dist_note');
+  if(distNote){
+    const rc=(g('rent_car')||80)+(g('rent_ins')||19);
+    const kmFuel=0.20;
+    const provRate=0.806;
+    const beKm=Math.round(rc/(provRate-kmFuel));
+    distNote.textContent=beKm+' km';
+    distNote.style.color=beKm<200?'var(--vert)':'var(--ambre)';
+  }
+
+  // Cost calculation per corridor at current template N
+  const costAtN=function(c,n,mode){
+    if(n<=0)return Infinity;
+    const ar=c.dist*2; const totalKm=(c.dist+c.homeKm)*2;
+    if(mode==='covoit')return Math.ceil(n/4)*0.806*totalKm;
+    if(mode==='minivan')return Math.ceil(n/7)*0.806*totalKm;
+    if(mode==='rent_car')return Math.ceil(n/4)*(g('rent_car')+(g('rent_ins')||0)+0.20*totalKm);
+    if(mode==='rent_van')return Math.ceil(n/7)*(g('rent_van')+(g('rent_ins')||0)+0.20*totalKm);
+    const bp=g(BK[parseInt(mode)])||0;
+    const kr=parseInt(mode)<=14?0.90:parseInt(mode)<=24?1.10:parseInt(mode)<=50?1.40:1.55;
+    return bp+Math.max(0,ar-200)*kr;
+  };
+
+  beBody.innerHTML=rows.map(function(row){
+    var n=Math.round(g('n_'+row.c.id))||0;
+    // Cost for each cell at actual N — includes minivan (i=0 uses cell.busCost = total van cost)
+    // Round covoiturage cost to same precision as bus costs for fair comparison
+    var covoitCostN=n>0?Math.round(Math.ceil(n/4)*0.806*row.totalKm):Infinity;
+    // Build cost array — all rounded integers
+    var allCosts=row.cells.map(function(cell){
+      if(cell.beN===null||!n)return Infinity;
+      return Math.round(cell.busCost);
+    });
+    var minVehicleCost=Math.min.apply(null,allCosts.filter(function(c){return c<Infinity;}));
+    // Only highlight a vehicle if it is STRICTLY cheaper than covoiturage (not equal)
+    var isBusBetter=n>0&&minVehicleCost<covoitCostN;
+    var bestBusIdx=isBusBetter?allCosts.indexOf(minVehicleCost):-1;
+    var nLabel=n>0?n+' pers.':'—';
+    var cells=row.cells.map(function(cell,ci){
+      var isBest=bestBusIdx>=0&&ci===bestBusIdx&&n>0;
+      var border=isBest?'border:2px solid var(--vert);outline:none;':'';
+      if(cell.beN===null)return '<td style="background:'+cell.bg+';text-align:center;font-size:11px;color:var(--gris-text);'+border+'">N/A</td>';
+      if(cell.label)return '<td style="background:'+cell.bg+';text-align:center;font-weight:600;color:var(--vert-mid);'+border+'">'+String.fromCharCode(8805)+' '+cell.beN+' pers.<br><span style="font-size:10px;font-weight:400;color:var(--gris-text)">'+cell.label+'</span></td>';
+      return '<td style="background:'+cell.bg+';text-align:center;font-weight:600;color:'+(isBest?'var(--vert)':'var(--bleu)')+';'+border+'">'+String.fromCharCode(8805)+' '+cell.beN+' pers.<br><span style="font-size:10px;font-weight:400;color:var(--gris-text)">'+cell.busCost.toLocaleString('fr-CA')+' $</span></td>';
+    }).join('');
+    // Last column: show winner clearly
+    var savings=isBusBetter?Math.round(covoitCostN-minVehicleCost):Math.round(minVehicleCost-covoitCostN);
+    var lastCol;
+    if(!n){
+      lastCol=row.covoitRange;
+    } else if(isBusBetter){
+      lastCol='🚌 Bus: '+Math.round(minVehicleCost)+' $<br><span style="font-size:10px;color:var(--vert)">économie de '+savings+' $ vs covoit</span>';
+    } else if(minVehicleCost===covoitCostN){
+      lastCol='= Égal<br><span style="font-size:10px;color:var(--gris-text)">'+Math.round(covoitCostN)+' $ dans les deux cas</span>';
+    } else {
+      lastCol='🚗 Auto/covoit: '+Math.round(covoitCostN)+' $<br><span style="font-size:10px;color:var(--vert)">économie de '+savings+' $ vs bus</span>';
+    }
+    return '<tr>'
+      +'<td style="font-weight:600;color:'+row.c.color+'">'+row.c.name+'<br><span style="font-size:10px;font-weight:400;color:var(--gris-text)">'+nLabel+'</span></td>'
+      +'<td style="font-size:11px;color:var(--gris-text)">'+row.totalKm+' km</td>'
+      +cells
+      +(isBusBetter
+        ?'<td style="text-align:center;font-size:12px;font-weight:600;color:var(--bleu)">'+lastCol+'</td>'
+        :(!n
+          ?'<td style="text-align:center;font-size:12px;font-weight:600;color:var(--vert)">'+lastCol+'</td>'
+          :'<td style="text-align:center;font-size:12px;font-weight:600;background:#E6F6F1;border-left:3px solid var(--vert);color:var(--vert);padding:8px 12px">'+lastCol+'</td>'
+        ))
+      +'</tr>';
+  }).join('');
+}
+
+// CHARTS
+let chCumul,chPPD,chComp,chDur;
+function initCharts(){
+  chCumul=new Chart(document.getElementById('chCumul'),{type:'line',data:{labels:[],datasets:[{label:'Cumulatif',data:[],borderColor:'#2E5FAC',backgroundColor:'#2E5FAC22',fill:true,tension:0.4,borderWidth:2.5,pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtk(v)}}}}});
+  chPPD=new Chart(document.getElementById('chPPD'),{type:'bar',data:{labels:[],datasets:[{label:'$/pers-jour',data:[],backgroundColor:'#2E5FAC99',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+' $'}}}}});
+  chComp=new Chart(document.getElementById('chComp'),{type:'bar',data:{labels:[],datasets:CRS.map(c=>({label:c.name,data:[],backgroundColor:c.color+'99',borderRadius:2,stack:'s'}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{padding:8,font:{size:10}}}},scales:{y:{stacked:true},x:{stacked:true}}}});
+  chDur=new Chart(document.getElementById('chDur'),{type:'bar',data:{labels:['2 j. sur place','3 j. sur place','4 j. sur place'],datasets:[{label:'Coût total',data:[],backgroundColor:['#2E5FAC99','#1A7A5C99','#C96A0099'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtk(v)}}}}});
+}
+
+function updateCharts(costs,nr,od){
+  const labels=costs.map((_,i)=>'Rot.'+(i+1));
+  const cumul=costs.map((c,i)=>costs.slice(0,i+1).reduce((a,b)=>a+b,0));
+  const ppd=costs.map((c,i)=>{const p=GRID[i]?.reduce((s,c2)=>s+(parseInt(c2.n)||0),0)||0;return p>0&&DUR>0?Math.round(c/(p*DUR)):0;});
+
+  chCumul.data.labels=labels; chCumul.data.datasets[0].data=cumul; chCumul.update();
+  chPPD.data.labels=labels; chPPD.data.datasets[0].data=ppd; chPPD.update();
+  chComp.data.labels=labels;
+  CRS.forEach((c,ci)=>{chComp.data.datasets[ci].data=GRID.slice(0,nr).map(row=>row[ci]?.n||0);});
+  chComp.update();
+
+  const baseCPR=costs.length>0?costs.reduce((a,b)=>a+b,0)/nr:0;
+  const durCosts=[2,3,4].map(d=>Math.round(nRots(od,d)*baseCPR));
+  chDur.data.datasets[0].data=durCosts; chDur.update();
+  document.getElementById('ch_days').textContent=od;
+  const sav=durCosts[0]-durCosts[2];
+  document.getElementById('dur_note').textContent=sav>0?`Passer de 2 à 4 jours sur place : économie estimée de ${fmtk(sav)} sur l'opération.`:'—';
+}
+
+function calc(){
+  CRS.forEach(c=>updFill(c.id));
+  const od=Math.round(g('op_days'))||14;
+  const nr=nRots(od,DUR);
+
+  // Template-based cost per rotation (for model/reference)
+  let cprTemplate=0;
+  const totPaxTemplate=CRS.reduce((s,c)=>{
+    const n=Math.round(g('n_'+c.id));
+    cprTemplate+=corrCost(c.dist,c.homeKm,n,gi('s_'+c.id)).tot;
+    return s+n;
+  },0);
+
+  // Real totals from grid (if populated)
+  const gridPopulated=GRID.length>0;
+  let realTotal=0, realTotPax=0;
+  if(gridPopulated){
+    GRID.slice(0,nr).forEach(row=>{
+      CRS.forEach((c,ci)=>{realTotal+=corrCost(c.dist,c.homeKm,row[ci].n,row[ci].mode).tot;});
+      realTotPax+=row.reduce((s,c2)=>s+(parseInt(c2.n)||0),0);
+    });
+  }
+  const useReal=gridPopulated&&realTotal>0;
+  const tc=useReal?realTotal:cprTemplate*nr;
+  const avgPax=useReal?Math.round(realTotPax/nr):totPaxTemplate;
+  const avgCPR=useReal?Math.round(realTotal/nr):cprTemplate;
+  const ppd=avgPax>0&&DUR>0?Math.round(avgCPR/(avgPax*DUR)):0;
+
+  document.getElementById('imp_sub').textContent=`Pour ${od} jours d'opération avec ${avgPax} réservistes actifs en tout temps`;
+  document.getElementById('ss_sub').textContent=`${od} jours · ${DUR} jour${DUR>1?'s':''} sur place · ${DUR+2} jours de disponibilité requis`;
+  document.getElementById('s_rots').textContent=nr;
+  document.getElementById('s_rots_n').textContent='pour '+od+' jours';
+  document.getElementById('s_pax').textContent=avgPax;
+  // Show average vs min/max if rotations differ
+  document.getElementById('s_cpr').textContent=useReal?'~'+fmt(avgCPR)+' moy.':fmt(avgCPR);
+  document.getElementById('s_tot').textContent=fmtk(tc);
+  document.getElementById('s_tot_n').textContent=(useReal?'total réel grille · ':'modèle · ')+nr+' rotation(s)';
+  document.getElementById('s_ppd').textContent=ppd>0?ppd+' $':'—';
+
+  // Impact table — use average CPR from grid if available
+  calcBreakeven();
+  document.getElementById('imp_body').innerHTML=[2,3,4].map(d=>{
+    const nr2=nRots(od,d);
+    const tc2=avgCPR*nr2;
+    const ppd2=avgPax>0&&d>0?Math.round(avgCPR/(avgPax*d)):0;
+    const isA=d===DUR;
+    return`<tr class="${isA?'act':''}">
+      <td><strong>${d} j.</strong>${isA?' <span class="pill" style="background:#EEF3FC;color:var(--bleu-mid)">actuel</span>':''}</td>
+      <td>${d+2} jours</td><td>${nr2}</td>
+      <td>${avgPax*nr2} pers-rotations</td>
+      <td>${fmt(avgCPR)}<small style="color:var(--gris-text);display:block">${useReal?'moy. réelle grille':'modèle fixe'}</small></td>
+      <td><strong>${fmtk(tc2)}</strong></td>
+      <td><strong style="color:${d===2?'var(--rouge)':d===3?'var(--ambre)':'var(--vert)'}">${ppd2>0?ppd2+' $':'—'}</strong></td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleDrv(){
+  const own=document.getElementById('own_drv').checked;
+  document.getElementById('drv_sec').classList.toggle('vis',own);
+  document.getElementById('drv_lbl').textContent=own?'Chauffeur interne (réserviste cl.2)':'Chauffeur inclus dans le forfait';
+}
+
+function resetAll(){
+  [['b14',450],['b24',700],['b50',1000],['b55',1200],['drv_d',240],['hotel',120],['nights',0],['op_days',14]].forEach(([id,v])=>{document.getElementById(id).value=v;});
+  [['mtl',20,'24'],['qc',12,'24'],['sag',8,'14'],['mau',6,'covoit'],['est',4,'covoit']].forEach(([id,n,m])=>{document.getElementById('n_'+id).value=n;document.getElementById('s_'+id).value=m;});
+  document.getElementById('own_drv').checked=false;
+  toggleDrv();
+  GRID=[];
+  setDur(2);
+}
+
+initCharts();
+toggleDrv();
+CRS.forEach(c=>updFill(c.id));
+renderScCards();
+fillGrid();
+calcBreakeven();
+calc();
+</script>
+</body>
+</html>
