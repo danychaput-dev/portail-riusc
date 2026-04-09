@@ -42,6 +42,7 @@ const ANTECEDENTS_LABELS: Record<string, string> = {
 interface CampData {
   cohort: number; dates: string; ville?: string
   inscrits: number
+  annule: number | null
   informe_absence: number | null
   attendues: number | null
   no_show: number | null
@@ -256,6 +257,7 @@ export default function DashboardPublicPage() {
 
   const campCols: { key: keyof CampData; label: string; color: string }[] = [
     { key: 'inscrits',        label: 'Inscrits',             color: NAVY },
+    { key: 'annule',          label: 'Annulé',               color: RED },
     { key: 'informe_absence', label: "Informé de l'absence", color: AMBER },
     { key: 'attendues',       label: 'Attendues',            color: NAVY },
     { key: 'no_show',         label: 'No Show',              color: RED },
@@ -450,7 +452,7 @@ export default function DashboardPublicPage() {
                           <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Ville</th>
                           <th style={{ textAlign: 'left', padding: '10px 16px', color: NAVY, fontWeight: 600, fontSize: 13 }}>Dates</th>
                           {campCols.map(col => (
-                            <th key={col.key} style={{ textAlign: 'center', padding: '10px 16px', color: col.color, fontWeight: 600, fontSize: 13 }}>
+                            <th key={col.key} style={{ textAlign: 'center', padding: '10px 8px', color: col.color, fontWeight: 600, fontSize: 13, whiteSpace: 'normal', lineHeight: '1.3', maxWidth: '90px' }}>
                               {col.label}
                             </th>
                           ))}

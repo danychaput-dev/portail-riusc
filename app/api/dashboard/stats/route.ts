@@ -23,6 +23,7 @@ interface CampEntry {
   dates: string
   ville?: string
   inscrits: number
+  annule: number | null
   informe_absence: number | null
   attendues: number | null
   no_show: number | null
@@ -183,16 +184,15 @@ export async function GET() {
     // ── Inscriptions camps ────────────────────────────────────────────────────
     // Données historiques hardcodées
     const CAMPS_HISTORIQUES: CampEntry[] = [
-      { cohort: 6, dates: '31 jan – 1er fév 2026', ville: 'Laval',            inscrits: 65, informe_absence: 5,  attendues: 60, no_show: 6,  qualifie: 54, passe: true },
-      { cohort: 7, dates: '21–22 fév 2026',        ville: 'Trois-Rivières',   inscrits: 30, informe_absence: 3,  attendues: 27, no_show: 9,  qualifie: 19, passe: true },
-      { cohort: 8, dates: '14–15 mars 2026',        ville: 'Sainte-Catherine', inscrits: 75, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
+      { cohort: 6, dates: '31 jan – 1er fév 2026', ville: 'Laval',            inscrits: 65, annule: 0, informe_absence: 5,  attendues: 60, no_show: 6,  qualifie: 54, passe: true },
+      { cohort: 7, dates: '21–22 fév 2026',        ville: 'Trois-Rivières',   inscrits: 30, annule: 0, informe_absence: 3,  attendues: 27, no_show: 9,  qualifie: 19, passe: true },
+      { cohort: 8, dates: '14–15 mars 2026',        ville: 'Sainte-Catherine', inscrits: 75, annule: 0, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
     ]
 
-    // Camps futurs depuis DB (inscrits seulement — réservistes actifs hors Retrait temporaire)
+    // Camps futurs depuis DB (tous sauf Retrait temporaire)
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
       .select('benevole_id, camp_nom, camp_dates, camp_lieu, session_id, presence')
-      .neq('presence', 'annule')
 
     // Set des benevole_id actifs (hors Retrait temporaire) pour filtrer les inscriptions
     const activeIds = new Set(reservistesSansRetrait.map(r => r.benevole_id))
@@ -204,7 +204,7 @@ export async function GET() {
       return parts.length >= 3 ? parts[parts.length - 1].trim() : '—'
     }
 
-    const futurMap: Record<string, { cohort: number; dates: string; ville: string; inscrits: number }> = {}
+    const futurMap: Record<string, { cohort: number; dates: string; ville: string; inscrits: number; annule: number }> = {}
     for (const c of campsRaw || []) {
       if (!activeIds.has(c.benevole_id)) continue
       const cohortNum = extractCohort(c.camp_nom || '')
@@ -216,14 +216,19 @@ export async function GET() {
           dates: c.camp_dates || '—',
           ville: extractVille(c.camp_nom || ''),
           inscrits: 0,
+          annule: 0,
         }
       }
-      futurMap[key].inscrits++
+      if (c.presence === 'annule') {
+        futurMap[key].annule++
+      } else {
+        futurMap[key].inscrits++
+      }
     }
 
     const campsFuturs: CampEntry[] = Object.entries(futurMap).map(([sessionId, f]) => ({
       cohort: f.cohort, dates: f.dates, ville: f.ville, inscrits: f.inscrits,
-      informe_absence: null, attendues: null, no_show: null, qualifie: null,
+      annule: f.annule, informe_absence: null, attendues: null, no_show: null, qualifie: null,
       passe: false,
       session_id: sessionId,
     }))
