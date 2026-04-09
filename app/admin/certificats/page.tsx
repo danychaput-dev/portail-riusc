@@ -497,6 +497,39 @@ export default function AdminCertificatsPage() {
     }
   }
 
+  const handleRefuser = async (id: string) => {
+    if (!confirm('Refuser ce certificat ? Le reserviste pourra soumettre un nouveau fichier.')) return
+    setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saving' } : c))
+    try {
+      const res = await fetch('/api/admin/approuver-formation', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, admin_benevole_id: adminBenevoleId }),
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'refused' } : c))
+      window.dispatchEvent(new CustomEvent('certificats-badge-update', { detail: { delta: -1 } }))
+    } catch {
+      setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'error' } : c))
+    }
+  }
+
+  const handleSupprimer = async (id: string) => {
+    if (!confirm('Supprimer ce fichier ? Le certificat sera remis en attente sans fichier. Le reserviste devra re-telecharger.')) return
+    setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'saving' } : c))
+    try {
+      const res = await fetch(`/api/admin/approuver-formation?id=${id}&admin_benevole_id=${adminBenevoleId}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error) }
+      setCertificats(prev => prev.filter(c => c.id !== id))
+      setSelectedId(null)
+      window.dispatchEvent(new CustomEvent('certificats-badge-update', { detail: { delta: -1 } }))
+    } catch {
+      setCertificats(prev => prev.map(c => c.id === id ? { ...c, statut: 'error' } : c))
+    }
+  }
+
   const updMonday = (id: number, field: keyof MondayItem['mState'], val: string) =>
     setMondayItems(prev => prev.map(i => i.monday_item_id === id ? { ...i, mState: { ...i.mState, [field]: val } } : i))
   const handleApprouverMonday = async (item: MondayItem) => {
@@ -689,23 +722,33 @@ export default function AdminCertificatsPage() {
                             <span style={{ fontSize: '13px', color: cert.statut === 'saved' ? '#059669' : '#1f2937', fontWeight: '600' }}>
                               {cert.statut === 'saved' ? '✅' : '📄'} {cert.nom_formation || 'Formation'}
                             </span>
-                            <span style={{ fontSize: '10px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : '#92400e', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', flexShrink: 0 }}>
-                              {cert.statut === 'saved' ? 'Approuvé' : 'En attente'}
+                            <span style={{ fontSize: '10px', backgroundColor: cert.statut === 'saved' ? '#d1fae5' : cert.statut === 'refused' ? '#fee2e2' : '#fef3c7', color: cert.statut === 'saved' ? '#065f46' : cert.statut === 'refused' ? '#991b1b' : '#92400e', padding: '2px 8px', borderRadius: '8px', fontWeight: '600', flexShrink: 0 }}>
+                              {cert.statut === 'saved' ? 'Approuvé' : cert.statut === 'refused' ? 'Refusé' : 'En attente'}
                             </span>
                           </div>
-                          {selectedId === cert.id && cert.statut !== 'saved' && (
-                            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '8px', alignItems: 'flex-end' }} onClick={e => e.stopPropagation()}>
-                              <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>DATE DE RÉUSSITE *</label>
-                                <input type="date" value={cert.dateInput || ''} onChange={e => handleDateChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                          {selectedId === cert.id && cert.statut !== 'saved' && cert.statut !== 'refused' && (
+                            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e5e7eb' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                                <div style={{ flex: 1 }}>
+                                  <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>DATE DE RÉUSSITE *</label>
+                                  <input type="date" value={cert.dateInput || ''} onChange={e => handleDateChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>EXPIRATION <span style={{ color: '#9ca3af', fontWeight: '400' }}>(opt.)</span></label>
+                                  <input type="date" value={cert.dateExpiration || ''} onChange={e => handleDateExpirationChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                                </div>
+                                <button onClick={() => handleApprouver(cert.id)} disabled={!cert.dateInput || cert.statut === 'saving'} style={{ padding: '8px 14px', backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb', color: cert.dateInput ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: cert.dateInput ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
+                                </button>
                               </div>
-                              <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: '600' }}>EXPIRATION <span style={{ color: '#9ca3af', fontWeight: '400' }}>(opt.)</span></label>
-                                <input type="date" value={cert.dateExpiration || ''} onChange={e => handleDateExpirationChange(cert.id, e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                <button onClick={() => handleRefuser(cert.id)} disabled={cert.statut === 'saving'} style={{ padding: '6px 12px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: cert.statut === 'saving' ? 'not-allowed' : 'pointer' }}>
+                                  ❌ Refuser
+                                </button>
+                                <button onClick={() => handleSupprimer(cert.id)} disabled={cert.statut === 'saving'} style={{ padding: '6px 12px', backgroundColor: '#f9fafb', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: cert.statut === 'saving' ? 'not-allowed' : 'pointer' }}>
+                                  🗑️ Supprimer le fichier
+                                </button>
                               </div>
-                              <button onClick={() => handleApprouver(cert.id)} disabled={!cert.dateInput || cert.statut === 'saving'} style={{ padding: '8px 14px', backgroundColor: cert.dateInput ? '#059669' : '#e5e7eb', color: cert.dateInput ? 'white' : '#9ca3af', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: cert.dateInput ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                {cert.statut === 'saving' ? '⏳' : '✅ Approuver'}
-                              </button>
                             </div>
                           )}
                           {cert.statut === 'error' && <div style={{ marginTop: '6px', fontSize: '12px', color: '#dc2626' }}>❌ Erreur — réessayez</div>}

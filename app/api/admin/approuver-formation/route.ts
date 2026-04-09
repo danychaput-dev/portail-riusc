@@ -50,6 +50,86 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH : Refuser un certificat
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, admin_benevole_id, motif } = body
+
+    if (!await verifierAdmin(admin_benevole_id)) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'id requis' }, { status: 400 })
+    }
+
+    const { error } = await supabaseAdmin
+      .from('formations_benevoles')
+      .update({
+        resultat: 'Refusé',
+        etat_validite: null,
+        date_reussite: null,
+        date_expiration: null,
+      })
+      .eq('id', id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+// DELETE : Supprimer le fichier certificat (mauvais type) et remettre en attente
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    const admin_benevole_id = searchParams.get('admin_benevole_id')
+
+    if (!admin_benevole_id || !await verifierAdmin(admin_benevole_id)) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'id requis' }, { status: 400 })
+    }
+
+    // Recuperer le certificat_url pour supprimer le fichier du storage
+    const { data: formation } = await supabaseAdmin
+      .from('formations_benevoles')
+      .select('certificat_url')
+      .eq('id', id)
+      .single()
+
+    if (formation?.certificat_url?.startsWith('storage:')) {
+      const storagePath = formation.certificat_url.replace('storage:', '')
+      await supabaseAdmin.storage.from('certificats').remove([storagePath])
+    }
+
+    // Remettre la formation en attente sans fichier
+    const { error } = await supabaseAdmin
+      .from('formations_benevoles')
+      .update({
+        certificat_url: null,
+        resultat: 'En attente',
+        etat_validite: null,
+        date_reussite: null,
+        date_expiration: null,
+      })
+      .eq('id', id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+// PUT : Approuver un certificat existant
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
