@@ -59,8 +59,6 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [showSupportTooltip, setShowSupportTooltip] = useState(false)
   const [supportCopied, setSupportCopied] = useState(false)
   const [unreadCommunaute, setUnreadCommunaute] = useState(0)
-  const [viewAsRole, setViewAsRole] = useState<string>('')
-  const [showViewAsMenu, setShowViewAsMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Hook d'authentification avec support emprunt
@@ -70,19 +68,10 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   // Champs nécessaires pour vérifier la complétude du profil + header
   const selectFields = 'benevole_id, role, prenom, nom, email, telephone, photo_url, groupe, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, antecedents_statut, antecedents_date_expiration'
 
-  // Charger le viewAs role depuis localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('viewas_role')
-      if (stored) setViewAsRole(stored)
-    } catch {}
-  }, [])
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false)
-        setShowViewAsMenu(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -348,34 +337,18 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   // Compteur pour le sous-texte (ex: "4/4 étapes complétées")
   const completedSteps = [isProfilComplet, hasCertificats, campStatus?.is_certified === true, isAntecedentsOk].filter(Boolean).length
 
-  // Role réel (pour les permissions : emprunt, toggle viewAs)
+  // Roles
   const realRole = reserviste?.role
   const isRealAdmin = realRole === 'admin' || realRole === 'coordonnateur'
-
-  // Role affiché (viewAs override pour le menu seulement)
-  const displayRole = (isRealAdmin && viewAsRole) ? viewAsRole : realRole
-  const isAdmin = displayRole === 'admin' || displayRole === 'coordonnateur'
-  const isAdjoint = displayRole === 'adjoint'
-  const isPartenaire = displayRole === 'partenaire'
-
-  const handleSetViewAs = (role: string) => {
-    try {
-      if (role) {
-        localStorage.setItem('viewas_role', role)
-      } else {
-        localStorage.removeItem('viewas_role')
-      }
-    } catch {}
-    setViewAsRole(role)
-    setShowViewAsMenu(false)
-    setShowUserMenu(false)
-  }
+  const isAdmin = isRealAdmin
+  const isAdjoint = realRole === 'adjoint'
+  const isPartenaire = realRole === 'partenaire'
 
   return (
     <>
       <ImpersonateBanner />
       
-      <header style={{ backgroundColor: isImpersonating ? '#fef3c7' : (isRealAdmin && viewAsRole) ? '#ede9fe' : 'white', borderBottom: `1px solid ${isImpersonating ? '#f59e0b' : (isRealAdmin && viewAsRole) ? '#8b5cf6' : '#e5e7eb'}`, position: 'sticky', top: 0, zIndex: 100 }}>
+      <header style={{ backgroundColor: isImpersonating ? '#fef3c7' : 'white', borderBottom: `1px solid ${isImpersonating ? '#f59e0b' : '#e5e7eb'}`, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
           {/* Logo + titre */}
@@ -383,8 +356,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
-              <p style={{ margin: 0, fontSize: '12px', color: (isRealAdmin && viewAsRole) ? '#7c3aed' : '#6b7280' }}>
-                {(isRealAdmin && viewAsRole) ? `Vue : ${viewAsRole}` : subtitle}
+              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>
+                {subtitle}
               </p>
             </div>
           </a>
@@ -627,65 +600,6 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                   </>
                 )}
 
-                {/* Toggle "Voir comme" — seulement pour les vrais admins */}
-                {isRealAdmin && (
-                  <div style={{ position: 'relative', borderBottom: '1px solid #f3f4f6' }}>
-                    <button
-                      onClick={() => setShowViewAsMenu(v => !v)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#7c3aed', backgroundColor: viewAsRole ? '#f5f3ff' : 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f3ff'}
-                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = viewAsRole ? '#f5f3ff' : 'white'}
-                    >
-                      <span style={{ fontSize: '18px' }}>👁️</span>
-                      <span style={{ flex: 1 }}>Voir comme{viewAsRole ? ` : ${viewAsRole}` : ''}</span>
-                      <svg width="14" height="14" fill="none" stroke="#7c3aed" strokeWidth="2" viewBox="0 0 24 24" style={{ transform: showViewAsMenu ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.15s' }}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {showViewAsMenu && (
-                      <div style={{ backgroundColor: '#faf5ff', borderTop: '1px solid #ede9fe' }}>
-                        {[
-                          { value: '', label: 'Admin (normal)' },
-                          { value: 'reserviste', label: 'Réserviste' },
-                          { value: 'adjoint', label: 'Adjoint' },
-                          { value: 'partenaire', label: 'Partenaire' },
-                        ].map(opt => (
-                          <button
-                            key={opt.value}
-                            onClick={() => handleSetViewAs(opt.value)}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px 10px 44px',
-                              color: (viewAsRole || '') === opt.value ? '#7c3aed' : '#4b5563',
-                              fontWeight: (viewAsRole || '') === opt.value ? '600' : '400',
-                              backgroundColor: (viewAsRole || '') === opt.value ? '#ede9fe' : 'transparent',
-                              border: 'none', width: '100%', textAlign: 'left', fontSize: '13px', cursor: 'pointer',
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ede9fe'}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = (viewAsRole || '') === opt.value ? '#ede9fe' : 'transparent'}
-                          >
-                            {(viewAsRole || '') === opt.value && (
-                              <svg width="14" height="14" fill="none" stroke="#7c3aed" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                            )}
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Retour vue admin quand viewAs actif */}
-                {isRealAdmin && viewAsRole && (
-                  <button
-                    onClick={() => handleSetViewAs('')}
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#7c3aed', backgroundColor: '#f5f3ff', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', fontWeight: '600', borderBottom: '1px solid #f3f4f6' }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ede9fe'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f5f3ff'}
-                  >
-                    <span style={{ fontSize: '18px' }}>↩️</span>
-                    Retour vue admin
-                  </button>
-                )}
 
                 <button
                   onClick={() => {
