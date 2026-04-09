@@ -430,13 +430,38 @@ export default function MapMembres() {
       </div>
 
       {/* Carte */}
-      <div style={{ borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, height: 420 }}>
+      <div style={{ borderRadius: 8, overflow: 'hidden', border: `1px solid ${BORDER}`, height: 420, position: 'relative' }}>
         {mapError ? (
           <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontSize: 13 }}>
             Erreur lors du chargement de la carte.
           </div>
         ) : (
           <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+        )}
+        {/* Bouton recentrer (toujours visible) */}
+        {mapReady && (
+          <button
+            onClick={() => {
+              if (mapRef.current) {
+                mapRef.current.flyTo({ center: [-71.5, 47.0], zoom: 5.5, bearing: 0, pitch: 0, duration: 800 })
+              }
+            }}
+            title="Recentrer la carte (nord en haut)"
+            style={{
+              position: 'absolute', top: 10, right: 50,
+              width: 30, height: 30, borderRadius: 4,
+              backgroundColor: WHITE, border: `1px solid ${BORDER}`,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 2,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={NAVY} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3,11 12,2 21,11" fill="#dc2626" stroke="#dc2626" />
+              <polygon points="3,13 12,22 21,13" fill={WHITE} stroke={NAVY} />
+              <circle cx="12" cy="12" r="2" fill={NAVY} stroke={NAVY} />
+            </svg>
+          </button>
         )}
       </div>
 
