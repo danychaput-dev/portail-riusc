@@ -32,14 +32,28 @@ interface CampEntry {
   session_id?: string
 }
 
-export async function GET() {
-  try {
-    const { data: reservistes, error } = await supabase
+// Helper : paginer pour dépasser la limite Supabase de 1000 lignes
+async function fetchAllReservistes() {
+  const PAGE = 1000
+  let all: any[] = []
+  let offset = 0
+  while (true) {
+    const { data, error } = await supabase
       .from('reservistes')
       .select('benevole_id, groupe, region, antecedents_statut, monday_created_at, created_at, remboursement_bottes_date')
       .eq('statut', 'Actif')
-
+      .range(offset, offset + PAGE - 1)
     if (error) throw error
+    all = all.concat(data || [])
+    if (!data || data.length < PAGE) break
+    offset += PAGE
+  }
+  return all
+}
+
+export async function GET() {
+  try {
+    const reservistes = await fetchAllReservistes()
 
     const { data: partenairesOrgs } = await supabase
       .from('reserviste_organisations')
