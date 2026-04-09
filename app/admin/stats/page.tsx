@@ -283,14 +283,37 @@ export default function StatsPage() {
     (async () => {
       setLoading(true);
 
-      const [logsRes, resRes, auditRes] = await Promise.all([
+      // Helper: paginer une requete Supabase pour depasser la limite de 1000 lignes
+      const fetchAllReservistes = async () => {
+        const PAGE_SIZE = 1000;
+        let allRows: Reserviste[] = [];
+        let page = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data } = await supabase
+            .from('reservistes')
+            .select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id')
+            .neq('groupe', 'Partenaires')
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+          if (data && data.length > 0) {
+            allRows = allRows.concat(data as Reserviste[]);
+            hasMore = data.length === PAGE_SIZE;
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+        return allRows;
+      };
+
+      const [logsRes, allReservistes, auditRes] = await Promise.all([
         supabase.from('auth_logs').select('*').gte('created_at', from).lte('created_at', to).order('created_at', { ascending: false }),
-        supabase.from('reservistes').select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id').neq('groupe', 'Partenaires'),
+        fetchAllReservistes(),
         fetch(`/api/audit/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`).then(r => r.json()),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
-      if (resRes.data) setReservistes(resRes.data as Reserviste[]);
+      setReservistes(allReservistes);
       if (auditRes.pages) setAuditPages(auditRes.pages as AuditPageRow[]);
       if (auditRes.all) setAuditPagesAll(auditRes.all as { benevole_id: string | null; user_id: string | null }[]);
       setLoading(false);
