@@ -1,0 +1,184 @@
+{
+  "name": "RIUSC - Camp Capacity Check",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "camp-capacity",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "public, max-age=30"
+              }
+            ]
+          }
+        }
+      },
+      "id": "c0b27e7b-bedb-4c47-81d0-627acb2278d5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [4336, 768],
+      "webhookId": "camp-capacity"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/inscriptions_camps?select=session_id,presence&presence=eq.confirme",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        }
+      },
+      "id": "a698c694-supabase-inscriptions",
+      "name": "1. Get Inscriptions Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [4560, 768],
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "const inscriptions = $input.item.json;\n\n// inscriptions est un tableau [{session_id, presence}, ...]\n// Compter par session_id (seulement les confirmés, le filtre est dans la requête)\nconst counts = {};\n\nif (Array.isArray(inscriptions)) {\n  for (const insc of inscriptions) {\n    const sid = (insc.session_id || '').trim();\n    if (!sid) continue;\n    if (!counts[sid]) counts[sid] = { total: 0 };\n    counts[sid].total++;\n  }\n} else if (inscriptions && typeof inscriptions === 'object') {\n  // Si l'API retourne l'array dans le body directement\n  const items = Array.isArray(inscriptions.body) ? inscriptions.body : [];\n  for (const insc of items) {\n    const sid = (insc.session_id || '').trim();\n    if (!sid) continue;\n    if (!counts[sid]) counts[sid] = { total: 0 };\n    counts[sid].total++;\n  }\n}\n\nreturn { counts, totalConfirmes: Object.values(counts).reduce((s, c) => s + c.total, 0) };"
+      },
+      "id": "4b1ac7f2-count-sessions",
+      "name": "2. Compter par session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4784, 768]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.monday.com/v2",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "mondayComApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"query\": \"{ boards(ids: [18179369221]) { items_page(limit: 100) { items { id name column_values { id text } } } } }\"}",
+        "options": {}
+      },
+      "id": "164b91be-2f54-4b0a-9632-c2a1beb7f74f",
+      "name": "3. Get Sessions Monday",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [5008, 768],
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "mondayComApi": {
+          "id": "yB9mjg3yDJziZ0zm",
+          "name": "Monday.com account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const counts = $('2. Compter par session').item.json.counts;\nconst sessions = $input.item.json.data?.boards?.[0]?.items_page?.items || [];\nconst DEFAULT_WAITLIST = 10;\nconst result = {};\n\nfor (const session of sessions) {\n  const capCol = session.column_values.find(c => c.id === 'numeric_mkx3vw7');\n  const capacite = parseInt(capCol?.text || '0') || 0;\n  \n  if (capacite <= 0) continue;\n  \n  const waitCol = session.column_values.find(c => c.id === 'numeric_mm0zhzap');\n  const attente_max = parseInt(waitCol?.text || '0') || DEFAULT_WAITLIST;\n  \n  const sc = counts[session.id] || { total: 0 };\n  const total = sc.total;\n  const places_restantes = Math.max(0, capacite - total);\n  const places_attente_restantes = Math.max(0, (capacite + attente_max) - total);\n  \n  let statut = 'ouvert';\n  if (total >= capacite + attente_max) {\n    statut = 'complet';\n  } else if (total >= capacite) {\n    statut = 'liste_attente';\n  }\n  \n  result[session.id] = {\n    nom: session.name,\n    inscrits: total,\n    capacite,\n    attente: Math.max(0, total - capacite),\n    attente_max,\n    places_restantes,\n    places_attente_restantes,\n    statut\n  };\n}\n\nreturn [{ json: { success: true, sessions: result } }];"
+      },
+      "id": "cceff859-0473-4cf4-beee-ea0d1e78fad5",
+      "name": "4. Résultat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5232, 768]
+    },
+    {
+      "parameters": {
+        "content": "## RIUSC - Camp Capacity Check v2\n\n**GET** /webhook/camp-capacity\n\n**Source inscriptions:** Supabase (inscriptions_camps)\n- Filtre: presence = 'confirme' seulement\n- Exclut annulés et absents\n\n**Source capacités:** Monday.com\n- Board 18179369221 = Sessions de formation\n- numeric_mkx3vw7 = Capacité max\n- numeric_mm0zhzap = Capacité liste d'attente\n\n**Retourne par session:**\n- inscrits / capacite / places_restantes\n- attente / attente_max / places_attente_restantes\n- statut: ouvert | liste_attente | complet\n\n**Variables d'environnement requises:**\n- SUPABASE_URL\n- SUPABASE_SERVICE_ROLE_KEY",
+        "height": 380,
+        "width": 400
+      },
+      "id": "c261e62f-e7e8-498c-bb36-991b4983fc87",
+      "name": "Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [4128, 464]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "1. Get Inscriptions Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Get Inscriptions Supabase": {
+      "main": [
+        [
+          {
+            "node": "2. Compter par session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Compter par session": {
+      "main": [
+        [
+          {
+            "node": "3. Get Sessions Monday",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Get Sessions Monday": {
+      "main": [
+        [
+          {
+            "node": "4. Résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Z6FCzROCLXJwZtZUDb4Ql"
+  },
+  "versionId": "dd3f6450-d747-478e-9f14-9f792c443fb7",
+  "meta": {
+    "instanceId": "b415b70ea7fd552adeb2d0506e5b84ef024d64396646901413a4e2e3947d4f93"
+  },
+  "id": "vtD7Zj5e3nvoyZ2dcZEGN",
+  "tags": []
+}

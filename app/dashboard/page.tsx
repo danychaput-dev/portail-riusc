@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, lazy, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
@@ -8,6 +8,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts'
+
+const MapMembres = lazy(() => import('@/app/components/MapMembres'))
 
 const NAVY   = '#1e3a5f'
 const YELLOW = '#ffd166'
@@ -384,6 +386,17 @@ export default function DashboardPublicPage() {
                 </ResponsiveContainer>
               </Card>
             </div>
+
+            {/* ── Carte des membres ── */}
+            {isAdmin && (
+              <div style={{ marginBottom: 20 }}>
+                <Card title="Carte des membres" subtitle="Position géographique des réservistes actifs">
+                  <Suspense fallback={<div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontSize: 13 }}>Chargement de la carte...</div>}>
+                    <MapMembres />
+                  </Suspense>
+                </Card>
+              </div>
+            )}
 
             {/* ── Ligne 3 : Nouvelles inscriptions ── */}
             <div style={{ marginBottom: 20 }}>
