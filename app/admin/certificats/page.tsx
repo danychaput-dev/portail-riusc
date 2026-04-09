@@ -15,7 +15,7 @@ interface CertificatEnAttente {
   signedUrl?: string
   dateInput?: string
   dateExpiration?: string
-  statut?: 'idle' | 'saving' | 'saved' | 'error'
+  statut?: 'idle' | 'saving' | 'saved' | 'refused' | 'error'
 }
 
 interface CertificatACompleter {
