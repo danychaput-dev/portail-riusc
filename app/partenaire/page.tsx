@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { useAuth } from '@/utils/useAuth'
 import PortailHeader from '@/app/components/PortailHeader'
 
 const C = '#1e3a5f'
@@ -61,6 +62,7 @@ const STATUT_DEP_COLORS: Record<string, { bg: string; color: string }> = {
 export default function PartenairePage() {
   const supabase = createClient()
   const router = useRouter()
+  const { user: authUser, loading: authLoading } = useAuth()
 
   const [loading, setLoading]         = useState(true)
   const [partenaire, setPartenaire]   = useState<Partenaire | null>(null)
@@ -70,28 +72,42 @@ export default function PartenairePage() {
   const [onglet, setOnglet]           = useState<'demandes' | 'deploiements' | 'processus'>('demandes')
 
   useEffect(() => {
+    if (authLoading) return
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      if (!authUser) { router.push('/login'); return }
 
-      // Chercher par user_id (plus fiable) avec fallback email
       let res = null
-      const { data: resByUserId } = await supabase
-        .from('reservistes')
-        .select('benevole_id, prenom, nom, email, role')
-        .eq('user_id', user.id)
-        .maybeSingle()
 
-      if (resByUserId) {
-        res = resByUserId
+      // CAS 1 : Emprunt d'identite — charger le partenaire via RPC
+      if ('isImpersonated' in authUser && authUser.isImpersonated) {
+        const { data: rpcData } = await supabase
+          .rpc('get_reserviste_by_benevole_id', { target_benevole_id: authUser.benevole_id })
+        if (rpcData?.[0]) {
+          res = { benevole_id: rpcData[0].benevole_id, prenom: rpcData[0].prenom, nom: rpcData[0].nom, email: rpcData[0].email, role: rpcData[0].role }
+        }
       } else {
-        // Fallback par email
-        const { data: resByEmail } = await supabase
+        // CAS 2 : Auth normale
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) { router.push('/login'); return }
+
+        // Chercher par user_id (plus fiable) avec fallback email
+        const { data: resByUserId } = await supabase
           .from('reservistes')
           .select('benevole_id, prenom, nom, email, role')
-          .ilike('email', user.email || '')
+          .eq('user_id', user.id)
           .maybeSingle()
-        res = resByEmail
+
+        if (resByUserId) {
+          res = resByUserId
+        } else {
+          // Fallback par email
+          const { data: resByEmail } = await supabase
+            .from('reservistes')
+            .select('benevole_id, prenom, nom, email, role')
+            .ilike('email', user.email || '')
+            .maybeSingle()
+          res = resByEmail
+        }
       }
 
       if (!res || res.role !== 'partenaire') { router.push('/'); return }
@@ -143,7 +159,7 @@ export default function PartenairePage() {
       setLoading(false)
     }
     init()
-  }, [])
+  }, [authUser, authLoading])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
