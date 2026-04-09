@@ -43,6 +43,19 @@ export async function GET() {
 
     if (error) throw error
 
+    // Compteurs exacts via COUNT SQL (pas affectés par la limite de 1000 lignes)
+    const baseFilter = () => supabase.from('reservistes').select('id', { count: 'exact', head: true }).eq('statut', 'Actif').not('nom', 'is', null).neq('nom', '')
+    const [cntApprouves, cntInteret, cntPartenaires] = await Promise.all([
+      baseFilter().eq('groupe', 'Approuvé'),
+      baseFilter().eq('groupe', 'Intérêt'),
+      baseFilter().eq('groupe', 'Partenaires'),
+    ])
+    const exactApprouves   = cntApprouves.count || 0
+    const exactInteret     = cntInteret.count || 0
+    const exactPartenaires = cntPartenaires.count || 0
+    const exactReservistes = exactApprouves + exactInteret
+    const exactRIUSC       = exactApprouves + exactInteret + exactPartenaires
+
     const { data: partenairesOrgs } = await supabase
       .from('reserviste_organisations')
       .select('benevole_id, organisations (nom)')
@@ -239,11 +252,11 @@ export async function GET() {
       .sort((a, b) => a.cohort - b.cohort)
 
     return NextResponse.json({
-      totalReservistes: (reservistes || []).filter(r => ['Approuvé', 'Intérêt'].includes(r.groupe)).length,
-      totalRIUSC:      (reservistes || []).filter(r => ['Approuvé', 'Intérêt', 'Partenaires'].includes(r.groupe)).length,
-      totalInteret:     groupeCounts['Intérêt']     || 0,
-      totalApprouves:   groupeCounts['Approuvé']    || 0,
-      totalPartenaires: groupeCounts['Partenaires'] || 0,
+      totalReservistes: exactReservistes,
+      totalRIUSC:      exactRIUSC,
+      totalInteret:     exactInteret,
+      totalApprouves:   exactApprouves,
+      totalPartenaires: exactPartenaires,
       parOrganisme,
       reservistesQualifies,
       partenairesOrganismes,
