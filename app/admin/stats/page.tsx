@@ -283,29 +283,11 @@ export default function StatsPage() {
     (async () => {
       setLoading(true);
 
-      // Helper: paginer une requete Supabase pour depasser la limite de 1000 lignes
+      // Utiliser la meme API que la page reservistes pour avoir les memes filtres
       const fetchAllReservistes = async () => {
-        const PAGE_SIZE = 1000;
-        let allRows: Reserviste[] = [];
-        let page = 0;
-        let hasMore = true;
-        while (hasMore) {
-          const { data } = await supabase
-            .from('reservistes')
-            .select('id, benevole_id, prenom, nom, email, telephone, groupe, region, statut, created_at, monday_created_at, user_id')
-            .neq('groupe', 'Partenaires')
-            .not('nom', 'is', null)
-            .neq('nom', '')
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-          if (data && data.length > 0) {
-            allRows = allRows.concat(data as Reserviste[]);
-            hasMore = data.length === PAGE_SIZE;
-            page++;
-          } else {
-            hasMore = false;
-          }
-        }
-        return allRows;
+        const res = await fetch('/api/admin/reservistes?groupes=Approuvé,Intérêt,Retrait temporaire,Formation incomplète');
+        const json = await res.json();
+        return (json.data || []) as Reserviste[];
       };
 
       const [logsRes, allReservistes, auditRes] = await Promise.all([
