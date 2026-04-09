@@ -498,7 +498,7 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
                                 return <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center', color: MUTED }}>—</td>
                               }
                               const canDrill = isAdmin && camp.session_id && val != null && (val as number) > 0
-                              const drillParams: Record<string, string> = { camp_session: camp.session_id!, label: `Cohorte ${camp.cohort} — ${col.label} (${camp.ville || ''})` }
+                              const drillParams: Record<string, string> = { camp_session: camp.session_id!, groupes: 'Approuvé,Intérêt,Partenaires', label: `Cohorte ${camp.cohort} — ${col.label} (${camp.ville || ''})` }
                               if (col.key === 'inscrits') drillParams.camp_statut = 'non_annule'
                               else drillParams.camp_statut = col.key
                               const campDrill = canDrill ? () => router.push(drillUrl(drillParams)) : undefined

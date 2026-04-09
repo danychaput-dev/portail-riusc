@@ -267,8 +267,11 @@ function ReservistesPage() {
     const load = async () => {
       setLoading(true)
       const params = new URLSearchParams()
-      // Charger tous les groupes d'un coup pour avoir le dataset complet
-      params.set('groupes', 'Approuvé,Intérêt,Partenaires,Retrait temporaire')
+      // Quand on vient du dashboard, respecter les groupes du URL ; sinon charger tous les groupes
+      const groupesACharger = urlFrom === 'dashboard' && urlGroupes
+        ? urlGroupes
+        : 'Approuvé,Intérêt,Partenaires,Retrait temporaire'
+      params.set('groupes', groupesACharger)
       // Passer les URL params spéciaux (camp, etc.) qui nécessitent un filtre serveur
       if (urlCampSession) params.set('camp_session', urlCampSession)
       if (urlCampStatut) params.set('camp_statut', urlCampStatut)
