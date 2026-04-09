@@ -48,6 +48,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [reserviste, setReserviste] = useState<Reserviste | null>(reservisteOverride ?? null)
   const [campStatus, setCampStatus] = useState<CampStatus | null>(null)
   const [hasCertificats, setHasCertificats] = useState(false)
+  const [certifsManquants, setCertifsManquants] = useState(0)
+  const [certifsEnAttente, setCertifsEnAttente] = useState(0)
   const [loadingStatus, setLoadingStatus] = useState(true)
   const [isApproved, setIsApproved] = useState(false)
   const [hasCiblages, setHasCiblages] = useState(false)
@@ -107,6 +109,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           setCampStatus({ is_certified: false })
           setHasCertificats(false)
           setHasCiblages(false)
+          setCertifsManquants(2) // Démo : 2 certificats manquants
         }
         setLoadingStatus(false)
         return
@@ -221,6 +224,19 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           // Camp — vérifier Supabase (toutes cohortes « Camp de qualification »)
           const campReussiSupabase = formations.some(f => f.nom_formation?.toLowerCase().includes('camp de qualification') && f.resultat === 'Réussi')
           setCampStatus({ is_certified: campReussiSupabase })
+        }
+
+        // Certificats manquants / en attente d'approbation
+        const { data: certifsPending } = await supabase
+          .from('formations_benevoles')
+          .select('certificat_url')
+          .eq('benevole_id', res.benevole_id)
+          .eq('resultat', 'En attente')
+        if (certifsPending) {
+          const manquants = certifsPending.filter(f => !f.certificat_url).length
+          const enAttente = certifsPending.filter(f => !!f.certificat_url).length
+          setCertifsManquants(manquants)
+          setCertifsEnAttente(enAttente)
         }
 
         // Ciblages actifs (seulement pertinent pour Approuvé)
@@ -478,6 +494,23 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                     </a>
                   )}
                 </div>
+                {/* Indicateur certificats manquants / en attente */}
+                {!loadingStatus && !isPartenaire && (certifsManquants > 0 || certifsEnAttente > 0) && (
+                  <a
+                    href="/formation"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end', fontSize: '11px', textDecoration: 'none', marginTop: '1px' }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={certifsManquants > 0 ? '#d97706' : '#6b7280'} strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    <span style={{ color: certifsManquants > 0 ? '#d97706' : '#6b7280', fontWeight: '500' }}>
+                      {certifsManquants > 0 && `${certifsManquants} certificat${certifsManquants > 1 ? 's' : ''} a televerser`}
+                      {certifsManquants > 0 && certifsEnAttente > 0 && ' · '}
+                      {certifsEnAttente > 0 && `${certifsEnAttente} en attente`}
+                    </span>
+                  </a>
+                )}
               </div>
 
               {/* Avatar */}
