@@ -193,6 +193,7 @@ export default function StatsPage() {
   const [auditPages, setAuditPages] = useState<AuditPageRow[]>([]);
   const [auditPagesAll, setAuditPagesAll] = useState<{ benevole_id: string | null; user_id: string | null }[]>([]);
   const [reservistes, setReservistes] = useState<Reserviste[]>([]);
+  const [dashStats, setDashStats] = useState<{ totalReservistes: number; totalApprouves: number; totalInteret: number } | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [excludeMe, setExcludeMe] = useState(true);
 
@@ -291,14 +292,16 @@ export default function StatsPage() {
         return (json.data || []) as Reserviste[];
       };
 
-      const [logsRes, allReservistes, auditRes] = await Promise.all([
+      const [logsRes, allReservistes, auditRes, dashRes] = await Promise.all([
         supabase.from('auth_logs').select('*').gte('created_at', from).lte('created_at', to).order('created_at', { ascending: false }),
         fetchAllReservistes(),
         fetch(`/api/audit/stats?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`).then(r => r.json()),
+        fetch('/api/dashboard/stats').then(r => r.json()),
       ]);
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
       setReservistes(allReservistes);
+      if (dashRes?.totalReservistes != null) setDashStats(dashRes);
       if (auditRes.pages) setAuditPages(auditRes.pages as AuditPageRow[]);
       if (auditRes.all) setAuditPagesAll(auditRes.all as { benevole_id: string | null; user_id: string | null }[]);
       setLoading(false);
@@ -646,10 +649,10 @@ export default function StatsPage() {
 
             {/* KPI globaux */}
             <div className="print-cards" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
-              <StatCard icon="👥" label="Total réservistes" value={resStats.total} />
-              <StatCard icon="✅" label="Approuvés" value={resStats.approuves} color={GREEN} sub={`${resStats.total > 0 ? Math.round(resStats.approuves / resStats.total * 100) : 0}% du total`} />
-              <StatCard icon="🔵" label="Intérêt" value={resStats.interets} color={BLUE} sub={`${resStats.total > 0 ? Math.round(resStats.interets / resStats.total * 100) : 0}% du total`} />
-              <StatCard icon="🔗" label="Comptes liés" value={resStats.linked} color={PURPLE} sub={`${resStats.total - resStats.linked} sans compte`} />
+              <StatCard icon="👥" label="Total réservistes" value={dashStats?.totalReservistes ?? resStats.total} />
+              <StatCard icon="✅" label="Approuvés" value={dashStats?.totalApprouves ?? resStats.approuves} color={GREEN} sub={`${(dashStats?.totalReservistes ?? resStats.total) > 0 ? Math.round((dashStats?.totalApprouves ?? resStats.approuves) / (dashStats?.totalReservistes ?? resStats.total) * 100) : 0}% du total`} />
+              <StatCard icon="🔵" label="Intérêt" value={dashStats?.totalInteret ?? resStats.interets} color={BLUE} sub={`${(dashStats?.totalReservistes ?? resStats.total) > 0 ? Math.round((dashStats?.totalInteret ?? resStats.interets) / (dashStats?.totalReservistes ?? resStats.total) * 100) : 0}% du total`} />
+              <StatCard icon="🔗" label="Comptes liés" value={resStats.linked} color={PURPLE} sub={`${(dashStats?.totalReservistes ?? resStats.total) - resStats.linked} sans compte`} />
             </div>
 
             {/* Nouvelles inscriptions */}
