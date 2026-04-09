@@ -272,18 +272,6 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
       {!embedded && <PortailHeader subtitle="Tableau de bord" />}
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '16px 12px' : '32px 24px' }}>
-        {!embedded && isAdmin && (
-          <div style={{ marginBottom: 16 }}>
-            <button
-              onClick={() => router.push('/admin')}
-              style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${BORDER}`, backgroundColor: WHITE, color: NAVY, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              onMouseOver={e => { e.currentTarget.style.backgroundColor = '#f0f4f8' }}
-              onMouseOut={e => { e.currentTarget.style.backgroundColor = WHITE }}
-            >
-              ← Panneau admin
-            </button>
-          </div>
-        )}
         {loading && <div style={{ padding: 80, textAlign: 'center', color: MUTED, fontSize: 16 }}>Chargement des données…</div>}
         {error && <div style={{ backgroundColor: '#fef2f2', color: RED, padding: '16px 20px', borderRadius: 8, fontSize: 14, border: '1px solid #fecaca' }}>Erreur lors du chargement des données.</div>}
 
