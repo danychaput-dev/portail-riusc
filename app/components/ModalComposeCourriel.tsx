@@ -70,6 +70,14 @@ interface Props {
 
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template' | 'cc_manage'
 
+// Nettoyer les noms de fichiers pour Supabase Storage (pas d'espaces, accents, caracteres speciaux)
+function sanitizeFilename(name: string): string {
+  return name
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // enlever accents
+    .replace(/[^a-zA-Z0-9._-]/g, '_') // remplacer caracteres speciaux par _
+    .replace(/_+/g, '_') // pas de __ consecutifs
+}
+
 export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject, replyToCourrielId, campagneId: existingCampagneId }: Props) {
   const supabase = createClient()
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
@@ -381,7 +389,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
           // Re-upload vers Storage pour avoir un storagePath frais
           const restored: PieceJointe[] = []
           for (const f of json.fichiers) {
-            const storagePath = `courriel-pj/${Date.now()}-${f.filename}`
+            const storagePath = `courriel-pj/${Date.now()}-${sanitizeFilename(f.filename)}`
             const buffer = Uint8Array.from(atob(f.base64), c => c.charCodeAt(0))
             const blob = new Blob([buffer])
             const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, blob, { upsert: true })
@@ -487,7 +495,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
         continue
       }
       // Upload vers Supabase Storage pour éviter PAYLOAD_TOO_LARGE
-      const storagePath = `courriel-pj/${Date.now()}-${file.name}`
+      const storagePath = `courriel-pj/${Date.now()}-${sanitizeFilename(file.name)}`
       const { error: upErr } = await supabase.storage.from('certificats').upload(storagePath, file, { upsert: true })
       if (upErr) {
         setError(`Erreur upload "${file.name}" : ${upErr.message}`)
