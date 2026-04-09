@@ -65,11 +65,12 @@ interface Props {
   onSent?: (resultats: { envoyes: number; echoues: number }) => void
   initialSubject?: string
   replyToCourrielId?: string  // ID du courriel parent pour enregistrer la reponse dans le fil
+  campagneId?: string  // ID campagne existante pour reply-to-all (reutilise la meme campagne)
 }
 
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template' | 'cc_manage'
 
-export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject, replyToCourrielId }: Props) {
+export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject, replyToCourrielId, campagneId: existingCampagneId }: Props) {
   const supabase = createClient()
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
   const [subject, setSubject] = useState(initialSubject || '')
@@ -221,6 +222,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
           body_html: bodyHtml.replace(/\n/g, '<br/>'),
           cc: ccEmails.length > 0 ? ccEmails : undefined,
           reply_to_courriel_id: replyToCourrielId || undefined,
+          campagne_id: existingCampagneId || undefined,
           attachments: attPayload,
         })
 
@@ -287,6 +289,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
           body_html: bodyHtml.replace(/\n/g, '<br/>'),
           cc: ccEmails.length > 0 ? ccEmails : undefined,
           reply_to_courriel_id: replyToCourrielId || undefined,
+          campagne_id: existingCampagneId || undefined,
           attachments: attPayload,
         })
 

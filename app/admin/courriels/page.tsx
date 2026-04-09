@@ -223,6 +223,7 @@ export default function CampagnesPage() {
   const [replyDest, setReplyDest] = useState<{ benevole_id: string; email: string; prenom: string; nom: string }[] | null>(null)
   const [replySubject, setReplySubject] = useState('')
   const [replyToCourrielId, setReplyToCourrielId] = useState<string | null>(null)
+  const [replyCampagneId, setReplyCampagneId] = useState<string | null>(null)
 
   // ─── Import liste ───
   const [showImportModal, setShowImportModal] = useState(false)
@@ -484,7 +485,7 @@ export default function CampagnesPage() {
     setReplyDest([dest])
     setReplyToCourrielId(courrielId || null)
   }
-  const handleReplyAll = (destinataires: Destinataire[], subject: string, courrielId?: string) => {
+  const handleReplyAll = (destinataires: Destinataire[], subject: string, courrielId?: string, campagneId?: string) => {
     setReplySubject(subject.startsWith('Re: ') ? subject : `Re: ${subject}`)
     setReplyDest(destinataires.map(d => ({
       benevole_id: d.benevole_id,
@@ -493,6 +494,7 @@ export default function CampagnesPage() {
       nom: d.nom || '',
     })))
     setReplyToCourrielId(courrielId || null)
+    setReplyCampagneId(campagneId || null)
   }
 
   if (!authorized) return null
@@ -662,7 +664,7 @@ export default function CampagnesPage() {
                                 </span>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                   <button
-                                    onClick={() => handleReplyAll(campagneDetail.destinataires, c.subject)}
+                                    onClick={() => handleReplyAll(campagneDetail.destinataires, c.subject, undefined, c.id)}
                                     style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', backgroundColor: C, color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
                                   >
                                     ↩ Répondre à tous
@@ -1279,10 +1281,12 @@ export default function CampagnesPage() {
             destinataires={replyDest}
             initialSubject={replySubject}
             replyToCourrielId={replyToCourrielId || undefined}
-            onClose={() => { setReplyDest(null); setReplyToCourrielId(null) }}
+            campagneId={replyCampagneId || undefined}
+            onClose={() => { setReplyDest(null); setReplyToCourrielId(null); setReplyCampagneId(null) }}
             onSent={() => {
               setReplyDest(null)
               setReplyToCourrielId(null)
+              setReplyCampagneId(null)
               // Rafraîchir les données
               if (activeTab === 'individuels') {
                 const params = new URLSearchParams()
