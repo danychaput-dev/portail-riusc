@@ -31,8 +31,8 @@ const NAV_ITEMS: NavItem[] = [
   { titre: 'Certificats',          icone: '🗂️', href: '/admin/certificats',       statut: 'actif' },
   { titre: 'Courriels',            icone: '✉️', href: '/admin/courriels',         statut: 'actif' },
   { titre: 'Camps',                icone: '🏕️', href: '/admin/inscriptions-camps', statut: 'actif' },
-  { titre: 'Communauté',           icone: '💬', href: '/communaute',              statut: 'actif', externe: true },
-  { titre: 'Dashboard',            icone: '📈', href: '/dashboard',               statut: 'actif', externe: true },
+  { titre: 'Communauté',           icone: '💬', href: '/admin/communaute',        statut: 'actif' },
+  { titre: 'Dashboard',            icone: '📈', href: '/admin/dashboard',         statut: 'actif' },
   { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',             statut: 'actif' },
   { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',      statut: 'actif' },
   { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',       statut: 'bientot' },
@@ -67,7 +67,7 @@ export default function AdminSidebar({ stats }: Props) {
   const getBadge = (item: NavItem): { count?: number; color?: string } | undefined => {
     if (!stats) return undefined
     if (item.href === '/admin/certificats' && stats.certificats_attente) return { count: stats.certificats_attente }
-    if (item.href === '/communaute' && stats.messages_non_lus) return { count: stats.messages_non_lus }
+    if (item.href === '/admin/communaute' && stats.messages_non_lus) return { count: stats.messages_non_lus }
     if (item.href === '/admin/courriels' && stats.courriels_reponses_non_lues) return { count: stats.courriels_reponses_non_lues }
     if (item.href === '/admin/reservistes' && stats.notes_non_lues) return { count: stats.notes_non_lues, color: '#d946ef' }  // magenta
     return undefined

@@ -389,6 +389,11 @@ function ReservistesPage() {
         filtered = filtered.filter(r => (r.org_principale || '').includes('AQBRS'))
       } else if (urlOrganisme === 'sans_org') {
         filtered = filtered.filter(r => !r.org_principale)
+      } else if (urlOrganisme === 'autres_org') {
+        filtered = filtered.filter(r => {
+          const org = r.org_principale || ''
+          return org.length > 0 && !org.includes('AQBRS')
+        })
       } else {
         filtered = filtered.filter(r => (r.org_principale || '').includes(urlOrganisme))
       }
@@ -759,7 +764,7 @@ function ReservistesPage() {
               {urlCampSession && <span style={{ fontWeight: 400, fontSize: '12px', marginLeft: '8px', color: '#3b82f6' }}>(session: {urlCampSession})</span>}
             </span>
             <button
-              onClick={() => router.push(urlFrom === 'dashboard' ? '/dashboard' : '/admin')}
+              onClick={() => router.push(urlFrom === 'dashboard' ? '/admin/dashboard' : '/admin')}
               style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: '8px', border: '1px solid #93c5fd', backgroundColor: 'white', color: '#1e40af', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}
             >
               ← Retour au {urlFrom === 'dashboard' ? 'dashboard' : 'panneau admin'}

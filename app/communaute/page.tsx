@@ -110,7 +110,7 @@ function isImageFile(fileName: string): boolean {
 
 /* ──────────────────── Composant principal ──────────────────── */
 
-export default function CommunautePage() {
+export function CommunauteContent({ embedded = false }: { embedded?: boolean }) {
   const supabase = createClient();
   const router = useRouter();
 
@@ -606,9 +606,9 @@ export default function CommunautePage() {
   ══════════════════════════════════════════════════════════════ */
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f5f7fa' }}>
+    <div style={{ height: embedded ? '100%' : '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f5f7fa' }}>
 
-      <PortailHeader subtitle="Communauté" />
+      {!embedded && <PortailHeader subtitle="Communauté" />}
 
       {/* Canaux horizontaux (mobile) */}
       {isMobile && (
@@ -1092,6 +1092,10 @@ export default function CommunautePage() {
       )}
     </div>
   );
+}
+
+export default function CommunautePage() {
+  return <CommunauteContent />;
 }
 
 /* ──────────────────── Styles ──────────────────── */

@@ -217,7 +217,7 @@ function useIsMobile() {
   return isMobile
 }
 
-export default function DashboardPublicPage() {
+export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -267,12 +267,12 @@ export default function DashboardPublicPage() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: BG }}>
+    <div style={{ minHeight: embedded ? 'auto' : '100vh', backgroundColor: BG }}>
 
-      <PortailHeader subtitle="Tableau de bord" />
+      {!embedded && <PortailHeader subtitle="Tableau de bord" />}
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '16px 12px' : '32px 24px' }}>
-        {isAdmin && (
+        {!embedded && isAdmin && (
           <div style={{ marginBottom: 16 }}>
             <button
               onClick={() => router.push('/admin')}
@@ -549,4 +549,8 @@ export default function DashboardPublicPage() {
       </main>
     </div>
   )
+}
+
+export default function DashboardPublicPage() {
+  return <DashboardContent />
 }
