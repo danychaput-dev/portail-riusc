@@ -1,9 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-// @ts-expect-error — react-map-gl n'a pas de types inclus pour cette version
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -27,7 +24,6 @@ const AMBER = '#d97706'
 const MUTED = '#6b7280'
 const BORDER = '#e5e7eb'
 const WHITE = '#ffffff'
-const YELLOW = '#ffd166'
 
 const GROUPE_COLORS: Record<string, string> = {
   'Approuvé': NAVY,
@@ -35,21 +31,54 @@ const GROUPE_COLORS: Record<string, string> = {
 }
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''
+const MAPBOX_GL_VERSION = '3.4.0'
+const MAPBOX_CSS = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.css`
+const MAPBOX_JS = `https://api.mapbox.com/mapbox-gl-js/v${MAPBOX_GL_VERSION}/mapbox-gl.js`
 
-// Centre du Québec
-const INITIAL_VIEW = {
-  longitude: -71.5,
-  latitude: 47.0,
-  zoom: 5.5,
+// ─── Loader CDN ─────────────────────────────────────────────────────────────
+
+let mapboxPromise: Promise<any> | null = null
+
+function loadMapboxGL(): Promise<any> {
+  if (mapboxPromise) return mapboxPromise
+
+  mapboxPromise = new Promise((resolve, reject) => {
+    // CSS
+    if (!document.querySelector(`link[href="${MAPBOX_CSS}"]`)) {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = MAPBOX_CSS
+      document.head.appendChild(link)
+    }
+
+    // JS — si deja charge
+    if ((window as any).mapboxgl) {
+      resolve((window as any).mapboxgl)
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = MAPBOX_JS
+    script.onload = () => resolve((window as any).mapboxgl)
+    script.onerror = () => reject(new Error('Impossible de charger mapbox-gl'))
+    document.head.appendChild(script)
+  })
+
+  return mapboxPromise
 }
 
 // ─── Composant ──────────────────────────────────────────────────────────────
 
 export default function MapMembres() {
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any>(null)
+  const markersRef = useRef<any[]>([])
+  const popupRef = useRef<any>(null)
+
   const [membres, setMembres] = useState<MembrePosition[]>([])
   const [loading, setLoading] = useState(true)
   const [filtre, setFiltre] = useState<FiltreGroupe>('Tous')
-  const [popupInfo, setPopupInfo] = useState<MembrePosition | null>(null)
+  const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState(false)
 
   // Charger les positions des membres
@@ -73,7 +102,47 @@ export default function MapMembres() {
       })
   }, [])
 
-  // Filtrer selon le groupe sélectionné
+  // Initialiser la carte via CDN
+  useEffect(() => {
+    if (!MAPBOX_TOKEN || !mapContainerRef.current) return
+
+    let cancelled = false
+
+    loadMapboxGL().then(mapboxgl => {
+      if (cancelled || !mapContainerRef.current) return
+
+      mapboxgl.accessToken = MAPBOX_TOKEN
+
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [-71.5, 47.0],
+        zoom: 5.5,
+        attributionControl: false,
+      })
+
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
+
+      map.on('load', () => {
+        if (!cancelled) {
+          mapRef.current = map
+          setMapReady(true)
+        }
+      })
+    }).catch(() => {
+      if (!cancelled) setMapError(true)
+    })
+
+    return () => {
+      cancelled = true
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+    }
+  }, [])
+
+  // Filtrer selon le groupe selectionne
   const membresFiltres = useMemo(() => {
     if (filtre === 'Tous') return membres
     return membres.filter(m => m.groupe === filtre)
@@ -85,6 +154,62 @@ export default function MapMembres() {
     approuves: membres.filter(m => m.groupe === 'Approuvé').length,
     interet: membres.filter(m => m.groupe === 'Intérêt').length,
   }), [membres])
+
+  // Mettre a jour les markers quand le filtre ou les donnees changent
+  useEffect(() => {
+    if (!mapReady || !mapRef.current) return
+
+    // Supprimer les anciens markers
+    markersRef.current.forEach(m => m.remove())
+    markersRef.current = []
+    if (popupRef.current) {
+      popupRef.current.remove()
+      popupRef.current = null
+    }
+
+    const mapboxgl = (window as any).mapboxgl
+    if (!mapboxgl) return
+
+    membresFiltres.forEach(m => {
+      // Creer le dot
+      const el = document.createElement('div')
+      el.style.width = '12px'
+      el.style.height = '12px'
+      el.style.borderRadius = '50%'
+      el.style.backgroundColor = GROUPE_COLORS[m.groupe] || MUTED
+      el.style.border = '2px solid white'
+      el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.3)'
+      el.style.cursor = 'pointer'
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([m.longitude, m.latitude])
+        .addTo(mapRef.current)
+
+      el.addEventListener('click', (e) => {
+        e.stopPropagation()
+
+        // Fermer le popup precedent
+        if (popupRef.current) popupRef.current.remove()
+
+        const popup = new mapboxgl.Popup({ offset: 8, closeOnClick: false, maxWidth: '220px' })
+          .setLngLat([m.longitude, m.latitude])
+          .setHTML(`
+            <div style="padding:4px 2px;font-size:13px;line-height:1.4;font-family:system-ui,-apple-system,sans-serif">
+              <div style="font-weight:700;color:${NAVY}">${m.prenom} ${m.nom}</div>
+              ${m.ville ? `<div style="color:${MUTED};font-size:12px">${m.ville}</div>` : ''}
+              <div style="display:inline-block;margin-top:4px;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${m.groupe === 'Approuvé' ? '#dbeafe' : '#fef3c7'};color:${m.groupe === 'Approuvé' ? NAVY : AMBER}">
+                ${m.groupe === 'Approuvé' ? 'Qualifié' : 'Intérêt'}
+              </div>
+            </div>
+          `)
+          .addTo(mapRef.current)
+
+        popupRef.current = popup
+      })
+
+      markersRef.current.push(marker)
+    })
+  }, [membresFiltres, mapReady])
 
   const filtres: { key: FiltreGroupe; label: string; count: number; color: string }[] = [
     { key: 'Tous',     label: 'Tous',      count: counts.total,     color: MUTED },
@@ -109,7 +234,7 @@ export default function MapMembres() {
           return (
             <button
               key={f.key}
-              onClick={() => { setFiltre(f.key); setPopupInfo(null) }}
+              onClick={() => setFiltre(f.key)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
@@ -143,68 +268,7 @@ export default function MapMembres() {
             Erreur lors du chargement de la carte.
           </div>
         ) : (
-          <Map
-            initialViewState={INITIAL_VIEW}
-            style={{ width: '100%', height: '100%' }}
-            mapStyle="mapbox://styles/mapbox/light-v11"
-            mapboxAccessToken={MAPBOX_TOKEN}
-            attributionControl={false}
-          >
-            <NavigationControl position="top-right" showCompass={false} />
-
-            {membresFiltres.map(m => (
-              <Marker
-                key={m.benevole_id}
-                longitude={m.longitude}
-                latitude={m.latitude}
-                anchor="center"
-                onClick={(e: any) => {
-                  e.originalEvent.stopPropagation()
-                  setPopupInfo(m)
-                }}
-              >
-                <div
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    backgroundColor: GROUPE_COLORS[m.groupe] || MUTED,
-                    border: '2px solid white',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                    cursor: 'pointer',
-                  }}
-                />
-              </Marker>
-            ))}
-
-            {popupInfo && (
-              <Popup
-                longitude={popupInfo.longitude}
-                latitude={popupInfo.latitude}
-                anchor="bottom"
-                onClose={() => setPopupInfo(null)}
-                closeOnClick={false}
-                offset={8}
-              >
-                <div style={{ padding: '4px 2px', fontSize: 13, lineHeight: 1.4 }}>
-                  <div style={{ fontWeight: 700, color: NAVY }}>
-                    {popupInfo.prenom} {popupInfo.nom}
-                  </div>
-                  {popupInfo.ville && (
-                    <div style={{ color: MUTED, fontSize: 12 }}>{popupInfo.ville}</div>
-                  )}
-                  <div style={{
-                    display: 'inline-block', marginTop: 4,
-                    padding: '1px 8px', borderRadius: 10, fontSize: 10, fontWeight: 600,
-                    backgroundColor: popupInfo.groupe === 'Approuvé' ? '#dbeafe' : '#fef3c7',
-                    color: popupInfo.groupe === 'Approuvé' ? NAVY : AMBER,
-                  }}>
-                    {popupInfo.groupe === 'Approuvé' ? 'Qualifié' : 'Intérêt'}
-                  </div>
-                </div>
-              </Popup>
-            )}
-          </Map>
+          <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
         )}
       </div>
 
