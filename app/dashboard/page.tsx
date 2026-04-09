@@ -479,7 +479,7 @@ export default function DashboardPublicPage() {
                             <td style={{ padding: '12px 16px', color: MUTED, fontSize: 13 }}>{camp.dates || '—'}</td>
                             {campCols.map(col => {
                               const val = camp[col.key]
-                              if (!camp.passe && col.key !== 'inscrits') {
+                              if (!camp.passe && col.key !== 'inscrits' && col.key !== 'annule') {
                                 return <td key={col.key} style={{ padding: '12px 16px', textAlign: 'center', color: MUTED }}>—</td>
                               }
                               const canDrill = isAdmin && camp.session_id && val != null && (val as number) > 0
@@ -512,7 +512,7 @@ export default function DashboardPublicPage() {
                           <td colSpan={3} style={{ padding: '10px 16px', fontWeight: 700, color: NAVY, fontSize: 13 }}>Total</td>
                           {campCols.map(col => {
                             const total = stats.campsData
-                              .filter(c => c.passe || col.key === 'inscrits')
+                              .filter(c => c.passe || col.key === 'inscrits' || col.key === 'annule')
                               .reduce((s, c) => s + ((c[col.key] as number) || 0), 0)
                             return (
                               <td key={col.key} style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: col.color, fontSize: 14 }}>
