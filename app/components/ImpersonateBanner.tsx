@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function ImpersonateBanner({ position = 'top' }: { position?: 'top' | 'bottom' }) {
   const [impersonateData, setImpersonateData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -14,7 +15,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
         const response = await fetch('/api/check-impersonate', {
           credentials: 'include'
         })
-        
+
         if (response.ok) {
           const data = await response.json()
           if (data.isImpersonating) {
@@ -29,6 +30,70 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
 
     checkImpersonate()
   }, [])
+
+  // Mode read-only: desactiver tous les champs sauf Ctrl+click
+  useEffect(() => {
+    if (!impersonateData) return
+
+    // Ajouter la classe au body
+    document.body.classList.add('impersonate-readonly')
+
+    // Injecter le CSS global pour le mode read-only
+    const style = document.createElement('style')
+    style.id = 'impersonate-readonly-style'
+    style.textContent = `
+      body.impersonate-readonly input:not([data-impersonate-unlocked]),
+      body.impersonate-readonly select:not([data-impersonate-unlocked]),
+      body.impersonate-readonly textarea:not([data-impersonate-unlocked]) {
+        pointer-events: none !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed !important;
+      }
+      body.impersonate-readonly input[data-impersonate-unlocked],
+      body.impersonate-readonly select[data-impersonate-unlocked],
+      body.impersonate-readonly textarea[data-impersonate-unlocked] {
+        outline: 2px solid #f59e0b !important;
+        outline-offset: 1px !important;
+      }
+      body.impersonate-readonly button:not([data-impersonate-unlocked]):not(.impersonate-btn) {
+        opacity: 0.6 !important;
+        pointer-events: none !important;
+      }
+    `
+    document.head.appendChild(style)
+
+    // Ctrl+click handler pour debloquer un champ
+    const handleCtrlClick = (e: MouseEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+
+      const target = e.target as HTMLElement
+      const field = target.closest('input, select, textarea, button') as HTMLElement | null
+      if (!field) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Toggle unlock
+      if (field.hasAttribute('data-impersonate-unlocked')) {
+        field.removeAttribute('data-impersonate-unlocked')
+      } else {
+        field.setAttribute('data-impersonate-unlocked', 'true')
+        // Focus le champ apres le deblocage
+        setTimeout(() => {
+          ;(field as HTMLInputElement).focus?.()
+        }, 50)
+      }
+    }
+
+    document.addEventListener('click', handleCtrlClick, true)
+
+    return () => {
+      document.body.classList.remove('impersonate-readonly')
+      const existingStyle = document.getElementById('impersonate-readonly-style')
+      if (existingStyle) existingStyle.remove()
+      document.removeEventListener('click', handleCtrlClick, true)
+    }
+  }, [impersonateData])
 
   const handleStopImpersonate = async () => {
     try {
@@ -50,62 +115,80 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
     return null
   }
 
+  // Petit badge flottant au lieu du gros bandeau
   return (
-    <div style={{ 
-      backgroundColor: '#fef3c7', 
-      ...(position === 'top' 
-        ? { borderBottom: '2px solid #f59e0b' } 
-        : { borderTop: '2px solid #f59e0b' }),
-      padding: '12px 24px',
-      position: 'sticky',
-      ...(position === 'top' ? { top: 0 } : { bottom: 0 }),
-      zIndex: 999
-    }}>
-      <div style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto',
+    <div
+      className="impersonate-btn"
+      style={{
+        position: 'fixed',
+        bottom: '16px',
+        right: '16px',
+        zIndex: 9999,
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '24px' }}>🎭</span>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
-              Vous empruntez l'identité de :
-            </div>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#78350f' }}>
-              {impersonateData.prenom} {impersonateData.nom}
-            </div>
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: '8px',
+      }}
+    >
+      {expanded && (
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+          border: '2px solid #f59e0b',
+          padding: '14px 18px',
+          minWidth: '220px',
+        }}>
+          <div style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Emprunt actif
           </div>
+          <div style={{ fontSize: '15px', fontWeight: '700', color: '#78350f', marginBottom: '10px' }}>
+            {impersonateData.prenom} {impersonateData.nom}
+          </div>
+          <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '12px', lineHeight: '1.4' }}>
+            Mode lecture seule. <strong>Ctrl+clic</strong> sur un champ pour le modifier.
+          </div>
+          <button
+            className="impersonate-btn"
+            onClick={handleStopImpersonate}
+            style={{
+              width: '100%',
+              padding: '8px 14px',
+              backgroundColor: '#dc2626',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            Retour a mon compte
+          </button>
         </div>
+      )}
 
-        <button
-          onClick={handleStopImpersonate}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            backgroundColor: '#dc2626',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-        >
-          Retour à mon compte
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+      <button
+        className="impersonate-btn"
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          backgroundColor: '#f59e0b',
+          border: '3px solid white',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '22px',
+          transition: 'transform 0.15s',
+        }}
+        title={`Emprunt: ${impersonateData.prenom} ${impersonateData.nom}`}
+      >
+        🎭
+      </button>
     </div>
   )
 }
