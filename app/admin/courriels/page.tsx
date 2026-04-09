@@ -226,6 +226,8 @@ export default function CampagnesPage() {
   const [replySubject, setReplySubject] = useState('')
   const [replyToCourrielId, setReplyToCourrielId] = useState<string | null>(null)
   const [replyCampagneId, setReplyCampagneId] = useState<string | null>(null)
+  const [isForwardMode, setIsForwardMode] = useState(false)
+  const [forwardBody, setForwardBody] = useState('')
 
   // ─── Import liste ───
   const [showImportModal, setShowImportModal] = useState(false)
@@ -565,6 +567,14 @@ export default function CampagnesPage() {
     setReplyToCourrielId(courrielId || null)
     setReplyCampagneId(campagneId || null)
   }
+  const handleForward = (subject: string, bodyHtml: string) => {
+    setReplySubject(subject.startsWith('Fwd: ') ? subject : `Fwd: ${subject}`)
+    setReplyDest([])  // pas de destinataire pre-rempli, l'utilisateur choisit
+    setReplyToCourrielId(null)
+    setReplyCampagneId(null)
+    setIsForwardMode(true)
+    setForwardBody(bodyHtml)
+  }
 
   if (!authorized) return null
 
@@ -758,6 +768,12 @@ export default function CampagnesPage() {
                                     ↩ Répondre à tous
                                   </button>
                                   <button
+                                    onClick={() => handleForward(c.subject, c.body_html || '')}
+                                    style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600', backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '6px', cursor: 'pointer' }}
+                                  >
+                                    ➡ Transférer
+                                  </button>
+                                  <button
                                     onClick={async () => {
                                       if (!confirm(`Supprimer la campagne « ${c.subject} » et tous ses ${s.total} courriels ?\n\nCette action est irréversible.`)) return
                                       const res = await fetch('/api/admin/courriels/supprimer', {
@@ -884,12 +900,18 @@ export default function CampagnesPage() {
                                       <div style={{ textAlign: 'center', fontSize: '12px', color: d.clics_count > 0 ? '#1e40af' : '#9ca3af', fontWeight: d.clics_count > 0 ? '700' : '400' }}>
                                         {d.clics_count > 0 ? d.clics_count : '—'}
                                       </div>
-                                      <div style={{ textAlign: 'center' }}>
+                                      <div style={{ textAlign: 'center', display: 'flex', gap: '4px', justifyContent: 'center' }}>
                                         <button
                                           onClick={() => handleReply({ benevole_id: d.benevole_id, email: d.to_email, prenom: d.prenom, nom: d.nom }, c.subject, d.id, d.reponses?.filter(r => r.statut === 'recu').map(r => r.id))}
                                           style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                           ↩ Reply
+                                        </button>
+                                        <button
+                                          onClick={() => handleForward(c.subject, c.body_html || '')}
+                                          style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', color: '#16a34a', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px', cursor: 'pointer' }}
+                                        >
+                                          ➡ Fwd
                                         </button>
                                       </div>
                                     </div>
@@ -951,6 +973,12 @@ export default function CampagnesPage() {
                                             >
                                               ↩ Répondre
                                             </button>}
+                                            <button
+                                              onClick={() => handleForward(rep.subject || c.subject, rep.body_html || rep.body_text || '')}
+                                              style={{ padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: '#16a34a', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px', cursor: 'pointer' }}
+                                            >
+                                              ➡ Fwd
+                                            </button>
                                           </div>
                                         </div>
                                       </div>
@@ -1131,6 +1159,12 @@ export default function CampagnesPage() {
                               ↩ Répondre
                             </button>
                             <button
+                              onClick={() => handleForward(c.subject, c.body_html || '')}
+                              style={{ padding: '8px 16px', fontSize: '13px', fontWeight: '600', color: '#16a34a', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', cursor: 'pointer' }}
+                            >
+                              ➡ Transférer
+                            </button>
+                            <button
                               onClick={async () => {
                                 if (!confirm(`Supprimer le courriel « ${c.subject} » et ses réponses ?\n\nCette action est irréversible.`)) return
                                 const res = await fetch('/api/admin/courriels/supprimer', {
@@ -1215,6 +1249,12 @@ export default function CampagnesPage() {
                                       style={{ marginLeft: '4px', padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: C, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
                                     >
                                       ↩ Répondre
+                                    </button>
+                                    <button
+                                      onClick={() => handleForward(rep.subject || c.subject, rep.body_html || rep.body_text || '')}
+                                      style={{ padding: '2px 10px', fontSize: '11px', fontWeight: '600', color: '#16a34a', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '4px', cursor: 'pointer' }}
+                                    >
+                                      ➡ Fwd
                                     </button>
                                   </div>
                                 </div>
@@ -1423,19 +1463,23 @@ export default function CampagnesPage() {
           </div>
         )}
 
-        {/* ─── Modal Reply ─── */}
+        {/* ─── Modal Reply / Forward ─── */}
         {replyDest && (
           <ModalComposeCourriel
             destinataires={replyDest}
             initialSubject={replySubject}
             replyToCourrielId={replyToCourrielId || undefined}
             campagneId={replyCampagneId || undefined}
-            onClose={() => { setReplyDest(null); setReplyToCourrielId(null); setReplyCampagneId(null) }}
+            isForward={isForwardMode}
+            forwardBody={isForwardMode ? forwardBody : undefined}
+            onClose={() => { setReplyDest(null); setReplyToCourrielId(null); setReplyCampagneId(null); setIsForwardMode(false); setForwardBody('') }}
             onSent={() => {
               const campIdToReopen = replyCampagneId
               setReplyDest(null)
               setReplyToCourrielId(null)
               setReplyCampagneId(null)
+              setIsForwardMode(false)
+              setForwardBody('')
               // Rafraîchir les données
               if (activeTab === 'individuels') {
                 const params = new URLSearchParams()

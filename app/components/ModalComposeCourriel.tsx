@@ -66,6 +66,8 @@ interface Props {
   initialSubject?: string
   replyToCourrielId?: string  // ID du courriel parent pour enregistrer la reponse dans le fil
   campagneId?: string  // ID campagne existante pour reply-to-all (reutilise la meme campagne)
+  isForward?: boolean  // Mode transfert: permet de choisir le destinataire
+  forwardBody?: string  // Contenu HTML du message original a transferer
 }
 
 type Panel = 'compose' | 'config' | 'brouillons' | 'templates' | 'save_template' | 'cc_manage'
@@ -78,12 +80,39 @@ function sanitizeFilename(name: string): string {
     .replace(/_+/g, '_') // pas de __ consecutifs
 }
 
-export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject, replyToCourrielId, campagneId: existingCampagneId }: Props) {
+export default function ModalComposeCourriel({ destinataires, onClose, onSent, initialSubject, replyToCourrielId, campagneId: existingCampagneId, isForward, forwardBody }: Props) {
   const supabase = createClient()
   const isReply = !!(initialSubject && initialSubject.startsWith('Re: '))
   const [subject, setSubject] = useState(initialSubject || '')
-  const defaultBody = 'Bonjour {{ prenom }},\n\n'
+  const forwardDefault = forwardBody ? `Bonjour {{ prenom }},\n\n\n\n---------- Message transféré ----------\n${forwardBody}` : ''
+  const defaultBody = isForward && forwardBody ? forwardDefault : 'Bonjour {{ prenom }},\n\n'
   const [bodyHtml, setBodyHtml] = useState(defaultBody)
+
+  // Forward mode: gestion des destinataires dynamiques
+  const [forwardDests, setForwardDests] = useState<Destinataire[]>(destinataires)
+  const [forwardSearch, setForwardSearch] = useState('')
+  const [forwardResults, setForwardResults] = useState<Destinataire[]>([])
+  const [searchingForward, setSearchingForward] = useState(false)
+  const effectiveDests = isForward ? forwardDests : destinataires
+
+  // Recherche de reservistes pour le transfert
+  useEffect(() => {
+    if (!isForward || forwardSearch.length < 2) { setForwardResults([]); return }
+    const timer = setTimeout(async () => {
+      setSearchingForward(true)
+      try {
+        const { data } = await supabase
+          .from('reservistes')
+          .select('benevole_id, prenom, nom, email')
+          .or(`prenom.ilike.%${forwardSearch}%,nom.ilike.%${forwardSearch}%,email.ilike.%${forwardSearch}%`)
+          .not('email', 'is', null)
+          .limit(10)
+        setForwardResults((data || []).filter(d => d.email && !forwardDests.some(fd => fd.benevole_id === d.benevole_id)))
+      } catch { setForwardResults([]) }
+      setSearchingForward(false)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [forwardSearch, isForward]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // Fermeture sécurisée: confirmer si du contenu a été saisi
@@ -218,6 +247,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   }
 
   const envoyer = async () => {
+    if (isForward && effectiveDests.length === 0) { setError('Ajoutez au moins un destinataire pour le transfert'); return }
     if (!subject.trim()) { setError('L\'objet est requis'); return }
     if (!bodyHtml.trim()) { setError('Le contenu est requis'); return }
 
@@ -249,14 +279,14 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
       // Pour les envois de masse avec PJ Storage, on delegue a n8n.
       // L'API pre-insere les courriels en queued et declenche n8n.
       // Le frontend poll la progression via Supabase.
-      const needsN8n = destinataires.length > 1 && hasStorageAttachments
+      const needsN8n = effectiveDests.length > 1 && hasStorageAttachments
 
       if (needsN8n) {
-        const totalDest = destinataires.length
+        const totalDest = effectiveDests.length
         setSendProgress({ sent: 0, failed: 0, total: totalDest })
 
         const payload = JSON.stringify({
-          destinataires,
+          destinataires: effectiveDests,
           subject,
           body_html: bodyHtml.replace(/\n/g, '<br/>'),
           cc: ccEmails.length > 0 ? ccEmails : undefined,
@@ -323,7 +353,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
       } else {
         // Envoi classique en un seul appel (petit volume ou pas de PJ Storage)
         const payload = JSON.stringify({
-          destinataires,
+          destinataires: effectiveDests,
           subject,
           body_html: bodyHtml.replace(/\n/g, '<br/>'),
           cc: ccEmails.length > 0 ? ccEmails : undefined,
@@ -395,7 +425,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
         body: JSON.stringify({
           id: brouillonId || undefined,
           subject, body_html: bodyHtml,
-          destinataires,
+          destinataires: effectiveDests,
           attachments: attachments.map(a => ({ filename: a.filename, base64: a.base64, size: a.size })),
         }),
       })
@@ -782,15 +812,44 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
               {/* Destinataires */}
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '6px' }}>
-                  Destinataire{destinataires.length > 1 ? 's' : ''} ({destinataires.length})
+                  {isForward ? 'Transférer à' : `Destinataire${effectiveDests.length > 1 ? 's' : ''}`} ({effectiveDests.length})
                 </label>
+                {isForward && (
+                  <div style={{ position: 'relative', marginBottom: '6px' }}>
+                    <input
+                      type="text"
+                      value={forwardSearch}
+                      onChange={e => setForwardSearch(e.target.value)}
+                      placeholder="Rechercher un réserviste (nom, prénom ou courriel)..."
+                      style={{ width: '100%', padding: '8px 12px', fontSize: '13px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                    {searchingForward && <span style={{ position: 'absolute', right: '12px', top: '9px', fontSize: '12px', color: '#9ca3af' }}>...</span>}
+                    {forwardResults.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto', marginTop: '2px' }}>
+                        {forwardResults.map(r => (
+                          <button
+                            key={r.benevole_id}
+                            onClick={() => { setForwardDests(prev => [...prev, r]); setForwardSearch(''); setForwardResults([]) }}
+                            style={{ display: 'block', width: '100%', padding: '8px 12px', textAlign: 'left', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', borderBottom: '1px solid #f3f4f6' }}
+                            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f0f4ff')}
+                            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                          >
+                            <strong>{r.prenom} {r.nom}</strong> <span style={{ color: '#6b7280', fontSize: '12px' }}>{r.email}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '80px', overflowY: 'auto', padding: '8px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  {destinataires.slice(0, 20).map(d => (
-                    <span key={d.benevole_id} style={{ padding: '3px 10px', borderRadius: '12px', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                  {effectiveDests.length === 0 && <span style={{ fontSize: '12px', color: '#9ca3af', fontStyle: 'italic' }}>Aucun destinataire</span>}
+                  {effectiveDests.slice(0, 20).map(d => (
+                    <span key={d.benevole_id} style={{ padding: '3px 10px', borderRadius: '12px', backgroundColor: '#e0e7ff', color: '#3730a3', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {d.prenom} {d.nom}
+                      {isForward && <button onClick={() => setForwardDests(prev => prev.filter(fd => fd.benevole_id !== d.benevole_id))} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6366f1', padding: 0, lineHeight: 1 }} title="Retirer">&times;</button>}
                     </span>
                   ))}
-                  {destinataires.length > 20 && <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{destinataires.length - 20} autres</span>}
+                  {effectiveDests.length > 20 && <span style={{ padding: '3px 10px', fontSize: '12px', color: '#6b7280' }}>+{effectiveDests.length - 20} autres</span>}
                 </div>
               </div>
 
@@ -926,7 +985,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                   </button>
                   <button onClick={handleSafeClose} disabled={sending} style={{ padding: '9px 20px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Annuler</button>
                   <button onClick={envoyer} disabled={sending || !subject.trim() || !bodyHtml.trim()} style={{ padding: '9px 24px', borderRadius: '8px', border: 'none', backgroundColor: C, color: 'white', fontSize: '14px', fontWeight: '600', cursor: (sending || !subject.trim() || !bodyHtml.trim()) ? 'not-allowed' : 'pointer', opacity: (sending || !subject.trim() || !bodyHtml.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {sending && sendProgress ? `Envoi ${sendProgress.sent + sendProgress.failed}/${sendProgress.total}...` : sending ? 'Envoi en cours...' : `Envoyer${destinataires.length > 1 ? ` (${destinataires.length})` : ''}`}
+                    {sending && sendProgress ? `Envoi ${sendProgress.sent + sendProgress.failed}/${sendProgress.total}...` : sending ? 'Envoi en cours...' : isForward ? `Transférer${effectiveDests.length > 0 ? ` (${effectiveDests.length})` : ''}` : `Envoyer${effectiveDests.length > 1 ? ` (${effectiveDests.length})` : ''}`}
                   </button>
                 </div>
               </>
