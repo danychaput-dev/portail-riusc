@@ -1322,6 +1322,7 @@ export default function CampagnesPage() {
             campagneId={replyCampagneId || undefined}
             onClose={() => { setReplyDest(null); setReplyToCourrielId(null); setReplyCampagneId(null) }}
             onSent={() => {
+              const campIdToReopen = replyCampagneId
               setReplyDest(null)
               setReplyToCourrielId(null)
               setReplyCampagneId(null)
@@ -1333,6 +1334,21 @@ export default function CampagnesPage() {
                 fetch(`/api/admin/courriels/individuels?${params}`)
                   .then(r => r.json())
                   .then(json => setIndividuels(json.courriels || []))
+              }
+              // Rafraîchir campagnes + detail si reply-to-all
+              if (activeTab === 'campagnes') {
+                fetch('/api/admin/courriels/campagnes')
+                  .then(r => r.json())
+                  .then(json => {
+                    setCampagnes(json.campagnes || [])
+                    // Rouvrir le detail de la campagne pour voir la nouvelle vague
+                    if (campIdToReopen) {
+                      setSelectedCampagne(campIdToReopen)
+                      fetch(`/api/admin/courriels/campagne-detail?campagne_id=${campIdToReopen}`)
+                        .then(r2 => r2.json())
+                        .then(detail => setCampagneDetail(detail))
+                    }
+                  })
               }
             }}
           />
