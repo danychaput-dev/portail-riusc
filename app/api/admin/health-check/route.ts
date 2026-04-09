@@ -123,15 +123,16 @@ export async function GET(req: NextRequest) {
 
     // ─── CHECK 3 : API Admin Reservistes ─────────────────────────────
     // Simule ce que la page admin/reservistes charge par defaut
+    // Inclut TOUS les groupes que l'API retourne : Approuve, Interet, Retrait temporaire, Formation incomplete
     const adminQuery = await supabaseAdmin
       .from('reservistes')
       .select('benevole_id, groupe')
-      .in('groupe', ['Approuvé', 'Intérêt', 'Retrait temporaire'])
+      .in('groupe', ['Approuvé', 'Intérêt', 'Retrait temporaire', 'Formation incomplète'])
       .not('nom', 'is', null)
       .neq('nom', '')
 
     const adminData = adminQuery.data || []
-    const adminExpected = exactApprouves + exactInteret + exactRetrait
+    const adminExpected = exactApprouves + exactInteret + exactRetrait + exactFormInc
 
     if (adminData.length !== adminExpected) {
       checks.push({
