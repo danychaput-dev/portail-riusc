@@ -56,28 +56,35 @@ export async function GET(req: NextRequest) {
     }
 
     // Étape 2 : noms + réponses en parallèle (dépendent des courriels)
+    // Note: .in() Supabase a une limite URL (~300 UUIDs). On batch par lots de 200.
     const bIds = [...new Set((courriels || []).map((c: any) => c.benevole_id).filter(Boolean))]
     const courrielIds = (courriels || []).map((c: any) => c.id).filter(Boolean)
 
-    const [namesResult, reponsesResult] = await Promise.allSettled([
-      bIds.length > 0
-        ? supabaseAdmin.from('reservistes').select('benevole_id, prenom, nom').in('benevole_id', bIds)
-        : Promise.resolve({ data: [] }),
-      courrielIds.length > 0
-        ? supabaseAdmin
-            .from('courriel_reponses')
-            .select('id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id')
-            .in('courriel_id', courrielIds)
-            .order('created_at', { ascending: true })
-        : Promise.resolve({ data: [] }),
+    const BATCH_IN = 200
+
+    // Helper pour batched .in() queries
+    async function batchedIn<T>(table: string, column: string, ids: string[], select: string, orderBy?: { col: string; asc: boolean }): Promise<T[]> {
+      if (ids.length === 0) return []
+      const results: T[] = []
+      for (let i = 0; i < ids.length; i += BATCH_IN) {
+        const chunk = ids.slice(i, i + BATCH_IN)
+        let query = supabaseAdmin.from(table).select(select).in(column, chunk)
+        if (orderBy) query = query.order(orderBy.col, { ascending: orderBy.asc })
+        const { data } = await query
+        if (data) results.push(...(data as T[]))
+      }
+      return results
+    }
+
+    const [reservistes, reponses] = await Promise.all([
+      batchedIn<{ benevole_id: string; prenom: string; nom: string }>('reservistes', 'benevole_id', bIds, 'benevole_id, prenom, nom'),
+      batchedIn<any>('courriel_reponses', 'courriel_id', courrielIds, 'id, courriel_id, from_email, from_name, subject, body_text, body_html, pieces_jointes, statut, created_at, resend_email_id', { col: 'created_at', asc: true }),
     ])
 
     const nameMap = new Map<string, { prenom: string; nom: string }>()
-    const reservistes = namesResult.status === 'fulfilled' ? (namesResult.value as any)?.data || [] : []
     for (const r of reservistes) nameMap.set(r.benevole_id, { prenom: r.prenom, nom: r.nom })
 
     const reponsesMap = new Map<string, any[]>()
-    const reponses = reponsesResult.status === 'fulfilled' ? (reponsesResult.value as any)?.data || [] : []
     for (const rep of reponses) {
       const list = reponsesMap.get(rep.courriel_id) || []
       list.push(rep)
