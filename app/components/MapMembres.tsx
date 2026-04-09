@@ -125,7 +125,8 @@ export default function MapMembres() {
   const [searching, setSearching] = useState(false)
   const [pin, setPin] = useState<PinReference | null>(null)
 
-  // Charger les positions des membres
+  // Charger les positions des membres (tous actifs, puis filtrer ceux avec coordonnees)
+  const [totaux, setTotaux] = useState({ total: 0, approuves: 0, interet: 0 })
   useEffect(() => {
     const supabase = createClient()
     supabase
@@ -133,14 +134,19 @@ export default function MapMembres() {
       .select('benevole_id, prenom, nom, ville, groupe, latitude, longitude')
       .in('groupe', ['Approuvé', 'Intérêt'])
       .eq('statut', 'Actif')
-      .not('latitude', 'is', null)
-      .not('longitude', 'is', null)
       .then(({ data, error }) => {
         if (error) {
           console.error('Erreur chargement positions:', error)
           setMapError(true)
         } else {
-          setMembres((data || []) as MembrePosition[])
+          const all = (data || []) as MembrePosition[]
+          setTotaux({
+            total: all.length,
+            approuves: all.filter(m => m.groupe === 'Approuvé').length,
+            interet: all.filter(m => m.groupe === 'Intérêt').length,
+          })
+          // Ne garder que ceux avec des coordonnees valides pour la carte
+          setMembres(all.filter(m => m.latitude && m.longitude && m.latitude !== 0 && m.longitude !== 0))
         }
         setLoading(false)
       })
@@ -329,9 +335,9 @@ export default function MapMembres() {
   }
 
   const filtres: { key: FiltreGroupe; label: string; count: number; color: string }[] = [
-    { key: 'Tous',     label: 'Tous',      count: counts.total,     color: MUTED },
-    { key: 'Approuvé', label: 'Qualifiés',  count: counts.approuves, color: NAVY },
-    { key: 'Intérêt',  label: 'Intérêt',    count: counts.interet,   color: AMBER },
+    { key: 'Tous',     label: 'Tous',      count: totaux.total,     color: MUTED },
+    { key: 'Approuvé', label: 'Qualifiés',  count: totaux.approuves, color: NAVY },
+    { key: 'Intérêt',  label: 'Intérêt',    count: totaux.interet,   color: AMBER },
   ]
 
   if (!MAPBOX_TOKEN) {
@@ -451,7 +457,12 @@ export default function MapMembres() {
           </div>
         )}
         <span style={{ marginLeft: 'auto' }}>
-          {membresFiltres.length} membre{membresFiltres.length > 1 ? 's' : ''} géolocalisé{membresFiltres.length > 1 ? 's' : ''}
+          {membresFiltres.length} sur la carte
+          {(() => {
+            const totalFiltre = filtre === 'Tous' ? totaux.total : filtre === 'Approuvé' ? totaux.approuves : totaux.interet
+            const manquants = totalFiltre - membresFiltres.length
+            return manquants > 0 ? ` (${manquants} sans coordonnées)` : ''
+          })()}
         </span>
       </div>
     </div>
