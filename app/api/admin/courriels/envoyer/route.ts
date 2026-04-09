@@ -185,6 +185,7 @@ export async function POST(req: NextRequest) {
             reply_to: replyTo,
             signature_html: signature,
             inbound_domain: inboundDomain,
+            cc: ccList.length > 0 ? ccList : undefined,
             // Passer les cles a n8n (pas de $env dispo en plan community)
             resend_api_key: process.env.RESEND_API_KEY,
             supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -227,10 +228,12 @@ export async function POST(req: NextRequest) {
         )
 
         try {
+          const isFirstBatch = i === 0
           const { data: batchResult, error: batchError } = await resend.batch.send(
-            preInserts.map((dest: any) => ({
+            preInserts.map((dest: any, idx: number) => ({
               from: `${fromName} <${fromEmail}>`,
               to: [dest.email],
+              ...(isFirstBatch && idx === 0 && ccList.length > 0 ? { cc: ccList } : {}),
               subject,
               html: dest.html,
               replyTo: dest.courriel_id ? `reply+${dest.courriel_id}@${inboundDomain}` : replyTo,
