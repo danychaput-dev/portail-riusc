@@ -55,10 +55,6 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
         outline: 2px solid #f59e0b !important;
         outline-offset: 1px !important;
       }
-      body.impersonate-readonly button:not([data-impersonate-unlocked]):not(.impersonate-btn) {
-        opacity: 0.6 !important;
-        pointer-events: none !important;
-      }
     `
     document.head.appendChild(style)
 
