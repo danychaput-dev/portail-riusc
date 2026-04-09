@@ -182,7 +182,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
         style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}
       >
-        <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '640px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', maxWidth: '900px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
 
           {/* En-tête avec info réserviste */}
           <div className="modal-res-container" style={{ padding: '20px 24px 0', borderBottom: '1px solid #e2e8f0' }}>
