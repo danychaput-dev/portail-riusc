@@ -981,13 +981,13 @@ function ReservistesPage() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: '5px',
                     padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                    border: `1px solid ${filtreCertifsManquants ? '#ef4444' : '#fecaca'}`,
-                    backgroundColor: filtreCertifsManquants ? '#fef2f2' : '#fef2f2', color: filtreCertifsManquants ? '#ef4444' : '#dc2626',
+                    border: `1px solid ${filtreCertifsManquants ? '#64748b' : '#cbd5e1'}`,
+                    backgroundColor: filtreCertifsManquants ? '#f1f5f9' : '#f8fafc', color: filtreCertifsManquants ? '#334155' : '#475569',
                     cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
                   {filtreCertifsManquants && '✓ '}📎 Fichiers manquants
-                  <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#dc2626', color: 'white' }}>
+                  <span style={{ fontSize: '10px', padding: '0 5px', borderRadius: '8px', fontWeight: '700', backgroundColor: '#475569', color: 'white' }}>
                     {readinessStats.certifs_manquants} pers. · {readinessStats.certifs_manquants_total} fich.
                   </span>
                 </button>
@@ -1367,9 +1367,9 @@ function ReservistesPage() {
                           width: '26px', height: '26px', borderRadius: '6px',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: '10px', fontWeight: '700',
-                          backgroundColor: hasManquants ? 'white' : '#fffbeb',
-                          border: `1px solid ${hasManquants ? '#fca5a5' : '#fde68a'}`,
-                          color: hasManquants ? '#f87171' : '#d97706',
+                          backgroundColor: hasManquants ? '#f1f5f9' : '#fffbeb',
+                          border: `1px solid ${hasManquants ? '#94a3b8' : '#fde68a'}`,
+                          color: hasManquants ? '#475569' : '#d97706',
                         }}
                       >
                         {total}
