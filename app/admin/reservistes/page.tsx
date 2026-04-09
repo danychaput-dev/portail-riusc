@@ -277,6 +277,7 @@ function ReservistesPage() {
       if (urlCampStatut) params.set('camp_statut', urlCampStatut)
       if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
       if (urlStatut) params.set('statut', urlStatut)
+      if (urlRegion) params.set('region', urlRegion)
       const res = await fetch(`/api/admin/reservistes?${params}`)
       const json = await res.json()
       setAllData(json.data || [])
@@ -401,7 +402,7 @@ function ReservistesPage() {
         filtered = filtered.filter(r => (r.org_principale || '').includes(urlOrganisme))
       }
     }
-    if (urlRegion) filtered = filtered.filter(r => (r.region || '').toLowerCase().includes(urlRegion.toLowerCase()))
+    if (urlRegion) filtered = filtered.filter(r => (r.region || '').toLowerCase().trim() === urlRegion.toLowerCase().trim())
     if (urlAntecedents) {
       if (urlAntecedents === 'en_attente') filtered = filtered.filter(r => !r.antecedents_statut || r.antecedents_statut === 'en_attente')
       else filtered = filtered.filter(r => r.antecedents_statut === urlAntecedents)
