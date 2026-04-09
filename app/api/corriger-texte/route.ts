@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return NextResponse.json({ error: 'ANTHROPIC_API_KEY non configuree' }, { status: 500 })
+    }
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -34,7 +39,7 @@ export async function POST(req: NextRequest) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 2048,
         messages: [{
           role: 'user',
@@ -47,7 +52,8 @@ ${objet ? `OBJET DU COURRIEL:\n${objet}\n\n` : ''}CORPS DU COURRIEL:\n${texte}`
 
     if (!response.ok) {
       const err = await response.text()
-      return NextResponse.json({ error: 'Erreur API Anthropic', details: err }, { status: 500 })
+      console.error('Anthropic correction error:', response.status, err)
+      return NextResponse.json({ error: `Erreur API Anthropic (${response.status})`, details: err }, { status: 500 })
     }
 
     const data = await response.json()
