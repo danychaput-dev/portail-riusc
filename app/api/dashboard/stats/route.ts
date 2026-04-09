@@ -64,6 +64,7 @@ export async function GET() {
     const { data: partenairesOrgs } = await supabase
       .from('reserviste_organisations')
       .select('benevole_id, organisations (nom)')
+      .range(0, 4999)
 
     // orgMapAll : toutes les orgs par personne (plusieurs possibles)
     const orgMapAll: Record<string, string[]> = {}
@@ -211,6 +212,7 @@ export async function GET() {
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
       .select('benevole_id, camp_nom, camp_dates, camp_lieu, session_id, presence')
+      .range(0, 4999)
 
     // Set des benevole_id actifs pour filtrer les inscriptions
     const activeIds = new Set(reservistes.map(r => r.benevole_id))

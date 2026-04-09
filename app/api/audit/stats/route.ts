@@ -12,8 +12,8 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get('to');
 
   const [pagesRes, allRes] = await Promise.all([
-    supabase.from('audit_pages').select('*').gte('visite_a', from!).lte('visite_a', to!).order('visite_a', { ascending: false }),
-    supabase.from('audit_pages').select('benevole_id, user_id').or('benevole_id.not.is.null,user_id.not.is.null'),
+    supabase.from('audit_pages').select('*').gte('visite_a', from!).lte('visite_a', to!).order('visite_a', { ascending: false }).range(0, 4999),
+    supabase.from('audit_pages').select('benevole_id, user_id').or('benevole_id.not.is.null,user_id.not.is.null').range(0, 4999),
   ]);
 
   return NextResponse.json({

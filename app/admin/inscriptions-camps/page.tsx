@@ -151,6 +151,7 @@ export default function InscriptionsCampsPage() {
       const { data, error } = await supabase
         .from('inscriptions_camps')
         .select('session_id, camp_nom, camp_dates, camp_lieu, presence')
+        .range(0, 4999)
 
       if (error) { console.error(error); setLoading(false); return }
 
