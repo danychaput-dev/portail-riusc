@@ -703,23 +703,7 @@ export default function CampagnesPage() {
                                   <div style={{ textAlign: 'center' }}>Action</div>
                                 </div>
                                 {(() => {
-                                  // Regrouper les destinataires par "vague" (subject + tranche horaire)
-                                  const sorted = [...campagneDetail.destinataires].sort((a, b) =>
-                                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                                  )
-                                  const vagues: { subject: string; minDate: string; dests: Destinataire[] }[] = []
-                                  for (const d of sorted) {
-                                    const subj = d.subject || c.subject || ''
-                                    const last = vagues[vagues.length - 1]
-                                    // Meme vague si meme subject et moins de 5 min d'ecart
-                                    if (last && last.subject === subj && (new Date(d.created_at).getTime() - new Date(last.minDate).getTime()) < 5 * 60 * 1000) {
-                                      last.dests.push(d)
-                                    } else {
-                                      vagues.push({ subject: subj, minDate: d.created_at, dests: [d] })
-                                    }
-                                  }
-                                  const hasMultipleVagues = vagues.length > 1
-                                  // Trier chaque vague selon le tri choisi par l'utilisateur
+                                  // Fonction de tri
                                   const sortDests = (arr: Destinataire[]) => [...arr].sort((a, b) => {
                                     const dir = destSort.dir === 'asc' ? 1 : -1
                                     switch (destSort.col) {
@@ -731,10 +715,49 @@ export default function CampagnesPage() {
                                       default: return 0
                                     }
                                   })
-                                  return vagues.flatMap((vague, vi) => {
-                                    const rows: React.ReactNode[] = []
-                                    if (hasMultipleVagues) {
-                                      rows.push(
+
+                                  // Si l'utilisateur a choisi un tri specifique, tri global sans vagues
+                                  const userSorted = destSort.col !== 'nom_complet' || destSort.dir !== 'asc'
+
+                                  // Regrouper les destinataires par "vague" (subject + tranche horaire)
+                                  const chronoSorted = [...campagneDetail.destinataires].sort((a, b) =>
+                                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                                  )
+                                  const vagues: { subject: string; minDate: string; dests: Destinataire[] }[] = []
+                                  for (const d of chronoSorted) {
+                                    const subj = d.subject || c.subject || ''
+                                    const last = vagues[vagues.length - 1]
+                                    if (last && last.subject === subj && (new Date(d.created_at).getTime() - new Date(last.minDate).getTime()) < 5 * 60 * 1000) {
+                                      last.dests.push(d)
+                                    } else {
+                                      vagues.push({ subject: subj, minDate: d.created_at, dests: [d] })
+                                    }
+                                  }
+                                  const hasMultipleVagues = vagues.length > 1
+
+                                  // Construire la liste finale: tri global sans separateurs, ou par vagues
+                                  const renderList: { type: 'vague' | 'dest'; vague?: typeof vagues[0]; vi?: number; dest?: Destinataire }[] = []
+
+                                  if (userSorted || !hasMultipleVagues) {
+                                    // Tri global
+                                    for (const d of sortDests(campagneDetail.destinataires)) {
+                                      renderList.push({ type: 'dest', dest: d })
+                                    }
+                                  } else {
+                                    // Par vagues avec separateurs
+                                    vagues.forEach((vague, vi) => {
+                                      renderList.push({ type: 'vague', vague, vi })
+                                      for (const d of sortDests(vague.dests)) {
+                                        renderList.push({ type: 'dest', dest: d })
+                                      }
+                                    })
+                                  }
+
+                                  return renderList.map((item, idx) => {
+                                    if (item.type === 'vague') {
+                                      const vi = item.vi!
+                                      const vague = item.vague!
+                                      return (
                                         <div key={`vague-${vi}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: vi === 0 ? '#f0fdf4' : '#eff6ff', borderTop: vi > 0 ? '2px solid #cbd5e1' : undefined }}>
                                           <span style={{ fontSize: '12px', fontWeight: '700', color: vi === 0 ? '#166534' : '#1e40af' }}>
                                             {vi === 0 ? '📤 Envoi initial' : `↩ ${vague.subject}`}
@@ -745,8 +768,8 @@ export default function CampagnesPage() {
                                         </div>
                                       )
                                     }
-                                    for (const d of sortDests(vague.dests)) {
-                                      rows.push(
+                                    const d = item.dest!
+                                    return (
                                   <div key={d.id}>
                                     {/* Ligne destinataire */}
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px 140px 70px 80px', gap: '0', padding: '10px 12px', fontSize: '13px', borderTop: '1px solid #f3f4f6', backgroundColor: d.reponses && d.reponses.some((r: ReponseInline) => r.statut === 'recu') ? '#fffdf5' : d.reponses && d.reponses.length > 0 ? '#f0f9ff' : 'white', alignItems: 'center' }}>
@@ -845,9 +868,7 @@ export default function CampagnesPage() {
                                       )
                                     })}
                                   </div>
-                                      )
-                                    }
-                                    return rows
+                                    )
                                   })
                                 })()}
                               </div>
