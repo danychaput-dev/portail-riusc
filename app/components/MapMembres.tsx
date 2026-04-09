@@ -171,7 +171,7 @@ export default function MapMembres() {
         attributionControl: false,
       })
 
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right')
 
       map.on('load', () => {
         if (!cancelled) {
