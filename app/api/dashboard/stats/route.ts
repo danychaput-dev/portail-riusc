@@ -34,6 +34,9 @@ interface CampEntry {
 
 export async function GET() {
   try {
+    // IMPORTANT : .range(0, 4999) pour depasser la limite par defaut de 1000 lignes Supabase.
+    // Sans ca, si le total depasse 1000, les repartitions (region, antecedents, bottes, etc.)
+    // sont calculees sur un tableau tronque et les chiffres ne matchent plus au drill-down.
     const { data: reservistes, error } = await supabase
       .from('reservistes')
       .select('benevole_id, groupe, region, antecedents_statut, monday_created_at, created_at, remboursement_bottes_date')
@@ -41,6 +44,7 @@ export async function GET() {
       .in('groupe', ['Approuvé', 'Intérêt', 'Partenaires'])
       .not('nom', 'is', null)
       .neq('nom', '')
+      .range(0, 4999)
 
     if (error) throw error
 

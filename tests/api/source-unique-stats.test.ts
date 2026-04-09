@@ -69,6 +69,31 @@ describe('API admin/reservistes - filtres critiques', () => {
     expect(adminApiSource).toContain("not('nom', 'is', null)")
     expect(adminApiSource).toContain("neq('nom', '')")
   })
+
+  it('depasse la limite 1000 lignes avec .range()', () => {
+    expect(adminApiSource).toContain('.range(0, 4999)')
+  })
+})
+
+describe('Limite 1000 lignes - toutes les APIs critiques', () => {
+  const dashApiSource = readSource('app/api/dashboard/stats/route.ts')
+  const adminApiSource = readSource('app/api/admin/reservistes/route.ts')
+
+  it('dashboard/stats utilise .range() pour eviter troncature', () => {
+    expect(dashApiSource).toContain('.range(0, 4999)')
+  })
+
+  it('admin/reservistes utilise .range() pour eviter troncature', () => {
+    expect(adminApiSource).toContain('.range(0, 4999)')
+  })
+})
+
+describe('Dashboard drill-down - statut Actif dans les URLs', () => {
+  const dashboardSource = readSource('app/dashboard/page.tsx')
+
+  it('drillUrl inclut statut Actif par defaut', () => {
+    expect(dashboardSource).toContain("statut: 'Actif'")
+  })
 })
 
 describe('Health-check - verification de coherence', () => {

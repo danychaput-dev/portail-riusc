@@ -230,7 +230,62 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ─── CHECK 7 : Formations orphelines ─────────────────────────────
+    // ─── CHECK 7 : Coherence drill-down par region ────────────────────
+    // Verifie que le dashboard (qui utilise .range(0, 4999)) retourne le meme
+    // nombre par region que le COUNT exact. Detecte la troncature a 1000 lignes.
+    const dashFullQuery = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id, groupe, region')
+      .eq('statut', 'Actif')
+      .in('groupe', ['Approuvé', 'Intérêt', 'Partenaires'])
+      .not('nom', 'is', null)
+      .neq('nom', '')
+      .range(0, 4999)
+
+    const dashFull = dashFullQuery.data || []
+    const regionApprouves: Record<string, number> = {}
+    for (const r of dashFull) {
+      if (r.groupe === 'Approuvé' && r.region) {
+        regionApprouves[r.region] = (regionApprouves[r.region] || 0) + 1
+      }
+    }
+
+    // Comparer avec COUNT exact pour les 3 plus grosses regions
+    const topRegions = Object.entries(regionApprouves)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+
+    let regionMismatch = false
+    for (const [region, dashCount] of topRegions) {
+      const { count: exactRegionCount } = await supabaseAdmin
+        .from('reservistes')
+        .select('id', { count: 'exact', head: true })
+        .eq('statut', 'Actif')
+        .eq('groupe', 'Approuvé')
+        .ilike('region', region)
+        .not('nom', 'is', null)
+        .neq('nom', '')
+
+      if ((exactRegionCount || 0) !== dashCount) {
+        regionMismatch = true
+        checks.push({
+          name: `Drill-down region ${region}`,
+          status: 'fail',
+          expected: exactRegionCount || 0,
+          actual: dashCount,
+          detail: `Dashboard montre ${dashCount} Approuves en ${region} mais COUNT exact donne ${exactRegionCount}. Probleme de limite 1000 lignes?`,
+        })
+      }
+    }
+    if (!regionMismatch && topRegions.length > 0) {
+      checks.push({
+        name: 'Drill-down regions (top 3)',
+        status: 'pass',
+        detail: `OK - ${topRegions.map(([r, c]) => `${r}: ${c}`).join(', ')}`,
+      })
+    }
+
+    // ─── CHECK 8 : Formations orphelines ─────────────────────────────
     // Des formations liees a des benevole_id qui n'existent plus
     const { data: allBenIds } = await supabaseAdmin
       .from('reservistes')

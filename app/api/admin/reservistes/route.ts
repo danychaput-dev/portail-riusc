@@ -45,12 +45,14 @@ export async function GET(req: NextRequest) {
   const statut       = searchParams.get('statut')
   const ids          = searchParams.get('ids')
 
+  // IMPORTANT : .range(0, 4999) pour depasser la limite par defaut de 1000 lignes Supabase.
   let query = supabaseAdmin
     .from('reservistes')
     .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche, responsable_groupe')
     .not('nom', 'is', null)
     .neq('nom', '')
     .order('nom')
+    .range(0, 4999)
 
   // Export par IDs spécifiques (sélection)
   if (ids) {
