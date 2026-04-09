@@ -38,6 +38,7 @@ export async function GET() {
       .from('reservistes')
       .select('benevole_id, groupe, region, antecedents_statut, monday_created_at, created_at, remboursement_bottes_date')
       .eq('statut', 'Actif')
+      .in('groupe', ['Approuvé', 'Intérêt', 'Partenaires'])
       .not('nom', 'is', null)
       .neq('nom', '')
 
@@ -178,17 +179,15 @@ export async function GET() {
       const d = r.monday_created_at || r.created_at
       return d ? new Date(d).getTime() : null
     }
-    // Exclure "Retrait temporaire" des compteurs d'inscription
-    const reservistesSansRetrait = (reservistes || []).filter(r => r.groupe !== 'Retrait temporaire')
-    const last24h = reservistesSansRetrait.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY }).length
-    const last7d  = reservistesSansRetrait.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY }).length
-    const last30d = reservistesSansRetrait.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY }).length
+    const last24h = reservistes.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= DAY }).length
+    const last7d  = reservistes.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 7 * DAY }).length
+    const last30d = reservistes.filter(r => { const t = getInscDate(r); return t !== null && (now - t) <= 30 * DAY }).length
 
     const dailyCounts: Record<string, number> = {}
     for (let i = 29; i >= 0; i--) {
       dailyCounts[formatDate(new Date(now - i * DAY))] = 0
     }
-    for (const r of reservistesSansRetrait) {
+    for (const r of reservistes) {
       const d = r.monday_created_at || r.created_at
       if (!d) continue
       const day = formatDate(new Date(d))
@@ -204,13 +203,13 @@ export async function GET() {
       { cohort: 8, dates: '14–15 mars 2026',        ville: 'Sainte-Catherine', inscrits: 75, annule: 0, informe_absence: 14, attendues: 61, no_show: 13, qualifie: 47, passe: true },
     ]
 
-    // Camps futurs depuis DB (tous sauf Retrait temporaire)
+    // Camps futurs depuis DB
     const { data: campsRaw } = await supabase
       .from('inscriptions_camps')
       .select('benevole_id, camp_nom, camp_dates, camp_lieu, session_id, presence')
 
-    // Set des benevole_id actifs (hors Retrait temporaire) pour filtrer les inscriptions
-    const activeIds = new Set(reservistesSansRetrait.map(r => r.benevole_id))
+    // Set des benevole_id actifs pour filtrer les inscriptions
+    const activeIds = new Set(reservistes.map(r => r.benevole_id))
 
     // Grouper par session_id uniquement (ignore les variations de camp_lieu)
     // Pour la ville, extraire depuis camp_nom (ex: "Cohorte 10 - Camp de qualification - Québec")
