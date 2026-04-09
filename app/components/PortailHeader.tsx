@@ -285,8 +285,19 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
       })
 
       if (response.ok) {
+        const data = await response.json()
+        const role = data.reserviste?.role
         setShowImpersonateModal(false)
-        window.location.href = '/'
+        // Rediriger selon le role de la personne empruntee
+        if (role === 'partenaire') {
+          window.location.href = '/partenaire'
+        } else if (role === 'adjoint') {
+          window.location.href = '/admin/reservistes'
+        } else if (role === 'admin' || role === 'coordonnateur') {
+          window.location.href = '/admin'
+        } else {
+          window.location.href = '/'
+        }
       } else {
         console.error('Erreur emprunt')
       }

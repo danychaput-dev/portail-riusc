@@ -64,9 +64,12 @@ export async function POST(request: Request) {
       path: '/'
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      reserviste: targetReserviste
+      reserviste: {
+        ...targetReserviste,
+        role: targetReserviste.role || null
+      }
     })
 
   } catch (error) {
