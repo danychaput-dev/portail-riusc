@@ -127,6 +127,7 @@ export async function GET(req: NextRequest) {
     const adminQuery = await supabaseAdmin
       .from('reservistes')
       .select('benevole_id, groupe')
+      .eq('statut', 'Actif')
       .in('groupe', ['Approuvé', 'Intérêt', 'Retrait temporaire', 'Formation incomplète'])
       .not('nom', 'is', null)
       .neq('nom', '')
