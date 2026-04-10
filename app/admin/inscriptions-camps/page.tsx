@@ -125,23 +125,45 @@ export default function InscriptionsCampsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // ── Détecter si admin ──────────────────────────────────────────────────────
+  // ── Détecter si admin (avec support impersonation) ─────────────────────────
   useEffect(() => {
     async function checkRole() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: res } = await supabase
-        .from('reservistes')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
-      if (['superadmin', 'admin', 'coordonnateur'].includes(res?.role)) {
+      // Vérifier impersonation d'abord
+      let role: string | null = null
+      try {
+        const impRes = await fetch('/api/check-impersonate', { credentials: 'include' })
+        if (impRes.ok) {
+          const impData = await impRes.json()
+          if (impData.isImpersonating && impData.benevole_id) {
+            const { data: res } = await supabase
+              .from('reservistes')
+              .select('role')
+              .eq('benevole_id', impData.benevole_id)
+              .single()
+            role = res?.role || null
+          }
+        }
+      } catch (_) {}
+
+      // Sinon auth normale
+      if (!role) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: res } = await supabase
+          .from('reservistes')
+          .select('role')
+          .eq('user_id', user.id)
+          .single()
+        role = res?.role || null
+      }
+
+      if (['superadmin', 'admin', 'coordonnateur'].includes(role!)) {
         setIsAdmin(true)
         setRetourHref('/admin')
-      } else if (res?.role === 'partenaire_chef') {
+      } else if (role === 'partenaire_chef') {
         setIsPartenaireChef(true)
         setRetourHref('/partenaire')
-      } else if (res?.role === 'partenaire') {
+      } else if (role === 'partenaire') {
         setRetourHref('/partenaire')
       }
     }
