@@ -35,15 +35,19 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       body.impersonate-readonly input:not([data-impersonate-unlocked]),
       body.impersonate-readonly select:not([data-impersonate-unlocked]),
       body.impersonate-readonly textarea:not([data-impersonate-unlocked]),
-      body.impersonate-readonly button:not([data-impersonate-unlocked]):not([data-impersonate-ignore]) {
+      body.impersonate-readonly button:not([data-impersonate-unlocked]) {
         opacity: 0.7 !important;
         cursor: not-allowed !important;
         caret-color: transparent !important;
       }
-      /* Exclure les boutons dans un conteneur ignore (header, nav, etc.) */
-      body.impersonate-readonly [data-impersonate-ignore] button {
+      /* Exclure tout ce qui est dans un conteneur ignore (header, nav, etc.) */
+      body.impersonate-readonly [data-impersonate-ignore] button,
+      body.impersonate-readonly [data-impersonate-ignore] input,
+      body.impersonate-readonly [data-impersonate-ignore] select,
+      body.impersonate-readonly [data-impersonate-ignore] textarea {
         opacity: 1 !important;
         cursor: pointer !important;
+        caret-color: auto !important;
       }
       /* Champ debloque par Ctrl+clic */
       body.impersonate-readonly input[data-impersonate-unlocked],
@@ -64,6 +68,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       const target = e.target as HTMLElement
       // Ignorer tout ce qui est dans un conteneur [data-impersonate-ignore] (header, nav)
       if (target.closest('[data-impersonate-ignore]')) return
+      // Laisser passer le clic droit (menu contextuel du navigateur)
+      if (e instanceof MouseEvent && e.button === 2) return
       const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
