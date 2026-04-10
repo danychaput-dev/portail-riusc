@@ -339,10 +339,10 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
   // Roles
   const realRole = reserviste?.role
-  const isRealAdmin = realRole === 'admin' || realRole === 'coordonnateur'
+  const isRealAdmin = realRole === 'superadmin' || realRole === 'admin' || realRole === 'coordonnateur'
   const isAdmin = isRealAdmin
   const isAdjoint = realRole === 'adjoint'
-  const isPartenaire = realRole === 'partenaire'
+  const isPartenaire = realRole === 'partenaire' || realRole === 'partenaire_chef'
 
   return (
     <>
