@@ -532,6 +532,8 @@ export default function HomePage() {
       } // Fin du else (auth normale)
       
       if (reservisteData) {
+        // DEBUG — à retirer
+        console.log('🔍 reservisteData.role =', JSON.stringify(reservisteData.role), '| groupe =', JSON.stringify(reservisteData.groupe), '| benevole_id =', reservisteData.benevole_id)
         // Redirections par rôle — AVANT setReserviste pour éviter le flash
         if (['admin', 'coordonnateur'].includes(reservisteData.role)) {
           router.push('/admin')
@@ -542,6 +544,7 @@ export default function HomePage() {
           return
         }
         if (reservisteData.role === 'partenaire') {
+          console.log('🔍 Redirection vers /partenaire...')
           router.push('/partenaire')
           return
         }
