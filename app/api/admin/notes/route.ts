@@ -20,7 +20,7 @@ async function getAuthAdmin() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data: res } = await supabase.from('reservistes').select('role, prenom, nom').eq('user_id', user.id).single()
-  if (!res || !['admin', 'coordonnateur'].includes(res.role)) return null
+  if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) return null
   return { ...user, prenom: res.prenom, nom: res.nom }
 }
 

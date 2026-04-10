@@ -104,7 +104,7 @@ function FormationContent() {
       if (!user) { router.push('/login'); return; }
       // Vérifier que c'est un admin/coord
       const { data: adminRes } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single();
-      if (adminRes && ['admin', 'coordonnateur', 'adjoint'].includes(adminRes.role)) {
+      if (adminRes && ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(adminRes.role)) {
         const { data: rpcData } = await supabase.rpc('get_reserviste_by_benevole_id', { target_benevole_id: bidParam });
         if (rpcData?.[0]) {
           const d = rpcData[0];

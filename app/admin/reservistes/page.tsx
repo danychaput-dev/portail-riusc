@@ -253,7 +253,7 @@ function ReservistesPage() {
         }
       }
 
-      if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
+      if (!res || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setUserRole(res.role)
       setCurrentUserId(user.id)
       setAuthorized(true)

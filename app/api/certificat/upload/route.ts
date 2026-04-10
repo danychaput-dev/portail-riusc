@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     const { benevole_id, file_name, file_base64, nom_complet, formation_id, storage_path } = body
 
     // Sécurité : le réserviste ne peut uploader que pour lui-même (sauf admin)
-    const isAdmin = currentRes && ['admin', 'coordonnateur'].includes(currentRes.role)
+    const isAdmin = currentRes && ['superadmin', 'admin', 'coordonnateur'].includes(currentRes.role)
     if (!isAdmin && currentRes?.benevole_id !== benevole_id) {
       return NextResponse.json({ success: false, error: 'Accès refusé' }, { status: 403 })
     }

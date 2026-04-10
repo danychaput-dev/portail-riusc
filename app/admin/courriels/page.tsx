@@ -251,7 +251,7 @@ export default function CampagnesPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-      if (!res || !['admin', 'coordonnateur'].includes(res.role)) { router.push('/'); return }
+      if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) { router.push('/'); return }
       setAuthorized(true)
     }
     init()

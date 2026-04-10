@@ -37,7 +37,7 @@ export default function OutilTransportsPage() {
       }
 
       // Accessible aux admins, coordonnateurs, adjoints et partenaires
-      const allowed = ['admin', 'coordonnateur', 'adjoint', 'partenaire']
+      const allowed = ['superadmin', 'admin', 'coordonnateur', 'adjoint', 'partenaire']
       if (!role || !allowed.includes(role)) { router.push('/'); return }
 
       setAuthorized(true)

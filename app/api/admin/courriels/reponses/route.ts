@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-    if (!res || !['admin', 'coordonnateur'].includes(res.role)) {
+    if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-    if (!res || !['admin', 'coordonnateur'].includes(res.role)) {
+    if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
     }
 

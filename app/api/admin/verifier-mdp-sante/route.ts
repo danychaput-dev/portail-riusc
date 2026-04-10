@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     .select('role')
     .eq('user_id', user.id)
     .single()
-  if (!res || !['admin', 'coordonnateur'].includes(res.role)) {
+  if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
   }
 

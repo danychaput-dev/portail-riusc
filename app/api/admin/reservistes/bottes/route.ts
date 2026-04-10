@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     .select('role')
     .eq('user_id', user.id)
     .single()
-  if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) {
+  if (!res || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 

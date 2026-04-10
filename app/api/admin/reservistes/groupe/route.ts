@@ -24,7 +24,7 @@ async function verifierRole() {
     .select('benevole_id, role')
     .eq('user_id', user.id)
     .single()
-  if (!res || !['admin', 'coordonnateur'].includes(res.role)) return null
+  if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) return null
   return res
 }
 

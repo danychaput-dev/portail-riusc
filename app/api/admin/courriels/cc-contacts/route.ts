@@ -19,7 +19,7 @@ async function verifierAdmin() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return false
   const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-  return res && ['admin', 'coordonnateur'].includes(res.role)
+  return res && ['superadmin', 'admin', 'coordonnateur'].includes(res.role)
 }
 
 // GET — Lister les contacts CC
