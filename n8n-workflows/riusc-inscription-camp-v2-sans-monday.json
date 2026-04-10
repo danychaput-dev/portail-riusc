@@ -1,0 +1,238 @@
+{
+  "name": "RIUSC - Inscription Camp (v2 sans Monday)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## RIUSC - Inscription Camp (v2 sans Monday)\n\n**Trigger:** Webhook POST depuis portail.riusc.ca/inscription\n\n**Flow:**\n1. Recoit les donnees du formulaire\n2. Valide et extrait les champs\n3. Upsert dans inscriptions_camps (Supabase)\n4. Envoie SMS (Twilio) si telephone present\n5. Envoie courriel de confirmation\n6. Repond au portail\n\n**Monday.com:** RETIRE completement.\n**Supabase:** Source de verite unique.",
+        "height": 280,
+        "width": 420
+      },
+      "id": "doc-001",
+      "name": "Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [320, -432]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inscription-camp",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "node-webhook",
+      "name": "Webhook Portail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [540, -200],
+      "webhookId": "inscription-camp-portail"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body || $input.item.json;\n\nconst benevoleId = body.benevole_id || body.benevoleId;\nconst sessionId = body.session_id || body.sessionId;\nconst presenceInput = body.presence || 'confirme';\nconst courriel = body.courriel || body.email || null;\nconst telephone = body.telephone || body.phone || null;\nconst prenomNom = body.prenom_nom || body.prenomNom || body.name;\n\nconst campNom = body.camp_nom || 'Camp de qualification';\nconst campDates = body.camp_dates || 'Dates a confirmer';\nconst campLieu = body.camp_lieu || body.camp_site || 'Lieu a confirmer';\nconst campAdresse = body.camp_adresse || body.camp_location || 'Adresse a confirmer';\n\nif (!benevoleId || !sessionId) {\n  throw new Error('benevole_id et session_id sont requis');\n}\nif (!prenomNom) {\n  throw new Error('prenom_nom est requis');\n}\n\nconst presenceMap = {\n  \"J'y serai\": \"confirme\",\n  \"confirme\": \"confirme\",\n  \"Je n'y serai pas\": \"absent\",\n  \"absent\": \"absent\",\n  \"Incertain\": \"incertain\",\n  \"incertain\": \"incertain\",\n  \"Annule\": \"annule\",\n  \"annule\": \"annule\"\n};\nconst presence = presenceMap[presenceInput] || 'confirme';\n\nreturn {\n  benevoleId: String(benevoleId),\n  sessionId: String(sessionId),\n  presence: presence,\n  courriel: courriel,\n  telephone: telephone,\n  prenomNom: prenomNom,\n  campNom: campNom,\n  campDates: campDates,\n  campLieu: campLieu,\n  campAdresse: campAdresse,\n  requestTime: new Date().toISOString()\n};"
+      },
+      "id": "node-extract",
+      "name": "1. Extraire & Valider",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, -200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jtzwkmcfarxptpcoaxxl.supabase.co/rest/v1/inscriptions_camps?on_conflict=benevole_id,session_id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates,return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"benevole_id\": \"{{ $json.benevoleId }}\",\n  \"session_id\": \"{{ $json.sessionId }}\",\n  \"presence\": \"{{ $json.presence }}\",\n  \"courriel\": {{ $json.courriel ? '\"' + $json.courriel + '\"' : 'null' }},\n  \"telephone\": {{ $json.telephone ? '\"' + $json.telephone + '\"' : 'null' }},\n  \"prenom_nom\": \"{{ $json.prenomNom }}\",\n  \"camp_nom\": \"{{ $json.campNom }}\",\n  \"camp_dates\": \"{{ $json.campDates }}\",\n  \"camp_lieu\": \"{{ $json.campLieu }}\",\n  \"camp_adresse\": \"{{ $json.campAdresse }}\"\n}",
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "2. Upsert Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, -200],
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "const supabaseResponse = $input.item.json;\nconst previousData = $('1. Extraire & Valider').item.json;\n\nconst supabaseId = Array.isArray(supabaseResponse)\n  ? supabaseResponse[0]?.id\n  : supabaseResponse.id;\n\nreturn {\n  ...previousData,\n  supabaseId: supabaseId\n};"
+      },
+      "id": "node-extract-id",
+      "name": "3. Extract Supabase ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, -200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "has-telephone",
+              "leftValue": "={{ $json.telephone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-sms-check",
+      "name": "4. SMS ou Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1420, -200]
+    },
+    {
+      "parameters": {
+        "from": "14388073137",
+        "to": "={{ $json.telephone }}",
+        "message": "=RIUSC - Inscription confirmee\n\nBonjour {{ $json.prenomNom }},\n\nVotre inscription au camp est confirmee.\n\n{{ $json.campDates }}\n{{ $json.campLieu }}\n\nInfo: riusc@aqbrs.ca",
+        "options": {}
+      },
+      "id": "node-sms",
+      "name": "5a. Envoyer SMS",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1640, -300],
+      "credentials": {
+        "twilioApi": {
+          "id": "wIi76IBLysfmm5Tg",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "riusc@aqbrs.ca",
+        "toEmail": "={{ $json.courriel }}",
+        "subject": "RIUSC - Inscription au camp confirmee",
+        "html": "=<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Inscription confirmee</title>\n</head>\n<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f4f7;padding:32px 16px;\">\n<tr><td align=\"center\">\n<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);\">\n\n<!-- Header -->\n<tr>\n<td style=\"background:linear-gradient(135deg,#1e3a5f 0%,#2d4a6f 100%);padding:36px 40px;text-align:center;\">\n<h1 style=\"margin:0 0 8px 0;color:#ffffff;font-size:28px;font-weight:700;\">Inscription confirmee</h1>\n<p style=\"margin:0;color:rgba(255,255,255,0.85);font-size:15px;\">Camp de qualification RIUSC</p>\n</td>\n</tr>\n\n<!-- Body -->\n<tr>\n<td style=\"padding:36px 40px;\">\n\n<p style=\"margin:0 0 20px 0;color:#333333;font-size:15px;line-height:1.6;\">\nBonjour <strong>{{ $json.prenomNom }}</strong>,\n</p>\n\n<p style=\"margin:0 0 24px 0;color:#333333;font-size:15px;line-height:1.6;\">\nMerci de votre inscription ! Nous avons bien enregistre votre participation au camp de qualification.\n</p>\n\n<!-- Info box camp -->\n<p style=\"margin:0 0 12px 0;color:#1e3a5f;font-size:16px;font-weight:700;\">Informations du camp</p>\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 0 24px 0;\">\n<tr><td style=\"background-color:#f8fafc;border-left:4px solid #1e3a5f;padding:16px 20px;border-radius:0 6px 6px 0;\">\n<p style=\"margin:0 0 6px 0;color:#333333;font-size:14px;\"><strong>Dates :</strong> {{ $json.campDates }}</p>\n<p style=\"margin:0 0 6px 0;color:#333333;font-size:14px;\"><strong>Lieu :</strong> {{ $json.campLieu }}</p>\n<p style=\"margin:0;color:#333333;font-size:14px;\"><strong>Adresse :</strong> {{ $json.campAdresse }}</p>\n</td></tr>\n</table>\n\n<p style=\"margin:0 0 24px 0;color:#92400e;font-size:14px;line-height:1.6;background-color:#fffbeb;padding:12px 16px;border-radius:6px;border-left:4px solid #f59e0b;\"><strong>Important :</strong> Votre presence est requise aux deux journees completes du camp.</p>\n\n<!-- Bouton -->\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 0 24px 0;\">\n<tr><td align=\"center\">\n<a href=\"https://portail.riusc.ca/login\" target=\"_blank\" style=\"display:inline-block;background-color:#1e3a5f;color:#ffffff;padding:14px 36px;border-radius:6px;text-decoration:none;font-size:16px;font-weight:700;\">\nAcceder au portail RIUSC\n</a>\n</td></tr>\n</table>\n\n<!-- Separator -->\n<hr style=\"border:none;border-top:1px solid #e5e7eb;margin:0 0 24px 0;\">\n\n<p style=\"margin:0 0 16px 0;color:#333333;font-size:15px;line-height:1.6;\">\nPour toute question, contactez-nous a <a href=\"mailto:riusc@aqbrs.ca\" style=\"color:#2563eb;text-decoration:none;\">riusc@aqbrs.ca</a>\n</p>\n\n<p style=\"margin:0 0 4px 0;color:#333333;font-size:15px;\">Cordialement,</p>\n<p style=\"margin:0;color:#333333;font-size:15px;\"><strong>L'equipe RIUSC</strong></p>\n\n</td>\n</tr>\n\n<!-- Footer -->\n<tr>\n<td style=\"background-color:#f8fafc;padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;\">\n<p style=\"margin:0 0 4px 0;color:#6b7280;font-size:13px;\">Association quebecoise des benevoles en recherche et sauvetage</p>\n<p style=\"margin:0;\"><a href=\"https://portail.riusc.ca\" style=\"color:#6b7280;font-size:13px;text-decoration:none;\">portail.riusc.ca</a></p>\n</td>\n</tr>\n\n</table>\n</td></tr>\n</table>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "node-email",
+      "name": "5b. Envoyer Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1640, -100],
+      "credentials": {
+        "smtp": {
+          "id": "GPgBFn8u3hqi0e9T",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Inscription enregistree\",\n  \"supabase_id\": \"{{ $('3. Extract Supabase ID').item.json.supabaseId }}\",\n  \"camp\": {\n    \"nom\": \"{{ $('3. Extract Supabase ID').item.json.campNom }}\",\n    \"dates\": \"{{ $('3. Extract Supabase ID').item.json.campDates }}\",\n    \"lieu\": \"{{ $('3. Extract Supabase ID').item.json.campLieu }}\"\n  }\n}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "6. Reponse Succes",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1860, -200]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Portail": {
+      "main": [
+        [
+          { "node": "1. Extraire & Valider", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "1. Extraire & Valider": {
+      "main": [
+        [
+          { "node": "2. Upsert Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "2. Upsert Supabase": {
+      "main": [
+        [
+          { "node": "3. Extract Supabase ID", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "3. Extract Supabase ID": {
+      "main": [
+        [
+          { "node": "4. SMS ou Email?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "4. SMS ou Email?": {
+      "main": [
+        [
+          { "node": "5a. Envoyer SMS", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "5b. Envoyer Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "5a. Envoyer SMS": {
+      "main": [
+        [
+          { "node": "6. Reponse Succes", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "5b. Envoyer Email": {
+      "main": [
+        [
+          { "node": "6. Reponse Succes", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

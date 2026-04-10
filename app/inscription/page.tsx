@@ -30,7 +30,7 @@ export default function InscriptionPage() {
   const [emailConfirm, setEmailConfirm] = useState('')
   const [campInscrit, setCampInscrit] = useState(false)
   const [nomCampInscrit, setNomCampInscrit] = useState('')
-  const [isListeAttente, setIsListeAttente] = useState(false)
+  // isListeAttente retiré - on bloque à 80 inscrits
   
   const [formData, setFormData] = useState({
     prenom: '',
@@ -68,7 +68,6 @@ export default function InscriptionPage() {
   // ─── Camps et Santé ─────────────────────────────────────────────────────────
   const [sessionsDisponibles, setSessionsDisponibles] = useState<Array<{
     session_id: string;
-    monday_id?: string;
     nom: string;
     dates: string;
     site: string;
@@ -80,7 +79,7 @@ export default function InscriptionPage() {
   const [autresAllergies, setAutresAllergies] = useState('')
   const [conditionsMedicales, setConditionsMedicales] = useState('')
   const [consentementPhoto, setConsentementPhoto] = useState(false)
-  const [sessionCapacities, setSessionCapacities] = useState<Record<string, { inscrits: number; capacite: number; attente: number; attente_max: number; places_restantes: number; statut: string }>>({})
+  const [sessionInscrits, setSessionInscrits] = useState<Record<string, number>>({})
   const [loadingCapacities, setLoadingCapacities] = useState(true)
   // ────────────────────────────────────────────────────────────────────────────
 
@@ -136,7 +135,7 @@ export default function InscriptionPage() {
     fetchGroupesRS()
   }, [])
 
-  // Liste statique des camps 2026 (au lieu de charger depuis Monday.com) Ca marche tu ?
+  // Liste statique des camps 2026
   useEffect(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -144,7 +143,6 @@ export default function InscriptionPage() {
     const campsStat = [
       {
         session_id: 'CAMP_STE_CATHERINE_MAR26',
-        monday_id: '11074000836',
         nom: 'Cohorte 8 - Camp de qualification - Sainte-Catherine',
         dates: '14 et 15 mars 2026',
         date_fin: new Date('2026-03-15'),
@@ -153,7 +151,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_CHICOUTIMI_AVR26',
-        monday_id: '11267314669',
         nom: 'Cohorte 9 - Camp de qualification - Chicoutimi',
         dates: '25-26 avril 2026',
         date_fin: new Date('2026-04-26'),
@@ -162,7 +159,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_QUEBEC_MAI26',
-        monday_id: '11267288411',
         nom: 'Cohorte 10 - Camp de qualification - Québec',
         dates: '23-24 mai 2026',
         date_fin: new Date('2026-05-24'),
@@ -171,7 +167,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_RIMOUSKI_SEP26',
-        monday_id: '11267307391',
         nom: 'Cohorte 11 - Camp de qualification - Rimouski',
         dates: '26-27 septembre 2026',
         date_fin: new Date('2026-09-27'),
@@ -180,7 +175,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_SHERBROOKE_OCT26',
-        monday_id: '11267307484',
         nom: 'Cohorte 12 - Camp de qualification - Sherbrooke',
         dates: '17-18 octobre 2026',
         date_fin: new Date('2026-10-18'),
@@ -189,7 +183,6 @@ export default function InscriptionPage() {
       },
       {
         session_id: 'CAMP_GATINEAU_NOV26',
-        monday_id: '11267277716',
         nom: 'Cohorte 13 - Camp de qualification - Gatineau',
         dates: '14-15 novembre 2026',
         date_fin: new Date('2026-11-15'),
@@ -197,10 +190,10 @@ export default function InscriptionPage() {
         location: 'Gatineau, QC'
       }
     ].filter(c => c.date_fin >= today)
-    
+
     setSessionsDisponibles(campsStat)
     setLoadingSessions(false)
-    
+
     // Pré-sélectionner le camp si présent dans l'URL
     if (campId) {
       const campTrouve = campsStat.find(s => s.session_id === campId)
@@ -209,15 +202,21 @@ export default function InscriptionPage() {
       }
     }
 
-    // Charger les capacités
-    fetch(n8nUrl('/webhook/camp-capacity'))
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.success && data.sessions) {
-          setSessionCapacities(data.sessions)
-        }
+    // Charger le nombre d'inscrits par session depuis Supabase
+    const sessionIds = campsStat.map(c => c.session_id)
+    supabase
+      .from('inscriptions_camps')
+      .select('session_id')
+      .in('session_id', sessionIds)
+      .in('presence', ['confirme', 'incertain'])
+      .then(({ data, error }) => {
+        if (error) { console.error('Erreur chargement inscrits:', error); return }
+        const counts: Record<string, number> = {}
+        ;(data || []).forEach(row => {
+          counts[row.session_id] = (counts[row.session_id] || 0) + 1
+        })
+        setSessionInscrits(counts)
       })
-      .catch(e => console.error('Erreur capacité camps:', e))
       .finally(() => setLoadingCapacities(false))
   }, [campId])
 
@@ -492,9 +491,7 @@ if (responseData.error === 'DOUBLON') {
   return
 }
 
-const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_item_id) : null
-      // Attendre que le sync Monday → Supabase soit complété
-      await new Promise(resolve => setTimeout(resolve, 1500))
+const newBenevoleId = responseData.benevole_id ? String(responseData.benevole_id) : null
 
       if (newBenevoleId) {
         // Sauvegarder le consentement antécédents judiciaires
@@ -563,23 +560,18 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
             })
             .eq('benevole_id', newBenevoleId)
 
-          // Appeler l'API d'inscription au camp
-          const sessionSel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
-          const capInfo = sessionSel?.monday_id ? sessionCapacities[sessionSel.monday_id] : null
-          const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
-          
+          // Inscription au camp via n8n (upsert Supabase + SMS/courriel confirmation)
           const campResponse = await fetch(n8nUrl('/webhook/inscription-camp'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               benevole_id: newBenevoleId,
-              session_id: selectedSessionId, // ID fictif pour identifier le camp
+              session_id: selectedSessionId,
               camp_nom: sessionSelectionnee?.nom,
               camp_dates: sessionSelectionnee?.dates,
-              camp_site: sessionSelectionnee?.site,
-              camp_location: sessionSelectionnee?.location,
+              camp_lieu: sessionSelectionnee?.site,
+              camp_adresse: sessionSelectionnee?.location,
               presence: 'confirme',
-              statut: inscriptionStatut,
               courriel: emailClean,
               telephone: isTestPhone ? null : phoneClean,
               prenom_nom: `${formData.prenom.trim()} ${formData.nom.trim()}`
@@ -599,12 +591,7 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
       setCampInscrit(campInscritSuccess)
       setNomCampInscrit(campNom)
       
-      // Vérifier si c'est une liste d'attente
-      if (selectedSessionId && selectedSessionId !== 'PLUS_TARD') {
-        const sessionSel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
-        const capInfo = sessionSel?.monday_id ? sessionCapacities[sessionSel.monday_id] : null
-        setIsListeAttente(capInfo?.statut === 'liste_attente')
-      }
+      // Plus de liste d'attente - on bloque à 80 inscrits
 
       // Afficher la page de succès avec le bon message
       setStep('success')
@@ -637,34 +624,20 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
         <div style={{ backgroundColor: 'white', padding: '48px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', maxWidth: '560px', width: '100%', textAlign: 'center' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>{isListeAttente ? '⏳' : '✅'}</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>✅</div>
           <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '24px' }}>Inscription réussie !</h2>
-          
+
           <p style={{ color: '#6b7280', fontSize: '15px', lineHeight: '1.6', margin: '0 0 16px 0' }}>
             Bienvenue dans la RIUSC, <strong>{formData.prenom}</strong> ! Votre compte est en cours de création.
           </p>
 
-          {campInscrit && nomCampInscrit && !isListeAttente && (
+          {campInscrit && nomCampInscrit && (
             <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '16px', margin: '0 0 16px 0' }}>
               <p style={{ margin: '0 0 8px 0', color: '#065f46', fontSize: '15px', fontWeight: '600' }}>
-                🎓 Inscription au camp confirmée
+                Inscription au camp confirmée
               </p>
               <p style={{ margin: 0, color: '#059669', fontSize: '14px' }}>
                 {nomCampInscrit}
-              </p>
-            </div>
-          )}
-
-          {campInscrit && nomCampInscrit && isListeAttente && (
-            <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '8px', padding: '16px', margin: '0 0 16px 0' }}>
-              <p style={{ margin: '0 0 8px 0', color: '#92400e', fontSize: '15px', fontWeight: '600' }}>
-                ⏳ Vous êtes sur la liste d&apos;attente
-              </p>
-              <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>
-                {nomCampInscrit}
-              </p>
-              <p style={{ margin: '8px 0 0 0', color: '#92400e', fontSize: '13px', lineHeight: '1.5' }}>
-                Les places sont actuellement toutes comblées. Nous vous contacterons si une place se libère.
               </p>
             </div>
           )}
@@ -1004,8 +977,7 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                   <>
                     <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '8px 0' }}></div>
                     {sessionsDisponibles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => {
-                      const cap = session.monday_id ? sessionCapacities[session.monday_id] : null
-                      const inscrits = cap?.inscrits ?? 0
+                      const inscrits = sessionInscrits[session.session_id] || 0
                       const placesLimitees = inscrits >= 60
                       const isComplet = inscrits >= 80
                       const placesRestantes = 80 - inscrits
@@ -1121,16 +1093,15 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
           {/* ── Confirmations ── */}
           <div style={sectionStyle}>
             <h3 style={sectionTitleStyle}>Confirmations requises</h3>
-            {/* Avertissement liste d'attente */}
+            {/* Avertissement places limitées */}
             {(() => {
-              const sel = sessionsDisponibles.find(s => s.session_id === selectedSessionId)
-              const cap = sel?.monday_id ? sessionCapacities[sel.monday_id] : null
-              if (selectedSessionId && selectedSessionId !== 'PLUS_TARD' && cap?.statut === 'liste_attente') {
+              const nbInscrits = sessionInscrits[selectedSessionId] || 0
+              if (selectedSessionId && selectedSessionId !== 'PLUS_TARD' && nbInscrits >= 60 && nbInscrits < 80) {
                 return (
                   <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                    <span style={{ fontSize: '18px', flexShrink: 0 }}>⏳</span>
+                    <span style={{ fontSize: '18px', flexShrink: 0 }}>&#9888;&#65039;</span>
                     <div style={{ fontSize: '14px', color: '#92400e', lineHeight: '1.5' }}>
-                      <strong>Ce camp est complet.</strong> Votre inscription sera placée sur la liste d&apos;attente. Vous serez contacté si une place se libère.
+                      <strong>Places limitees.</strong> Il reste {80 - nbInscrits} place{80 - nbInscrits > 1 ? 's' : ''} pour ce camp. Inscrivez-vous rapidement!
                     </div>
                   </div>
                 )
