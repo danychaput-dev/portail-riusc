@@ -532,19 +532,20 @@ export default function HomePage() {
       } // Fin du else (auth normale)
       
       if (reservisteData) {
-        // DEBUG — à retirer
-        console.log('🔍 reservisteData.role =', JSON.stringify(reservisteData.role), '| groupe =', JSON.stringify(reservisteData.groupe), '| benevole_id =', reservisteData.benevole_id)
+        // Verification fiable du role via RPC dediee (contourne le cache PostgREST sur get_reserviste_by_benevole_id)
+        const { data: roleFromDb } = await supabase.rpc('get_reserviste_role', { target_benevole_id: reservisteData.benevole_id })
+        const actualRole = roleFromDb || reservisteData.role
+
         // Redirections par rôle — AVANT setReserviste pour éviter le flash
-        if (['admin', 'coordonnateur'].includes(reservisteData.role)) {
+        if (['admin', 'coordonnateur'].includes(actualRole)) {
           router.push('/admin')
           return
         }
-        if (reservisteData.role === 'adjoint') {
+        if (actualRole === 'adjoint') {
           router.push('/admin/reservistes')
           return
         }
-        if (reservisteData.role === 'partenaire') {
-          console.log('🔍 Redirection vers /partenaire...')
+        if (actualRole === 'partenaire') {
           router.push('/partenaire')
           return
         }
