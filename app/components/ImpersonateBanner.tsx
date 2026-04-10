@@ -80,10 +80,9 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
         e.preventDefault()
         e.stopPropagation()
         field.setAttribute('data-impersonate-unlocked', 'true')
-        if (field.tagName === 'BUTTON') {
-          // Re-cliquer le bouton maintenant qu'il est debloque
-          setTimeout(() => { field.click() }, 50)
-        } else {
+        // Focus le champ (pour input/select/textarea), les boutons doivent etre recliques manuellement
+        // (le navigateur bloque les file dialogs declenches par des clics programmatiques)
+        if (field.tagName !== 'BUTTON') {
           setTimeout(() => { ;(field as HTMLInputElement).focus?.() }, 50)
         }
       } else {
