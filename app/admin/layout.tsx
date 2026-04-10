@@ -68,13 +68,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       if (!user) { router.push('/login'); return }
       // 1. Chercher par user_id
       let res = (await supabase.from('reservistes').select('role, benevole_id').eq('user_id', user.id).single()).data
-      // 2. Fallback par email si user_id pas lié
+      // 2. Fallback par email si user_id pas lie
       if (!res && user.email) {
         const { data: byEmail } = await supabase.from('reservistes').select('role, benevole_id').ilike('email', user.email).single()
         if (byEmail) {
           await supabase.from('reservistes').update({ user_id: user.id }).eq('benevole_id', byEmail.benevole_id)
           res = byEmail
         }
+      }
+      // 3. Si le role n'est pas detecte via SELECT (RLS), essayer via RPC
+      if (res && !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) {
+        const { data: roleFromDb } = await supabase.rpc('get_reserviste_role', { target_benevole_id: res.benevole_id })
+        if (roleFromDb) res = { ...res, role: roleFromDb }
       }
       if (!res || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setAuthorized(true)
