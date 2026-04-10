@@ -348,7 +348,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
     <>
       <ImpersonateBanner />
       
-      <header style={{ backgroundColor: isImpersonating ? '#fef3c7' : 'white', borderBottom: `1px solid ${isImpersonating ? '#f59e0b' : '#e5e7eb'}`, position: 'sticky', top: 0, zIndex: 100 }}>
+      <header data-impersonate-ignore style={{ backgroundColor: isImpersonating ? '#fef3c7' : 'white', borderBottom: `1px solid ${isImpersonating ? '#f59e0b' : '#e5e7eb'}`, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
           {/* Logo + titre */}

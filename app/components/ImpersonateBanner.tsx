@@ -40,6 +40,11 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
         cursor: not-allowed !important;
         caret-color: transparent !important;
       }
+      /* Exclure les boutons dans un conteneur ignore (header, nav, etc.) */
+      body.impersonate-readonly [data-impersonate-ignore] button {
+        opacity: 1 !important;
+        cursor: pointer !important;
+      }
       /* Champ debloque par Ctrl+clic */
       body.impersonate-readonly input[data-impersonate-unlocked],
       body.impersonate-readonly select[data-impersonate-unlocked],
@@ -57,7 +62,9 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
     // Intercepter les interactions sur les champs verrouilles
     const handleInteraction = (e: Event) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
+      // Ignorer tout ce qui est dans un conteneur [data-impersonate-ignore] (header, nav)
+      if (target.closest('[data-impersonate-ignore]')) return
+      const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
 
@@ -85,7 +92,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
     // Bloquer les changements de valeur sur checkboxes/radio/select verrouilles
     const handleChange = (e: Event) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
+      if (target.closest('[data-impersonate-ignore]')) return
+      const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       e.preventDefault()
@@ -98,7 +106,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
 
     const handleKeydown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
+      if (target.closest('[data-impersonate-ignore]')) return
+      const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       e.preventDefault()
@@ -106,7 +115,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
 
     const handleFocusin = (e: FocusEvent) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
+      if (target.closest('[data-impersonate-ignore]')) return
+      const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       ;(field as HTMLInputElement).blur?.()
