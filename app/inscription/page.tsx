@@ -202,20 +202,15 @@ export default function InscriptionPage() {
       }
     }
 
-    // Charger le nombre d'inscrits par session depuis Supabase
-    const sessionIds = campsStat.map(c => c.session_id)
-    supabase
-      .from('inscriptions_camps')
-      .select('session_id')
-      .in('session_id', sessionIds)
-      .in('presence', ['confirme', 'incertain'])
-      .then(({ data, error }) => {
-        if (error) { console.error('Erreur chargement inscrits:', error) }
-        const counts: Record<string, number> = {}
-        ;(data || []).forEach(row => {
-          counts[row.session_id] = (counts[row.session_id] || 0) + 1
-        })
+    // Charger le nombre d'inscrits par session via API server-side (bypass RLS pour visiteurs non connectes)
+    fetch('/api/camp/capacity')
+      .then(res => res.json())
+      .then(counts => {
         setSessionInscrits(counts)
+        setLoadingCapacities(false)
+      })
+      .catch(err => {
+        console.error('Erreur chargement capacites:', err)
         setLoadingCapacities(false)
       })
   }, [campId])
