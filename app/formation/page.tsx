@@ -530,6 +530,8 @@ function FormationContent() {
   const formationCertInputRef = useRef<HTMLInputElement>(null);
   const [confirmSupprimerCertId, setConfirmSupprimerCertId] = useState<string | null>(null);
   const [suppressionEnCours, setSuppressionEnCours] = useState(false);
+  const [confirmSupprimerFormationId, setConfirmSupprimerFormationId] = useState<string | null>(null);
+  const [suppressionFormationEnCours, setSuppressionFormationEnCours] = useState(false);
 
   const supprimerCertificat = async (formationId: string, certId?: string) => {
     if (!reserviste) return;
@@ -567,6 +569,32 @@ function FormationContent() {
     }
     setSuppressionEnCours(false);
     setConfirmSupprimerCertId(null);
+  };
+
+  const supprimerFormation = async (formationId: string) => {
+    if (!reserviste) return;
+    setSuppressionFormationEnCours(true);
+    try {
+      const res = await fetch('/api/admin/formations/supprimer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          formation_id: formationId,
+          benevole_id: reserviste.benevole_id,
+        }),
+      });
+      if (res.ok) {
+        setFormations(prev => prev.filter(f => f.id !== formationId));
+      } else {
+        const data = await res.json();
+        alert('Erreur: ' + (data.error || 'Suppression impossible'));
+      }
+    } catch (e) {
+      console.error('Erreur suppression formation:', e);
+      alert('Erreur lors de la suppression');
+    }
+    setSuppressionFormationEnCours(false);
+    setConfirmSupprimerFormationId(null);
   };
 
   const handleFormationCertUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1192,6 +1220,37 @@ function FormationContent() {
                               <button onClick={async () => { const dr = dateReussiteRef.current?.value || ''; const de = dateExpirationRef.current?.value || ''; if (!dr) return; await supabase.from('formations_benevoles').update({ date_reussite: dr, date_expiration: de || null, a_expiration: !!de, resultat: 'Réussi', etat_validite: 'À jour' }).eq('id', f.id); setFormations(prev => prev.map(fm => fm.id === f.id ? { ...fm, date_reussite: dr, date_expiration: de || null, resultat: 'Réussi', etat_validite: 'À jour' } : fm)); setEditingDatesForId(null); }} style={{ padding: '6px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#1e3a5f', color: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Confirmer</button>
                               <button onClick={() => setEditingDatesForId(null)} style={{ padding: '6px 16px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontSize: '13px', cursor: 'pointer' }}>Annuler</button>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Bouton supprimer formation (admin seulement) */}
+                        {isViewingOther && (
+                          <div style={{ marginTop: '10px' }}>
+                            {confirmSupprimerFormationId === f.id ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
+                                <span style={{ color: '#dc2626', fontWeight: 600 }}>Supprimer cette formation et son certificat?</span>
+                                <button
+                                  onClick={() => supprimerFormation(f.id)}
+                                  disabled={suppressionFormationEnCours}
+                                  style={{ padding: '4px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: '600' }}
+                                >
+                                  {suppressionFormationEnCours ? '...' : 'Oui, supprimer'}
+                                </button>
+                                <button
+                                  onClick={() => setConfirmSupprimerFormationId(null)}
+                                  style={{ padding: '4px 12px', backgroundColor: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                                >
+                                  Annuler
+                                </button>
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmSupprimerFormationId(f.id)}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '6px', fontSize: '12px', color: '#dc2626', fontWeight: '500', cursor: 'pointer' }}
+                              >
+                                🗑️ Supprimer la formation
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
