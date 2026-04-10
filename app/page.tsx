@@ -536,8 +536,8 @@ export default function HomePage() {
         const { data: roleFromDb } = await supabase.rpc('get_reserviste_role', { target_benevole_id: reservisteData.benevole_id })
         const actualRole = roleFromDb || reservisteData.role
 
-        // Redirections par rôle — AVANT setReserviste pour éviter le flash
-        if (['admin', 'coordonnateur'].includes(actualRole)) {
+        // Redirections par role — AVANT setReserviste pour eviter le flash
+        if (['superadmin', 'admin', 'coordonnateur'].includes(actualRole)) {
           router.push('/admin')
           return
         }
@@ -545,7 +545,7 @@ export default function HomePage() {
           router.push('/admin/reservistes')
           return
         }
-        if (actualRole === 'partenaire') {
+        if (actualRole === 'partenaire' || actualRole === 'partenaire_chef') {
           router.push('/partenaire')
           return
         }
