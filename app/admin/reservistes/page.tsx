@@ -648,9 +648,10 @@ function ReservistesPage() {
     return <span style={{ color: C, marginLeft: '3px' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
   }
 
-  const isAdmin = userRole === 'admin'
+  const isSuperAdmin = userRole === 'superadmin'
+  const isAdmin = userRole === 'superadmin' || userRole === 'admin'
   const isAdjoint = userRole === 'adjoint'
-  const canEmail = ['admin', 'coordonnateur'].includes(userRole)
+  const canEmail = ['superadmin', 'admin', 'coordonnateur'].includes(userRole)
 
   // Readiness stats — calculé sur rawData (déjà filtré par groupes sélectionnés)
   // Déployable reste sur Approuvés seulement
@@ -867,7 +868,7 @@ function ReservistesPage() {
                 ✉️ Envoyer {selectedIds.size > 1 ? `des courriels (${selectedIds.size})` : `un courriel${selectedIds.size === 1 ? ' (1)' : ''}`}
               </button>
             )}
-            {isAdmin && selectedIds.size > 0 && (
+            {isSuperAdmin && selectedIds.size > 0 && (
               <button
                 onClick={async () => {
                   const count = selectedIds.size
@@ -1648,11 +1649,13 @@ function ReservistesPage() {
                   <span style={{ fontSize: '14px' }}>⏸️</span> Retrait temporaire
                 </button>
               )}
+              {isSuperAdmin && (
+              <>
               <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
               <button
                 onClick={async () => {
                   const r = contextMenu.reserviste
-                  if (!window.confirm(`Supprimer ${r.prenom} ${r.nom} et toutes ses données? Cette action est irréversible.`)) {
+                  if (!window.confirm(`Supprimer ${r.prenom} ${r.nom} et toutes ses donnees? Cette action est irreversible.`)) {
                     setContextMenu(null)
                     return
                   }
@@ -1675,6 +1678,8 @@ function ReservistesPage() {
               >
                 <span style={{ fontSize: '14px' }}>🗑️</span> Supprimer le compte
               </button>
+              </>
+              )}
             </>
           )}
         </div>

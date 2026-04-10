@@ -74,7 +74,7 @@ export default function MatchingCertificats() {
       .select('role')
       .eq('user_id', user.id)
       .single()
-    if (!r || r.role !== 'admin') { router.push('/'); return }
+    if (!r || !['superadmin', 'admin'].includes(r.role)) { router.push('/'); return }
     setRole('admin')
     await lancerVerification()
   }

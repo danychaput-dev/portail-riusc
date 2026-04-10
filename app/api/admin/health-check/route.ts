@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       .select('role')
       .eq('user_id', user.id)
       .single()
-    if (!res || res.role !== 'admin') {
+    if (!res || !['superadmin', 'admin'].includes(res.role)) {
       return NextResponse.json({ error: 'Admin requis' }, { status: 403 })
     }
   }

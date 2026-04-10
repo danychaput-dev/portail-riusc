@@ -13,7 +13,7 @@ async function verifierAdmin(benevole_id: string): Promise<boolean> {
     .select('role')
     .eq('benevole_id', benevole_id)
     .single()
-  return data?.role === 'admin'
+  return ['superadmin', 'admin'].includes(data?.role)
 }
 
 export async function POST(request: NextRequest) {

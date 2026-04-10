@@ -485,7 +485,7 @@ export default function AdminSinistresPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: res } = await supabase.from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
-      if (!res || (res.role !== 'admin' && res.role !== 'coordonnateur')) { router.push('/admin'); return }
+      if (!res || (!['superadmin', 'admin', 'coordonnateur'].includes(res.role))) { router.push('/admin'); return }
       setAdminBenevoleId(res.benevole_id)
       await chargerSinistres()
       setLoading(false)

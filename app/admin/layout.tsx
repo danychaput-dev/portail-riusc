@@ -76,7 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           res = byEmail
         }
       }
-      if (!res || !['admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
+      if (!res || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setAuthorized(true)
       setUserRole(res.role)
       userIdRef.current = user.id
@@ -141,7 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
       <PortailHeader />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {userRole !== 'adjoint' && <AdminSidebar stats={stats} />}
+        {userRole !== 'adjoint' && <AdminSidebar stats={stats} userRole={userRole} />}
         <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {children}
         </main>

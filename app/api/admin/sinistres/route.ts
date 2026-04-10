@@ -32,7 +32,7 @@ async function geocoderLieu(lieu: string): Promise<{ lat: number; lon: number } 
 async function verifierAcces(benevole_id: string): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from('reservistes').select('role').eq('benevole_id', benevole_id).single()
-  return data?.role === 'admin' || data?.role === 'coordonnateur'
+  return ['superadmin', 'admin', 'coordonnateur'].includes(data?.role)
 }
 
 async function nextVal(seq: string): Promise<number> {

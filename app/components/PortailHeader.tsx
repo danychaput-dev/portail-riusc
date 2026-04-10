@@ -298,7 +298,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           window.location.href = '/partenaire'
         } else if (role === 'adjoint') {
           window.location.href = '/admin/reservistes'
-        } else if (role === 'admin' || role === 'coordonnateur') {
+        } else if (['superadmin', 'admin', 'coordonnateur'].includes(role)) {
           window.location.href = '/admin'
         } else {
           window.location.href = '/'

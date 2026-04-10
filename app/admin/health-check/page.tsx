@@ -43,7 +43,7 @@ export default function HealthCheckPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
     const { data: r } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-    if (!r || r.role !== 'admin') { router.push('/'); return }
+    if (!r || !['superadmin', 'admin'].includes(r.role)) { router.push('/'); return }
     setAuthorized(true)
     await runCheck()
   }

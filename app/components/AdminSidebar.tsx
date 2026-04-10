@@ -12,6 +12,7 @@ interface NavItem {
   badge?: number
   externe?: boolean       // lien hors /admin (ex: /communaute)
   statut: 'actif' | 'bientot'
+  superadminOnly?: boolean
 }
 
 interface Props {
@@ -22,24 +23,25 @@ interface Props {
     courriels_reponses_non_lues?: number
     notes_non_lues?: number
   }
+  userRole?: string
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { titre: 'Réservistes',          icone: '👥', href: '/admin/reservistes',       statut: 'actif' },
-  { titre: 'Opérations',           icone: '🚨', href: '/admin/operations',        statut: 'actif' },
-  { titre: 'Sinistres',            icone: '🌊', href: '/admin/sinistres',         statut: 'actif' },
-  { titre: 'Certificats',          icone: '🗂️', href: '/admin/certificats',       statut: 'actif' },
-  { titre: 'Courriels',            icone: '✉️', href: '/admin/courriels',         statut: 'actif' },
+  { titre: 'Reservistes',          icone: '👥', href: '/admin/reservistes',        statut: 'actif' },
+  { titre: 'Operations',           icone: '🚨', href: '/admin/operations',         statut: 'actif' },
+  { titre: 'Sinistres',            icone: '🌊', href: '/admin/sinistres',          statut: 'actif' },
+  { titre: 'Certificats',          icone: '🗂️', href: '/admin/certificats',        statut: 'actif' },
+  { titre: 'Courriels',            icone: '✉️', href: '/admin/courriels',          statut: 'actif' },
   { titre: 'Camps',                icone: '🏕️', href: '/admin/inscriptions-camps', statut: 'actif' },
-  { titre: 'Communauté',           icone: '💬', href: '/admin/communaute',        statut: 'actif' },
-  { titre: 'Dashboard',            icone: '📈', href: '/admin/dashboard',         statut: 'actif' },
-  { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',             statut: 'actif' },
-  { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',      statut: 'actif' },
-  { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',       statut: 'bientot' },
-  { titre: 'Présences & CNESST',   icone: '📋', href: '/admin/presences',         statut: 'bientot' },
+  { titre: 'Communaute',           icone: '💬', href: '/admin/communaute',         statut: 'actif' },
+  { titre: 'Dashboard',            icone: '📈', href: '/admin/dashboard',          statut: 'actif' },
+  { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',              statut: 'actif' },
+  { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',       statut: 'actif', superadminOnly: true },
+  { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',        statut: 'bientot' },
+  { titre: 'Presences & CNESST',   icone: '📋', href: '/admin/presences',          statut: 'bientot' },
 ]
 
-export default function AdminSidebar({ stats }: Props) {
+export default function AdminSidebar({ stats, userRole }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
@@ -106,7 +108,7 @@ export default function AdminSidebar({ stats }: Props) {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {NAV_ITEMS.map(item => {
+        {NAV_ITEMS.filter(item => !item.superadminOnly || userRole === 'superadmin').map(item => {
           const active = isActive(item.href)
           const disabled = item.statut === 'bientot'
           const badgeInfo = getBadge(item)

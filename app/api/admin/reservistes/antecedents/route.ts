@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const { data: res } = await supabase.from('reservistes').select('role').eq('user_id', user.id).single()
-  if (!res || res.role !== 'admin') {
+  if (!res || !['superadmin', 'admin'].includes(res.role)) {
     return NextResponse.json({ error: 'Réservé aux administrateurs' }, { status: 403 })
   }
 

@@ -27,7 +27,7 @@ AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.reservistes
     WHERE user_id = auth.uid()
-      AND role IN ('admin', 'coordonnateur', 'adjoint')
+      AND role IN ('superadmin', 'admin', 'coordonnateur', 'adjoint')
   )
 $$;
 

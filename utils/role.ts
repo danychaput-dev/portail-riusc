@@ -1,8 +1,8 @@
 // utils/role.ts
-// Utilitaire centralisé pour la gestion des rôles
+// Utilitaire centralise pour la gestion des roles
 import { createClient } from '@/utils/supabase/client'
 
-export type Role = 'admin' | 'coordonnateur' | 'reserviste'
+export type Role = 'superadmin' | 'admin' | 'coordonnateur' | 'adjoint' | 'reserviste' | 'partenaire_chef' | 'partenaire'
 
 export interface RoleInfo {
   benevole_id: string
@@ -12,8 +12,8 @@ export interface RoleInfo {
 }
 
 /**
- * Retourne les infos de rôle de l'utilisateur connecté.
- * Retourne null si non connecté ou non trouvé.
+ * Retourne les infos de role de l'utilisateur connecte.
+ * Retourne null si non connecte ou non trouve.
  */
 export async function getCurrentRole(): Promise<RoleInfo | null> {
   const supabase = createClient()
@@ -30,5 +30,14 @@ export async function getCurrentRole(): Promise<RoleInfo | null> {
   return data as RoleInfo
 }
 
-export const isAdmin = (role: Role) => role === 'admin'
-export const isAdminOrCoord = (role: Role) => role === 'admin' || role === 'coordonnateur'
+// superadmin a acces a tout
+export const isSuperAdmin = (role: Role) => role === 'superadmin'
+
+// admin inclut superadmin (retrocompatible avec tout le code existant)
+export const isAdmin = (role: Role) => role === 'superadmin' || role === 'admin'
+
+export const isAdminOrCoord = (role: Role) => role === 'superadmin' || role === 'admin' || role === 'coordonnateur'
+
+// Partenaires
+export const isPartenaire = (role: Role) => role === 'partenaire' || role === 'partenaire_chef'
+export const isPartenaireChef = (role: Role) => role === 'partenaire_chef'

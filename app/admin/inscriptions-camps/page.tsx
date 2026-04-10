@@ -134,7 +134,7 @@ export default function InscriptionsCampsPage() {
         .select('role')
         .eq('user_id', user.id)
         .single()
-      if (res?.role === 'admin' || res?.role === 'coordonnateur') {
+      if (['superadmin', 'admin', 'coordonnateur'].includes(res?.role)) {
         setIsAdmin(true)
         setRetourHref('/admin')
       } else if (res?.role === 'partenaire') {

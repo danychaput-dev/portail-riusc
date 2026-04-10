@@ -321,7 +321,7 @@ export default function AdminCertificatsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
-      if (!reserviste || reserviste.role !== 'admin') { router.push('/'); return }
+      if (!reserviste || !['superadmin', 'admin'].includes(reserviste.role)) { router.push('/'); return }
       setAdminBenevoleId(reserviste.benevole_id)
 
       // ═══ PHASE 1 : 3 requêtes indépendantes en parallèle ═══

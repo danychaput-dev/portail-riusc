@@ -27,7 +27,7 @@ async function verifierAdmin(): Promise<string | null> {
     .select('benevole_id, role')
     .eq('user_id', user.id)
     .single()
-  if (!res || res.role !== 'admin') return null
+  if (!res || !['superadmin', 'admin'].includes(res.role)) return null
   return res.benevole_id
 }
 
