@@ -73,6 +73,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
+      // Laisser passer les inputs file caches (declenches par un bouton visible)
+      if (field.tagName === 'INPUT' && (field as HTMLInputElement).type === 'file') return
 
       // Champ verrouille
       if (e instanceof MouseEvent && (e.ctrlKey || e.metaKey)) {
@@ -101,6 +103,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
+      if (field.tagName === 'INPUT' && (field as HTMLInputElement).type === 'file') return
       e.preventDefault()
       e.stopPropagation()
       // Remettre la valeur d'origine pour les checkboxes
@@ -124,6 +127,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       const field = target.closest('input, select, textarea, button') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
+      if (field.tagName === 'INPUT' && (field as HTMLInputElement).type === 'file') return
       ;(field as HTMLInputElement).blur?.()
     }
 
