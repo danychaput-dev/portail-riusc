@@ -34,7 +34,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       /* Champs verrouilles : visuellement gris mais cliquables (pointer-events actif) */
       body.impersonate-readonly input:not([data-impersonate-unlocked]),
       body.impersonate-readonly select:not([data-impersonate-unlocked]),
-      body.impersonate-readonly textarea:not([data-impersonate-unlocked]) {
+      body.impersonate-readonly textarea:not([data-impersonate-unlocked]),
+      body.impersonate-readonly button:not([data-impersonate-unlocked]):not([data-impersonate-ignore]) {
         opacity: 0.7 !important;
         cursor: not-allowed !important;
         caret-color: transparent !important;
@@ -42,7 +43,8 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
       /* Champ debloque par Ctrl+clic */
       body.impersonate-readonly input[data-impersonate-unlocked],
       body.impersonate-readonly select[data-impersonate-unlocked],
-      body.impersonate-readonly textarea[data-impersonate-unlocked] {
+      body.impersonate-readonly textarea[data-impersonate-unlocked],
+      body.impersonate-readonly button[data-impersonate-unlocked] {
         opacity: 1 !important;
         cursor: auto !important;
         caret-color: auto !important;
@@ -55,7 +57,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
     // Intercepter les interactions sur les champs verrouilles
     const handleInteraction = (e: Event) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea') as HTMLElement | null
+      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
 
@@ -65,7 +67,12 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
         e.preventDefault()
         e.stopPropagation()
         field.setAttribute('data-impersonate-unlocked', 'true')
-        setTimeout(() => { ;(field as HTMLInputElement).focus?.() }, 50)
+        if (field.tagName === 'BUTTON') {
+          // Re-cliquer le bouton maintenant qu'il est debloque
+          setTimeout(() => { field.click() }, 50)
+        } else {
+          setTimeout(() => { ;(field as HTMLInputElement).focus?.() }, 50)
+        }
       } else {
         // Clic normal ou frappe : bloquer
         e.preventDefault()
@@ -78,7 +85,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
     // Bloquer les changements de valeur sur checkboxes/radio/select verrouilles
     const handleChange = (e: Event) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea') as HTMLElement | null
+      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       e.preventDefault()
@@ -91,7 +98,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
 
     const handleKeydown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea') as HTMLElement | null
+      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       e.preventDefault()
@@ -99,7 +106,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
 
     const handleFocusin = (e: FocusEvent) => {
       const target = e.target as HTMLElement
-      const field = target.closest('input, select, textarea') as HTMLElement | null
+      const field = target.closest('input, select, textarea, button:not([data-impersonate-ignore])') as HTMLElement | null
       if (!field) return
       if (field.hasAttribute('data-impersonate-unlocked')) return
       ;(field as HTMLInputElement).blur?.()
