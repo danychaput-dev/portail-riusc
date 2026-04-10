@@ -210,14 +210,14 @@ export default function InscriptionPage() {
       .in('session_id', sessionIds)
       .in('presence', ['confirme', 'incertain'])
       .then(({ data, error }) => {
-        if (error) { console.error('Erreur chargement inscrits:', error); return }
+        if (error) { console.error('Erreur chargement inscrits:', error) }
         const counts: Record<string, number> = {}
         ;(data || []).forEach(row => {
           counts[row.session_id] = (counts[row.session_id] || 0) + 1
         })
         setSessionInscrits(counts)
+        setLoadingCapacities(false)
       })
-      .finally(() => setLoadingCapacities(false))
   }, [campId])
 
   // NOTE: useEffect de pré-sélection retiré car fusionné ci-dessus
