@@ -867,6 +867,40 @@ function ReservistesPage() {
                 ✉️ Envoyer {selectedIds.size > 1 ? `des courriels (${selectedIds.size})` : `un courriel${selectedIds.size === 1 ? ' (1)' : ''}`}
               </button>
             )}
+            {isAdmin && selectedIds.size > 0 && (
+              <button
+                onClick={async () => {
+                  const count = selectedIds.size
+                  const noms = data.filter(r => selectedIds.has(r.benevole_id)).map(r => `${r.prenom} ${r.nom}`).slice(0, 5).join(', ') + (count > 5 ? ` (+${count - 5})` : '')
+                  if (!window.confirm(`Supprimer ${count} compte${count > 1 ? 's' : ''} et toutes leurs donnees?\n\n${noms}\n\nCette action est irreversible.`)) return
+                  if (count > 3 && !window.confirm(`Derniere chance: confirmer la suppression de ${count} comptes?`)) return
+                  const res = await fetch('/api/admin/reservistes/delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ benevole_ids: [...selectedIds] }),
+                  })
+                  const result = await res.json()
+                  if (result.success) {
+                    setAllData(prev => prev.filter(x => !selectedIds.has(x.benevole_id)))
+                    setSelectedIds(new Set())
+                    alert(`${result.reussis} compte${result.reussis > 1 ? 's' : ''} supprime${result.reussis > 1 ? 's' : ''}`)
+                  } else {
+                    alert(`${result.reussis}/${result.total} supprimes. Verifiez les erreurs dans la console.`)
+                    console.error('Erreurs suppression:', result.resultats)
+                    setAllData(prev => prev.filter(x => !result.resultats.filter((r: any) => r.success).map((r: any) => r.benevole_id).includes(x.benevole_id)))
+                    setSelectedIds(new Set())
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #dc2626',
+                  backgroundColor: 'white', color: '#dc2626', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer',
+                }}
+              >
+                🗑️ Supprimer ({selectedIds.size})
+              </button>
+            )}
           </div>
         </div>
 

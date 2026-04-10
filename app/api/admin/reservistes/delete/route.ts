@@ -54,41 +54,55 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorise' }, { status: 403 })
   }
 
-  const { benevole_id } = await request.json()
-  if (!benevole_id) {
-    return NextResponse.json({ error: 'benevole_id requis' }, { status: 400 })
+  const body = await request.json()
+  // Supporter un seul benevole_id ou un tableau benevole_ids
+  const ids: string[] = body.benevole_ids || (body.benevole_id ? [body.benevole_id] : [])
+
+  if (ids.length === 0) {
+    return NextResponse.json({ error: 'benevole_id ou benevole_ids requis' }, { status: 400 })
   }
 
   // Empecher de supprimer son propre compte
-  if (benevole_id === admin.benevole_id) {
+  if (ids.includes(admin.benevole_id)) {
     return NextResponse.json({ error: 'Impossible de supprimer votre propre compte' }, { status: 400 })
   }
 
-  const erreurs: string[] = []
+  const resultats: { benevole_id: string; success: boolean; erreurs: string[] }[] = []
 
-  // Supprimer les donnees dans chaque table enfant
-  for (const table of TABLES_ENFANTS) {
-    const { error } = await supabaseAdmin
-      .from(table)
+  for (const benevole_id of ids) {
+    const erreurs: string[] = []
+
+    // Supprimer les donnees dans chaque table enfant
+    for (const table of TABLES_ENFANTS) {
+      const { error } = await supabaseAdmin
+        .from(table)
+        .delete()
+        .eq('benevole_id', benevole_id)
+      if (error && !error.message.includes('does not exist')) {
+        erreurs.push(`${table}: ${error.message}`)
+      }
+    }
+
+    // Supprimer le reserviste
+    const { error: delErr } = await supabaseAdmin
+      .from('reservistes')
       .delete()
       .eq('benevole_id', benevole_id)
-    if (error && !error.message.includes('does not exist')) {
-      erreurs.push(`${table}: ${error.message}`)
-    }
+
+    resultats.push({
+      benevole_id,
+      success: !delErr,
+      erreurs: delErr ? [...erreurs, delErr.message] : erreurs
+    })
   }
 
-  // Supprimer le reserviste
-  const { error: delErr } = await supabaseAdmin
-    .from('reservistes')
-    .delete()
-    .eq('benevole_id', benevole_id)
+  const total = resultats.length
+  const reussis = resultats.filter(r => r.success).length
 
-  if (delErr) {
-    return NextResponse.json({
-      error: `Erreur suppression reserviste: ${delErr.message}`,
-      erreurs_tables: erreurs
-    }, { status: 500 })
-  }
-
-  return NextResponse.json({ success: true, erreurs_tables: erreurs })
+  return NextResponse.json({
+    success: reussis === total,
+    total,
+    reussis,
+    resultats
+  })
 }
