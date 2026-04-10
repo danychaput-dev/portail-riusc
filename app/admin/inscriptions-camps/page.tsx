@@ -808,7 +808,7 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {['Nom', 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', 'Téléphone', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {['Nom', 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
                       padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
@@ -895,21 +895,6 @@ export default function InscriptionsCampsPage() {
                       {ins.created_at
                         ? new Date(ins.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
                         : '—'}
-                    </td>
-                    <td style={{ padding: '8px 10px', color: '#374151' }}>
-                      {ins.telephone ? (
-                        <a href={`tel:${ins.telephone}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
-                          {(() => {
-                            const digits = ins.telephone.replace(/\D/g, '')
-                            if (digits.length === 11 && digits[0] === '1') {
-                              return `1 ${digits.slice(1,4)}-${digits.slice(4,7)}-${digits.slice(7)}`
-                            } else if (digits.length === 10) {
-                              return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`
-                            }
-                            return ins.telephone
-                          })()}
-                        </a>
-                      ) : <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
                     <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ins.courriel ? (
