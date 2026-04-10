@@ -100,6 +100,7 @@ export default function InscriptionsCampsPage() {
   const router = useRouter()
 
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isPartenaireChef, setIsPartenaireChef] = useState(false)
   const [retourHref, setRetourHref] = useState('/')
   const [camps, setCamps] = useState<Camp[]>([])
   const [selectedCampId, setSelectedCampId] = useState<string | null>(null)
@@ -137,6 +138,9 @@ export default function InscriptionsCampsPage() {
       if (['superadmin', 'admin', 'coordonnateur'].includes(res?.role)) {
         setIsAdmin(true)
         setRetourHref('/admin')
+      } else if (res?.role === 'partenaire_chef') {
+        setIsPartenaireChef(true)
+        setRetourHref('/partenaire')
       } else if (res?.role === 'partenaire') {
         setRetourHref('/partenaire')
       }
@@ -705,16 +709,18 @@ export default function InscriptionsCampsPage() {
                   📱 Envoyer rappel SMS
                 </button>
               )}
-              <button
-                onClick={exportExcel}
-                style={{
-                  padding: '7px 14px', borderRadius: 8, border: '1px solid #1e3a5f',
-                  fontSize: 13, background: '#1e3a5f', color: '#fff', cursor: 'pointer',
-                  fontWeight: 600, whiteSpace: 'nowrap',
-                }}
-              >
-                ↓ Exporter Excel
-              </button>
+              {!isPartenaireChef && (
+                <button
+                  onClick={exportExcel}
+                  style={{
+                    padding: '7px 14px', borderRadius: 8, border: '1px solid #1e3a5f',
+                    fontSize: 13, background: '#1e3a5f', color: '#fff', cursor: 'pointer',
+                    fontWeight: 600, whiteSpace: 'nowrap',
+                  }}
+                >
+                  ↓ Exporter Excel
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -808,7 +814,7 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {['Nom', 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', 'Courriel', 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {[...(isPartenaireChef ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireChef ? [] : ['Courriel']), 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
                       padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
@@ -839,9 +845,11 @@ export default function InscriptionsCampsPage() {
                         />
                       </td>
                     )}
-                    <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
-                      {ins.prenom_nom}
-                    </td>
+                    {!isPartenaireChef && (
+                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
+                        {ins.prenom_nom}
+                      </td>
+                    )}
                     <td style={{ padding: '8px 10px' }}>
                       {isAdmin ? (
                         <div>
@@ -896,11 +904,13 @@ export default function InscriptionsCampsPage() {
                         ? new Date(ins.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
                         : '—'}
                     </td>
-                    <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ins.courriel ? (
-                        <a href={`mailto:${ins.courriel}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{ins.courriel}</a>
-                      ) : <span style={{ color: '#d1d5db' }}>—</span>}
-                    </td>
+                    {!isPartenaireChef && (
+                      <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {ins.courriel ? (
+                          <a href={`mailto:${ins.courriel}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{ins.courriel}</a>
+                        ) : <span style={{ color: '#d1d5db' }}>—</span>}
+                      </td>
+                    )}
                     <td style={{ padding: '8px 10px', color: '#6b7280', whiteSpace: 'nowrap' }}>
                       {ins.region || <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>

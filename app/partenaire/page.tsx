@@ -110,7 +110,7 @@ export default function PartenairePage() {
         }
       }
 
-      if (!res || res.role !== 'partenaire') { router.push('/'); return }
+      if (!res || (res.role !== 'partenaire' && res.role !== 'partenaire_chef')) { router.push('/'); return }
       setPartenaire(res)
 
       // Organismes du partenaire
