@@ -1005,8 +1005,10 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                     <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '8px 0' }}></div>
                     {sessionsDisponibles.sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA', { numeric: true })).map((session) => {
                       const cap = session.monday_id ? sessionCapacities[session.monday_id] : null
-                      const isComplet = cap?.statut === 'complet'
-                      const isAttente = cap?.statut === 'liste_attente'
+                      const inscrits = cap?.inscrits ?? 0
+                      const placesLimitees = inscrits >= 60
+                      const isComplet = inscrits >= 80
+                      const placesRestantes = 80 - inscrits
                       const isDisabled = isComplet
                       
                       return (
@@ -1043,11 +1045,8 @@ const newBenevoleId = responseData.monday_item_id ? String(responseData.monday_i
                                   {isComplet && (
                                     <span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Complet</span>
                                   )}
-                                  {isAttente && (
-                                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
-                                  )}
-                                  {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
-                                    <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
+                                  {!isComplet && placesLimitees && (
+                                    <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Places limitees - {placesRestantes} restante{placesRestantes > 1 ? 's' : ''}</span>
                                   )}
                                 </>
                               )}
