@@ -463,7 +463,7 @@ export default function InscriptionPage() {
         } else if (phoneExists) { setFieldErrors(prev => ({ ...prev, telephone: 'Ce numéro de téléphone est déjà enregistré' })); setMessage({ type: 'error', text: 'Ce numéro de téléphone est déjà associé à un compte existant.' }); setLoading(false); return }
       }
 
-      const response = await fetch(n8nUrl('/webhook/riusc-inscription'), {
+      const response = await fetch('/api/inscription', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prenom: formData.prenom.trim(), nom: formData.nom.trim(), email: emailClean,
