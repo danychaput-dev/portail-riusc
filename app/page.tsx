@@ -776,7 +776,7 @@ export default function HomePage() {
       const capInfo = sessionCapacities[selectedSessionId]
       const inscriptionStatut = capInfo?.statut === 'liste_attente' ? 'Liste d\'attente' : 'Inscrit'
       
-      const response = await fetch(n8nUrl('/webhook/inscription-camp'), {
+      const response = await fetch('/api/camp/inscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

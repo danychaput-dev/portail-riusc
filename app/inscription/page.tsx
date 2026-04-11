@@ -556,7 +556,7 @@ const newBenevoleId = responseData.benevole_id ? String(responseData.benevole_id
             .eq('benevole_id', newBenevoleId)
 
           // Inscription au camp via n8n (upsert Supabase + SMS/courriel confirmation)
-          const campResponse = await fetch(n8nUrl('/webhook/inscription-camp'), {
+          const campResponse = await fetch('/api/camp/inscription', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

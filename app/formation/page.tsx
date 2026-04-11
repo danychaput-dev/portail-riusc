@@ -436,7 +436,7 @@ function FormationContent() {
 
       if (updateError) console.error('Erreur sauvegarde allergies:', updateError);
 
-      const response = await fetch(n8nUrl('/webhook/inscription-camp'), {
+      const response = await fetch('/api/camp/inscription', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           benevole_id: reserviste.benevole_id,
