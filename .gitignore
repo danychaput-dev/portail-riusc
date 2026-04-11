@@ -37,6 +37,15 @@ yarn-error.log*
 # vercel
 .vercel
 
+# scripts utilitaires (ne jamais commiter de scripts avec des cles)
+/scripts-local/
+check_*.js
+diagnostic-*.py
+import-*.py
+organiser-*.js
+upload-*.mjs
+create_client.txt
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
