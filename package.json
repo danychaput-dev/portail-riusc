@@ -14,7 +14,7 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.8.0",
+    "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "dotenv": "^17.3.1",
     "next": "16.1.5",
