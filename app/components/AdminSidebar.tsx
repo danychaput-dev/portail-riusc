@@ -37,6 +37,8 @@ const NAV_ITEMS: NavItem[] = [
   { titre: 'Dashboard',            icone: '📈', href: '/admin/dashboard',          statut: 'actif' },
   { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',              statut: 'actif' },
   { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',       statut: 'actif', superadminOnly: true },
+  { titre: 'Health Check',         icone: '🩺', href: '/admin/health-check',        statut: 'actif', superadminOnly: true },
+  { titre: 'Debug Camp',           icone: '🔬', href: '/api/admin/debug-camp',      statut: 'actif', superadminOnly: true, externe: true },
   { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',        statut: 'bientot' },
   { titre: 'Presences & CNESST',   icone: '📋', href: '/admin/presences',          statut: 'bientot' },
 ]
@@ -118,7 +120,7 @@ export default function AdminSidebar({ stats, userRole }: Props) {
           return (
             <button
               key={item.href}
-              onClick={() => !disabled && router.push(item.href)}
+              onClick={() => !disabled && (item.externe ? window.open(item.href, '_blank') : router.push(item.href))}
               disabled={disabled}
               title={collapsed ? item.titre : undefined}
               style={{
