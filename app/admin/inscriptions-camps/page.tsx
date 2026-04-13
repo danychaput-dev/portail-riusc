@@ -100,7 +100,7 @@ export default function InscriptionsCampsPage() {
   const router = useRouter()
 
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isPartenaireChef, setIsPartenaireChef] = useState(false)
+  const [isPartenaireLect, setIsPartenaireChef] = useState(false)
   const [retourHref, setRetourHref] = useState('/')
   const [camps, setCamps] = useState<Camp[]>([])
   const [selectedCampId, setSelectedCampId] = useState<string | null>(null)
@@ -160,7 +160,7 @@ export default function InscriptionsCampsPage() {
       if (['superadmin', 'admin', 'coordonnateur'].includes(role!)) {
         setIsAdmin(true)
         setRetourHref('/admin')
-      } else if (role === 'partenaire_chef') {
+      } else if (role === 'partenaire_lect') {
         setIsPartenaireChef(true)
         setRetourHref('/partenaire')
       } else if (role === 'partenaire') {
@@ -731,7 +731,7 @@ export default function InscriptionsCampsPage() {
                   📱 Envoyer rappel SMS
                 </button>
               )}
-              {!isPartenaireChef && (
+              {!isPartenaireLect && (
                 <button
                   onClick={exportExcel}
                   style={{
@@ -836,7 +836,7 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {[...(isPartenaireChef ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireChef ? [] : ['Courriel']), 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
                       padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
@@ -867,7 +867,7 @@ export default function InscriptionsCampsPage() {
                         />
                       </td>
                     )}
-                    {!isPartenaireChef && (
+                    {!isPartenaireLect && (
                       <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
                         {ins.prenom_nom}
                       </td>
@@ -926,7 +926,7 @@ export default function InscriptionsCampsPage() {
                         ? new Date(ins.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })
                         : '—'}
                     </td>
-                    {!isPartenaireChef && (
+                    {!isPartenaireLect && (
                       <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {ins.courriel ? (
                           <a href={`mailto:${ins.courriel}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{ins.courriel}</a>

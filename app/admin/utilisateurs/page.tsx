@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
-type Role = 'superadmin' | 'admin' | 'coordonnateur' | 'adjoint' | 'reserviste' | 'partenaire_chef' | 'partenaire'
+type Role = 'superadmin' | 'admin' | 'coordonnateur' | 'adjoint' | 'reserviste' | 'partenaire_lect' | 'partenaire'
 
 interface Utilisateur {
   benevole_id: string
@@ -22,7 +22,7 @@ const ROLE_LABELS: Record<Role, string> = {
   coordonnateur: '🟡 Coordonnateur',
   adjoint: '🔵 Adjoint',
   reserviste: '⚪ Reserviste',
-  partenaire_chef: '🟠 Partenaire Chef',
+  partenaire_lect: '🟠 Partenaire Lecture',
   partenaire: '🟤 Partenaire',
 }
 
@@ -32,7 +32,7 @@ const ROLE_COLORS: Record<Role, { bg: string; border: string; text: string }> = 
   coordonnateur: { bg: '#fffbeb', border: '#fcd34d', text: '#d97706' },
   adjoint: { bg: '#eff6ff', border: '#93c5fd', text: '#2563eb' },
   reserviste: { bg: '#f9fafb', border: '#e5e7eb', text: '#6b7280' },
-  partenaire_chef: { bg: '#fff7ed', border: '#fdba74', text: '#ea580c' },
+  partenaire_lect: { bg: '#fff7ed', border: '#fdba74', text: '#ea580c' },
   partenaire: { bg: '#faf5f0', border: '#d6c4b0', text: '#78716c' },
 }
 
@@ -186,7 +186,7 @@ export default function AdminUtilisateursPage() {
       const { data } = await supabase
         .from('reservistes')
         .select('benevole_id, prenom, nom, email, role, niveau_ressource')
-        .in('role', ['superadmin', 'admin', 'coordonnateur', 'adjoint', 'partenaire_chef', 'partenaire'])
+        .in('role', ['superadmin', 'admin', 'coordonnateur', 'adjoint', 'partenaire_lect', 'partenaire'])
         .order('nom')
 
       setUtilisateurs(data || [])

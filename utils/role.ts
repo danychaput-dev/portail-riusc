@@ -2,7 +2,7 @@
 // Utilitaire centralise pour la gestion des roles
 import { createClient } from '@/utils/supabase/client'
 
-export type Role = 'superadmin' | 'admin' | 'coordonnateur' | 'adjoint' | 'reserviste' | 'partenaire_chef' | 'partenaire'
+export type Role = 'superadmin' | 'admin' | 'coordonnateur' | 'adjoint' | 'reserviste' | 'partenaire_lect' | 'partenaire'
 
 export interface RoleInfo {
   benevole_id: string
@@ -39,5 +39,5 @@ export const isAdmin = (role: Role) => role === 'superadmin' || role === 'admin'
 export const isAdminOrCoord = (role: Role) => role === 'superadmin' || role === 'admin' || role === 'coordonnateur'
 
 // Partenaires
-export const isPartenaire = (role: Role) => role === 'partenaire' || role === 'partenaire_chef'
-export const isPartenaireChef = (role: Role) => role === 'partenaire_chef'
+export const isPartenaire = (role: Role) => role === 'partenaire' || role === 'partenaire_lect'
+export const isPartenaireLect = (role: Role) => role === 'partenaire_lect'

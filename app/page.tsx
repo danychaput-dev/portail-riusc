@@ -545,7 +545,7 @@ export default function HomePage() {
           router.push('/admin/reservistes')
           return
         }
-        if (actualRole === 'partenaire' || actualRole === 'partenaire_chef') {
+        if (actualRole === 'partenaire' || actualRole === 'partenaire_lect') {
           router.push('/partenaire')
           return
         }
