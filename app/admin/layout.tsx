@@ -66,29 +66,69 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      // 1. Chercher par user_id
-      let res = (await supabase.from('reservistes').select('role, benevole_id').eq('user_id', user.id).single()).data
-      // 2. Fallback par email si user_id pas lie
-      if (!res && user.email) {
-        const { data: byEmail } = await supabase.from('reservistes').select('role, benevole_id').ilike('email', user.email).single()
-        if (byEmail) {
-          await supabase.from('reservistes').update({ user_id: user.id }).eq('benevole_id', byEmail.benevole_id)
-          res = byEmail
+
+      // Detection impersonation: si active, on utilise le role de l'utilisateur impersonne
+      // pour l'affichage du sidebar et les restrictions d'acces.
+      let impersonatedRole: string | null = null
+      let impersonatedBenevoleId: string | null = null
+      try {
+        const impRes = await fetch('/api/check-impersonate', { credentials: 'include' })
+        if (impRes.ok) {
+          const impData = await impRes.json()
+          if (impData.isImpersonating && impData.benevole_id) {
+            impersonatedBenevoleId = impData.benevole_id
+            const { data: impRole } = await supabase
+              .from('reservistes')
+              .select('role')
+              .eq('benevole_id', impData.benevole_id)
+              .single()
+            impersonatedRole = impRole?.role || null
+          }
         }
+      } catch (_) {}
+
+      // Role effectif = role impersonne si active, sinon role reel
+      let effectiveRole: string | null = impersonatedRole
+      if (!effectiveRole) {
+        // 1. Chercher par user_id
+        let res = (await supabase.from('reservistes').select('role, benevole_id').eq('user_id', user.id).single()).data
+        // 2. Fallback par email si user_id pas lie
+        if (!res && user.email) {
+          const { data: byEmail } = await supabase.from('reservistes').select('role, benevole_id').ilike('email', user.email).single()
+          if (byEmail) {
+            await supabase.from('reservistes').update({ user_id: user.id }).eq('benevole_id', byEmail.benevole_id)
+            res = byEmail
+          }
+        }
+        // 3. Si le role n'est pas detecte via SELECT (RLS), essayer via RPC
+        if (res && !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) {
+          const { data: roleFromDb } = await supabase.rpc('get_reserviste_role', { target_benevole_id: res.benevole_id })
+          if (roleFromDb) res = { ...res, role: roleFromDb }
+        }
+        effectiveRole = res?.role || null
       }
-      // 3. Si le role n'est pas detecte via SELECT (RLS), essayer via RPC
-      if (res && !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) {
-        const { data: roleFromDb } = await supabase.rpc('get_reserviste_role', { target_benevole_id: res.benevole_id })
-        if (roleFromDb) res = { ...res, role: roleFromDb }
+
+      // Partenaires ont acces uniquement a /admin/inscriptions-camps
+      const isPartenaireRole = effectiveRole === 'partenaire' || effectiveRole === 'partenaire_lect'
+      const isAdminRole = ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(effectiveRole || '')
+
+      if (!isAdminRole && !isPartenaireRole) {
+        router.push('/')
+        return
       }
-      if (!res || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
+      // Partenaire: seule la page inscriptions-camps est autorisee
+      if (isPartenaireRole && !pathname.startsWith('/admin/inscriptions-camps')) {
+        router.push('/')
+        return
+      }
+
       setAuthorized(true)
-      setUserRole(res.role)
+      setUserRole(effectiveRole || '')
       userIdRef.current = user.id
-      refreshBadges()
+      if (isAdminRole) refreshBadges()
     }
     init()
-  }, [])
+  }, [pathname])
 
   // Rafraîchir les badges quand on navigue entre pages admin
   useEffect(() => {
@@ -146,7 +186,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
       <PortailHeader />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {userRole !== 'adjoint' && <AdminSidebar stats={stats} userRole={userRole} />}
+        {userRole !== 'adjoint' && userRole !== 'partenaire' && userRole !== 'partenaire_lect' && <AdminSidebar stats={stats} userRole={userRole} />}
         <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {children}
         </main>
