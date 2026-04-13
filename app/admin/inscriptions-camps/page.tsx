@@ -161,10 +161,15 @@ export default function InscriptionsCampsPage() {
       if (['superadmin', 'admin', 'coordonnateur'].includes(role!)) {
         setIsAdmin(true)
         setRetourHref('/admin')
-      } else if (role === 'partenaire' || role === 'partenaire_lect') {
-        // Loi 25: partenaires voient uniquement les donnees non-nominales (compteurs,
-        // presence, district, dates). Aucun nom, courriel, telephone, allergie,
-        // condition medicale.
+      } else if (role === 'partenaire') {
+        // Partenaire: lecture complete incluant noms, courriels, telephones et export
+        // Excel. Pas d'acces aux actions d'edition (cahier, presence, suppression).
+        setIsPartenaireChef(false)
+        setRetourHref('/partenaire')
+      } else if (role === 'partenaire_lect') {
+        // Loi 25: partenaire_lect voit uniquement les donnees non-nominales
+        // (compteurs, presence, district, dates). Aucun nom, courriel, telephone,
+        // allergie, condition medicale.
         setIsPartenaireChef(true)
         setRetourHref('/partenaire')
       } else {
