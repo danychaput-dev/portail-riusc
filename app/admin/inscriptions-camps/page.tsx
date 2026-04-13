@@ -160,9 +160,14 @@ export default function InscriptionsCampsPage() {
       if (['superadmin', 'admin', 'coordonnateur'].includes(role!)) {
         setIsAdmin(true)
         setRetourHref('/admin')
+      } else if (role === 'partenaire' || role === 'partenaire_lect') {
+        // Loi 25: partenaires voient uniquement les donnees non-nominales (compteurs,
+        // presence, district, dates). Aucun nom, courriel, telephone, allergie,
+        // condition medicale.
+        setIsPartenaireChef(true)
+        setRetourHref('/partenaire')
       } else {
-        // Loi 25: partenaire, partenaire_lect, reserviste n'ont pas acces a cette page.
-        // La page expose des donnees nominales/medicales soumises au respect de la Loi 25.
+        // Reservistes et autres roles: pas d'acces a cette page.
         router.replace('/')
       }
     }
