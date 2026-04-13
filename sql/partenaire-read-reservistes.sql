@@ -8,34 +8,42 @@
 -- inscription: nom, courriel, telephone (depuis inscriptions_camps) plus
 -- region, groupe, bottes, allergies, conditions (depuis reservistes).
 --
--- RLS actuel sur reservistes:
---  - admin/coord/adjoint/superadmin peuvent tout lire (is_admin_or_coord)
---  - chaque utilisateur peut lire son propre enregistrement
---  - aucune policy pour 'partenaire'
+-- IMPORTANT: la premiere version utilisait une sous-requete directe dans
+-- le USING de la policy, ce qui a cause une recursion infinie (policy
+-- sur reservistes qui fait SELECT FROM reservistes => retrigger la policy
+-- => 500 Internal Server Error sur toutes les requetes reservistes).
 --
--- Resultat: le partenaire voyait juste prenom_nom/courriel/telephone
--- venant de inscriptions_camps, mais les colonnes complementaires
--- (region, allergies, bottes, conditions_medicales) restaient vides.
---
--- Cette policy ajoute la lecture complete pour 'partenaire' SEULEMENT.
--- 'partenaire_lect' reste sans acces (principe de minimisation loi 25).
---
--- Impact: export Excel complet pour les partenaires, affichage de toutes
--- les colonnes (district, bottes, allergies, conditions medicales) sur
--- la page des inscriptions camps.
+-- Solution: fonction SECURITY DEFINER is_partenaire() qui contourne RLS
+-- pour verifier le role, meme pattern que is_admin_or_coord() deja en
+-- place.
 -- =====================================================================
 
+-- Nettoyer l'ancienne policy recursive si elle existe
+DROP POLICY IF EXISTS "Partenaires read reservistes" ON reservistes;
+
+-- Fonction helper SECURITY DEFINER pour casser la recursion RLS
+CREATE OR REPLACE FUNCTION public.is_partenaire()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM reservistes
+    WHERE user_id = auth.uid() AND role = 'partenaire'
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_partenaire() TO authenticated;
+
+-- Policy: lecture complete reservistes pour le role 'partenaire' seulement.
+-- 'partenaire_lect' reste sans acces (principe de minimisation loi 25).
 CREATE POLICY "Partenaires read reservistes"
   ON reservistes
   FOR SELECT
   TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM reservistes r
-      WHERE r.user_id = auth.uid()
-        AND r.role = 'partenaire'
-    )
-  );
+  USING (is_partenaire());
 
 -- Verification post-deploiement:
 -- SELECT policyname, cmd, roles FROM pg_policies
