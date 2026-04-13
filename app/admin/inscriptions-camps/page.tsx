@@ -101,6 +101,7 @@ export default function InscriptionsCampsPage() {
 
   const [isAdmin, setIsAdmin] = useState(false)
   const [isPartenaireLect, setIsPartenaireChef] = useState(false)
+  const [roleChecked, setRoleChecked] = useState(false)
   const [retourHref, setRetourHref] = useState('/')
   const [camps, setCamps] = useState<Camp[]>([])
   const [selectedCampId, setSelectedCampId] = useState<string | null>(null)
@@ -169,13 +170,16 @@ export default function InscriptionsCampsPage() {
       } else {
         // Reservistes et autres roles: pas d'acces a cette page.
         router.replace('/')
+        return
       }
+      setRoleChecked(true)
     }
     checkRole()
   }, [router])
 
-  // ── Charger tous les camps ──────────────────────────────────────────────────
+  // ── Charger tous les camps (apres verification du role) ───────────────────
   useEffect(() => {
+    if (!roleChecked) return
     async function loadCamps() {
       setLoading(true)
       const { data, error } = await supabase
@@ -238,11 +242,11 @@ export default function InscriptionsCampsPage() {
       setLoading(false)
     }
     loadCamps()
-  }, [])
+  }, [roleChecked])
 
   // ── Charger les inscrits du camp sélectionné ───────────────────────────────
   useEffect(() => {
-    if (!selectedCampId) return
+    if (!selectedCampId || !roleChecked) return
     async function loadInscrits() {
       setLoadingInscrits(true)
       setSearch('')
@@ -309,7 +313,7 @@ export default function InscriptionsCampsPage() {
       setLoadingInscrits(false)
     }
     loadInscrits()
-  }, [selectedCampId, isPartenaireLect])
+  }, [selectedCampId, isPartenaireLect, roleChecked])
 
   // ── Filtres ─────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
