@@ -1,0 +1,158 @@
+{
+  "id": "18378406896",
+  "name": "Résultat de sondage (JotForm)",
+  "description": "",
+  "state": "active",
+  "board_kind": "public",
+  "board_folder_id": null,
+  "workspace_id": "9496614",
+  "workspace": {
+    "id": "9496614",
+    "name": "CRM"
+  },
+  "items_count": 826,
+  "columns": [
+    {
+      "id": "name",
+      "title": "Name",
+      "type": "name",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxtj6g4",
+      "title": "9h00 - A",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxt86xw",
+      "title": "9h00 - B",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkxn9bxs",
+      "title": "9h00 - C",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkxn6jc8",
+      "title": "9h00 - D",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxt733g",
+      "title": "10h30 - A",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxt7adq",
+      "title": "10h30 - B",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkxs4t4j",
+      "title": "10h30 - C",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkxsakam",
+      "title": "10h30 - D",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxt5nt6",
+      "title": "13h00 - A",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxt44x3",
+      "title": "13h00 - B",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkxsqf71",
+      "title": "13h00 - C",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkxstbf2",
+      "title": "13h00 - D",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxt8vbm",
+      "title": "14h30 - A",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkxtbj99",
+      "title": "14h30 - B",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "pulse_id_mkxshx32",
+      "title": "Identifiant de l'élément",
+      "type": "item_id",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "pulse_updated_mkxs774y",
+      "title": "Dernière mise à jour",
+      "type": "last_updated",
+      "settings_str": "{}",
+      "archived": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "topics",
+      "title": "Résultats du samedi",
+      "color": "#579bfc",
+      "archived": false
+    },
+    {
+      "id": "group_mkxsh7qh",
+      "title": "Résultats du dimanche",
+      "color": "#bb3354",
+      "archived": false
+    }
+  ],
+  "tags": [],
+  "owners": [
+    {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    }
+  ],
+  "updated_at": "2025-11-18T13:30:19Z"
+}

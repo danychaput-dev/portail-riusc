@@ -1,0 +1,131 @@
+{
+  "id": "18393688816",
+  "name": "CNESST-Confirmité",
+  "description": null,
+  "state": "active",
+  "board_kind": "public",
+  "board_folder_id": "18999342",
+  "workspace_id": "9496614",
+  "workspace": {
+    "id": "9496614",
+    "name": "CRM"
+  },
+  "items_count": 11,
+  "columns": [
+    {
+      "id": "name",
+      "title": "Name",
+      "type": "name",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkz7rek",
+      "title": "Tâches",
+      "type": "board_relation",
+      "settings_str": "{\"boardIds\":[18392013923],\"allowCreateReflectionColumn\":true}",
+      "archived": false
+    },
+    {
+      "id": "lookup_mkz72v2a",
+      "title": "Description de tâche",
+      "type": "mirror",
+      "settings_str": "{\"relation_column\":{\"board_relation_mkz7rek\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"18392013923\":[\"text_mkz7rrat\"]}}",
+      "archived": false
+    },
+    {
+      "id": "lookup_mkz7z0v3",
+      "title": "Niveau Risque",
+      "type": "mirror",
+      "settings_str": "{\"relation_column\":{\"board_relation_mkz7rek\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"18392013923\":[\"text_mkz71ryr\"]}}",
+      "archived": false
+    },
+    {
+      "id": "long_text_mkz75rq1",
+      "title": "Analyse  Risque",
+      "type": "long_text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "long_text_mkz72e8d",
+      "title": "Dangers Identifiés",
+      "type": "long_text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "long_text_mkz7mzxm",
+      "title": "Mesures Prévention",
+      "type": "long_text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "lookup_mkz7990z",
+      "title": "EPI Requis",
+      "type": "mirror",
+      "settings_str": "{\"relation_column\":{\"board_relation_mkz7rek\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"18392013923\":[\"text_mkz7vg0k\"]}}",
+      "archived": false
+    },
+    {
+      "id": "file_mkz7v74q",
+      "title": "Procédure sécurité",
+      "type": "file",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "lookup_mkz77dnd",
+      "title": "Formations Requises",
+      "type": "mirror",
+      "settings_str": "{\"relation_column\":{\"board_relation_mkz7rek\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"18392013923\":[\"dropdown_mkykgrqa\"]}}",
+      "archived": false
+    },
+    {
+      "id": "color_mkz76yv4",
+      "title": "Statut",
+      "type": "status",
+      "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"En cours\",\"1\":\"Approuvé\",\"3\":\"Validé\",\"5\":\"À faire\"},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"3\":{\"color\":\"#007eb5\",\"border\":\"#3db0df\",\"var_name\":\"blue-links\"},\"5\":{\"color\":\"#c4c4c4\",\"border\":\"#b0b0b0\",\"var_name\":\"grey\"}}}",
+      "archived": false
+    },
+    {
+      "id": "person",
+      "title": "Responsable",
+      "type": "people",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "date_mkz74xb8",
+      "title": "Date échéance",
+      "type": "date",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "long_text_mkz7ffay",
+      "title": "Notes",
+      "type": "long_text",
+      "settings_str": "{}",
+      "archived": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "topics",
+      "title": "Confirmité",
+      "color": "#579bfc",
+      "archived": false
+    }
+  ],
+  "tags": [],
+  "owners": [
+    {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    }
+  ],
+  "updated_at": "2026-01-06T13:47:23Z"
+}

@@ -1,0 +1,32 @@
+id,name,created_at,updated_at,Sous-tâches,Admin,Statut,Échéancier,Durée,Dépend de,Effort prévu,Effort réalisé,Date d'achèvement,Statut d'achèvement,Commentaire
+18275317380,Mise à jour du profil de réserviste,2025-10-27T11:02:43Z,2025-10-27T11:02:43Z,,,,,,,,,,,
+18270191656,Vérification allergies,2025-10-25T20:09:40Z,2025-10-27T19:16:12Z,,,,2022-01-08 - 2022-01-16,9,,12,8,2022-01-18,,
+18270203260,Cahier du participant,2025-10-25T20:16:39Z,2025-10-27T11:18:38Z,,,,,,,,,,,
+18270191646,Jalon - Planification,2025-10-25T20:09:39Z,2025-10-26T10:53:49Z,,,,2025-11-19 - 2025-11-19,0,,,,2022-02-04,,
+18271454053,Montage de lit de camp,2025-10-26T11:06:05Z,2025-10-26T11:12:05Z,,,,,,,,,,,"Parler avec Maxime Perreault-Varin
+C:514-603-9874
+Maxime.Perreault-Varin@croixrouge.ca"
+18271455873,Ramassage de débris,2025-10-26T11:07:24Z,2025-10-26T11:11:29Z,,,,,,,,,,,"Stéphane Huriet ? Rémi Barriault ?
+Tous deux de la SOPFEU"
+18271457426,Sac de sable pour digue,2025-10-26T11:08:40Z,2025-10-26T11:08:40Z,,,,,,,,,,,
+18275327689,Sac de sable marco,2025-10-27T11:03:41Z,2025-10-27T19:18:28Z,,Esther L.Lapointe,,,,,,,,,
+18275379756,Transport des sacs de sacs et manutention,2025-10-27T11:14:10Z,2025-10-27T11:14:10Z,,,,,,,,,,,
+18270191650,Réservation de la salle,2025-10-25T20:09:39Z,2025-10-26T10:55:31Z,,,,2025-10-27 - 2025-10-31,5,,10,14,2022-02-01,,
+18270191638,Identifier traiteur/repas pour les 2 diners,2025-10-25T20:09:39Z,2025-10-26T10:53:48Z,,,,2025-11-08 - 2025-11-12,5,,22,20,2022-01-20,,
+18270198875,Répertorier DEA sur place,2025-10-25T20:14:38Z,2025-10-26T10:57:57Z,,,,2025-11-03 - 2025-11-07,5,,,,,,
+18270199040,Besoin du plan d'évacuation,2025-10-25T20:14:54Z,2025-10-26T10:57:38Z,,,,2025-11-03 - 2025-11-07,5,,,,,,Le plan d'évacuation doit être soumis à Rémi de la Sopfeu
+18270201240,Assigner un responsable premiers soins par jours,2025-10-25T20:15:48Z,2025-10-26T10:57:16Z,,,,2025-11-25 - 2025-11-27,3,,,,,,
+18275414716,Roll-up RIUSC,2025-10-27T11:21:54Z,2025-10-27T11:22:40Z,,,,,,,,,,,Dany: j'ai envoyé un courriel à JP pour vérifier la possibilité de les emprunter. et comment on procède pour les avoir au camp ?
+18270191654,Jalon - Exécution,2025-10-25T20:09:40Z,2025-10-26T10:53:49Z,,,,2025-11-30 - 2025-12-04,5,,,,,,
+18270191664,Accès à la salle,2025-10-25T20:09:40Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,0.5,,0.5,5,,,
+18270191641,Aménagement de la salle,2025-10-25T20:09:39Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,1,,1.5,3,,,
+18270191653,"Collations, jus - café",2025-10-25T20:09:40Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,1,,1,16,,,
+18271402042,Affiches - Horaire - salles,2025-10-26T10:39:16Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,0.5,,0.5,,,,
+18271402470,Liste des présences,2025-10-26T10:39:43Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,0.5,,0.5,,,,
+18271406089,Apporter le nécessaire pour nettoyer les tables après repas,2025-10-26T10:43:39Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,0.5,,0.5,,,,
+18271406591,Apporter des extensions et barres d'alimentations,2025-10-26T10:44:19Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,0.5,,0.5,,,,
+18271407076,Besoin de support à manteau ? (vestiaire),2025-10-26T10:44:53Z,2025-10-26T10:50:26Z,,,,2025-11-29 - 2025-11-29,1,,1,,,,
+18271432212,Apporter trousse de premiers soins,2025-10-26T10:59:17Z,2025-10-26T10:59:55Z,,,,2025-11-29 - 2025-11-29,1,,,,,,
+18270191661,Jalon - Lancement,2025-10-25T20:09:40Z,2025-10-26T10:50:48Z,,,,2025-11-29 - 2025-11-29,0,,0,,,,
+18275405053,Dossard,2025-10-27T11:19:40Z,2025-10-27T11:19:40Z,,,,,,,,,,,
+18331749201,Achat de bidule pour attaché les gants ensemble (gauche droite),2025-11-03T13:35:08Z,2025-11-03T13:35:08Z,,,,,,,,,,,

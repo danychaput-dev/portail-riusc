@@ -1,0 +1,1619 @@
+[
+  {
+    "id": "10891754527",
+    "name": "CR- Aide préparation centres hébergement",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-02-20T11:02:35Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Installation de lits de camps, tables, chaises et organisation d'espaces dans centre d'hébergement temporaire pour personnes sinistrées.",
+        "value": "\"Installation de lits de camps, tables, chaises et organisation d'espaces dans centre d'hébergement temporaire pour personnes sinistrées.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Faible",
+        "value": "\"Faible\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Logistique",
+        "value": "\"Logistique\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "Croix-Rouge",
+        "value": "{\"index\":2,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:28.232Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Organisation, TravailÉquipe, Communication",
+        "value": "{\"tag_ids\":[28242622,28242596,28242595]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste réfléchissante RIUSC, Gants, Chaussures fermées confortables, Masque, Vêtements confortables",
+        "value": "\"Veste réfléchissante RIUSC, Gants, Chaussures fermées confortables, Masque, Vêtements confortables\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC",
+        "value": "{\"ids\":[1]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": "Aide préparation centres hébergement → Croix-Rouge, Soutien besoins essentiels → Croix-Rouge, Soutien évacuations → Croix-Rouge, Réconfort et soutien moral → Croix-Rouge, Suivi clientèles vulnérables → Croix-Rouge, Protection infrastructures (digues) → SOPFEU, Gestion débris → SOPFEU, Reconnaissance territoire → SOPFEU, Coordination opérations → Les deux",
+        "value": "{\"ids\":[1,2,3,4,5,6,7,9,10]}"
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754528",
+    "name": "CR - Soutien besoins essentiels",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-14T19:38:17Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Distribution d'eau, nourriture, vêtements, articles d'hygiène aux personnes sinistrées dans centres d'hébergement ou points de distribution.",
+        "value": "\"Distribution d'eau, nourriture, vêtements, articles d'hygiène aux personnes sinistrées dans centres d'hébergement ou points de distribution.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Faible",
+        "value": "\"Faible\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Bien-être Citoyens",
+        "value": "\"Bien-être Citoyens\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "Croix-Rouge",
+        "value": "{\"index\":2,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:26.720Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Empathie, Communication, GestionStress",
+        "value": "{\"tag_ids\":[28242597,28242595,28242598]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste réfléchissante, Masque (si requis)",
+        "value": "\"Veste réfléchissante, Masque (si requis)\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Hygiène et salubrité alimentaire (base), Sensibilisation allergies alimentaires, Communication empathique et bienveillante",
+        "value": "{\"ids\":[1,10,11,12]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754529",
+    "name": "CR - Soutien évacuations",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-13T16:21:31Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Assistance aux personnes évacuées lors de sinistres, incluant porte-à-porte, aide aux personnes vulnérables et support au transport.",
+        "value": "\"Assistance aux personnes évacuées lors de sinistres, incluant porte-à-porte, aide aux personnes vulnérables et support au transport.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Moyen",
+        "value": "\"Moyen\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Sécurité",
+        "value": "\"Sécurité\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "Croix-Rouge",
+        "value": "{\"index\":2,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:29.982Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "GestionStress, PermisConduire, PremiersSoins, Communication",
+        "value": "{\"tag_ids\":[28242598,28242601,28242599,28242595]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste / Dossard haute visibilité RIUSC avec identification, Gants, Bottes de sécurité, Masque, Casque, Lampe Frontale, Vêtements adaptés",
+        "value": "\"Veste / Dossard haute visibilité RIUSC avec identification, Gants, Bottes de sécurité, Masque, Casque, Lampe Frontale, Vêtements adaptés\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Premiers secours, Premiers secours psychologiques",
+        "value": "{\"ids\":[1,5,6]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754728",
+    "name": "CR - Réconfort et soutien moral",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-14T19:49:46Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Présence rassurante, écoute active et conversation avec personnes sinistrées en détresse dans centres d'hébergement.",
+        "value": "\"Présence rassurante, écoute active et conversation avec personnes sinistrées en détresse dans centres d'hébergement.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Faible",
+        "value": "\"Faible\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Bien-être Citoyens",
+        "value": "\"Bien-être Citoyens\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "Croix-Rouge",
+        "value": "{\"index\":2,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:23.499Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Empathie, ÉcouteActive, Communication, GestionÉmotions",
+        "value": "{\"tag_ids\":[28242597,28242603,28242595,28242604]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste réfléchissante",
+        "value": "\"Veste réfléchissante\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Premiers secours psychologiques, Communication empathique et bienveillante",
+        "value": "{\"ids\":[1,6,12]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754729",
+    "name": "CR - Suivi clientèles vulnérables",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-14T20:02:55Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Vérification régulière auprès des personnes vulnérables (aînés, mobilité réduite, conditions médicales) dans centres hébergement pour s'assurer besoins satisfaits.",
+        "value": "\"Vérification régulière auprès des personnes vulnérables (aînés, mobilité réduite, conditions médicales) dans centres hébergement pour s'assurer besoins satisfaits.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Faible",
+        "value": "\"Faible\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Bien-être Citoyens",
+        "value": "\"Bien-être Citoyens\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "Croix-Rouge",
+        "value": "{\"index\":2,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:20.622Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Empathie, Communication, Patience, PremiersSoins",
+        "value": "{\"tag_ids\":[28242597,28242595,28242608,28242599]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste réfléchissante, Masque (si requis)",
+        "value": "\"Veste réfléchissante, Masque (si requis)\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Premiers secours psychologiques",
+        "value": "{\"ids\":[1,6]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754730",
+    "name": "SP- Protection infrastructures (digues)",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-13T15:34:32Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Installation de sacs de sable pour renforcer des berges et digues en zone froide sécurisée lors d'inondations.",
+        "value": "\"Installation de sacs de sable pour renforcer des berges et digues en zone froide sécurisée lors d'inondations.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Très Élevé",
+        "value": "\"Très Élevé\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Construction",
+        "value": "\"Construction\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "SOPFEU",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:02.883Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "ForcePhysique, TravailÉquipe, Endurance",
+        "value": "{\"tag_ids\":[28242609,28242596,28242610]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Casque, Bottes imperméables, Gants renforcés, Veste réfléchissante, Harnais (si requis)",
+        "value": "\"Casque, Bottes imperméables, Gants renforcés, Veste réfléchissante, Harnais (si requis)\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC",
+        "value": "{\"ids\":[1]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754731",
+    "name": "SP - Gestion débris",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-13T15:53:14Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Tri, ramassage et chargement de débris en zone sécurisée suite à un sinistre (inondation, feu, tempête).",
+        "value": "\"Tri, ramassage et chargement de débris en zone sécurisée suite à un sinistre (inondation, feu, tempête).\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Moyen",
+        "value": "\"Moyen\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Nettoyage",
+        "value": "\"Nettoyage\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "SOPFEU",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:05.124Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "ForcePhysique, Vigilance, TravailÉquipe",
+        "value": "{\"tag_ids\":[28242609,28242611,28242596]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Casque, Gants renforcés, Bottes de sécurité, Lunettes de protection, Masque N95, Vêtements longs et couvrants, Protection auditive (Si machinerie)",
+        "value": "\"Casque, Gants renforcés, Bottes de sécurité, Lunettes de protection, Masque N95, Vêtements longs et couvrants, Protection auditive (Si machinerie)\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Formation identification matière dangereuses",
+        "value": "{\"ids\":[1,3]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754732",
+    "name": "SP - Soutien logistique SOPFEU",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-14T20:11:33Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Support aux opérations SOPFEU incluant transport de matériel, installation d'équipement, ravitaillement et tâches logistiques diverses en zone froide.",
+        "value": "\"Support aux opérations SOPFEU incluant transport de matériel, installation d'équipement, ravitaillement et tâches logistiques diverses en zone froide.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Faible",
+        "value": "\"Faible\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Logistique",
+        "value": "\"Logistique\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "SOPFEU",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:18.702Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Organisation, Communication, GestionInventaire, PermisConduire",
+        "value": "{\"tag_ids\":[28242622,28242595,28242612,28242601]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste réfléchissante, Casque de construction, Gants renforcés. Bottes de sécurité, Lunettes de protection, Protection auditive",
+        "value": "\"Veste réfléchissante, Casque de construction, Gants renforcés. Bottes de sécurité, Lunettes de protection, Protection auditive\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Utilisation radio VHF",
+        "value": "{\"ids\":[1,13]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754733",
+    "name": "Reconnaissance territoire",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:00Z",
+    "updated_at": "2026-01-13T16:06:15Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Inspection visuelle EXTÉRIEURE de bâtiments et infrastructures en zone froide pour documenter dommages par photos / vidéos et observation..",
+        "value": "\"Inspection visuelle EXTÉRIEURE de bâtiments et infrastructures en zone froide pour documenter dommages par photos / vidéos et observation..\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Moyen",
+        "value": "\"Moyen\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Sécurité",
+        "value": "\"Sécurité\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "SOPFEU",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:09.839Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Observation, Documentation, Communication, GPS-Cartographie, PermisConduire",
+        "value": "{\"tag_ids\":[28242631,28242614,28242595,28242615,28242601]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Bottes de randonnée, Gants de travail, Veste haute visibilité, Casque (Si proximité structures), Lunettes de soleil, Lampe frontale, Vêtement adaptés, Chasse-moustiques",
+        "value": "\"Bottes de randonnée, Gants de travail, Veste haute visibilité, Casque (Si proximité structures), Lunettes de soleil, Lampe frontale, Vêtement adaptés, Chasse-moustiques\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Formation GPS et Radio",
+        "value": "{\"ids\":[1,4]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10891754734",
+    "name": "Coordination opérations",
+    "state": "active",
+    "created_at": "2026-01-02T15:25:01Z",
+    "updated_at": "2026-01-14T19:08:59Z",
+    "creator": {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Support à la coordination logistique des opérations RIUSC, incluant communications radio, suivi déploiement des équipes et liaison avec coordonnateur SOPFEU.",
+        "value": "\"Support à la coordination logistique des opérations RIUSC, incluant communications radio, suivi déploiement des équipes et liaison avec coordonnateur SOPFEU.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Faible",
+        "value": "\"Faible\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "Logistique",
+        "value": "\"Logistique\""
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": "SOPFEU",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:12.044Z\"}"
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "Leadership, Communication, Organisation, GestionStress, Informatique",
+        "value": "{\"tag_ids\":[28242616,28242595,28242622,28242598,28242617]}"
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Veste réfléchissante, Casque (Si déplacement zone avec activités), Bottes de Sécurité (si déplacements terrain), Protection auditive (si environnement bruyant),",
+        "value": "\"Veste réfléchissante, Casque (Si déplacement zone avec activités), Bottes de Sécurité (si déplacements terrain), Protection auditive (si environnement bruyant),\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "Actif",
+        "value": "\"Actif\""
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": "Froide",
+        "value": "{\"index\":1,\"post_id\":null,\"changed_at\":\"2026-01-02T15:42:42.712Z\"}"
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, ICS-100, ICS-200, ICS 300",
+        "value": "{\"ids\":[1,7,8,9]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  },
+  {
+    "id": "10988068435",
+    "name": "SP - Dégagement d'Accès par Ébranchage",
+    "state": "active",
+    "created_at": "2026-01-13T15:35:25Z",
+    "updated_at": "2026-02-20T11:01:36Z",
+    "creator": {
+      "id": "94384862",
+      "name": "Esther L.Lapointe",
+      "email": "esther.lapointe@aqbrs.ca"
+    },
+    "group": {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue"
+    },
+    "column_values": [
+      {
+        "id": "text_mkz7rrat",
+        "type": "text",
+        "text": "Couper branches et arbres tombés AU SOL bloquant chemins / routes pour dégager accès véhicules d'urgence en zone froide sécurisée.",
+        "value": "\"Couper branches et arbres tombés AU SOL bloquant chemins / routes pour dégager accès véhicules d'urgence en zone froide sécurisée.\""
+      },
+      {
+        "id": "text_mkz71ryr",
+        "type": "text",
+        "text": "Élevé",
+        "value": "\"Élevé\""
+      },
+      {
+        "id": "dropdown_mkyk6fbq",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7395",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "color_mkyk4jaq",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "tag_mkzekcv",
+        "type": "tags",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "color_mkykcpta",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkz7vg0k",
+        "type": "text",
+        "text": "Casques forestier avec visière grillagée et protection auditive intégrée, Pantalon anti - coupure (ISO 11393), Bottes forestières avec protection anti - coupure - Veste haute visibilité, Lunettes de sécurité (protection latérale), Trousse premiers secours accessible",
+        "value": "\"Casques forestier avec visière grillagée et protection auditive intégrée, Pantalon anti - coupure (ISO 11393), Bottes forestières avec protection anti - coupure - Veste haute visibilité, Lunettes de sécurité (protection latérale), Trousse premiers secours accessible\""
+      },
+      {
+        "id": "text_mkz7s3nz",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "color_mkyky520",
+        "type": "status",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "text_mkykbe3r",
+        "type": "text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "dropdown_mkykgrqa",
+        "type": "dropdown",
+        "text": "Camp Qualification RIUSC, Certification Utilisation Scie Mécanique",
+        "value": "{\"ids\":[1,2]}"
+      },
+      {
+        "id": "long_text_mkykd5hn",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "long_text_mkykcvt1",
+        "type": "long_text",
+        "text": "",
+        "value": null
+      },
+      {
+        "id": "board_relation_mkz7vzzs",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzdzsm4",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5rt9",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkze5yha",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzem9et",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "board_relation_mkzerevf",
+        "type": "board_relation",
+        "text": null,
+        "value": null
+      },
+      {
+        "id": "dropdown_mkzexztk",
+        "type": "dropdown",
+        "text": null,
+        "value": null
+      }
+    ],
+    "assets": [],
+    "subitems": [],
+    "updates": []
+  }
+]

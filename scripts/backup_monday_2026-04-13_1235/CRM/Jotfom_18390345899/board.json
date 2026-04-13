@@ -1,0 +1,164 @@
+{
+  "id": "18390345899",
+  "name": "Jotfom",
+  "description": null,
+  "state": "deleted",
+  "board_kind": "public",
+  "board_folder_id": null,
+  "workspace_id": "9496614",
+  "workspace": {
+    "id": "9496614",
+    "name": "CRM"
+  },
+  "items_count": 70,
+  "columns": [
+    {
+      "id": "name",
+      "title": "Name",
+      "type": "name",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6n6cb",
+      "title": "Submission Date",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mky68ryr",
+      "title": "Sur une échelle de 1 à 5, indiquez votre degré de confiance d'avoir atteint les objectifs d'apprentissage suivants:",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mky640a7",
+      "title": "Sur une échelle de 1 à 5, avez-vous apprécié la formation ?",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6wc3r",
+      "title": "Pour quelle activité de formation remplissez-vous ce questionnaire?",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky64r0m",
+      "title": "Sur une échelle de 1 à 5, indiquez votre degré de confiance d'avoir atteint les objectifs d'apprentissages suivant:",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6kkqt",
+      "title": "Sur une échelle de 1 à 5, avez -vous apprécié la formation ?",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6z24f",
+      "title": "Veuillez indiquez les points à améliorer de la présentation ainsi qu'une piste de solution:",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky69sx",
+      "title": "Veuillez indiquez les points forts de la présentation:",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6wvh6",
+      "title": "9h00 - A",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky68cp1",
+      "title": "9h00 - B",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6t2cz",
+      "title": "10h30 - B",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6r9kk",
+      "title": "10h30 - A",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky657h7",
+      "title": "13h00 - A",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6t8wt",
+      "title": "13h00 - B",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6e1dd",
+      "title": "15h15 - A",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mky6nv8g",
+      "title": "15h15 - B",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_mky6kg7t",
+      "title": "Sondage_d'appréciation_-_Camp_d2025-11-29_22_49_33.xlsx",
+      "color": "#00c875",
+      "archived": false
+    },
+    {
+      "id": "topics",
+      "title": "Titre du groupe",
+      "color": "#579bfc",
+      "archived": false
+    },
+    {
+      "id": "group_title",
+      "title": "Titre du groupe",
+      "color": "#a25ddc",
+      "archived": false
+    }
+  ],
+  "tags": [],
+  "owners": [
+    {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    }
+  ],
+  "updated_at": "2026-01-07T19:58:18Z"
+}

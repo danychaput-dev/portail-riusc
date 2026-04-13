@@ -1,0 +1,187 @@
+{
+  "id": "18392013923",
+  "name": "Catalogue des tâches RIUSC",
+  "description": null,
+  "state": "active",
+  "board_kind": "public",
+  "board_folder_id": "18999342",
+  "workspace_id": "9496614",
+  "workspace": {
+    "id": "9496614",
+    "name": "CRM"
+  },
+  "items_count": 11,
+  "columns": [
+    {
+      "id": "name",
+      "title": "Name",
+      "type": "name",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz7rrat",
+      "title": "Description",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz71ryr",
+      "title": "Niveau de risque",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "dropdown_mkyk6fbq",
+      "title": "Risque principaux",
+      "type": "dropdown",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz7395",
+      "title": "Catégorie",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "color_mkyk4jaq",
+      "title": "Organisation coordinatrice",
+      "type": "status",
+      "settings_str": "{\"done_colors\":[1],\"labels\":{\"1\":\"SOPFEU\",\"2\":\"Croix-Rouge\"},\"labels_colors\":{\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}",
+      "archived": false
+    },
+    {
+      "id": "tag_mkzekcv",
+      "title": "Compétences requises",
+      "type": "tags",
+      "settings_str": "{\"hide_footer\":false}",
+      "archived": false
+    },
+    {
+      "id": "color_mkykcpta",
+      "title": "Encadrement requis",
+      "type": "status",
+      "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"Supervision rapprochée\",\"1\":\"Supervision SOPFEU\",\"2\":\"Supervision Croix-Rouge\",\"3\":\"Autonome\"},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"},\"3\":{\"color\":\"#007eb5\",\"border\":\"#3db0df\",\"var_name\":\"blue-links\"}}}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz7vg0k",
+      "title": "EPI requis",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz7s3nz",
+      "title": "Statut",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "color_mkyky520",
+      "title": "Zone permise",
+      "type": "status",
+      "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"Tiède\",\"1\":\"Froide\",\"2\":\"Interdit zone chaude\"},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}",
+      "archived": false
+    },
+    {
+      "id": "text_mkykbe3r",
+      "title": "Code tâche",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "dropdown_mkykgrqa",
+      "title": "Formation minimales",
+      "type": "dropdown",
+      "settings_str": "{\"limit_select\":false,\"labels\":[{\"id\":1,\"name\":\"Camp Qualification RIUSC\"},{\"id\":2,\"name\":\"Certification Utilisation Scie Mécanique\"},{\"id\":3,\"name\":\"Formation identification matière dangereuses\"},{\"id\":4,\"name\":\"Formation GPS et Radio\"},{\"id\":5,\"name\":\"Premiers secours\"},{\"id\":6,\"name\":\"Premiers secours psychologiques\"},{\"id\":7,\"name\":\"ICS-100\"},{\"id\":8,\"name\":\"ICS-200\"},{\"id\":9,\"name\":\"ICS 300\"},{\"id\":10,\"name\":\"Hygiène et salubrité alimentaire (base)\"},{\"id\":11,\"name\":\"Sensibilisation allergies alimentaires\"},{\"id\":12,\"name\":\"Communication empathique et bienveillante\"},{\"id\":13,\"name\":\"Utilisation radio VHF\"}],\"label_limit_count\":null,\"deactivated_labels\":[]}",
+      "archived": false
+    },
+    {
+      "id": "long_text_mkykd5hn",
+      "title": "Contrôles / Méthodes",
+      "type": "long_text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "long_text_mkykcvt1",
+      "title": "Exclusions",
+      "type": "long_text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkz7vzzs",
+      "title": "link to CNESST-Confirmité",
+      "type": "board_relation",
+      "settings_str": "{\"allowCreateReflectionColumn\":true,\"boardIds\":[18393688816]}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkzdzsm4",
+      "title": "link to Déploiements / Vagues",
+      "type": "board_relation",
+      "settings_str": "{\"allowCreateReflectionColumn\":true,\"boardIds\":[10053639428]}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkze5rt9",
+      "title": "link to Sous-éléments de Déploiements / Vagues",
+      "type": "board_relation",
+      "settings_str": "{\"allowCreateReflectionColumn\":true,\"boardIds\":[18002187859]}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkze5yha",
+      "title": "link to Sous-éléments de Déploiements / Vagues",
+      "type": "board_relation",
+      "settings_str": "{\"allowCreateReflectionColumn\":true,\"boardIds\":[18002187859]}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkzem9et",
+      "title": "link to Déploiements / Vagues",
+      "type": "board_relation",
+      "settings_str": "{\"allowCreateReflectionColumn\":true,\"boardIds\":[10053639428]}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkzerevf",
+      "title": "link to Sous-éléments de Sinistres",
+      "type": "board_relation",
+      "settings_str": "{\"allowCreateReflectionColumn\":true,\"boardIds\":[8294584631]}",
+      "archived": false
+    },
+    {
+      "id": "dropdown_mkzexztk",
+      "title": "Organisme",
+      "type": "dropdown",
+      "settings_str": "{\"limit_select\":false,\"hide_footer\":false,\"labels\":[{\"id\":1,\"name\":\"Aide préparation centres hébergement → Croix-Rouge\"},{\"id\":2,\"name\":\"Soutien besoins essentiels → Croix-Rouge\"},{\"id\":3,\"name\":\"Soutien évacuations → Croix-Rouge\"},{\"id\":4,\"name\":\"Réconfort et soutien moral → Croix-Rouge\"},{\"id\":5,\"name\":\"Suivi clientèles vulnérables → Croix-Rouge\"},{\"id\":6,\"name\":\"Protection infrastructures (digues) → SOPFEU\"},{\"id\":7,\"name\":\"Gestion débris → SOPFEU\"},{\"id\":8,\"name\":\"Soutien logistique SOPFEU → SOPFEU\"},{\"id\":9,\"name\":\"Reconnaissance territoire → SOPFEU\"},{\"id\":10,\"name\":\"Coordination opérations → Les deux\"}],\"deactivated_labels\":[]}",
+      "archived": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_mkz7pmpp",
+      "title": "Catalogue",
+      "color": "#fdab3d",
+      "archived": false
+    }
+  ],
+  "tags": [],
+  "owners": [
+    {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    }
+  ],
+  "updated_at": "2026-01-14T20:11:32Z"
+}

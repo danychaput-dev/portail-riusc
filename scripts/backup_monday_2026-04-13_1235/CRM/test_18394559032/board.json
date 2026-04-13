@@ -1,0 +1,67 @@
+{
+  "id": "18394559032",
+  "name": "test",
+  "description": null,
+  "state": "deleted",
+  "board_kind": "public",
+  "board_folder_id": null,
+  "workspace_id": "9496614",
+  "workspace": {
+    "id": "9496614",
+    "name": "CRM"
+  },
+  "items_count": 5,
+  "columns": [
+    {
+      "id": "name",
+      "title": "Name",
+      "type": "name",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "person",
+      "title": "Personne",
+      "type": "people",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "status",
+      "title": "Statut",
+      "type": "status",
+      "settings_str": "{\"done_colors\":[1],\"labels\":{\"0\":\"En cours\",\"1\":\"Fait\",\"2\":\"Bloqué\",\"7\":\"\",\"12\":\"\",\"14\":\"\"},\"labels_positions_v2\":{\"0\":0,\"1\":2,\"2\":1,\"5\":6,\"7\":3,\"12\":4,\"14\":5},\"labels_colors\":{\"0\":{\"color\":\"#fdab3d\",\"border\":\"#e99729\",\"var_name\":\"orange\"},\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"},\"7\":{\"color\":\"#579bfc\",\"border\":\"#4387e8\",\"var_name\":\"bright-blue\"},\"12\":{\"color\":\"#ff007f\",\"border\":\"#e01279\",\"var_name\":\"dark-pink\"},\"14\":{\"color\":\"#784bd1\",\"border\":\"#8f4dc4\",\"var_name\":\"dark-purple\"}}}",
+      "archived": false
+    },
+    {
+      "id": "timeline",
+      "title": "Période",
+      "type": "timeline",
+      "settings_str": "{\"hide_footer\":false}",
+      "archived": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "topics",
+      "title": "Titre du groupe",
+      "color": "#579bfc",
+      "archived": false
+    },
+    {
+      "id": "group_title",
+      "title": "Titre du groupe",
+      "color": "#a25ddc",
+      "archived": false
+    }
+  ],
+  "tags": [],
+  "owners": [
+    {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    }
+  ],
+  "updated_at": "2026-01-08T14:27:18Z"
+}

@@ -1,0 +1,124 @@
+{
+  "id": "18393553238",
+  "name": "OLD Soumissions",
+  "description": null,
+  "state": "deleted",
+  "board_kind": "public",
+  "board_folder_id": "16310307",
+  "workspace_id": "9496614",
+  "workspace": {
+    "id": "9496614",
+    "name": "CRM"
+  },
+  "items_count": 0,
+  "columns": [
+    {
+      "id": "name",
+      "title": "Name",
+      "type": "name",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz5dgf1",
+      "title": "SubmissionID",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkz5ardg",
+      "title": "Répertoire",
+      "type": "board_relation",
+      "settings_str": "{\"boardIds\":[]}",
+      "archived": false
+    },
+    {
+      "id": "lookup_mkz5m356",
+      "title": "BénévoleID",
+      "type": "mirror",
+      "settings_str": "{\"relation_column\":{\"board_relation_mkz5ardg\":true},\"displayed_column\":{},\"displayed_linked_columns\":{}}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz5xjs2",
+      "title": "BenevoleID_Text",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "board_relation_mkz526xd",
+      "title": "Déploiements / Vagues",
+      "type": "board_relation",
+      "settings_str": "{\"boardIds\":[]}",
+      "archived": false
+    },
+    {
+      "id": "lookup_mkz53yhp",
+      "title": "DéploiementID",
+      "type": "mirror",
+      "settings_str": "{\"relation_column\":{\"board_relation_mkz526xd\":true},\"displayed_column\":{},\"displayed_linked_columns\":{}}",
+      "archived": false
+    },
+    {
+      "id": "text_mkz5dbpx",
+      "title": "DeployementID_Text",
+      "type": "text",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "formula_mkz51rzh",
+      "title": "KeyStable",
+      "type": "formula",
+      "settings_str": "{\"formula\":\"CONCATENATE({text_mkz5dbpx}, \\\"|\\\", {lookup_mkz5m356}, \\\"|\\\", {text_mkz5dgf1})\"}",
+      "archived": false
+    },
+    {
+      "id": "date_mkz54rth",
+      "title": "DateDébut",
+      "type": "date",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "date_mkz5w646",
+      "title": "DateFin",
+      "type": "date",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "numeric_mkz5qja7",
+      "title": "NbrJours",
+      "type": "numbers",
+      "settings_str": "{}",
+      "archived": false
+    },
+    {
+      "id": "color_mkz5ytdp",
+      "title": "Statut",
+      "type": "status",
+      "settings_str": "{\"done_colors\":[1],\"labels\":{\"1\":\"Actif\",\"2\":\"Archivé\"},\"labels_colors\":{\"1\":{\"color\":\"#00c875\",\"border\":\"#00b461\",\"var_name\":\"green-shadow\"},\"2\":{\"color\":\"#df2f4a\",\"border\":\"#ce3048\",\"var_name\":\"red-shadow\"}}}",
+      "archived": false
+    }
+  ],
+  "groups": [
+    {
+      "id": "topics",
+      "title": "Soumission",
+      "color": "#579bfc",
+      "archived": false
+    }
+  ],
+  "tags": [],
+  "owners": [
+    {
+      "id": "70865043",
+      "name": "Dany  Chaput",
+      "email": "dany.chaput@aqbrs.ca"
+    }
+  ],
+  "updated_at": "2026-01-05T22:09:44Z"
+}
