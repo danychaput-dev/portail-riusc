@@ -1,5 +1,6 @@
 // app/api/admin/reservistes/delete/route.ts
-// Suppression cascade d'un reserviste et toutes ses donnees liees
+// Suppression UNITAIRE d'un reserviste avec raison obligatoire et journalisation
+// Conforme loi 25: on conserve le minimum (nom, prenom, role, groupe, raison, auteur, date)
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
@@ -21,11 +22,11 @@ async function verifierAdmin() {
   if (!user) return null
   const { data: res } = await supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, role')
+    .select('benevole_id, prenom, nom, role, user_id')
     .eq('user_id', user.id)
     .single()
   if (!res || res.role !== 'superadmin') return null
-  return res
+  return { ...res, auth_user_id: user.id }
 }
 
 // Tables enfants avec colonne benevole_id (ordre: enfants d'abord)
@@ -55,54 +56,115 @@ export async function DELETE(request: NextRequest) {
   }
 
   const body = await request.json()
-  // Supporter un seul benevole_id ou un tableau benevole_ids
-  const ids: string[] = body.benevole_ids || (body.benevole_id ? [body.benevole_id] : [])
+  const benevole_id: string | undefined = body.benevole_id
+  const raison: string | undefined = body.raison
+  const demande_par_reserviste: boolean = Boolean(body.demande_par_reserviste)
+  const confirmation_nom: string | undefined = body.confirmation_nom
 
-  if (ids.length === 0) {
-    return NextResponse.json({ error: 'benevole_id ou benevole_ids requis' }, { status: 400 })
+  // Rejeter toute tentative de suppression en lot
+  if (body.benevole_ids) {
+    return NextResponse.json(
+      { error: 'La suppression en lot n\'est plus autorisee. Supprimer un compte a la fois.' },
+      { status: 400 }
+    )
   }
 
-  // Empecher de supprimer son propre compte
-  if (ids.includes(admin.benevole_id)) {
-    return NextResponse.json({ error: 'Impossible de supprimer votre propre compte' }, { status: 400 })
+  if (!benevole_id) {
+    return NextResponse.json({ error: 'benevole_id requis' }, { status: 400 })
   }
 
-  const resultats: { benevole_id: string; success: boolean; erreurs: string[] }[] = []
+  if (!raison || raison.trim().length < 10) {
+    return NextResponse.json(
+      { error: 'Raison obligatoire (minimum 10 caracteres)' },
+      { status: 400 }
+    )
+  }
 
-  for (const benevole_id of ids) {
-    const erreurs: string[] = []
+  if (benevole_id === admin.benevole_id) {
+    return NextResponse.json(
+      { error: 'Impossible de supprimer votre propre compte' },
+      { status: 400 }
+    )
+  }
 
-    // Supprimer les donnees dans chaque table enfant
-    for (const table of TABLES_ENFANTS) {
-      const { error } = await supabaseAdmin
-        .from(table)
-        .delete()
-        .eq('benevole_id', benevole_id)
-      if (error && !error.message.includes('does not exist')) {
-        erreurs.push(`${table}: ${error.message}`)
-      }
+  // Recuperer l'info du reserviste avant suppression (pour le journal)
+  const { data: cible, error: fetchErr } = await supabaseAdmin
+    .from('reservistes')
+    .select('benevole_id, prenom, nom, role, groupe, statut')
+    .eq('benevole_id', benevole_id)
+    .single()
+
+  if (fetchErr || !cible) {
+    return NextResponse.json({ error: 'Reserviste introuvable' }, { status: 404 })
+  }
+
+  // Verifier la confirmation du nom (protection anti-clic accidentel)
+  if (confirmation_nom !== undefined) {
+    const nomAttendu = `${cible.prenom} ${cible.nom}`.trim().toLowerCase()
+    const nomFourni = confirmation_nom.trim().toLowerCase()
+    if (nomAttendu !== nomFourni) {
+      return NextResponse.json(
+        { error: 'La confirmation du nom ne correspond pas' },
+        { status: 400 }
+      )
     }
+  }
 
-    // Supprimer le reserviste
-    const { error: delErr } = await supabaseAdmin
-      .from('reservistes')
+  // 1. Inserer dans le journal AVANT de supprimer (pour tracabilite loi 25)
+  const { error: logErr } = await supabaseAdmin
+    .from('reservistes_suppressions')
+    .insert({
+      benevole_id: cible.benevole_id,
+      prenom: cible.prenom,
+      nom: cible.nom,
+      role: cible.role,
+      groupe_au_moment: cible.groupe,
+      raison: raison.trim(),
+      demande_par_reserviste,
+      supprime_par_user_id: admin.auth_user_id,
+      supprime_par_email: `${admin.prenom} ${admin.nom}`,
+    })
+
+  if (logErr) {
+    return NextResponse.json(
+      { error: `Impossible de journaliser la suppression: ${logErr.message}` },
+      { status: 500 }
+    )
+  }
+
+  // 2. Supprimer les donnees dans chaque table enfant
+  const erreurs: string[] = []
+  for (const table of TABLES_ENFANTS) {
+    const { error } = await supabaseAdmin
+      .from(table)
       .delete()
       .eq('benevole_id', benevole_id)
-
-    resultats.push({
-      benevole_id,
-      success: !delErr,
-      erreurs: delErr ? [...erreurs, delErr.message] : erreurs
-    })
+    if (error && !error.message.includes('does not exist')) {
+      erreurs.push(`${table}: ${error.message}`)
+    }
   }
 
-  const total = resultats.length
-  const reussis = resultats.filter(r => r.success).length
+  // 3. Supprimer le reserviste
+  const { error: delErr } = await supabaseAdmin
+    .from('reservistes')
+    .delete()
+    .eq('benevole_id', benevole_id)
+
+  if (delErr) {
+    return NextResponse.json(
+      {
+        error: `Echec suppression reserviste: ${delErr.message}`,
+        erreurs_enfants: erreurs,
+      },
+      { status: 500 }
+    )
+  }
 
   return NextResponse.json({
-    success: reussis === total,
-    total,
-    reussis,
-    resultats
+    success: true,
+    benevole_id,
+    prenom: cible.prenom,
+    nom: cible.nom,
+    erreurs_enfants: erreurs,
   })
 }

@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { formatPhone } from '@/utils/phone'
 import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 import ModalReserviste from '@/app/components/ModalReserviste'
+import ModalSuppressionReserviste from '@/app/components/ModalSuppressionReserviste'
 import SavedViewsBar, { type VueFiltres } from '@/app/components/SavedViewsBar'
 
 const C = '#1e3a5f'
@@ -203,6 +204,7 @@ function ReservistesPage() {
   const [selectedDestinataires, setSelectedDestinataires] = useState<Map<string, { benevole_id: string; email: string; prenom: string; nom: string }>>(new Map())
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [modalReserviste, setModalReserviste] = useState<Reserviste | null>(null)
+  const [suppressionCible, setSuppressionCible] = useState<Reserviste | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string>('')
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
@@ -868,40 +870,8 @@ function ReservistesPage() {
                 ✉️ Envoyer {selectedIds.size > 1 ? `des courriels (${selectedIds.size})` : `un courriel${selectedIds.size === 1 ? ' (1)' : ''}`}
               </button>
             )}
-            {isSuperAdmin && selectedIds.size > 0 && (
-              <button
-                onClick={async () => {
-                  const count = selectedIds.size
-                  const noms = data.filter(r => selectedIds.has(r.benevole_id)).map(r => `${r.prenom} ${r.nom}`).slice(0, 5).join(', ') + (count > 5 ? ` (+${count - 5})` : '')
-                  if (!window.confirm(`Supprimer ${count} compte${count > 1 ? 's' : ''} et toutes leurs donnees?\n\n${noms}\n\nCette action est irreversible.`)) return
-                  if (count > 3 && !window.confirm(`Derniere chance: confirmer la suppression de ${count} comptes?`)) return
-                  const res = await fetch('/api/admin/reservistes/delete', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ benevole_ids: [...selectedIds] }),
-                  })
-                  const result = await res.json()
-                  if (result.success) {
-                    setAllData(prev => prev.filter(x => !selectedIds.has(x.benevole_id)))
-                    setSelectedIds(new Set())
-                    alert(`${result.reussis} compte${result.reussis > 1 ? 's' : ''} supprime${result.reussis > 1 ? 's' : ''}`)
-                  } else {
-                    alert(`${result.reussis}/${result.total} supprimes. Verifiez les erreurs dans la console.`)
-                    console.error('Erreurs suppression:', result.resultats)
-                    setAllData(prev => prev.filter(x => !result.resultats.filter((r: any) => r.success).map((r: any) => r.benevole_id).includes(x.benevole_id)))
-                    setSelectedIds(new Set())
-                  }
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #dc2626',
-                  backgroundColor: 'white', color: '#dc2626', fontSize: '13px', fontWeight: '600',
-                  cursor: 'pointer',
-                }}
-              >
-                🗑️ Supprimer ({selectedIds.size})
-              </button>
-            )}
+            {/* Suppression en lot desactivee: loi 25 exige une suppression unitaire avec raison.
+                Utiliser le menu contextuel (clic droit) sur un reserviste pour le supprimer. */}
           </div>
         </div>
 
@@ -1653,30 +1623,15 @@ function ReservistesPage() {
               <>
               <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
               <button
-                onClick={async () => {
-                  const r = contextMenu.reserviste
-                  if (!window.confirm(`Supprimer ${r.prenom} ${r.nom} et toutes ses donnees? Cette action est irreversible.`)) {
-                    setContextMenu(null)
-                    return
-                  }
-                  const res = await fetch('/api/admin/reservistes/delete', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ benevole_id: r.benevole_id }),
-                  })
-                  if (res.ok) {
-                    setAllData(prev => prev.filter(x => x.benevole_id !== r.benevole_id))
-                  } else {
-                    const err = await res.json()
-                    alert(`Erreur: ${err.error || 'Echec de la suppression'}`)
-                  }
+                onClick={() => {
+                  setSuppressionCible(contextMenu.reserviste)
                   setContextMenu(null)
                 }}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#dc2626', textAlign: 'left' }}
                 onMouseOver={e => (e.currentTarget.style.backgroundColor = '#fef2f2')}
                 onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                <span style={{ fontSize: '14px' }}>🗑️</span> Supprimer le compte
+                <span style={{ fontSize: '14px' }}>🗑️</span> Supprimer le compte...
               </button>
               </>
               )}
@@ -1701,6 +1656,20 @@ function ReservistesPage() {
           currentUserId={currentUserId}
           isAdmin={isAdmin}
           onClose={() => { setModalReserviste(null); fetchNotesNonLues() }}
+        />
+      )}
+
+      {/* Modal suppression unitaire (loi 25: raison obligatoire + journal) */}
+      {suppressionCible && (
+        <ModalSuppressionReserviste
+          prenom={suppressionCible.prenom}
+          nom={suppressionCible.nom}
+          benevole_id={suppressionCible.benevole_id}
+          onClose={() => setSuppressionCible(null)}
+          onDeleted={() => {
+            setAllData(prev => prev.filter(x => x.benevole_id !== suppressionCible.benevole_id))
+            setSuppressionCible(null)
+          }}
         />
       )}
     </div>
