@@ -353,15 +353,23 @@ export default function InscriptionsCampsPage() {
     const modifiePar = adminRes ? `${adminRes.prenom} ${adminRes.nom}` : 'Admin'
 
     const ids = Array.from(selectedIds)
-    // Batch update
-    const { error } = await supabase
+    // Batch update (avec .select() pour detecter les blocages RLS silencieux)
+    const { data: updated, error } = await supabase
       .from('inscriptions_camps')
       .update({ presence: newPresence, presence_updated_at: now })
       .in('id', ids)
+      .select('id')
 
     if (error) {
       console.error('Erreur bulk update:', error)
       alert('Erreur lors de la mise à jour groupée.')
+      setBulkUpdating(false)
+      return
+    }
+
+    if (!updated || updated.length !== ids.length) {
+      console.error('Bulk update RLS issue:', { demandes: ids.length, modifies: updated?.length ?? 0 })
+      alert(`Mise à jour bloquée par RLS : ${updated?.length ?? 0}/${ids.length} lignes modifiées. Vérifiez les policies sur inscriptions_camps.`)
       setBulkUpdating(false)
       return
     }
@@ -445,14 +453,22 @@ export default function InscriptionsCampsPage() {
     const now = new Date().toISOString()
 
     // Mise à jour de la présence + date de modification
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('inscriptions_camps')
       .update({ presence: newPresence, presence_updated_at: now })
       .eq('id', inscriptionId)
+      .select('id')
 
     if (error) {
       console.error('Erreur mise à jour présence:', error)
       alert('Erreur lors de la mise à jour.')
+      setUpdatingId(null)
+      return
+    }
+
+    if (!updated || updated.length === 0) {
+      console.error('Update RLS bloque:', inscriptionId)
+      alert('Mise à jour bloquée par RLS. Vérifiez les policies sur inscriptions_camps.')
       setUpdatingId(null)
       return
     }
