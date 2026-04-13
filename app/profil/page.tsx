@@ -2120,10 +2120,35 @@ function ProfilPage() {
                         borderRadius: '8px',
                         fontSize: '14px',
                         marginBottom: '8px',
+                        boxSizing: 'border-box',
                       }}
                     />
+
+                    {newOrgName.trim() !== '' && (
+                      <div style={{ marginBottom: '8px' }}>
+                        <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>
+                          Nouvelle organisation à créer lors de la sauvegarde:
+                        </p>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          backgroundColor: '#fef3c7',
+                          color: '#92400e',
+                          padding: '6px 12px',
+                          borderRadius: '16px',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          border: '1px dashed #f59e0b',
+                        }}>
+                          + {newOrgName.trim()}
+                          <span style={{ fontSize: '11px', opacity: 0.75 }}>(nouvelle)</span>
+                        </span>
+                      </div>
+                    )}
+
                     <button
-                      onClick={() => setShowNewOrgInput(false)}
+                      onClick={() => { setShowNewOrgInput(false); setNewOrgName('') }}
                       style={{
                         backgroundColor: '#f3f4f6',
                         border: 'none',
