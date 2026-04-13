@@ -537,11 +537,7 @@ export default function HomePage() {
         const actualRole = roleFromDb || reservisteData.role
 
         // Redirections par role — AVANT setReserviste pour eviter le flash
-        if (['superadmin', 'admin', 'coordonnateur'].includes(actualRole)) {
-          router.push('/admin')
-          return
-        }
-        if (actualRole === 'adjoint') {
+        if (['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(actualRole)) {
           router.push('/admin/reservistes')
           return
         }
