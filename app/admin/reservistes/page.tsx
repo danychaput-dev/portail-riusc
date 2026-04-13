@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState, useMemo, useRef } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useState, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { formatPhone } from '@/utils/phone'
@@ -208,6 +208,7 @@ function ReservistesPage() {
   const [currentUserId, setCurrentUserId] = useState<string>('')
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement | null>(null)
   // Click-to-copy feedback (adjoint)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
@@ -573,6 +574,29 @@ function ReservistesPage() {
     URL.revokeObjectURL(url)
     setExporting(false)
   }
+
+  // Ajuster la position du menu contextuel pour qu'il reste dans la fenêtre visible
+  useLayoutEffect(() => {
+    if (!contextMenu || !contextMenuRef.current) return
+    const el = contextMenuRef.current
+    const rect = el.getBoundingClientRect()
+    const margin = 8
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    let { x, y } = contextMenu
+    let changed = false
+    if (rect.right > vw - margin) {
+      x = Math.max(margin, vw - rect.width - margin)
+      changed = true
+    }
+    if (rect.bottom > vh - margin) {
+      y = Math.max(margin, vh - rect.height - margin)
+      changed = true
+    }
+    if (changed) {
+      setContextMenu(prev => prev ? { ...prev, x, y } : prev)
+    }
+  }, [contextMenu?.x, contextMenu?.y, contextMenu?.reserviste?.benevole_id])
 
   // Fermer le menu contextuel au clic ou scroll
   useEffect(() => {
@@ -1511,6 +1535,7 @@ function ReservistesPage() {
       {/* Menu contextuel (right-click sur nom) */}
       {contextMenu && (
         <div
+          ref={contextMenuRef}
           style={{
             position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999,
             backgroundColor: 'white', borderRadius: '10px', border: '1px solid #e2e8f0',
