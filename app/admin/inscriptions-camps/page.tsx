@@ -245,21 +245,29 @@ export default function InscriptionsCampsPage() {
       setFilterPresence('tous')
       setSelectedIds(new Set())
 
-      // Étape 1 — inscriptions du camp
+      // Étape 1 — inscriptions du camp (Loi 25: partenaire_lect ne voit pas les infos nominales)
+      const selectBase = 'id, benevole_id, presence, camp_nom, camp_dates, camp_lieu, created_at, presence_updated_at'
+      const selectInscriptions = isPartenaireLect
+        ? selectBase + ', sync_status'
+        : selectBase + ', prenom_nom, courriel, telephone, sync_status, monday_item_id, cahier_envoye'
+
       const { data, error } = await supabase
         .from('inscriptions_camps')
-        .select('id, benevole_id, prenom_nom, presence, courriel, telephone, camp_nom, camp_dates, camp_lieu, sync_status, monday_item_id, created_at, presence_updated_at, cahier_envoye')
+        .select(selectInscriptions)
         .eq('session_id', selectedCampId)
-        .order('prenom_nom')
+        .order(isPartenaireLect ? 'created_at' : 'prenom_nom')
 
       if (error) { console.error(error); setLoadingInscrits(false); return }
       if (!data || data.length === 0) { setInscriptions([]); setLoadingInscrits(false); return }
 
-      // Étape 2 — données complémentaires des réservistes
+      // Étape 2 — données complémentaires des réservistes (que non-sensibles pour partenaire_lect)
       const benevoleIds = data.map((r: any) => r.benevole_id).filter(Boolean)
+      const selectReservistes = isPartenaireLect
+        ? 'benevole_id, region, groupe'
+        : 'benevole_id, prenom, nom, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales'
       const { data: resData } = await supabase
         .from('reservistes')
-        .select('benevole_id, prenom, nom, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales')
+        .select(selectReservistes)
         .in('benevole_id', benevoleIds)
 
       const resMap = new Map((resData || []).map((r: any) => [r.benevole_id, r]))
@@ -297,12 +305,13 @@ export default function InscriptionsCampsPage() {
       setLoadingInscrits(false)
     }
     loadInscrits()
-  }, [selectedCampId])
+  }, [selectedCampId, isPartenaireLect])
 
   // ── Filtres ─────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     return inscriptions.filter(i => {
-      const matchSearch = !search || i.prenom_nom.toLowerCase().includes(search.toLowerCase())
+      const matchSearch = !search
+        || (i.prenom_nom || '').toLowerCase().includes(search.toLowerCase())
         || (i.courriel || '').toLowerCase().includes(search.toLowerCase())
         || (i.region || '').toLowerCase().includes(search.toLowerCase())
       const matchPresence = filterPresence === 'tous' || i.presence === filterPresence
@@ -852,7 +861,7 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', 'Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.', ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
                       padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
@@ -952,23 +961,27 @@ export default function InscriptionsCampsPage() {
                     <td style={{ padding: '8px 10px', color: '#6b7280', whiteSpace: 'nowrap' }}>
                       {ins.region || <span style={{ color: '#d1d5db' }}>—</span>}
                     </td>
-                    <td style={{ padding: '8px 10px', color: '#6b7280', textAlign: 'center' }}>
-                      {ins.remboursement_bottes_date
-                        ? <span style={{ color: '#065f46', fontWeight: 600 }}>✓</span>
-                        : <span style={{ color: '#d1d5db' }}>—</span>
-                      }
-                    </td>
-                    <td style={{ padding: '8px 10px', color: ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
-                      {ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? ins.allergies_alimentaires : '—'}
-                    </td>
-                    <td style={{ padding: '8px 10px', color: ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
-                      {ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? ins.allergies_autres : '—'}
-                    </td>
-                    <td style={{ padding: '8px 10px', color: ins.conditions_medicales && ins.conditions_medicales !== 'Aucun' ? '#7f1d1d' : '#d1d5db', fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {ins.conditions_medicales && ins.conditions_medicales !== 'Aucun'
-                        ? <span title={ins.conditions_medicales}>{ins.conditions_medicales}</span>
-                        : '—'}
-                    </td>
+                    {!isPartenaireLect && (
+                      <>
+                        <td style={{ padding: '8px 10px', color: '#6b7280', textAlign: 'center' }}>
+                          {ins.remboursement_bottes_date
+                            ? <span style={{ color: '#065f46', fontWeight: 600 }}>✓</span>
+                            : <span style={{ color: '#d1d5db' }}>—</span>
+                          }
+                        </td>
+                        <td style={{ padding: '8px 10px', color: ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
+                          {ins.allergies_alimentaires && ins.allergies_alimentaires !== 'Aucun' ? ins.allergies_alimentaires : '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', color: ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? '#92400e' : '#d1d5db', fontSize: 12 }}>
+                          {ins.allergies_autres && ins.allergies_autres !== 'Aucun' ? ins.allergies_autres : '—'}
+                        </td>
+                        <td style={{ padding: '8px 10px', color: ins.conditions_medicales && ins.conditions_medicales !== 'Aucun' ? '#7f1d1d' : '#d1d5db', fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {ins.conditions_medicales && ins.conditions_medicales !== 'Aucun'
+                            ? <span title={ins.conditions_medicales}>{ins.conditions_medicales}</span>
+                            : '—'}
+                        </td>
+                      </>
+                    )}
                     {isAdmin && (
                       <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                         <button
