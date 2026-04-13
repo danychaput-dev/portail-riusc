@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireRole, isAuthError } from '@/utils/auth-api'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +25,9 @@ async function fetchAll<T>(table: string, selectCols: string): Promise<T[]> {
 }
 
 export async function GET() {
+  const auth = await requireRole('superadmin', 'admin', 'coordonnateur', 'adjoint')
+  if (isAuthError(auth)) return auth
+
   // Charger courriels, notes et reponses en parallele
   const [courriels, notes, reponses] = await Promise.all([
     fetchAll<{ benevole_id: string }>('courriels', 'benevole_id'),

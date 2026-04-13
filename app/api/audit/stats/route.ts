@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRole, isAuthError } from '@/utils/auth-api';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -7,6 +8,8 @@ const supabase = createClient(
 );
 
 export async function GET(req: NextRequest) {
+  const auth = await requireRole('superadmin', 'admin');
+  if (isAuthError(auth)) return auth;
   const { searchParams } = req.nextUrl;
   const from = searchParams.get('from');
   const to = searchParams.get('to');

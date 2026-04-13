@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { requireAuth, isAuthError } from '@/utils/auth-api'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,9 +9,17 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAuth()
+    if (isAuthError(auth)) return auth
+
     const { benevole_id, deployment_id, date_debut, date_fin } = await req.json()
     if (!benevole_id || !deployment_id || !date_debut || !date_fin) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
+    }
+
+    // Un reserviste ne peut annuler que ses propres disponibilites
+    if (auth.role === 'reserviste' && auth.benevole_id !== benevole_id) {
+      return NextResponse.json({ error: 'Acces refuse' }, { status: 403 })
     }
 
     const { error } = await supabase

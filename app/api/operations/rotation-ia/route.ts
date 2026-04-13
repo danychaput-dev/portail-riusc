@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireRole, isAuthError } from '@/utils/auth-api'
 
 // ─── Route POST /api/operations/rotation-ia ───────────────────────────────────
 //
@@ -12,6 +13,8 @@ import { NextRequest, NextResponse } from 'next/server'
 //   nb_cibles_notifies : number
 
 export async function POST(req: NextRequest) {
+  const auth = await requireRole('superadmin', 'admin', 'coordonnateur')
+  if (isAuthError(auth)) return auth
   try {
     const { deployment, sinistre, dispos, nb_cibles_notifies } = await req.json()
 

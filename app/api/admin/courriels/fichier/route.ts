@@ -1,8 +1,11 @@
 // app/api/admin/courriels/fichier/route.ts
-// Route publique qui redirige vers une URL signee Supabase Storage
+// Route qui redirige vers une URL signee Supabase Storage
 // Permet d'avoir un lien permanent dans les courriels (jamais d'expiration)
+// Note : garde un acces authentifie (tout utilisateur connecte) car les liens
+// sont inclus dans les courriels envoyes aux reservistes
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAuth, isAuthError } from '@/utils/auth-api'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,6 +13,9 @@ const supabaseAdmin = createClient(
 )
 
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth()
+  if (isAuthError(auth)) return auth
+
   const path = req.nextUrl.searchParams.get('path')
   if (!path) return NextResponse.json({ error: 'path requis' }, { status: 400 })
 

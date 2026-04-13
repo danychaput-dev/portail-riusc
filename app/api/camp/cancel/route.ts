@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { n8nUrl } from '@/utils/n8n'
+import { requireAuth, isAuthError } from '@/utils/auth-api'
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth()
+  if (isAuthError(auth)) return auth
+
   const { searchParams } = new URL(request.url)
   const benevoleId = searchParams.get('benevole_id')
 
   if (!benevoleId) {
     return NextResponse.json({ error: 'benevole_id requis' }, { status: 400 })
+  }
+
+  // Un reserviste ne peut annuler que sa propre inscription
+  if (auth.role === 'reserviste' && auth.benevole_id !== benevoleId) {
+    return NextResponse.json({ error: 'Acces refuse' }, { status: 403 })
   }
 
   try {
