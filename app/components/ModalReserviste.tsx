@@ -40,7 +40,7 @@ interface Props {
   onClose: () => void
 }
 
-type Onglet = 'courriels' | 'notes' | 'retraits'
+type Onglet = 'courriels' | 'notes' | 'retraits' | 'historique'
 
 interface RetraitEntry {
   id: string
@@ -49,6 +49,43 @@ interface RetraitEntry {
   effectue_le: string
   effectue_par_email: string | null
   groupe_au_moment: string | null
+}
+
+interface AuditEntry {
+  id: string
+  action: 'insert' | 'update' | 'delete' | 'restore'
+  field_name: string | null
+  old_value: unknown
+  new_value: unknown
+  full_snapshot: Record<string, unknown> | null
+  changed_by_email: string | null
+  changed_at: string
+}
+
+// Libelles humains pour les champs techniques de la table reservistes
+const CHAMP_LABELS: Record<string, string> = {
+  groupe: 'Groupe',
+  statut: 'Statut',
+  prenom: 'Prénom',
+  nom: 'Nom',
+  email: 'Courriel',
+  telephone: 'Téléphone',
+  region: 'Région',
+  role: 'Rôle',
+  antecedents_judiciaires: 'Antécédents judiciaires',
+  date_remboursement_bottes: 'Remboursement bottes',
+  org_principale: 'Organisation principale',
+  notes: 'Notes',
+  adresse: 'Adresse',
+  ville: 'Ville',
+  code_postal: 'Code postal',
+}
+
+const formatValue = (v: unknown): string => {
+  if (v === null || v === undefined) return '∅ (vide)'
+  if (typeof v === 'boolean') return v ? 'oui' : 'non'
+  if (typeof v === 'object') return JSON.stringify(v)
+  return String(v)
 }
 
 export default function ModalReserviste({ reserviste, currentUserId, isAdmin, onClose }: Props) {
@@ -66,6 +103,8 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   const [impersonating, setImpersonating] = useState(false)
   const [retraits, setRetraits] = useState<RetraitEntry[]>([])
   const [loadingRetraits, setLoadingRetraits] = useState(false)
+  const [audit, setAudit] = useState<AuditEntry[]>([])
+  const [loadingAudit, setLoadingAudit] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const emprunterIdentite = async () => {
@@ -179,6 +218,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
     { key: 'courriels', label: 'Courriels', icon: '✉️' },
     { key: 'notes', label: 'Notes', icon: '📝' },
     ...(isAdmin ? [{ key: 'retraits' as const, label: 'Retraits', icon: '⏸️' }] : []),
+    ...(isAdmin ? [{ key: 'historique' as const, label: 'Historique', icon: '🕓' }] : []),
   ]
 
   // Charger l'historique des retraits quand on ouvre l'onglet
@@ -190,6 +230,17 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
       .then(json => setRetraits(json.entries || []))
       .catch(() => setRetraits([]))
       .finally(() => setLoadingRetraits(false))
+  }, [onglet, reserviste.benevole_id])
+
+  // Charger l'historique complet (audit_log) quand on ouvre l'onglet
+  useEffect(() => {
+    if (onglet !== 'historique') return
+    setLoadingAudit(true)
+    fetch(`/api/admin/reservistes/historique?benevole_id=${encodeURIComponent(reserviste.benevole_id)}`)
+      .then(r => r.json())
+      .then(json => setAudit(json.entries || []))
+      .catch(() => setAudit([]))
+      .finally(() => setLoadingAudit(false))
   }, [onglet, reserviste.benevole_id])
 
   return (
@@ -464,6 +515,68 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                           <div style={{ fontSize: '11px', color: '#6b7280' }}>
                             Par {e.effectue_par_email}
                             {e.groupe_au_moment && <> · groupe avant : {e.groupe_au_moment}</>}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
+
+            {/* Onglet Historique complet (audit_log, admin/superadmin uniquement) */}
+            {onglet === 'historique' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                  Toutes les modifications de la fiche (rétention 6 mois). Les champs techniques sont masqués.
+                </div>
+                {loadingAudit ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px' }}>
+                    Chargement…
+                  </div>
+                ) : audit.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px' }}>
+                    Aucune modification enregistrée pour ce réserviste.
+                  </div>
+                ) : (
+                  audit.map(e => {
+                    let label: string
+                    let couleur = '#1e3a5f'
+                    let bg = '#f8fafc'
+                    let icone = '✏️'
+                    if (e.action === 'insert') {
+                      label = 'Création de la fiche'
+                      couleur = '#16a34a'; bg = '#f0fdf4'; icone = '➕'
+                    } else if (e.action === 'delete') {
+                      label = 'Suppression de la fiche'
+                      couleur = '#dc2626'; bg = '#fef2f2'; icone = '🗑️'
+                    } else if (e.action === 'restore') {
+                      label = 'Restauration de la fiche'
+                      couleur = '#2563eb'; bg = '#eff6ff'; icone = '↩️'
+                    } else {
+                      const champ = e.field_name ? (CHAMP_LABELS[e.field_name] || e.field_name) : 'champ'
+                      label = `Modification : ${champ}`
+                    }
+                    return (
+                      <div key={e.id} style={{ backgroundColor: bg, borderLeft: `3px solid ${couleur}`, borderRadius: '6px', padding: '8px 12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: couleur }}>
+                            {icone} {label}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                            {new Date(e.changed_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
+                        </div>
+                        {e.action === 'update' && (
+                          <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px', fontFamily: 'monospace' }}>
+                            <span style={{ color: '#dc2626' }}>{formatValue(e.old_value)}</span>
+                            <span style={{ color: '#6b7280' }}> → </span>
+                            <span style={{ color: '#16a34a' }}>{formatValue(e.new_value)}</span>
+                          </div>
+                        )}
+                        {e.changed_by_email && (
+                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                            Par {e.changed_by_email}
                           </div>
                         )}
                       </div>
