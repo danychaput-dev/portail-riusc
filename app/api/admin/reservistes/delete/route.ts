@@ -1,10 +1,14 @@
 // app/api/admin/reservistes/delete/route.ts
-// Suppression UNITAIRE d'un reserviste avec raison obligatoire et journalisation
+// SOFT-DELETE UNITAIRE d'un reserviste avec raison obligatoire et journalisation.
+// Le reserviste est marque deleted_at = now() mais ses donnees ne sont PAS purgees.
+// Restauration possible via /api/admin/reservistes/restore.
+// Purge definitive via /api/admin/reservistes/hard-delete (superadmin uniquement).
 // Conforme loi 25: on conserve le minimum (nom, prenom, role, groupe, raison, auteur, date)
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,28 +30,8 @@ async function verifierAdmin() {
     .eq('user_id', user.id)
     .single()
   if (!res || res.role !== 'superadmin') return null
-  return { ...res, auth_user_id: user.id }
+  return { ...res, auth_user_id: user.id, auth_email: user.email ?? null }
 }
-
-// Tables enfants avec colonne benevole_id (ordre: enfants d'abord)
-const TABLES_ENFANTS = [
-  'reserviste_organisations',
-  'reserviste_langues',
-  'formations_benevoles',
-  'inscriptions_camps',
-  'inscriptions_camps_logs',
-  'disponibilites_v2',
-  'ciblages',
-  'assignations',
-  'messages',
-  'message_reactions',
-  'lms_progression',
-  'rappels_camps',
-  'reserviste_etat',
-  'dossier_reserviste',
-  'documents_officiels',
-  'courriels',
-]
 
 export async function DELETE(request: NextRequest) {
   const admin = await verifierAdmin()
@@ -110,6 +94,9 @@ export async function DELETE(request: NextRequest) {
     }
   }
 
+  // Identifier l'auteur pour le trigger audit sur toutes les suppressions
+  await setActingUser(supabaseAdmin, admin.auth_user_id, admin.auth_email)
+
   // 1. Inserer dans le journal AVANT de supprimer (pour tracabilite loi 25)
   const { error: logErr } = await supabaseAdmin
     .from('reservistes_suppressions')
@@ -132,39 +119,31 @@ export async function DELETE(request: NextRequest) {
     )
   }
 
-  // 2. Supprimer les donnees dans chaque table enfant
-  const erreurs: string[] = []
-  for (const table of TABLES_ENFANTS) {
-    const { error } = await supabaseAdmin
-      .from(table)
-      .delete()
-      .eq('benevole_id', benevole_id)
-    if (error && !error.message.includes('does not exist')) {
-      erreurs.push(`${table}: ${error.message}`)
-    }
-  }
-
-  // 3. Supprimer le reserviste
+  // 2. SOFT-DELETE: marquer le reserviste comme supprime sans purger ses donnees enfants
+  // (les enfants sont conserves pour permettre une restauration complete)
   const { error: delErr } = await supabaseAdmin
     .from('reservistes')
-    .delete()
+    .update({
+      deleted_at: new Date().toISOString(),
+      deleted_reason: raison.trim(),
+      deleted_by_user_id: admin.auth_user_id,
+    })
     .eq('benevole_id', benevole_id)
 
   if (delErr) {
     return NextResponse.json(
-      {
-        error: `Echec suppression reserviste: ${delErr.message}`,
-        erreurs_enfants: erreurs,
-      },
+      { error: `Echec suppression reserviste: ${delErr.message}` },
       { status: 500 }
     )
   }
 
   return NextResponse.json({
     success: true,
+    soft_delete: true,
     benevole_id,
     prenom: cible.prenom,
     nom: cible.nom,
-    erreurs_enfants: erreurs,
+    message: 'Reserviste mis a la corbeille. Restauration possible via /admin/corbeille.',
   })
 }
+

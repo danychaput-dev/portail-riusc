@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
   // IMPORTANT : .range(0, 4999) pour depasser la limite par defaut de 1000 lignes Supabase.
   let query = supabaseAdmin
-    .from('reservistes')
+    .from('reservistes_actifs')
     .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche, responsable_groupe')
     .not('nom', 'is', null)
     .neq('nom', '')
@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       for (let i = 0; i < idList.length; i += 300) {
         const batch = idList.slice(i, i + 300)
         const { data: batchData } = await supabaseAdmin
-          .from('reservistes')
+          .from('reservistes_actifs')
           .select('benevole_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche, responsable_groupe')
           .in('benevole_id', batch)
           .order('nom')

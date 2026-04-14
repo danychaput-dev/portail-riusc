@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,6 +32,8 @@ export async function POST(req: NextRequest) {
 
   const { benevole_id, date } = await req.json()
   if (!benevole_id) return NextResponse.json({ error: 'benevole_id requis' }, { status: 400 })
+
+  await setActingUser(supabaseAdmin, user.id, user.email)
 
   const { error } = await supabaseAdmin
     .from('reservistes')

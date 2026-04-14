@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
 
     // 2. Compétences + coordonnées
     const { data: competences } = await supabaseAdmin
-      .from('reservistes')
+      .from('reservistes_actifs')
       .select(`
         benevole_id, latitude, longitude, preference_tache,
         competence_rs, certificat_premiers_soins, vehicule_tout_terrain,
@@ -172,7 +172,7 @@ export async function GET(req: NextRequest) {
 
     const benevoleIds = data.map((c: any) => c.benevole_id)
     const { data: reservistes } = await supabaseAdmin
-      .from('reservistes')
+      .from('reservistes_actifs')
       .select('benevole_id, prenom, nom, telephone, region, ville, preference_tache')
       .in('benevole_id', benevoleIds)
     const resMap = Object.fromEntries((reservistes || []).map((r: any) => [r.benevole_id, r]))

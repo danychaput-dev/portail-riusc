@@ -38,7 +38,7 @@ export async function GET() {
     // Sans ca, si le total depasse 1000, les repartitions (region, antecedents, bottes, etc.)
     // sont calculees sur un tableau tronque et les chiffres ne matchent plus au drill-down.
     const { data: reservistes, error } = await supabase
-      .from('reservistes')
+      .from('reservistes_actifs')
       .select('benevole_id, groupe, region, antecedents_statut, monday_created_at, created_at, remboursement_bottes_date')
       .eq('statut', 'Actif')
       .in('groupe', ['Approuvé', 'Intérêt', 'Partenaires'])
@@ -49,7 +49,7 @@ export async function GET() {
     if (error) throw error
 
     // Compteurs exacts via COUNT SQL (pas affectés par la limite de 1000 lignes)
-    const baseFilter = () => supabase.from('reservistes').select('id', { count: 'exact', head: true }).eq('statut', 'Actif').not('nom', 'is', null).neq('nom', '')
+    const baseFilter = () => supabase.from('reservistes_actifs').select('id', { count: 'exact', head: true }).eq('statut', 'Actif').not('nom', 'is', null).neq('nom', '')
     const [cntApprouves, cntInteret, cntPartenaires] = await Promise.all([
       baseFilter().eq('groupe', 'Approuvé'),
       baseFilter().eq('groupe', 'Intérêt'),

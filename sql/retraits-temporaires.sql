@@ -6,7 +6,7 @@ create table if not exists public.retraits_temporaires (
   id uuid primary key default gen_random_uuid(),
 
   entity_type text not null check (entity_type in ('reserviste','certificat','formation')),
-  entity_id uuid not null,
+  entity_id text not null,
 
   prenom text,
   nom text,

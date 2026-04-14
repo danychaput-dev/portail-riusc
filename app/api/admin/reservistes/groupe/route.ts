@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,6 +67,9 @@ export async function PATCH(request: NextRequest) {
       requires_raison: true,
     }, { status: 400 })
   }
+
+  // Identifier l'auteur pour le trigger audit
+  await setActingUser(supabaseAdmin, caller.user.id, caller.user.email)
 
   // 1. Update du groupe
   const { error } = await supabaseAdmin

@@ -51,3 +51,4 @@ create_client.txt
 next-env.d.ts
 
 snapshots/_logs/
+.vercel

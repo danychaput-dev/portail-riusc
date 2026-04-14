@@ -259,6 +259,28 @@ Page `/deploiement/taches` — détails complets avec protocoles sécurité, ÉP
 ### ID organisation AQBRS
 `bb948f22-a29e-42db-bdd9-aabab8a95abd`
 
+## Audit log + Soft-delete (avril 2026)
+
+### Journal d'audit générique (`audit_log`)
+
+Trigger Postgres `audit_capture()` capture automatiquement chaque INSERT/UPDATE/DELETE sur les tables surveillées. Une ligne par champ modifié pour les UPDATE. L'auteur est récupéré via `auth.uid()` (UI) ou via les variables de session `app.acting_user_id` / `app.acting_email` (API service_role).
+
+- **Brancher sur une table** : `select audit_attach_table('nom_table', 'colonne_pk');`
+- **Tables actuellement branchées** : `reservistes` (PK `benevole_id`)
+- **API route service_role** : appeler `setActingUser(supabaseAdmin, user.id, user.email)` (`utils/audit.ts`) AVANT chaque mutation pour tracer l'auteur.
+- **Rétention** : 6 mois via `audit_purge_old(p_months int default 6)` (purge manuelle, pas de cron auto).
+
+### Soft-delete des réservistes
+
+La table `reservistes` a 3 colonnes `deleted_at`, `deleted_reason`, `deleted_by_user_id`. Les réservistes "supprimés" via `/api/admin/reservistes/delete` sont en réalité marqués `deleted_at = now()` mais leurs données enfants (formations, disponibilités, etc.) sont conservées.
+
+- **Vue `reservistes_actifs`** : utiliser cette vue dans toutes les requêtes qui doivent **exclure** la corbeille. La table brute `reservistes` reste utilisée pour : la corbeille, la restauration, la purge définitive, le delete soft-delete.
+- **Page corbeille** : `/admin/corbeille` (superadmin) — bouton Restaurer + bouton Purger définitivement.
+- **Restaurer** : `POST /api/admin/reservistes/restore` `{ benevole_id }`.
+- **Purger définitivement (loi 25)** : `POST /api/admin/reservistes/hard-delete` `{ benevole_id, raison_purge, confirmation_nom }` — supprime cascade enfants + audit_log.
+
+⚠️ **Migration progressive** : seules les requêtes les plus visibles utilisent `reservistes_actifs` (liste admin, dashboard stats, ciblage). Les autres pages voient encore les soft-deleted comme actifs. À migrer au fil de l'eau. La RPC `get_pool_ciblage` query directement `reservistes` et doit aussi être mise à jour.
+
 ## Sécurité (audit avril 2026)
 
 - **RLS** : 33/33 tables avec Row Level Security activé

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,6 +36,8 @@ export async function POST(req: NextRequest) {
     ? new Date(new Date(date_verification).setFullYear(new Date(date_verification).getFullYear() + 3))
         .toISOString().split('T')[0]
     : null
+
+  await setActingUser(supabaseAdmin, user.id, user.email)
 
   const { error } = await supabaseAdmin
     .from('reservistes')

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { setActingUser } from '@/utils/audit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +33,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: authError.message }, { status: 500 })
     }
 
-    // 2. Mettre à jour reservistes.email
+    // 2. Mettre à jour reservistes.email (avec traçage audit)
+    await setActingUser(supabaseAdmin, user_id, new_email)
     const { error: dbError } = await supabaseAdmin
       .from('reservistes')
       .update({ email: new_email })
