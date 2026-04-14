@@ -49,3 +49,5 @@ create_client.txt
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+snapshots/_logs/

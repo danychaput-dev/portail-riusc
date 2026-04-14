@@ -26,6 +26,35 @@ if (!url || !key) {
 
 const supabase = createClient(url, key)
 
+// Retry helper avec backoff exponentiel pour erreurs reseau transitoires
+// (fetch failed, ECONNRESET, ETIMEDOUT, etc.) lors d'appels Supabase
+async function withRetry(label, fn, maxAttempts = 4, baseDelayMs = 1000) {
+  let lastErr
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fn()
+      // Supabase renvoie { data, error } au lieu de throw
+      if (res && res.error) {
+        const msg = res.error.message || String(res.error)
+        // Erreurs reseau a re-essayer
+        if (/fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|network|socket hang up|503|504/i.test(msg) && attempt < maxAttempts) {
+          throw new Error(`Retry-able: ${msg}`)
+        }
+        return res
+      }
+      return res
+    } catch (e) {
+      lastErr = e
+      const msg = e && e.message ? e.message : String(e)
+      if (attempt >= maxAttempts) break
+      const delay = baseDelayMs * Math.pow(2, attempt - 1)
+      console.warn(`[${label}] Tentative ${attempt}/${maxAttempts} echouee (${msg}). Retry dans ${delay}ms...`)
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
+  throw lastErr
+}
+
 function csvField(v) {
   if (v === null || v === undefined) return ''
   const s = String(v)
@@ -43,12 +72,13 @@ async function main() {
 
   console.log(`Extraction du snapshot pour ${today}...`)
 
-  // 1. Fetch all reservistes
-  const { data: reservistes, error } = await supabase
+  // 1. Fetch all reservistes (avec retry sur erreurs reseau)
+  const { data: reservistes, error } = await withRetry('reservistes', () => supabase
     .from('reservistes')
     .select('benevole_id, prenom, nom, email, telephone, groupe, statut, camp_qualif_complete, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, remboursement_bottes_date, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone')
     .order('benevole_id')
     .range(0, 9999)
+  )
 
   if (error) {
     console.error('Erreur fetch reservistes:', error.message)
@@ -62,10 +92,11 @@ async function main() {
   const formMap = {}
   for (let i = 0; i < ids.length; i += 500) {
     const batch = ids.slice(i, i + 500)
-    const { data: formations } = await supabase
+    const { data: formations } = await withRetry(`formations[${i}]`, () => supabase
       .from('formations_benevoles')
       .select('benevole_id, resultat, nom_formation, certificat_url, certificat_requis, initiation_sc_completee, source')
       .in('benevole_id', batch)
+    )
     for (const f of (formations || [])) {
       if (!formMap[f.benevole_id]) {
         formMap[f.benevole_id] = {
