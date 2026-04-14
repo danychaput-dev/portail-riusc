@@ -1149,22 +1149,36 @@ function ProfilPage() {
         }
 
         let orgIdsToAdd = [...newOrgIds]
+        // Creation de la nouvelle organisation via l'API (service_role: bypass RLS).
+        // L'API fait aussi l'association au benevole, donc on retire l'id de la liste
+        // uniqueOrgs pour ne pas tenter de recreer l'association client-side.
+        let orgCreeeEtLiee: string | null = null
         if (newOrgName.trim()) {
-          const { data: createdOrg, error: createError } = await supabase
-            .from('organisations').insert({ nom: newOrgName.trim(), created_by: reserviste.benevole_id }).select('id').single()
-          if (createError) {
-            const { data: existingOrg } = await supabase.from('organisations').select('id').ilike('nom', newOrgName.trim()).single()
-            if (existingOrg) orgIdsToAdd.push(existingOrg.id)
-          } else if (createdOrg) {
-            orgIdsToAdd.push(createdOrg.id)
+          try {
+            const resp = await fetch('/api/profil/organisation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ nom: newOrgName.trim(), benevole_id: reserviste.benevole_id }),
+            })
+            const json = await resp.json()
+            if (!resp.ok) {
+              alert(`Erreur creation organisation: ${json.error || 'inconnue'}`)
+            } else if (json.organisation_id) {
+              orgCreeeEtLiee = json.organisation_id
+            }
+          } catch (e) {
+            alert(`Erreur creation organisation: ${e instanceof Error ? e.message : 'inconnue'}`)
           }
         }
+        // Associations des organisations existantes selectionnees (hors celle creee deja liee)
         const uniqueOrgs = orgIdsToAdd.filter(id => !myOrgIds.includes(id))
         if (uniqueOrgs.length > 0) {
           await supabase.from('reserviste_organisations').insert(
             uniqueOrgs.map(organisation_id => ({ benevole_id: reserviste.benevole_id, organisation_id }))
           )
         }
+        // Ajouter l'org creee a la liste locale pour le refresh
+        if (orgCreeeEtLiee) uniqueOrgs.push(orgCreeeEtLiee)
         const { data: refreshedOrgs } = await supabase.from('organisations').select('id, nom').order('nom')
         setAllOrgs(refreshedOrgs || [])
         setMyOrgIds(prev => [...prev.filter(id => !removedOrgIds.includes(id)), ...uniqueOrgs])
