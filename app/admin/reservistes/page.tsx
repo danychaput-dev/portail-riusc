@@ -7,6 +7,7 @@ import { formatPhone } from '@/utils/phone'
 import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 import ModalReserviste from '@/app/components/ModalReserviste'
 import ModalSuppressionReserviste from '@/app/components/ModalSuppressionReserviste'
+import ModalRetraitTemporaire from '@/app/components/ModalRetraitTemporaire'
 import SavedViewsBar, { type VueFiltres } from '@/app/components/SavedViewsBar'
 
 const C = '#1e3a5f'
@@ -205,6 +206,9 @@ function ReservistesPage() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [modalReserviste, setModalReserviste] = useState<Reserviste | null>(null)
   const [suppressionCible, setSuppressionCible] = useState<Reserviste | null>(null)
+  const [retraitCible, setRetraitCible] = useState<{ reserviste: Reserviste; mode: 'retrait' | 'reactivation'; groupeReactivation?: string } | null>(null)
+  // Cache des derniers retraits par benevole_id pour tooltip sur badge
+  const [retraitsInfo, setRetraitsInfo] = useState<Record<string, { raison: string; effectue_le: string; effectue_par_email: string | null } | null>>({})
   const [currentUserId, setCurrentUserId] = useState<string>('')
   // Menu contextuel (right-click)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
@@ -1344,10 +1348,38 @@ function ReservistesPage() {
                 </div>
                 {/* Groupe */}
                 <div style={{ padding: '11px 10px' }}>
-                  <span style={{
-                    fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
-                    backgroundColor: badge.bg, color: badge.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const
-                  }}>
+                  <span
+                    style={{
+                      fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
+                      backgroundColor: badge.bg, color: badge.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const,
+                      cursor: r.groupe === 'Retrait temporaire' && (isAdmin || userRole === 'coordonnateur') ? 'help' : 'default',
+                    }}
+                    title={
+                      r.groupe === 'Retrait temporaire' && retraitsInfo[r.benevole_id]
+                        ? `Retiré le ${new Date(retraitsInfo[r.benevole_id]!.effectue_le).toLocaleString('fr-CA', { dateStyle: 'long', timeStyle: 'short' })}`
+                          + (retraitsInfo[r.benevole_id]!.effectue_par_email ? ` par ${retraitsInfo[r.benevole_id]!.effectue_par_email}` : '')
+                          + `\nRaison : ${retraitsInfo[r.benevole_id]!.raison}`
+                        : (r.groupe === 'Retrait temporaire' && (isAdmin || userRole === 'coordonnateur') ? 'Survolez pour charger le détail…' : undefined)
+                    }
+                    onMouseEnter={async () => {
+                      if (r.groupe !== 'Retrait temporaire') return
+                      if (!(isAdmin || userRole === 'coordonnateur')) return
+                      if (r.benevole_id in retraitsInfo) return // deja charge (succes ou null)
+                      try {
+                        const resH = await fetch(`/api/admin/reservistes/historique-retraits?benevole_id=${encodeURIComponent(r.benevole_id)}`)
+                        const json = await resH.json()
+                        const dernierRetrait = (json.entries || []).find((e: any) => e.action === 'retrait')
+                        setRetraitsInfo(prev => ({
+                          ...prev,
+                          [r.benevole_id]: dernierRetrait
+                            ? { raison: dernierRetrait.raison, effectue_le: dernierRetrait.effectue_le, effectue_par_email: dernierRetrait.effectue_par_email }
+                            : null,
+                        }))
+                      } catch {
+                        setRetraitsInfo(prev => ({ ...prev, [r.benevole_id]: null }))
+                      }
+                    }}
+                  >
                     {badge.label}
                   </span>
                 </div>
@@ -1606,6 +1638,12 @@ function ReservistesPage() {
                 <button
                   onClick={async () => {
                     const r = contextMenu.reserviste
+                    // Sortie du Retrait temporaire = passe par la modale (raison + journal)
+                    if (r.groupe === 'Retrait temporaire') {
+                      setRetraitCible({ reserviste: r, mode: 'reactivation', groupeReactivation: 'Approuvé' })
+                      setContextMenu(null)
+                      return
+                    }
                     const res = await fetch('/api/admin/reservistes/groupe', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
@@ -1613,6 +1651,9 @@ function ReservistesPage() {
                     })
                     if (res.ok) {
                       setAllData(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Approuvé' } : x))
+                    } else {
+                      const err = await res.json().catch(() => ({}))
+                      alert(`Erreur : ${err.error ?? res.statusText}`)
                     }
                     setContextMenu(null)
                   }}
@@ -1623,18 +1664,41 @@ function ReservistesPage() {
                   <span style={{ fontSize: '14px' }}>✅</span> Approuver
                 </button>
               )}
-              {contextMenu.reserviste.groupe !== 'Retrait temporaire' && (
+              {contextMenu.reserviste.groupe !== 'Intérêt' && (
                 <button
                   onClick={async () => {
                     const r = contextMenu.reserviste
+                    // Sortie du Retrait temporaire = passe par la modale (raison + journal)
+                    if (r.groupe === 'Retrait temporaire') {
+                      setRetraitCible({ reserviste: r, mode: 'reactivation', groupeReactivation: 'Intérêt' })
+                      setContextMenu(null)
+                      return
+                    }
                     const res = await fetch('/api/admin/reservistes/groupe', {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ benevole_id: r.benevole_id, groupe: 'Retrait temporaire' }),
+                      body: JSON.stringify({ benevole_id: r.benevole_id, groupe: 'Intérêt' }),
                     })
                     if (res.ok) {
-                      setAllData(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Retrait temporaire' } : x))
+                      setAllData(prev => prev.map(x => x.benevole_id === r.benevole_id ? { ...x, groupe: 'Intérêt' } : x))
+                    } else {
+                      const err = await res.json().catch(() => ({}))
+                      alert(`Erreur : ${err.error ?? res.statusText}`)
                     }
+                    setContextMenu(null)
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#f59e0b', textAlign: 'left' }}
+                  onMouseOver={e => (e.currentTarget.style.backgroundColor = '#fffbeb')}
+                  onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <span style={{ fontSize: '14px' }}>⏳</span> Remettre en Intérêt
+                </button>
+              )}
+              {contextMenu.reserviste.groupe !== 'Retrait temporaire' && (
+                <button
+                  onClick={() => {
+                    // Mise en Retrait temporaire = passe par la modale (raison + journal)
+                    setRetraitCible({ reserviste: contextMenu.reserviste, mode: 'retrait' })
                     setContextMenu(null)
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#d97706', textAlign: 'left' }}
@@ -1694,6 +1758,28 @@ function ReservistesPage() {
           onDeleted={() => {
             setAllData(prev => prev.filter(x => x.benevole_id !== suppressionCible.benevole_id))
             setSuppressionCible(null)
+          }}
+        />
+      )}
+
+      {/* Modal retrait temporaire / réactivation (raison obligatoire + journal) */}
+      {retraitCible && (
+        <ModalRetraitTemporaire
+          mode={retraitCible.mode}
+          prenom={retraitCible.reserviste.prenom}
+          nom={retraitCible.reserviste.nom}
+          benevole_id={retraitCible.reserviste.benevole_id}
+          groupeReactivation={retraitCible.groupeReactivation}
+          onClose={() => setRetraitCible(null)}
+          onConfirmed={(nouveauGroupe) => {
+            setAllData(prev => prev.map(x => x.benevole_id === retraitCible.reserviste.benevole_id ? { ...x, groupe: nouveauGroupe } : x))
+            // Invalider le cache du tooltip pour ce reserviste
+            setRetraitsInfo(prev => {
+              const next = { ...prev }
+              delete next[retraitCible.reserviste.benevole_id]
+              return next
+            })
+            setRetraitCible(null)
           }}
         />
       )}

@@ -40,7 +40,16 @@ interface Props {
   onClose: () => void
 }
 
-type Onglet = 'courriels' | 'notes'
+type Onglet = 'courriels' | 'notes' | 'retraits'
+
+interface RetraitEntry {
+  id: string
+  action: 'retrait' | 'reactivation'
+  raison: string
+  effectue_le: string
+  effectue_par_email: string | null
+  groupe_au_moment: string | null
+}
 
 export default function ModalReserviste({ reserviste, currentUserId, isAdmin, onClose }: Props) {
   const [onglet, setOnglet] = useState<Onglet>('courriels')
@@ -55,6 +64,8 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   const [historiqueRefreshKey, setHistoriqueRefreshKey] = useState(0)
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [impersonating, setImpersonating] = useState(false)
+  const [retraits, setRetraits] = useState<RetraitEntry[]>([])
+  const [loadingRetraits, setLoadingRetraits] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const emprunterIdentite = async () => {
@@ -167,7 +178,19 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   const onglets: { key: Onglet; label: string; icon: string }[] = [
     { key: 'courriels', label: 'Courriels', icon: '✉️' },
     { key: 'notes', label: 'Notes', icon: '📝' },
+    ...(isAdmin ? [{ key: 'retraits' as const, label: 'Retraits', icon: '⏸️' }] : []),
   ]
+
+  // Charger l'historique des retraits quand on ouvre l'onglet
+  useEffect(() => {
+    if (onglet !== 'retraits') return
+    setLoadingRetraits(true)
+    fetch(`/api/admin/reservistes/historique-retraits?benevole_id=${encodeURIComponent(reserviste.benevole_id)}`)
+      .then(r => r.json())
+      .then(json => setRetraits(json.entries || []))
+      .catch(() => setRetraits([]))
+      .finally(() => setLoadingRetraits(false))
+  }, [onglet, reserviste.benevole_id])
 
   return (
     <>
@@ -397,6 +420,50 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                                 {f.taille && <span style={{ color: '#94a3b8' }}>({formatFileSize(f.taille)})</span>}
                               </a>
                             ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
+
+            {/* Onglet Retraits temporaires (admin/superadmin uniquement) */}
+            {onglet === 'retraits' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {loadingRetraits ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px' }}>
+                    Chargement…
+                  </div>
+                ) : retraits.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '13px', padding: '20px' }}>
+                    Aucun retrait temporaire enregistré pour ce réserviste.
+                  </div>
+                ) : (
+                  retraits.map(e => {
+                    const isRetrait = e.action === 'retrait'
+                    const couleur = isRetrait ? '#d97706' : '#16a34a'
+                    const bg = isRetrait ? '#fffbeb' : '#f0fdf4'
+                    const icone = isRetrait ? '⏸️' : '▶️'
+                    const label = isRetrait ? 'Mis en retrait temporaire' : 'Réactivé'
+                    return (
+                      <div key={e.id} style={{ backgroundColor: bg, borderLeft: `3px solid ${couleur}`, borderRadius: '6px', padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: couleur }}>
+                            {icone} {label}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                            {new Date(e.effectue_le).toLocaleString('fr-CA', { dateStyle: 'long', timeStyle: 'short' })}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
+                          <strong>Raison :</strong> {e.raison}
+                        </div>
+                        {e.effectue_par_email && (
+                          <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                            Par {e.effectue_par_email}
+                            {e.groupe_au_moment && <> · groupe avant : {e.groupe_au_moment}</>}
                           </div>
                         )}
                       </div>
