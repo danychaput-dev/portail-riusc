@@ -1,0 +1,4 @@
+monday_item_id,benevole_id,nom_complet,formation,date_reussite,file_source,storage_path,status,detail
+18133661055,18133661055,Messier Stephane,,,,,skipped_duplicate,monday_item_id déjà migré
+18164827325,18164827325,Yannick Jalette,S'initier à la sécurité civile (MSP),2026-02-18,Certificat_Jalette_Yannick_AKA74DD1C41AF2B5829AKA.pdf,18164827325/s_initier___la_s_curit__civile__msp__18164827325.pdf,dry_run_ok,
+18164961008,18164961008,Eunice Mucyo,S'initier à la sécurité civile (MSP),2026-02-18,Certificat_Mucyo_Eunice_AKA4B3312309668F34FAKA.pdf,18164961008/s_initier___la_s_curit__civile__msp__18164961008.pdf,dry_run_ok,

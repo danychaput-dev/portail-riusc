@@ -1,0 +1,12 @@
+monday_item_id,benevole_id,nom_complet,formation,date_reussite,file_source,storage_path,status,detail
+18133661055,18133661055,Messier Stephane,,,,,skipped_duplicate,monday_item_id déjà migré
+18164827325,18164827325,Yannick Jalette,S'initier à la sécurité civile (MSP),2026-02-18,Certificat_Jalette_Yannick_AKA74DD1C41AF2B5829AKA.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18164961008,18164961008,Eunice Mucyo,S'initier à la sécurité civile (MSP),2026-02-18,Certificat_Mucyo_Eunice_AKA4B3312309668F34FAKA.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18166778980,18166778980,Marie-Pierre Savard,S'initier à la sécurité civile (MSP),2026-02-18,1Certificat_Savard_Marie-pierre_AKA7B5CF5D531D3918CAKA _2_.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18167101047,18167101047,Daniel Renaud,S'initier à la sécurité civile (MSP),2026-02-18,Certificat_Renaud_Daniel_AKA8A23497768A4BF0BAKA.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18167435118,18167435118,Jimmy Labrecque,S'initier à la sécurité civile (MSP),2026-02-18,Initier à la s.c..jpg,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18167435118,18167435118,Jimmy Labrecque,Radio amateur,2026-02-18,Radio amateur Jimmy - Labreque.jpg,18167435118/radio_amateur_18167435118_1.jpg,dry_run_ok,
+18170248370,18170248370,Tettaut Tommy,,,,,skipped_duplicate,monday_item_id déjà migré
+18171390111,18171390111,François Gougeon,S'initier à la sécurité civile (MSP),2026-03-26,certificat_MSP_S-Initier-a-la-securite-civile_F-Gougeon_2025-10-17.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18180213680,18180213680,Alvaro Jimenez,S'initier à la sécurité civile (MSP),2026-02-18,Certificat_Jimenez_Alvaro_AKA264BAD1A6A741112AKA.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
+18180356840,18180356840,Rémy Roy,S'initier à la sécurité civile (MSP),2026-03-09,Certificat_Roy_Rémy_AKAA47E9C2A1F730A01AKA - Sécurité Civil.pdf,,skipped_duplicate_formation,"existe déjà comme ""S'initier à la sécurité civile"""
