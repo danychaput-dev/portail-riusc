@@ -105,9 +105,12 @@ export async function POST(request: NextRequest) {
     if (!benevole_id_final) return NextResponse.json({ error: 'benevole_id manquant' }, { status: 400 })
 
     const certificat_url = `storage:${item.storage_path}`
-    let formation_id: number | null = null
+    let formation_id: string | null = null
 
-    if (mode === 'attacher' && formation_benevole_id) {
+    if (mode === 'attacher') {
+      if (!formation_benevole_id) {
+        return NextResponse.json({ error: 'formation_benevole_id requis en mode attacher' }, { status: 400 })
+      }
       // Attacher le fichier à une formation existante
       const { data: updated, error } = await supabaseAdmin
         .from('formations_benevoles')

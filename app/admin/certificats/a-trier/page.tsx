@@ -35,7 +35,9 @@ const FORMATIONS_SUGGESTIONS = [
   'RCR',
   'Permis navigation / embarcation',
   'Formation SOPFEU',
-  'Initiation sécurité civile',
+  "S'initier à la sécurité civile",
+  'Le bénévole en sécurité civile (AQBRS)',
+  'Cohorte 4 - Camp de qualification - MSP',
   'Autre',
 ]
 
@@ -240,7 +242,7 @@ function DetailPane({
       nom_formation: nf,
       date_reussite: dateReussite || null,
       date_expiration: dateExpiration || null,
-      formation_benevole_id: mode === 'attacher' ? Number(formationBenevoleId) || null : null,
+      formation_benevole_id: mode === 'attacher' ? (formationBenevoleId || null) : null,
     }
     const res = await fetch('/api/admin/certificats-a-trier', {
       method: 'POST',
