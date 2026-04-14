@@ -45,12 +45,7 @@ import-*.py
 organiser-*.js
 upload-*.mjs
 create_client.txt
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# playwright E2E
-/test-results/
-/playwright-report/
-/tests/e2e/.auth/
+scripts/extract_gmail_certificats/credentials.json
+scripts/extract_gmail_certificats/token.json
+scripts/extract_gmail_certificats/files/
+scripts/extract_gmail_certificats/rapport.csv
