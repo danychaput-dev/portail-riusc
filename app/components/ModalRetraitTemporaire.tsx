@@ -68,6 +68,12 @@ export default function ModalRetraitTemporaire({
         setLoading(false)
         return
       }
+      // Le groupe a ete change mais la journalisation a echoue : alerter au lieu de fermer silencieusement
+      if (result.warning) {
+        setErreur(`Attention : ${result.warning}. Le journal n'a PAS ete mis a jour - merci de signaler ce probleme.`)
+        setLoading(false)
+        return
+      }
       onConfirmed(groupeCible)
     } catch (e: any) {
       setErreur(e.message || 'Erreur reseau')
