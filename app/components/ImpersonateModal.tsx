@@ -44,6 +44,7 @@ export default function ImpersonateModal({ onClose, onImpersonate }: Impersonate
           .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee')
           .in('benevole_id', benevoleIds)
           .eq('resultat', 'Réussi')
+          .is('deleted_at', null)
 
         // Calculer déployable par réserviste
         const deployableMap: Record<string, boolean> = {}

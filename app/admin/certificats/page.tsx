@@ -178,7 +178,7 @@ export default function AdminCertificatsPage() {
       const mondayIds = MONDAY_RAW.map(i => i.monday_item_id)
       const [mondayResult, portailResult, aCompleterResult] = await Promise.allSettled([
         // Monday: quels items sont déjà traités?
-        supabase.from('formations_benevoles').select('monday_item_id').in('monday_item_id', mondayIds),
+        supabase.from('formations_benevoles').select('monday_item_id').in('monday_item_id', mondayIds).is('deleted_at', null),
         // Portail: certificats en attente d'approbation (avec fichier)
         supabase.from('formations_benevoles')
           .select('id, benevole_id, nom_complet, nom_formation, certificat_url')
@@ -186,6 +186,7 @@ export default function AdminCertificatsPage() {
           .not('certificat_url', 'is', null)
           .is('date_reussite', null)
           .is('monday_item_id', null)
+          .is('deleted_at', null)
           .order('nom_complet'),
         // À compléter: certificats déclarés sans fichier
         supabase.from('formations_benevoles')
@@ -194,6 +195,7 @@ export default function AdminCertificatsPage() {
           .is('certificat_url', null)
           .is('date_reussite', null)
           .is('monday_item_id', null)
+          .is('deleted_at', null)
           .order('nom_complet'),
       ])
 
@@ -235,7 +237,7 @@ export default function AdminCertificatsPage() {
       const allDeduplicationBIds = [...new Set([...mondayBenevoleIds, ...allPortailBIds])]
 
       const { data: allExistingFormations } = allDeduplicationBIds.length > 0
-        ? await supabase.from('formations_benevoles').select('benevole_id, nom_formation, resultat').in('benevole_id', allDeduplicationBIds)
+        ? await supabase.from('formations_benevoles').select('benevole_id, nom_formation, resultat').in('benevole_id', allDeduplicationBIds).is('deleted_at', null)
         : { data: [] }
 
       // Map benevole_id → set de toutes les formations

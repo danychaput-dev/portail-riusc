@@ -97,6 +97,7 @@ export async function GET(req: NextRequest) {
           .from('formations_benevoles')
           .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url, certificat_requis')
           .in('benevole_id', batch)
+          .is('deleted_at', null)
         for (const f of (formations || [])) {
           if (!formationsMapIds[f.benevole_id]) formationsMapIds[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
           if (f.initiation_sc_completee || (f.source === 'lms' && f.resultat === 'Réussi')) formationsMapIds[f.benevole_id].initiation_sc = true
@@ -236,6 +237,7 @@ export async function GET(req: NextRequest) {
         .from('formations_benevoles')
         .select('benevole_id, resultat, source, nom_formation, initiation_sc_completee, certificat_url, certificat_requis')
         .in('benevole_id', batch)
+        .is('deleted_at', null)
       for (const f of (formations || [])) {
         if (!map[f.benevole_id]) map[f.benevole_id] = { initiation_sc: false, camp: false, certifs_en_attente: 0, certifs_manquants: 0 }
         const cat = (f.nom_formation || '').toLowerCase()

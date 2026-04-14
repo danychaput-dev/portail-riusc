@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     try {
       const [sinistres, certificats, lastSeen] = await Promise.all([
         supabase.from('sinistres').select('id', { count: 'exact', head: true }).eq('statut', 'Actif'),
-        supabase.from('formations_benevoles').select('id', { count: 'exact', head: true }).eq('resultat', 'En attente').not('certificat_url', 'is', null).is('date_reussite', null).is('monday_item_id', null),
+        supabase.from('formations_benevoles').select('id', { count: 'exact', head: true }).eq('resultat', 'En attente').not('certificat_url', 'is', null).is('date_reussite', null).is('monday_item_id', null).is('deleted_at', null),
         supabase.from('community_last_seen').select('last_seen_at').eq('user_id', userId).maybeSingle(),
       ])
       const lastSeenAt = lastSeen.data?.last_seen_at || '1970-01-01'

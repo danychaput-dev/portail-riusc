@@ -204,6 +204,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           .select('resultat, source, nom_formation')
           .eq('benevole_id', res.benevole_id)
           .eq('resultat', 'Réussi')
+          .is('deleted_at', null)
 
         if (formations) {
           // S'initier = même logique que page formation — cherche par nom_formation
@@ -221,6 +222,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           .select('certificat_url')
           .eq('benevole_id', res.benevole_id)
           .eq('resultat', 'En attente')
+          .is('deleted_at', null)
         if (certifsPending) {
           const manquants = certifsPending.filter(f => !f.certificat_url).length
           const enAttente = certifsPending.filter(f => !!f.certificat_url).length

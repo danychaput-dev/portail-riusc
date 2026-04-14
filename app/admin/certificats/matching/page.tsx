@@ -105,6 +105,7 @@ export default function MatchingCertificats() {
           .from('formations_benevoles')
           .select('id, benevole_id, nom_formation, resultat, etat_validite, date_reussite, certificat_url')
           .in('benevole_id', benevoleIds)
+          .is('deleted_at', null)
       : { data: [] }
 
     // Map benevole_id -> formations

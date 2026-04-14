@@ -295,6 +295,7 @@ export async function GET(req: NextRequest) {
     const { data: formBenIds } = await supabaseAdmin
       .from('formations_benevoles')
       .select('benevole_id')
+      .is('deleted_at', null)
     const orphanFormations = (formBenIds || []).filter(f => !benIdSet.has(f.benevole_id))
 
     if (orphanFormations.length > 0) {

@@ -7,6 +7,13 @@ on:
     branches: [main]
   workflow_dispatch:  # Permet de declencher manuellement (utile pour E2E)
 
+# Annule automatiquement les runs precedents sur la meme branche quand un nouveau push arrive.
+# Evite les faux negatifs ("E2E a plante") declenches par un push intermediaire pendant
+# qu'une serie de commits est en cours.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Variables factices pour le build et les tests
   # (les vrais secrets sont dans Vercel pour la prod)

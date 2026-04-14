@@ -176,6 +176,7 @@ export default function HomePage() {
         .eq('benevole_id', benevoleId)
         .not('certificat_url', 'is', null)
         .ilike('nom_formation', "%s'initier%")
+        .is('deleted_at', null)
 
       if (formations && formations.length > 0) {
         const filesWithUrls = await Promise.all(

@@ -96,6 +96,7 @@ async function main() {
       .from('formations_benevoles')
       .select('benevole_id, resultat, nom_formation, certificat_url, certificat_requis, initiation_sc_completee, source')
       .in('benevole_id', batch)
+      .is('deleted_at', null)
     )
     for (const f of (formations || [])) {
       if (!formMap[f.benevole_id]) {

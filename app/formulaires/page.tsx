@@ -183,7 +183,7 @@ function FormationContent() {
             // Charger tout en parallèle
             const bid = userData.benevole_id;
             const [certResult, formResult, docsResult] = await Promise.allSettled([
-              supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%"),
+              supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%").is('deleted_at', null),
               supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
               supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
             ]);
@@ -310,7 +310,7 @@ function FormationContent() {
         // Charger tout en parallèle
         const bid = reservisteData.benevole_id;
         const [certResult, formResult, docsResult] = await Promise.allSettled([
-          supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%"),
+          supabase.from('formations_benevoles').select('id, nom_formation, certificat_url, date_reussite').eq('benevole_id', bid).not('certificat_url', 'is', null).ilike('nom_formation', "%s'initier%").is('deleted_at', null),
           supabase.rpc('get_formations_by_benevole_id', { target_benevole_id: bid }),
           supabase.rpc('get_documents_by_benevole_id', { target_benevole_id: bid })
         ]);
@@ -555,7 +555,8 @@ function FormationContent() {
               .select('id, nom_formation, certificat_url, date_reussite')
               .eq('benevole_id', reserviste.benevole_id)
               .not('certificat_url', 'is', null)
-              .ilike('nom_formation', "%s'initier%");
+              .ilike('nom_formation', "%s'initier%")
+              .is('deleted_at', null);
             if (certs) {
               const filesWithUrls = await Promise.all(certs.map(async (f: any) => {
                 const url = f.certificat_url?.startsWith('storage:') ? f.certificat_url.slice(8) : f.certificat_url;
