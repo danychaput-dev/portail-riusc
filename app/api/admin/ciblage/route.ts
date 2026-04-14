@@ -106,6 +106,7 @@ export async function GET(req: NextRequest) {
     const benevoleIds = pool.map((c: any) => c.benevole_id)
 
     // 2. Compétences + coordonnées (via reservistes_actifs: exclut les soft-deleted)
+    // .range(0, 4999) pour supporter >1000 reservistes dans le pool (limite Supabase)
     const { data: competences } = await supabaseAdmin
       .from('reservistes_actifs')
       .select(`
@@ -116,6 +117,7 @@ export async function GET(req: NextRequest) {
         cartographie_sig, operation_urgence
       `)
       .in('benevole_id', benevoleIds)
+      .range(0, 4999)
 
     const compMap = Object.fromEntries(
       (competences || []).map((c: any) => [c.benevole_id, c])
@@ -126,10 +128,13 @@ export async function GET(req: NextRequest) {
     const poolFiltre = pool.filter((c: any) => compMap[c.benevole_id] !== undefined)
 
     // 3. Langues
+    // .range(0, 9999) car relation M-N : 2-3 langues par personne potentiellement.
+    // Avec 1000 reservistes, peut atteindre 3000 lignes -> limite 1000 depassee.
     const { data: languesData } = await supabaseAdmin
       .from('reserviste_langues')
       .select('benevole_id, langues(id, nom)')
       .in('benevole_id', benevoleIds)
+      .range(0, 9999)
 
     const languesMap: Record<string, string[]> = {}
     ;(languesData || []).forEach((l: any) => {
@@ -179,6 +184,7 @@ export async function GET(req: NextRequest) {
       .from('reservistes_actifs')
       .select('benevole_id, prenom, nom, telephone, region, ville, preference_tache')
       .in('benevole_id', benevoleIds)
+      .range(0, 4999)
     const resMap = Object.fromEntries((reservistes || []).map((r: any) => [r.benevole_id, r]))
     const enriched = data.map((c: any) => ({
       ...c,

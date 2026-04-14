@@ -54,10 +54,14 @@ export async function validerDonnees(): Promise<ValidationResult> {
   const now = new Date().toISOString()
 
   // Recuperer tous les reservistes actifs (via la vue qui exclut la corbeille)
+  // IMPORTANT: .range(0, 4999) pour depasser la limite par defaut de 1000 lignes Supabase.
+  // Sans ca, la detection de doublons (email/telephone) tronque silencieusement au-dela
+  // de 1000 reservistes et rate des duplicates.
   const { data: reservistes, error } = await supabaseAdmin
     .from('reservistes_actifs')
     .select('benevole_id, prenom, nom, email, telephone, date_naissance, adresse, ville, region, groupe, statut, contact_urgence_nom, contact_urgence_telephone')
     .in('statut', ['Actif', 'Inactif'])
+    .range(0, 4999)
 
   if (error || !reservistes) {
     throw new Error(`Erreur Supabase: ${error?.message || 'aucune donnee'}`)

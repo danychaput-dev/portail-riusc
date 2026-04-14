@@ -61,10 +61,13 @@ export async function GET() {
     const exactReservistes = exactApprouves + exactInteret
     const exactRIUSC       = exactApprouves + exactInteret + exactPartenaires
 
+    // .range(0, 9999) car relation M-N : certaines personnes ont plusieurs organismes.
+    // Avec ~900 reservistes et moyenne ~1.5 org/personne, on est proche de 1400, mais
+    // une marge de 10x evite le risque si la moyenne monte.
     const { data: partenairesOrgs } = await supabase
       .from('reserviste_organisations')
       .select('benevole_id, organisations (nom)')
-      .range(0, 4999)
+      .range(0, 9999)
 
     // orgMapAll : toutes les orgs par personne (plusieurs possibles)
     const orgMapAll: Record<string, string[]> = {}
