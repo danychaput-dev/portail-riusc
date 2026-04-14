@@ -45,7 +45,7 @@ function checkRateLimit(ip: string, pathname: string): boolean {
 // --- Middleware principal ---
 const EXCLUDED = ['/_next', '/api', '/favicon', '/login', '/maintenance', '/inscription', '/logo.png', '/icons', '/manifest.json', '/dashboard'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Mode maintenance
   if (process.env.NEXT_PUBLIC_MAINTENANCE === 'true') {
     return NextResponse.rewrite(new URL('/maintenance', request.url));
