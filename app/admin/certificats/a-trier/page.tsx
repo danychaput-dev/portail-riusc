@@ -463,4 +463,9 @@ function DetailPane({
                 </li>
               ))}
             </ul>
-       
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

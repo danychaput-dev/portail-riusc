@@ -243,4 +243,6 @@ export async function DELETE(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.j
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
