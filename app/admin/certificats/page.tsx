@@ -509,6 +509,12 @@ export default function AdminCertificatsPage() {
     <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <h1 style={{ color: '#1e3a5f', margin: 0, fontSize: '24px', fontWeight: '700' }}>🗂️ Validation des certificats</h1>
+        <button
+          onClick={() => router.push('/admin/certificats/a-trier')}
+          style={{ padding: '8px 14px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+        >
+          📥 Gmail Esther (à trier)
+        </button>
       </div>
 
         {/* Onglets */}

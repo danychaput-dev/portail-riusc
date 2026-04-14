@@ -68,15 +68,16 @@ async function main() {
   console.log(`Mode: ${EXECUTE ? 'EXECUTE' : 'DRY RUN'}`)
   if (LIMIT) console.log(`Limite: ${LIMIT} lignes\n`)
 
-  // Vérifier qu'on ne re-upload pas du déjà uploadé
-  const { count } = await sb
+  // Récupérer les (message_id, filename_original) déjà en base pour ne pas dupliquer
+  const { data: existing } = await sb
     .from('certificats_a_trier')
-    .select('*', { count: 'exact', head: true })
+    .select('message_id, filename_original')
     .eq('source', SOURCE)
-  if (count && count > 0 && EXECUTE) {
-    console.error(`ERREUR: ${count} lignes existent déjà pour source=${SOURCE}.`)
-    console.error(`Pour réinitialiser, lance d'abord: delete from certificats_a_trier where source='${SOURCE}';`)
-    process.exit(1)
+  const existingKeys = new Set(
+    (existing || []).map(e => `${e.message_id}|${e.filename_original}`)
+  )
+  if (existingKeys.size > 0) {
+    console.log(`${existingKeys.size} lignes déjà en base pour source=${SOURCE}, elles seront sautées.\n`)
   }
 
   const csvText = await readFile(CSV_IN, 'utf-8')
@@ -89,6 +90,12 @@ async function main() {
     const localPath = r.local_path
     if (!localPath) {
       console.warn(`  [${i+1}/${rows.length}] SKIP (pas de local_path): ${r.filename}`)
+      skipped++
+      continue
+    }
+
+    const dedupKey = `${r.message_id}|${r.filename}`
+    if (existingKeys.has(dedupKey)) {
       skipped++
       continue
     }
