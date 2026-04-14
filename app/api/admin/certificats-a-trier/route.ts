@@ -166,7 +166,15 @@ export async function POST(request: NextRequest) {
         benevole_id: benevole_id_final,
       })
       .eq('id', id)
-    if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+    if (updErr) {
+      // Rollback : si on venait de CRÉER une nouvelle formation, on la supprime
+      // pour éviter un orphelin. Pour 'attacher', on ne peut pas rollback l'update
+      // (on a perdu les anciennes valeurs), mais l'erreur est moins probable ici.
+      if (mode !== 'attacher' && formation_id) {
+        await supabaseAdmin.from('formations_benevoles').delete().eq('id', formation_id)
+      }
+      return NextResponse.json({ error: updErr.message }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true, formation_id })
   } catch (err: any) {

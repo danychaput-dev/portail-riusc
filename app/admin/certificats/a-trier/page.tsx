@@ -287,11 +287,7 @@ function DetailPane({
               </a>
             </div>
             {isPdf ? (
-              <object data={pdfUrl} type="application/pdf" className="w-full h-[600px] border rounded">
-                <div className="p-4 text-sm text-gray-600">
-                  Aperçu PDF indisponible. Utilise « Ouvrir dans un nouvel onglet » ci-dessus.
-                </div>
-              </object>
+              <iframe src={pdfUrl} className="w-full h-[600px] border rounded" title={item.filename_original} />
             ) : (
               <img src={pdfUrl} alt={item.filename_original} className="max-w-full border rounded" onError={(e: any) => { e.target.style.display = 'none' }} />
             )}
