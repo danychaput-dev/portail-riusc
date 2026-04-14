@@ -193,6 +193,7 @@ export default function StatsPage() {
   const [auditPages, setAuditPages] = useState<AuditPageRow[]>([]);
   const [auditPagesAll, setAuditPagesAll] = useState<{ benevole_id: string | null; user_id: string | null }[]>([]);
   const [reservistes, setReservistes] = useState<Reserviste[]>([]);
+  const [nomsMap, setNomsMap] = useState<Record<string, string>>({});
   const [dashStats, setDashStats] = useState<{ totalReservistes: number; totalApprouves: number; totalInteret: number } | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [excludeMe, setExcludeMe] = useState(true);
@@ -301,6 +302,24 @@ export default function StatsPage() {
 
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
       setReservistes(allReservistes);
+
+      // Map de noms complete (tous roles/statuts, y compris partenaires/admins/retires)
+      // pour afficher le nom dans "Actif aujourd'hui" meme si le user n'est pas dans la
+      // liste filtree des stats.
+      const { data: allNoms } = await supabase
+        .from('reservistes')
+        .select('benevole_id, user_id, prenom, nom')
+        .not('nom', 'is', null);
+      if (allNoms) {
+        const map: Record<string, string> = {};
+        allNoms.forEach((r: { benevole_id: string | null; user_id: string | null; prenom: string | null; nom: string | null }) => {
+          if (!r.prenom || !r.nom) return;
+          const nom = `${r.prenom} ${r.nom}`;
+          if (r.user_id) map[r.user_id] = nom;
+          if (r.benevole_id) map[r.benevole_id] = nom;
+        });
+        setNomsMap(map);
+      }
       if (dashRes?.totalReservistes != null) setDashStats(dashRes);
       if (auditRes.pages) setAuditPages(auditRes.pages as AuditPageRow[]);
       if (auditRes.all) setAuditPagesAll(auditRes.all as { benevole_id: string | null; user_id: string | null }[]);
@@ -1018,7 +1037,7 @@ export default function StatsPage() {
             {/* Actif aujourd'hui */}
             {(() => {
               const now = Date.now();
-              const userMap: Record<string, string> = {};
+              const userMap: Record<string, string> = { ...nomsMap };
               reservistes.forEach(r => {
                 if (r.prenom && r.nom) {
                   if (r.user_id) userMap[r.user_id] = `${r.prenom} ${r.nom}`;
