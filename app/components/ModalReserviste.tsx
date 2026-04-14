@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import HistoriqueCourriels from './HistoriqueCourriels'
 import ModalComposeCourriel from './ModalComposeCourriel'
 
@@ -249,6 +249,29 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   }, [onglet, reserviste.benevole_id])
 
   const [revertEnCours, setRevertEnCours] = useState<string | null>(null)
+
+  // Pour chaque entree update, retrouver une entree plus recente sur le meme champ
+  // dont le new_value correspond a l'old_value de celle-ci. Cela signifie qu'elle
+  // a ete "annulee" (par revert OU par une modif manuelle qui remet l'ancienne valeur).
+  const annulePar = useMemo(() => {
+    const map: Record<string, { at: string; email: string | null }> = {}
+    const eq = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null)
+    // audit est trie du plus recent au plus ancien
+    for (let i = audit.length - 1; i >= 0; i--) {
+      const E = audit[i]
+      if (E.action !== 'update' || !E.field_name) continue
+      // Chercher une entree plus recente (index < i) sur le meme champ qui remet E.old_value
+      for (let j = i - 1; j >= 0; j--) {
+        const F = audit[j]
+        if (F.action !== 'update' || F.field_name !== E.field_name) continue
+        if (eq(F.new_value, E.old_value)) {
+          map[E.id] = { at: F.changed_at, email: F.changed_by_email }
+          break
+        }
+      }
+    }
+    return map
+  }, [audit])
   const revert = async (auditId: string, fieldLabel: string, oldVal: unknown) => {
     if (!confirm(`Annuler cette modification ?\n\nLe champ "${fieldLabel}" va reprendre sa valeur precedente :\n${formatValue(oldVal)}`)) return
     setRevertEnCours(auditId)
@@ -564,6 +587,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                   </div>
                 ) : (
                   audit.map(e => {
+                    const annule = annulePar[e.id]
                     let label: string
                     let couleur = '#1e3a5f'
                     let bg = '#f8fafc'
@@ -582,9 +606,9 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                       label = `Modification : ${champ}`
                     }
                     return (
-                      <div key={e.id} style={{ backgroundColor: bg, borderLeft: `3px solid ${couleur}`, borderRadius: '6px', padding: '8px 12px' }}>
+                      <div key={e.id} style={{ backgroundColor: annule ? '#f3f4f6' : bg, borderLeft: `3px solid ${annule ? '#9ca3af' : couleur}`, borderRadius: '6px', padding: '8px 12px', opacity: annule ? 0.75 : 1 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: couleur }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: annule ? '#6b7280' : couleur, textDecoration: annule ? 'line-through' : 'none' }}>
                             {icone} {label}
                           </span>
                           <span style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap' }}>
@@ -598,7 +622,14 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                               <span style={{ color: '#6b7280' }}> → </span>
                               <span style={{ color: '#16a34a' }}>{formatValue(e.new_value)}</span>
                             </div>
-                            {e.field_name && !['benevole_id','user_id','created_at','updated_at','deleted_at','deleted_reason','deleted_by_user_id'].includes(e.field_name) && (
+                            {annule ? (
+                              <span
+                                title={`Modification annulee le ${new Date(annule.at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })}${annule.email ? ` par ${annule.email}` : ''}`}
+                                style={{ padding: '3px 10px', backgroundColor: '#e5e7eb', color: '#6b7280', borderRadius: '4px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap' }}
+                              >
+                                ✓ Annulée le {new Date(annule.at).toLocaleDateString('fr-CA', { month: 'short', day: 'numeric' })}
+                              </span>
+                            ) : e.field_name && !['benevole_id','user_id','created_at','updated_at','deleted_at','deleted_reason','deleted_by_user_id'].includes(e.field_name) && (
                               <button
                                 onClick={() => revert(e.id, (e.field_name && CHAMP_LABELS[e.field_name]) || e.field_name || 'champ', e.old_value)}
                                 disabled={revertEnCours === e.id}
