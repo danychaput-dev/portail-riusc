@@ -341,6 +341,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const realRole = reserviste?.role
   const isRealAdmin = realRole === 'superadmin' || realRole === 'admin' || realRole === 'coordonnateur'
   const isAdmin = isRealAdmin
+  const isSuperadmin = realRole === 'superadmin'
   const isAdjoint = realRole === 'adjoint'
   const isPartenaire = realRole === 'partenaire' || realRole === 'partenaire_lect'
 
@@ -597,6 +598,13 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                       <span style={{ fontSize: '18px' }}>🎭</span>
                       Emprunt d{"'"}identité
                     </button>
+                    {isSuperadmin && (
+                      <a href="/admin/corbeille" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                        <span style={{ fontSize: '18px' }}>🗑️</span>
+                        Corbeille
+                      </a>
+                    )}
                   </>
                 )}
 
