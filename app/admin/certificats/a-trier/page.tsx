@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
-
+//maj du text dans le fichier pour forcer un update
 interface Item {
   id: string
   benevole_id: string | null
