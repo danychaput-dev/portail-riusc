@@ -30,6 +30,7 @@ export default function CorbeillePage() {
   const [erreur, setErreur] = useState<string | null>(null)
   const [recherche, setRecherche] = useState('')
   const [actionEnCours, setActionEnCours] = useState<string | null>(null)
+  const [actionLabel, setActionLabel] = useState<string>('')
   const [purgeCible, setPurgeCible] = useState<Entry | null>(null)
   const [purgeRaison, setPurgeRaison] = useState('')
   const [purgeNom, setPurgeNom] = useState('')
@@ -69,6 +70,7 @@ export default function CorbeillePage() {
   const restaurer = async (e: Entry) => {
     if (!confirm(`Restaurer ${e.prenom} ${e.nom} ?\n\nLe reserviste reapparaitra dans la liste active.`)) return
     setActionEnCours(e.benevole_id)
+    setActionLabel(`Restauration de ${e.prenom} ${e.nom} en cours...`)
     try {
       const res = await fetch('/api/admin/reservistes/restore', {
         method: 'POST',
@@ -82,6 +84,7 @@ export default function CorbeillePage() {
       alert(err instanceof Error ? err.message : 'Erreur')
     }
     setActionEnCours(null)
+    setActionLabel('')
   }
 
   const purger = async () => {
@@ -91,6 +94,7 @@ export default function CorbeillePage() {
       return
     }
     setActionEnCours(purgeCible.benevole_id)
+    setActionLabel(`Purge definitive de ${purgeCible.prenom} ${purgeCible.nom} en cours...`)
     try {
       const res = await fetch('/api/admin/reservistes/hard-delete', {
         method: 'POST',
@@ -111,6 +115,7 @@ export default function CorbeillePage() {
       alert(err instanceof Error ? err.message : 'Erreur')
     }
     setActionEnCours(null)
+    setActionLabel('')
   }
 
   const filtres = rows.filter(e => {
@@ -133,6 +138,15 @@ export default function CorbeillePage() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      {actionEnCours && actionLabel && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px 32px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '16px', maxWidth: '420px' }}>
+            <div style={{ width: '28px', height: '28px', border: '3px solid #e5e7eb', borderTopColor: C, borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+            <div style={{ color: C, fontSize: '14px', fontWeight: 600 }}>{actionLabel}</div>
+          </div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ margin: 0, color: C, fontSize: '24px' }}>🗑️ Corbeille</h1>
@@ -183,7 +197,7 @@ export default function CorbeillePage() {
                     disabled={actionEnCours === e.benevole_id}
                     style={{ padding: '6px 14px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 600, opacity: actionEnCours === e.benevole_id ? 0.6 : 1 }}
                   >
-                    ↩ Restaurer
+                    {actionEnCours === e.benevole_id ? 'Restauration...' : '↩ Restaurer'}
                   </button>
                   <button
                     onClick={() => { setPurgeCible(e); setPurgeRaison(''); setPurgeNom('') }}
