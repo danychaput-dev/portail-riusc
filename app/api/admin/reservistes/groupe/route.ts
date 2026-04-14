@@ -60,17 +60,6 @@ export async function PATCH(request: NextRequest) {
   const sortDeRetrait = avant.groupe === 'Retrait temporaire' && groupe !== 'Retrait temporaire'
   const besoinRaison = entreEnRetrait || sortDeRetrait
 
-  console.log('[groupe PATCH]', {
-    benevole_id,
-    avant_groupe: avant.groupe,
-    avant_groupe_hex: Buffer.from(avant.groupe || '', 'utf8').toString('hex'),
-    nouveau_groupe: groupe,
-    nouveau_groupe_hex: Buffer.from(groupe || '', 'utf8').toString('hex'),
-    entreEnRetrait,
-    sortDeRetrait,
-    raison_length: raison ? String(raison).length : 0,
-  })
-
   if (besoinRaison && (!raison || String(raison).trim().length < 10)) {
     return NextResponse.json({
       error: 'Raison obligatoire (minimum 10 caractères) pour les transitions vers ou depuis Retrait temporaire',
@@ -120,14 +109,11 @@ export async function PATCH(request: NextRequest) {
       effectue_par_email: caller.user.email,
       retrait_parent_id,
     }
-    console.log('[groupe PATCH] insert payload', insertPayload)
 
-    const { data: insertData, error: errLog } = await supabaseAdmin
+    const { error: errLog } = await supabaseAdmin
       .from('retraits_temporaires')
       .insert(insertPayload)
       .select()
-
-    console.log('[groupe PATCH] insert result', { insertData, errLog })
 
     // Si la journalisation échoue, on ne rollback pas l'update (la DB reste cohérente)
     // mais on renvoie un avertissement
