@@ -1,6 +1,7 @@
 // app/api/admin/certificats-a-trier/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'crypto'
 //maj du text dans le fichier pour forcer un update
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,7 +105,27 @@ export async function POST(request: NextRequest) {
     const benevole_id_final = benevole_id_cible || item.benevole_id
     if (!benevole_id_final) return NextResponse.json({ error: 'benevole_id manquant' }, { status: 400 })
 
-    const certificat_url = `storage:${item.storage_path}`
+    // ═══ Déplacer le fichier de 'certificats-a-trier' vers 'certificats' ═══
+    // La page formation lit depuis le bucket 'certificats' donc il faut copier le PDF
+    // dans ce bucket avant de stocker certificat_url.
+    const newPath = `${benevole_id_final}/${randomUUID()}_${item.storage_path.split('/').pop()}`
+    const { data: dlData, error: dlErr } = await supabaseAdmin.storage
+      .from('certificats-a-trier')
+      .download(item.storage_path)
+    if (dlErr || !dlData) {
+      return NextResponse.json({ error: `Téléchargement source: ${dlErr?.message || 'introuvable'}` }, { status: 500 })
+    }
+    const fileBuf = Buffer.from(await dlData.arrayBuffer())
+    const { error: upErr } = await supabaseAdmin.storage
+      .from('certificats')
+      .upload(newPath, fileBuf, { contentType: dlData.type || 'application/pdf', upsert: false })
+    if (upErr) {
+      return NextResponse.json({ error: `Upload destination: ${upErr.message}` }, { status: 500 })
+    }
+    // Supprimer la copie source
+    await supabaseAdmin.storage.from('certificats-a-trier').remove([item.storage_path])
+
+    const certificat_url = `storage:${newPath}`
     let formation_id: string | null = null
 
     if (mode === 'attacher') {
@@ -222,6 +243,4 @@ export async function DELETE(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
+    return NextResponse.j
