@@ -234,15 +234,38 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
   }, [onglet, reserviste.benevole_id])
 
   // Charger l'historique complet (audit_log) quand on ouvre l'onglet
-  useEffect(() => {
-    if (onglet !== 'historique') return
+  const chargerAudit = () => {
     setLoadingAudit(true)
     fetch(`/api/admin/reservistes/historique?benevole_id=${encodeURIComponent(reserviste.benevole_id)}`)
       .then(r => r.json())
       .then(json => setAudit(json.entries || []))
       .catch(() => setAudit([]))
       .finally(() => setLoadingAudit(false))
+  }
+  useEffect(() => {
+    if (onglet !== 'historique') return
+    chargerAudit()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onglet, reserviste.benevole_id])
+
+  const [revertEnCours, setRevertEnCours] = useState<string | null>(null)
+  const revert = async (auditId: string, fieldLabel: string, oldVal: unknown) => {
+    if (!confirm(`Annuler cette modification ?\n\nLe champ "${fieldLabel}" va reprendre sa valeur precedente :\n${formatValue(oldVal)}`)) return
+    setRevertEnCours(auditId)
+    try {
+      const res = await fetch('/api/admin/reservistes/revert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audit_id: auditId }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Erreur')
+      chargerAudit()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur')
+    }
+    setRevertEnCours(null)
+  }
 
   return (
     <>
@@ -569,10 +592,22 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                           </span>
                         </div>
                         {e.action === 'update' && (
-                          <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px', fontFamily: 'monospace' }}>
-                            <span style={{ color: '#dc2626' }}>{formatValue(e.old_value)}</span>
-                            <span style={{ color: '#6b7280' }}> → </span>
-                            <span style={{ color: '#16a34a' }}>{formatValue(e.new_value)}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '12px', color: '#374151', fontFamily: 'monospace', flex: 1, minWidth: '0', wordBreak: 'break-word' }}>
+                              <span style={{ color: '#dc2626' }}>{formatValue(e.old_value)}</span>
+                              <span style={{ color: '#6b7280' }}> → </span>
+                              <span style={{ color: '#16a34a' }}>{formatValue(e.new_value)}</span>
+                            </div>
+                            {e.field_name && !['benevole_id','user_id','created_at','updated_at','deleted_at','deleted_reason','deleted_by_user_id'].includes(e.field_name) && (
+                              <button
+                                onClick={() => revert(e.id, (e.field_name && CHAMP_LABELS[e.field_name]) || e.field_name || 'champ', e.old_value)}
+                                disabled={revertEnCours === e.id}
+                                title="Revenir a l'ancienne valeur"
+                                style={{ padding: '3px 10px', backgroundColor: 'white', color: '#2563eb', border: '1px solid #2563eb', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', opacity: revertEnCours === e.id ? 0.5 : 1 }}
+                              >
+                                {revertEnCours === e.id ? '...' : '↶ Annuler'}
+                              </button>
+                            )}
                           </div>
                         )}
                         {e.changed_by_email && (
