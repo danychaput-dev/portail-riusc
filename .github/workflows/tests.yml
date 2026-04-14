@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:  # Permet de declencher manuellement (utile pour E2E)
 
 env:
   # Variables factices pour le build et les tests
@@ -36,10 +37,14 @@ jobs:
         run: npm test
 
   # ── Tests E2E (Playwright) ───────────────────────────────────
+  # Desactives par defaut : necessitent SUPABASE_SERVICE_ROLE_KEY et
+  # E2E_ADMIN_EMAIL comme secrets GitHub. A reactiver quand l'auth Playwright
+  # sera configuree. Declenchables manuellement via workflow_dispatch.
   e2e-tests:
     name: Tests E2E
     runs-on: ubuntu-latest
     needs: unit-tests
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
@@ -70,10 +75,13 @@ jobs:
           retention-days: 7
 
   # ── Build verification ───────────────────────────────────────
+  # Desactive par defaut : Vercel fait deja cette verification a chaque deploy,
+  # et cette job echoue avec les placeholders env. Declenchable manuellement.
   build-check:
     name: Verification build
     runs-on: ubuntu-latest
     needs: unit-tests
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 
