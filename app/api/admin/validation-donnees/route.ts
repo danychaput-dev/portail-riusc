@@ -53,9 +53,9 @@ interface ValidationResult {
 export async function validerDonnees(): Promise<ValidationResult> {
   const now = new Date().toISOString()
 
-  // Recuperer tous les reservistes actifs
+  // Recuperer tous les reservistes actifs (via la vue qui exclut la corbeille)
   const { data: reservistes, error } = await supabaseAdmin
-    .from('reservistes')
+    .from('reservistes_actifs')
     .select('benevole_id, prenom, nom, email, telephone, date_naissance, adresse, ville, region, groupe, statut, contact_urgence_nom, contact_urgence_telephone')
     .in('statut', ['Actif', 'Inactif'])
 

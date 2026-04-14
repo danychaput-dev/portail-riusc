@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
 
     const benevoleIds = pool.map((c: any) => c.benevole_id)
 
-    // 2. Compétences + coordonnées
+    // 2. Compétences + coordonnées (via reservistes_actifs: exclut les soft-deleted)
     const { data: competences } = await supabaseAdmin
       .from('reservistes_actifs')
       .select(`
@@ -121,6 +121,10 @@ export async function GET(req: NextRequest) {
       (competences || []).map((c: any) => [c.benevole_id, c])
     )
 
+    // Filtrer le pool pour exclure les reservistes absents de reservistes_actifs
+    // (en corbeille). La RPC get_pool_ciblage query encore la table brute.
+    const poolFiltre = pool.filter((c: any) => compMap[c.benevole_id] !== undefined)
+
     // 3. Langues
     const { data: languesData } = await supabaseAdmin
       .from('reserviste_langues')
@@ -134,7 +138,7 @@ export async function GET(req: NextRequest) {
     })
 
     // 4. Merge
-    const result = pool.map((c: any) => ({
+    const result = poolFiltre.map((c: any) => ({
       ...c,
       latitude:              compMap[c.benevole_id]?.latitude || null,
       longitude:             compMap[c.benevole_id]?.longitude || null,

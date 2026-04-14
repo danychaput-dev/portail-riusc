@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   if (!bid) return NextResponse.json({ error: 'bid requis' }, { status: 400 })
 
   const { data, error } = await supabaseAdmin
-    .from('reservistes')
+    .from('reservistes_actifs')
     .select('*')
     .eq('benevole_id', bid)
     .single()
