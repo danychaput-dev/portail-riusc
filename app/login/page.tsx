@@ -387,7 +387,7 @@ function LoginContent() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <div style={{ textAlign: 'center', marginBottom: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Image src="/logo.png" alt="Logo RIUSC" width={120} height={120} style={{ borderRadius: '50%', marginBottom: '20px' }} />
+        <Image src="/logo.png" alt="Logo RIUSC" width={120} height={120} priority style={{ borderRadius: '50%', marginBottom: '20px' }} />
         <h1 style={{ color: '#1e3a5f', margin: '0 0 10px 0', fontSize: '32px' }}>Portail RIUSC</h1>
         <p style={{ color: '#666', margin: 0, fontSize: '16px' }}>Réserve d&apos;Intervention d&apos;Urgence en Sécurité Civile</p>
       </div>

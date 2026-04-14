@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import * as path from 'path'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -16,9 +17,26 @@ export default defineConfig({
   },
 
   projects: [
+    // Setup : cree le storageState admin via magic link.
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    // Tests publics (non authentifies).
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /auth\.setup\.ts/,
+    },
+    // Tests authentifies (admin). Depend de 'setup'.
+    {
+      name: 'chromium-admin',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: path.join(__dirname, 'tests/e2e/.auth/admin.json'),
+      },
+      dependencies: ['setup'],
+      testMatch: /admin\.test\.ts/,
     },
   ],
 

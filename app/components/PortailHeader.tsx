@@ -354,7 +354,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
           {/* Logo + titre */}
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
-            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
+            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} priority style={{ borderRadius: '8px' }} />
             <div>
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>

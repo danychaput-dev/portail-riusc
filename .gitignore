@@ -50,5 +50,7 @@ create_client.txt
 *.tsbuildinfo
 next-env.d.ts
 
-snapshots/_logs/
-.vercel
+# playwright E2E
+/test-results/
+/playwright-report/
+/tests/e2e/.auth/

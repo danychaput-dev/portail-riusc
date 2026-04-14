@@ -25,27 +25,8 @@ test.describe('Smoke tests - Pages publiques', () => {
   })
 })
 
-test.describe('Smoke tests - Pages admin (requiert auth)', () => {
-  test.skip('la page reservistes se charge', async ({ page }) => {
-    await page.goto('/admin/reservistes')
-    await expect(page.locator('body')).toBeVisible()
-  })
-
-  test.skip('la page stats se charge', async ({ page }) => {
-    await page.goto('/admin/stats')
-    await expect(page.locator('body')).toBeVisible()
-  })
-
-  test.skip('la page courriels se charge', async ({ page }) => {
-    await page.goto('/admin/courriels')
-    await expect(page.locator('body')).toBeVisible()
-  })
-
-  test.skip('la page certificats se charge', async ({ page }) => {
-    await page.goto('/admin/certificats')
-    await expect(page.locator('body')).toBeVisible()
-  })
-})
+// Les tests pages admin sont maintenant dans tests/e2e/admin.test.ts et
+// utilisent le storageState cree par auth.setup.ts (project chromium-admin).
 
 test.describe('Smoke tests - API routes', () => {
   test('GET /api/dashboard/stats repond sans erreur serveur', async ({ request }) => {
