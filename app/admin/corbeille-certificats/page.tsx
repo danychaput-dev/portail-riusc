@@ -20,7 +20,6 @@ interface Entry {
   id: number
   benevole_id: string
   nom_formation: string | null
-  catalogue: string | null
   resultat: string | null
   date_reussite: string | null
   date_expiration: string | null
@@ -138,7 +137,6 @@ export default function CorbeilleCertificatsPage() {
     const q = recherche.toLowerCase()
     return (
       e.nom_formation?.toLowerCase().includes(q) ||
-      e.catalogue?.toLowerCase().includes(q) ||
       e.reserviste?.prenom?.toLowerCase().includes(q) ||
       e.reserviste?.nom?.toLowerCase().includes(q) ||
       e.reserviste?.email?.toLowerCase().includes(q) ||
@@ -198,7 +196,6 @@ export default function CorbeilleCertificatsPage() {
                   <div style={{ flex: 1, minWidth: '240px' }}>
                     <div style={{ fontSize: '15px', fontWeight: 600, color: C, marginBottom: '2px' }}>
                       {e.nom_formation || <em style={{ color: '#9ca3af' }}>(sans nom)</em>}
-                      {e.catalogue && <span style={{ fontSize: '12px', fontWeight: 400, color: '#6b7280', marginLeft: '8px' }}>[{e.catalogue}]</span>}
                     </div>
                     <div style={{ fontSize: '13px', color: '#374151', marginBottom: '4px' }}>
                       <strong>Reserviste :</strong>{' '}

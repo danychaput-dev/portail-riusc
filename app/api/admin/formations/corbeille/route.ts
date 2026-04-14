@@ -40,7 +40,7 @@ export async function GET() {
   // Lit la table brute (pas la vue) pour voir les soft-deleted
   const { data, error } = await supabaseAdmin
     .from('formations_benevoles')
-    .select('id, benevole_id, nom_formation, catalogue, resultat, date_reussite, date_expiration, certificat_url, certificat_url_archive, deleted_at, deleted_reason, deleted_by_user_id')
+    .select('id, benevole_id, nom_formation, resultat, date_reussite, date_expiration, certificat_url, certificat_url_archive, deleted_at, deleted_reason, deleted_by_user_id')
     .not('deleted_at', 'is', null)
     .order('deleted_at', { ascending: false })
     .range(0, 4999)
