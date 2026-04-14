@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ─── Mock Supabase (hoisted pour eviter ReferenceError) ────────────────────
 
-const { mockFrom, mockSelect, mockIn } = vi.hoisted(() => ({
+const { mockFrom, mockSelect, mockIn, mockRange } = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockSelect: vi.fn(),
   mockIn: vi.fn(),
+  mockRange: vi.fn(),
 }))
 
 vi.mock('@supabase/supabase-js', () => ({
@@ -30,7 +31,8 @@ import { validerDonnees, genererRapportHtml } from '@/app/api/admin/validation-d
 function setupMockReservistes(reservistes: Record<string, unknown>[]) {
   mockFrom.mockReturnValue({ select: mockSelect })
   mockSelect.mockReturnValue({ in: mockIn })
-  mockIn.mockResolvedValue({ data: reservistes, error: null })
+  mockIn.mockReturnValue({ range: mockRange })
+  mockRange.mockResolvedValue({ data: reservistes, error: null })
 }
 
 const baseReserviste = {
@@ -313,7 +315,8 @@ describe('Validation donnees - Erreurs', () => {
   it('lance une erreur si Supabase echoue', async () => {
     mockFrom.mockReturnValue({ select: mockSelect })
     mockSelect.mockReturnValue({ in: mockIn })
-    mockIn.mockResolvedValue({ data: null, error: { message: 'connection failed' } })
+    mockIn.mockReturnValue({ range: mockRange })
+    mockRange.mockResolvedValue({ data: null, error: { message: 'connection failed' } })
 
     await expect(validerDonnees()).rejects.toThrow('Erreur Supabase: connection failed')
   })

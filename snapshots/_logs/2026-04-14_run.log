@@ -1,0 +1,18 @@
+ 
+=== Snapshot run 2026-04-14  8:01:25,02 === 
+◇ injected env (10) from .env.local // tip: ⌘ override existing { override: true }
+Extraction du snapshot pour 2026-04-14...
+963 reservistes recuperes
+Snapshot ecrit: C:\Users\Dany\nextjs\portail-riusc\snapshots\2026-04-14_snapshot.csv
+963 reservistes, 585 avec formations
+warning: in the working copy of 'snapshots/2026-04-14_snapshot.csv', LF will be replaced by CRLF the next time Git touches it
+[main 496e9cf] chore(snapshots): snapshot quotidien 2026-04-14
+ 1 file changed, 964 insertions(+)
+ create mode 100644 snapshots/2026-04-14_snapshot.csv
+remote: 
+remote: GitHub found 3 vulnerabilities on danychaput-dev/portail-riusc's default branch (3 high). To find out more, visit:        
+remote:      https://github.com/danychaput-dev/portail-riusc/security/dependabot        
+remote: 
+To https://github.com/danychaput-dev/portail-riusc.git
+   401aa5a..496e9cf  main -> main
+=== Snapshot 2026-04-14 commit + push OK === 

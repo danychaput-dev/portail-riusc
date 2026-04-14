@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 import * as path from 'path'
+import * as dotenv from 'dotenv'
+
+// Charger .env.local pour que auth.setup.ts voie SUPABASE_SERVICE_ROLE_KEY, etc.
+dotenv.config({ path: path.resolve(__dirname, '.env.local') })
+dotenv.config({ path: path.resolve(__dirname, '.env') })
 
 export default defineConfig({
   testDir: './tests/e2e',
