@@ -278,6 +278,40 @@ function DetailPane({
         <div className="text-xs text-gray-500 mb-2">
           Courriel : <strong>{item.sender_name || item.sender_email}</strong> — {item.subject || '(sans objet)'}
         </div>
+        {item.benevole_id && (
+          <div className="mb-2 flex gap-2 flex-wrap">
+            <button
+              onClick={async () => {
+                const res = await fetch('/api/impersonate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ benevole_id: item.benevole_id }),
+                })
+                const j = await res.json()
+                if (j.success) window.open('/formation', '_blank')
+                else alert(j.error || 'Erreur impersonation')
+              }}
+              className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              🎓 Voir ses formations
+            </button>
+            <button
+              onClick={async () => {
+                const res = await fetch('/api/impersonate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ benevole_id: item.benevole_id }),
+                })
+                const j = await res.json()
+                if (j.success) window.open('/dossier', '_blank')
+                else alert(j.error || 'Erreur impersonation')
+              }}
+              className="px-2 py-1 text-xs bg-slate-600 text-white rounded hover:bg-slate-700"
+            >
+              📋 Voir son parcours
+            </button>
+          </div>
+        )}
         {pdfUrl ? (
           <>
             <div className="mb-2 flex gap-2">
@@ -429,9 +463,4 @@ function DetailPane({
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+       
