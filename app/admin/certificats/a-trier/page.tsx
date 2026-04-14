@@ -97,8 +97,9 @@ export default function PageCertificatsATrier() {
   async function voirFichier(item: Item) {
     setSelected(item)
     if (signedUrls[item.id]) return
-    const res = await fetch(`/api/admin/certificats-a-trier/signed-url?path=${encodeURIComponent(item.storage_path)}&admin_benevole_id=${adminBenevoleId}`).then(r => r.json())
-    if (res.url) setSignedUrls(prev => ({ ...prev, [item.id]: res.url }))
+    // URL proxifiée par notre serveur (évite X-Frame-Options:DENY de Supabase)
+    const proxyUrl = `/api/admin/certificats-a-trier/file?path=${encodeURIComponent(item.storage_path)}&admin_benevole_id=${adminBenevoleId}`
+    setSignedUrls(prev => ({ ...prev, [item.id]: proxyUrl }))
   }
 
   // Groupement par réserviste
@@ -276,16 +277,25 @@ function DetailPane({
           Courriel : <strong>{item.sender_name || item.sender_email}</strong> — {item.subject || '(sans objet)'}
         </div>
         {pdfUrl ? (
-          isPdf ? (
-            <iframe src={pdfUrl} className="w-full h-[600px] border rounded" />
-          ) : (
-            <div className="border rounded p-3">
-              <a href={pdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                Ouvrir {item.filename_original}
+          <>
+            <div className="mb-2 flex gap-2">
+              <a href={pdfUrl} target="_blank" rel="noreferrer" className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">
+                🔗 Ouvrir dans un nouvel onglet
               </a>
-              <img src={pdfUrl} alt="" className="max-w-full mt-2 border rounded" onError={(e: any) => e.target.style.display = 'none'} />
+              <a href={pdfUrl} download={item.filename_original} className="px-2 py-1 text-xs bg-white border rounded hover:bg-gray-50">
+                ⬇ Télécharger
+              </a>
             </div>
-          )
+            {isPdf ? (
+              <object data={pdfUrl} type="application/pdf" className="w-full h-[600px] border rounded">
+                <div className="p-4 text-sm text-gray-600">
+                  Aperçu PDF indisponible. Utilise « Ouvrir dans un nouvel onglet » ci-dessus.
+                </div>
+              </object>
+            ) : (
+              <img src={pdfUrl} alt={item.filename_original} className="max-w-full border rounded" onError={(e: any) => { e.target.style.display = 'none' }} />
+            )}
+          </>
         ) : (
           <div className="p-6 text-center text-gray-400 text-sm">Chargement du fichier…</div>
         )}
