@@ -69,7 +69,12 @@ $unitContent  = if (Test-Path $results.Unit.Log)  { Get-Content $results.Unit.Lo
 $e2eContent   = if (Test-Path $results.E2E.Log)   { Get-Content $results.E2E.Log -Raw }   else { "" }
 $buildContent = if (Test-Path $results.Build.Log) { Get-Content $results.Build.Log -Raw } else { "" }
 
-$unitStats  = if ($unitContent -match "Tests\s+(\d+)\s+passed\s+\((\d+)\)") { "$($matches[1])/$($matches[2])" } else { "?" }
+# Nettoyer les codes ANSI puis essayer plusieurs formats vitest
+$unitClean = $unitContent -replace "\x1b\[[0-9;]*[a-zA-Z]", ""
+$unitStats = if ($unitClean -match "Tests\s+(\d+)\s+passed\s+\((\d+)\)") { "$($matches[1])/$($matches[2])" }
+             elseif ($unitClean -match "Tests\s+(\d+)\s+passed")          { "$($matches[1]) passed" }
+             elseif ($unitClean -match "(\d+)\s+passed\s*\|\s*\d+\s+skipped") { "$($matches[1]) passed" }
+             else { "?" }
 $e2eStats   = if ($e2eContent  -match "(\d+)\s+passed")                     { "$($matches[1]) passed" }    else { "?" }
 $buildTime  = if ($buildContent -match "Compiled successfully in ([\d.]+)s") { "$($matches[1])s" }          else { "?" }
 

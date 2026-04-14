@@ -1082,12 +1082,12 @@ function ProfilPage() {
           for (const label of oldTriggered) {
             if (!newTriggered.includes(label)) {
               // Chercher d'abord une formation source 'portail' (créée par le profil)
-              const { data: portailEntry } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).eq('source', 'portail').maybeSingle()
+              const { data: portailEntry } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).eq('source', 'portail').is('deleted_at', null).maybeSingle()
               if (portailEntry) {
                 removedFormations.push({ field: trigger.field, label, formationId: portailEntry.id })
               } else {
                 // Si pas de source portail, chercher une entrée SANS certificat (ne jamais supprimer un certificat approuvé)
-                const { data: noCertEntry } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).is('certificat_url', null).maybeSingle()
+                const { data: noCertEntry } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).is('certificat_url', null).is('deleted_at', null).maybeSingle()
                 if (noCertEntry) removedFormations.push({ field: trigger.field, label, formationId: noCertEntry.id })
                 // Si toutes les entrées ont un certificat, on ne supprime rien
               }
@@ -1097,7 +1097,7 @@ function ProfilPage() {
 
         // Créer les nouvelles formations silencieusement
         for (const { field, label } of addedFormations) {
-          const { data: exists } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).maybeSingle()
+          const { data: exists } = await supabase.from('formations_benevoles').select('id').eq('benevole_id', reserviste.benevole_id).eq('nom_formation', label).is('deleted_at', null).maybeSingle()
           if (!exists) {
             const noCertLabels = [
               'f) Infirmière / Infirmier',
@@ -1127,8 +1127,12 @@ function ProfilPage() {
             removedLabels: removedFormations.map(r => r.label),
             addedLabels: addedFormations.map(a => a.label),
             pendingSave: async () => {
+              // Soft-delete (recuperable via /admin/corbeille-certificats)
               for (const { formationId } of removedFormations) {
-                await supabase.from('formations_benevoles').delete().eq('id', formationId)
+                await supabase.rpc('formations_soft_delete', {
+                  p_formation_id: formationId,
+                  p_reason: 'Décoché dans le profil par le réserviste',
+                })
               }
               setSaveMessage({ type: 'success', text: 'Modifications enregistrées avec succès!' })
             }

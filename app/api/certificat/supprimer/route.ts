@@ -28,15 +28,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Formation introuvable ou non autorisée' }, { status: 403 })
     }
 
-    // Supprimer du Storage si chemin fourni
-    if (storage_path) {
-      await supabaseAdmin.storage.from('certificats').remove([storage_path])
-    }
-
-    // Mettre certificat_url à null
+    // IMPORTANT: NE PAS supprimer le fichier du Storage (protection anti-perte).
+    // On conserve le fichier et l'URL dans certificat_url_archive pour pouvoir
+    // le restaurer si la suppression etait accidentelle.
     const { error: updateError } = await supabaseAdmin
       .from('formations_benevoles')
-      .update({ certificat_url: null })
+      .update({
+        certificat_url: null,
+        certificat_url_archive: formation.certificat_url,
+      })
       .eq('id', formation_id)
 
     if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 })
