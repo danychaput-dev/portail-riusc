@@ -3,6 +3,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
+
+type CourrielDest = { benevole_id: string; email: string; prenom: string; nom: string }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -339,6 +342,33 @@ export default function InscriptionsCampsPage() {
   // ── Multi-sélection (admin only) ─────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [emailDest, setEmailDest] = useState<CourrielDest[] | null>(null)
+
+  function openEmailComposer() {
+    if (selectedIds.size === 0) return
+    const dests: CourrielDest[] = inscriptions
+      .filter(i => selectedIds.has(i.id) && (i.courriel || '').includes('@'))
+      .map(i => {
+        // Prefer prenom/nom (from reservistes), fallback to split prenom_nom
+        let prenom = i.prenom || ''
+        let nom = i.nom || ''
+        if (!prenom && !nom && i.prenom_nom) {
+          const parts = i.prenom_nom.trim().split(/\s+/)
+          prenom = parts[0] || ''
+          nom = parts.slice(1).join(' ')
+        }
+        return { benevole_id: i.benevole_id, email: i.courriel as string, prenom, nom }
+      })
+    if (dests.length === 0) {
+      alert('Aucun courriel valide dans la sélection.')
+      return
+    }
+    const ignored = selectedIds.size - dests.length
+    if (ignored > 0) {
+      if (!confirm(`${ignored} participant(s) sans courriel seront ignorés. Continuer avec ${dests.length} destinataire(s) ?`)) return
+    }
+    setEmailDest(dests)
+  }
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => {
@@ -840,6 +870,19 @@ export default function InscriptionsCampsPage() {
             >
               ✗ Cahier non envoyé
             </button>
+            <span style={{ color: '#94a3b8' }}>|</span>
+            <button
+              onClick={openEmailComposer}
+              disabled={bulkUpdating}
+              title={selectedIds.size === 1 ? 'Envoyer un courriel individuel' : `Envoyer une campagne à ${selectedIds.size} destinataires`}
+              style={{
+                padding: '4px 12px', borderRadius: 16, border: '1px solid #bfdbfe',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                color: '#1e3a5f', background: '#dbeafe',
+              }}
+            >
+              ✉️ {selectedIds.size > 1 ? `Envoyer courriel (${selectedIds.size})` : 'Envoyer courriel'}
+            </button>
             <button
               onClick={() => setSelectedIds(new Set())}
               style={{
@@ -1107,6 +1150,16 @@ export default function InscriptionsCampsPage() {
         </div>
       )}
       </div>
+
+      {/* ─── Modal Compose Courriel ─── */}
+      {emailDest && (
+        <ModalComposeCourriel
+          destinataires={emailDest}
+          initialSubject={selectedCamp ? `${selectedCamp.camp_nom} — ` : ''}
+          onClose={() => setEmailDest(null)}
+          onSent={() => setEmailDest(null)}
+        />
+      )}
     </div>
   )
 }
