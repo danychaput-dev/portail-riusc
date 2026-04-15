@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       .ilike('email', user.email || '')
       .single()
 
-    if (!currentReserviste || !ADMIN_BENEVOLE_IDS.includes(currentReserviste.benevole_id)) {
+    if (!currentReserviste || !currentReserviste.benevole_id || !ADMIN_BENEVOLE_IDS.includes(currentReserviste.benevole_id)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 

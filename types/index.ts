@@ -8,40 +8,40 @@
 export interface Reserviste {
   id?: number
   benevole_id: string
-  user_id?: string
-  role?: string
+  user_id?: string | null
+  role?: string | null
   prenom: string
   nom: string
   email: string
-  telephone?: string
-  telephone_secondaire?: string
-  date_naissance?: string
-  adresse?: string
-  ville?: string
-  region?: string
+  telephone?: string | null
+  telephone_secondaire?: string | null
+  date_naissance?: string | null
+  adresse?: string | null
+  ville?: string | null
+  region?: string | null
   latitude?: number | null
   longitude?: number | null
-  contact_urgence_nom?: string
-  contact_urgence_telephone?: string
-  contact_urgence_lien?: string
-  contact_urgence_courriel?: string
-  groupe?: string
-  statut?: string
-  photo_url?: string
-  consent_photos?: boolean
-  consentement_antecedents?: boolean
-  allergies_alimentaires?: string
-  allergies_autres?: string
-  conditions_medicales?: string
-  problemes_sante?: string
-  antecedents_statut?: string
-  antecedents_date_verification?: string
-  antecedents_date_expiration?: string
-  monday_created_at?: string
-  remboursement_bottes_date?: string
-  groupe_sanguin?: string
-  responsable_groupe?: boolean
-  methode_connexion?: 'sms' | 'email'
+  contact_urgence_nom?: string | null
+  contact_urgence_telephone?: string | null
+  contact_urgence_lien?: string | null
+  contact_urgence_courriel?: string | null
+  groupe?: string | null
+  statut?: string | null
+  photo_url?: string | null
+  consent_photos?: boolean | null
+  consentement_antecedents?: boolean | null
+  allergies_alimentaires?: string | null
+  allergies_autres?: string | null
+  conditions_medicales?: string | null
+  problemes_sante?: string | null
+  antecedents_statut?: string | null
+  antecedents_date_verification?: string | null
+  antecedents_date_expiration?: string | null
+  monday_created_at?: string | null
+  remboursement_bottes_date?: string | null
+  groupe_sanguin?: string | null
+  responsable_groupe?: boolean | null
+  methode_connexion?: string | null
 }
 
 // ─── Opérations (sinistres, demandes, déploiements) ─────────────────────────
@@ -49,59 +49,59 @@ export interface Reserviste {
 /** Sinistre / incident (table `sinistres`) */
 export interface Sinistre {
   id: string
-  monday_id?: string
+  monday_id?: string | null
   nom: string
-  type_incident?: string
-  lieu?: string
-  date_debut?: string
-  date_fin?: string
+  type_incident?: string | null
+  lieu?: string | null
+  date_debut?: string | null
+  date_fin?: string | null
   statut: string
-  created_at?: string
-  updated_at?: string
+  created_at?: string | null
+  updated_at?: string | null
   demandes?: Demande[]
 }
 
 /** Demande d'un organisme partenaire (table `demandes`) */
 export interface Demande {
   id: string
-  monday_id?: string
+  monday_id?: string | null
   sinistre_id: string
   organisme: string
-  type_mission?: string
-  description?: string
-  lieu?: string
-  nb_personnes_requis?: number
-  date_debut?: string
-  date_fin_estimee?: string
+  type_mission?: string | null
+  description?: string | null
+  lieu?: string | null
+  nb_personnes_requis?: number | null
+  date_debut?: string | null
+  date_fin_estimee?: string | null
   priorite: string
   statut: string
-  date_reception?: string
-  identifiant?: string
-  organisme_detail?: string
-  type_mission_detail?: string
-  contact_nom?: string
-  contact_titre?: string
-  contact_telephone?: string
-  contact_email?: string
+  date_reception?: string | null
+  identifiant?: string | null
+  organisme_detail?: string | null
+  type_mission_detail?: string | null
+  contact_nom?: string | null
+  contact_titre?: string | null
+  contact_telephone?: string | null
+  contact_email?: string | null
 }
 
 /** Plan de déploiement (table `deployments`) */
 export interface Deployment {
   id: string
-  monday_id?: string
-  demande_id?: string
+  monday_id?: string | null
+  demande_id?: string | null
   identifiant: string
   nom: string
-  lieu?: string
-  date_debut?: string
-  date_fin?: string
-  nb_personnes_par_vague?: number
+  lieu?: string | null
+  date_debut?: string | null
+  date_fin?: string | null
+  nb_personnes_par_vague?: number | null
   statut: string
-  point_rassemblement?: string
-  transport?: string
-  hebergement?: string
-  notes_logistique?: string
-  created_at?: string
+  point_rassemblement?: string | null
+  transport?: string | null
+  hebergement?: string | null
+  notes_logistique?: string | null
+  created_at?: string | null
   rotations?: Vague[]
   demandes_ids?: string[]
 }
@@ -124,15 +124,15 @@ export interface DeploiementActif {
 /** Vague / rotation d'un déploiement (table `vagues`) */
 export interface Vague {
   id: string
-  monday_id?: string
-  identifiant?: string
-  deployment_id?: string
+  monday_id?: string | null
+  identifiant?: string | null
+  deployment_id?: string | null
   numero: number
   date_debut: string
   date_fin: string
-  nb_personnes_requis?: number
+  nb_personnes_requis?: number | null
   statut: string
-  created_at?: string
+  created_at?: string | null
 }
 
 // ─── Disponibilités et ciblage ──────────────────────────────────────────────

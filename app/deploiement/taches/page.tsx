@@ -15,7 +15,7 @@ interface Reserviste {
   prenom: string;
   nom: string;
   email: string;
-  photo_url?: string;
+  photo_url?: string | null;
 }
 
 interface TacheData {

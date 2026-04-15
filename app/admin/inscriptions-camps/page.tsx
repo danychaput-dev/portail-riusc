@@ -267,7 +267,7 @@ export default function InscriptionsCampsPage() {
       const { data, error } = await supabase
         .from('inscriptions_camps')
         .select(selectInscriptions)
-        .eq('session_id', selectedCampId)
+        .eq('session_id', selectedCampId!)
         .order(isPartenaireLect ? 'created_at' : 'prenom_nom')
 
       if (error) { console.error(error); setLoadingInscrits(false); return }
@@ -357,7 +357,7 @@ export default function InscriptionsCampsPage() {
     }
   }
 
-  async function bulkUpdatePresence(newPresence: string) {
+  async function bulkUpdatePresence(newPresence: 'confirme' | 'absent' | 'incertain' | 'annule') {
     if (selectedIds.size === 0) return
     const label = PRESENCE_LABELS[newPresence]?.label || newPresence
     if (!confirm(`Changer la présence de ${selectedIds.size} participant(s) à « ${label} » ?`)) return
@@ -467,7 +467,7 @@ export default function InscriptionsCampsPage() {
   const [smsResult, setSmsResult] = useState<{ nb_envoyes: number; nb_sans_telephone: number } | null>(null)
 
   // ── Mettre à jour la présence ───────────────────────────────────────────────
-  async function updatePresence(inscriptionId: string, newPresence: string) {
+  async function updatePresence(inscriptionId: string, newPresence: 'confirme' | 'absent' | 'incertain' | 'annule') {
     setUpdatingId(inscriptionId)
     const inscription = inscriptions.find(i => i.id === inscriptionId)
     if (!inscription) { setUpdatingId(null); return }
@@ -806,7 +806,7 @@ export default function InscriptionsCampsPage() {
               <button
                 key={key}
                 disabled={bulkUpdating}
-                onClick={() => bulkUpdatePresence(key)}
+                onClick={() => bulkUpdatePresence(key as 'confirme' | 'absent' | 'incertain' | 'annule')}
                 style={{
                   padding: '4px 12px', borderRadius: 16, border: 'none',
                   fontSize: 12, fontWeight: 600, cursor: bulkUpdating ? 'wait' : 'pointer',
@@ -916,7 +916,7 @@ export default function InscriptionsCampsPage() {
                           <select
                             value={ins.presence}
                             disabled={updatingId === ins.id}
-                            onChange={e => updatePresence(ins.id, e.target.value)}
+                            onChange={e => updatePresence(ins.id, e.target.value as 'confirme' | 'absent' | 'incertain' | 'annule')}
                             style={{
                               padding: '2px 8px',
                               borderRadius: 20,

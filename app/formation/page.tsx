@@ -49,7 +49,7 @@ function FormationContent() {
 
   const [formations, setFormations] = useState<Formation[]>([]);
   const [loadingFormations, setLoadingFormations] = useState(true);
-  const [lmsPortailProgression, setLmsPortailProgression] = useState<{ statut: string; date_completion: string | null } | null>(null);
+  const [lmsPortailProgression, setLmsPortailProgression] = useState<{ statut: string | null; date_completion: string | null } | null>(null);
 
   // Helper: mapper les formations avec signed URLs pour les certificats Supabase Storage
   const mapFormationsWithSignedUrls = async (rawFormations: any[]) => {
@@ -138,7 +138,7 @@ function FormationContent() {
           );
           const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null;
           if (campInsc) {
-            setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null });
+            setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom || '', dates: campInsc.camp_dates || '', site: campInsc.camp_lieu || '', location: campInsc.camp_lieu || '' }, lien_inscription: null });
           } else {
             setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
           }
@@ -213,7 +213,7 @@ function FormationContent() {
             );
             const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null;
             if (campInsc) {
-              setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null });
+              setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom || '', dates: campInsc.camp_dates || '', site: campInsc.camp_lieu || '', location: campInsc.camp_lieu || '' }, lien_inscription: null });
             } else {
               setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
             }
@@ -352,7 +352,7 @@ function FormationContent() {
         );
         const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null;
         if (campInsc) {
-          setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null });
+          setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom || '', dates: campInsc.camp_dates || '', site: campInsc.camp_lieu || '', location: campInsc.camp_lieu || '' }, lien_inscription: null });
         } else {
           setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null });
         }

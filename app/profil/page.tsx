@@ -165,7 +165,7 @@ function ProfilPage() {
   const addressInputRef = useRef<HTMLInputElement>(null)
   const addressDropdownRef = useRef<HTMLDivElement>(null)
 
-  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string }>>([])
+  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string | null }>>([])
   const [showVilleSuggestions, setShowVilleSuggestions] = useState(false)
   const [isLoadingVille, setIsLoadingVille] = useState(false)
   const villeInputRef = useRef<HTMLInputElement>(null)
@@ -216,7 +216,7 @@ function ProfilPage() {
                 contact_urgence_telephone: formatPhoneDisplay(d.contact_urgence_telephone || ''),
                 contact_urgence_lien: d.contact_urgence_lien || '',
                 contact_urgence_courriel: d.contact_urgence_courriel || '',
-                methode_connexion: d.methode_connexion || 'sms',
+                methode_connexion: (d.methode_connexion === 'email' ? 'email' : 'sms') as 'sms' | 'email',
               })
               setOriginalProfilData({
                 telephone: formatPhoneDisplay(d.telephone || ''),
@@ -231,7 +231,7 @@ function ProfilPage() {
                 contact_urgence_telephone: formatPhoneDisplay(d.contact_urgence_telephone || ''),
                 contact_urgence_lien: d.contact_urgence_lien || '',
                 contact_urgence_courriel: d.contact_urgence_courriel || '',
-                methode_connexion: d.methode_connexion || 'sms',
+                methode_connexion: (d.methode_connexion === 'email' ? 'email' : 'sms') as 'sms' | 'email',
               })
 
               const loaded: DossierData = {
@@ -322,7 +322,7 @@ function ProfilPage() {
               contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
               contact_urgence_lien: fullData.contact_urgence_lien || '',
               contact_urgence_courriel: fullData.contact_urgence_courriel || '',
-              methode_connexion: fullData.methode_connexion || 'sms',
+              methode_connexion: (fullData.methode_connexion === 'email' ? 'email' : 'sms') as 'sms' | 'email',
             })
 
             setOriginalProfilData({
@@ -338,7 +338,7 @@ function ProfilPage() {
               contact_urgence_telephone: formatPhoneDisplay(fullData.contact_urgence_telephone || ''),
               contact_urgence_lien: fullData.contact_urgence_lien || '',
               contact_urgence_courriel: fullData.contact_urgence_courriel || '',
-              methode_connexion: fullData.methode_connexion || 'sms',
+              methode_connexion: (fullData.methode_connexion === 'email' ? 'email' : 'sms') as 'sms' | 'email',
             })
 
             // Charger dossier depuis Supabase
@@ -545,7 +545,7 @@ function ProfilPage() {
         contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
         contact_urgence_lien: reservisteData.contact_urgence_lien || '',
         contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
-        methode_connexion: reservisteData.methode_connexion || 'sms',
+        methode_connexion: (reservisteData.methode_connexion === 'email' ? 'email' : 'sms') as 'sms' | 'email',
       })
 
       setOriginalProfilData({
@@ -561,7 +561,7 @@ function ProfilPage() {
         contact_urgence_telephone: formatPhoneDisplay(reservisteData.contact_urgence_telephone),
         contact_urgence_lien: reservisteData.contact_urgence_lien || '',
         contact_urgence_courriel: reservisteData.contact_urgence_courriel || '',
-        methode_connexion: reservisteData.methode_connexion || 'sms',
+        methode_connexion: (reservisteData.methode_connexion === 'email' ? 'email' : 'sms') as 'sms' | 'email',
       })
 
       // Charger organisations
@@ -572,7 +572,7 @@ function ProfilPage() {
         .from('reserviste_organisations')
         .select('organisation_id')
         .eq('benevole_id', reservisteData.benevole_id)
-      const linkedOrgIds = (myOrgsData || []).map(r => r.organisation_id)
+      const linkedOrgIds = (myOrgsData || []).map(r => r.organisation_id).filter((x): x is string => x !== null)
       setMyOrgIds(linkedOrgIds)
 
       // Charger langues
@@ -583,7 +583,7 @@ function ProfilPage() {
         .from('reserviste_langues')
         .select('langue_id')
         .eq('benevole_id', reservisteData.benevole_id)
-      setMyLangueIds((myLanguesData || []).map(r => r.langue_id))
+      setMyLangueIds((myLanguesData || []).map(r => r.langue_id).filter((x): x is string => x !== null))
 
       // Charger dossier depuis Supabase (déjà dans reservisteData via select *)
       const d = reservisteData
@@ -764,7 +764,7 @@ function ProfilPage() {
     }, 250)
   }
 
-  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string }) => {
+  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string | null }) => {
     setProfilData(prev => ({
       ...prev,
       ville: suggestion.municipalite,
@@ -847,7 +847,7 @@ function ProfilPage() {
       const { error: updateError } = await supabase
         .from('reservistes')
         .update({ photo_url: publicUrl })
-        .eq('id', reserviste.id)
+        .eq('benevole_id', reserviste.benevole_id)
 
       if (updateError) throw updateError
 
@@ -992,7 +992,7 @@ function ProfilPage() {
             contact_urgence_courriel: profilData.contact_urgence_courriel,
             methode_connexion: profilData.methode_connexion,
           })
-          .eq('id', reserviste.id)
+          .eq('benevole_id', reserviste.benevole_id)
 
         if (updateError) {
           console.error('Erreur update Supabase:', updateError)
@@ -1009,8 +1009,8 @@ function ProfilPage() {
         const { error: dossierError } = await supabase
           .from('reservistes')
           .update({
-            prenom: dossier.prenom || null,
-            nom: dossier.nom || null,
+            prenom: dossier.prenom || undefined,
+            nom: dossier.nom || undefined,
             date_naissance: dossier.date_naissance || null,
             grandeur_bottes: dossier.grandeur_bottes || null,
             profession: dossier.profession || null,
@@ -1043,7 +1043,7 @@ function ProfilPage() {
             preference_tache_commentaire: dossier.preference_tache_commentaire || null,
             groupe_recherche: dossier.groupe_recherche || null,
           })
-          .eq('id', reserviste.id)
+          .eq('benevole_id', reserviste.benevole_id)
 
         if (dossierError) {
           console.error('Erreur update dossier Supabase:', dossierError)
@@ -1130,7 +1130,7 @@ function ProfilPage() {
               // Soft-delete (recuperable via /admin/corbeille-certificats)
               for (const { formationId } of removedFormations) {
                 await supabase.rpc('formations_soft_delete', {
-                  p_formation_id: formationId,
+                  p_formation_id: Number(formationId),
                   p_reason: 'Décoché dans le profil par le réserviste',
                 })
               }

@@ -253,14 +253,14 @@ function ReservistesPage() {
       // 2. Fallback par email si user_id pas lié
       if (!res && user.email) {
         const { data: byEmail } = await supabase.from('reservistes').select('role, benevole_id').ilike('email', user.email).single()
-        if (byEmail) {
+        if (byEmail && byEmail.benevole_id) {
           // Lier le user_id pour la prochaine fois
           await supabase.from('reservistes').update({ user_id: user.id }).eq('benevole_id', byEmail.benevole_id)
           res = byEmail
         }
       }
 
-      if (!res || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
+      if (!res || !res.role || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) { router.push('/'); return }
       setUserRole(res.role)
       setCurrentUserId(user.id)
       setAuthorized(true)

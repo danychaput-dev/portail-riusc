@@ -13,23 +13,23 @@ interface Reserviste {
   prenom: string;
   nom: string;
   email: string;
-  telephone?: string;
-  photo_url?: string;
-  groupe?: string;
-  date_naissance?: string;
-  adresse?: string;
-  ville?: string;
-  region?: string;
-  contact_urgence_nom?: string;
-  contact_urgence_telephone?: string;
-  allergies_alimentaires?: string;
-  allergies_autres?: string;
-  conditions_medicales?: string;
-  consent_photo?: boolean;
-  antecedents_statut?: string;
-  antecedents_date_verification?: string;
-  antecedents_date_expiration?: string;
-  monday_created_at?: string;
+  telephone?: string | null;
+  photo_url?: string | null;
+  groupe?: string | null;
+  date_naissance?: string | null;
+  adresse?: string | null;
+  ville?: string | null;
+  region?: string | null;
+  contact_urgence_nom?: string | null;
+  contact_urgence_telephone?: string | null;
+  allergies_alimentaires?: string | null;
+  allergies_autres?: string | null;
+  conditions_medicales?: string | null;
+  consent_photo?: boolean | null;
+  antecedents_statut?: string | null;
+  antecedents_date_verification?: string | null;
+  antecedents_date_expiration?: string | null;
+  monday_created_at?: string | null;
 }
 
 interface CampInfo {

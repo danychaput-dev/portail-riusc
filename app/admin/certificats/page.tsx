@@ -171,7 +171,7 @@ export default function AdminCertificatsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: reserviste } = await supabase.from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
-      if (!reserviste || !['superadmin', 'admin'].includes(reserviste.role)) { router.push('/'); return }
+      if (!reserviste || !reserviste.benevole_id || !reserviste.role || !['superadmin', 'admin'].includes(reserviste.role)) { router.push('/'); return }
       setAdminBenevoleId(reserviste.benevole_id)
 
       // ═══ PHASE 1 : 3 requêtes indépendantes en parallèle ═══
@@ -244,6 +244,7 @@ export default function AdminCertificatsPage() {
       const formationsByBenevole = new Map<string, Set<string>>()
       const approuveesByBenevole = new Map<string, Set<string>>()
       for (const f of allExistingFormations || []) {
+        if (!f.benevole_id || !f.nom_formation) continue
         if (!formationsByBenevole.has(f.benevole_id)) formationsByBenevole.set(f.benevole_id, new Set())
         formationsByBenevole.get(f.benevole_id)!.add(f.nom_formation.toLowerCase().trim())
         if (f.resultat === 'Réussi') {

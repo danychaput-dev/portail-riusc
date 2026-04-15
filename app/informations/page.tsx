@@ -14,8 +14,8 @@ interface Reserviste {
   prenom: string;
   nom: string;
   email: string;
-  photo_url?: string;
-  groupe?: string;
+  photo_url?: string | null;
+  groupe?: string | null;
 }
 
 interface DocumentOfficiel {
@@ -25,7 +25,7 @@ interface DocumentOfficiel {
   titre: string;
   nom_fichier: string;
   chemin_storage: string;
-  date_creation: string;
+  date_creation: string | null;
 }
 
 // === PDFs du camp ===
@@ -349,11 +349,11 @@ export default function InformationsPage() {
                           {doc.titre}
                         </div>
                         <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>
-                          {new Date(doc.date_creation).toLocaleDateString('fr-CA', {
+                          {doc.date_creation ? new Date(doc.date_creation).toLocaleDateString('fr-CA', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
-                          })}
+                          }) : '—'}
                         </div>
                       </div>
                     </div>

@@ -16,10 +16,10 @@ interface Suppression {
   role: string | null
   groupe_au_moment: string | null
   raison: string
-  demande_par_reserviste: boolean
+  demande_par_reserviste: boolean | null
   supprime_par_user_id: string | null
   supprime_par_email: string | null
-  supprime_le: string
+  supprime_le: string | null
 }
 
 export default function HistoriqueSuppressionsPage() {
@@ -134,9 +134,9 @@ export default function HistoriqueSuppressionsPage() {
                 {rowsAffichees.map(r => (
                   <tr key={r.id} style={{ borderTop: '1px solid #e5e7eb' }}>
                     <td style={td}>
-                      {new Date(r.supprime_le).toLocaleString('fr-CA', {
+                      {r.supprime_le ? new Date(r.supprime_le).toLocaleString('fr-CA', {
                         dateStyle: 'short', timeStyle: 'short',
-                      })}
+                      }) : '—'}
                     </td>
                     <td style={{ ...td, fontWeight: 600 }}>
                       {r.prenom} {r.nom}

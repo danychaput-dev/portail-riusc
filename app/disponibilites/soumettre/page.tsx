@@ -11,13 +11,13 @@ import { n8nUrl } from '@/utils/n8n'
 interface DeploiementInfo {
   deploiement_id: string;
   nom_deploiement: string;
-  nom_sinistre?: string;
-  type_incident?: string;
-  lieu?: string;
+  nom_sinistre?: string | null;
+  type_incident?: string | null;
+  lieu?: string | null;
   date_debut: string;
-  date_fin?: string;
-  organisme?: string;
-  date_limite_reponse?: string;
+  date_fin?: string | null;
+  organisme?: string | null;
+  date_limite_reponse?: string | null;
 }
 
 interface Reserviste {
@@ -25,7 +25,7 @@ interface Reserviste {
   prenom: string;
   nom: string;
   email: string;
-  telephone?: string;
+  telephone?: string | null;
 }
 
 type ReponseType = 'disponible' | 'non_disponible' | 'a_confirmer';

@@ -136,7 +136,7 @@ function DisponibilitesInner() {
       setLoading(true)
 
       const { data: depData } = await supabase.from('deployments').select('*').eq('id', depId).single()
-      if (depData) { setDep(depData); setRotStart(depData.date_debut || ''); setRotEnd(depData.date_fin || '') }
+      if (depData) { setDep(depData as unknown as Deployment); setRotStart(depData.date_debut || ''); setRotEnd(depData.date_fin || '') }
 
       const { data: cibData } = await supabase.from('ciblages')
         .select('id, benevole_id, statut')
@@ -150,7 +150,7 @@ function DisponibilitesInner() {
           .select('benevole_id, prenom, nom, telephone, ville, region, latitude, longitude, competence_rs, certificat_premiers_soins, vehicule_tout_terrain, navire_marin, permis_conduire, satp_drone, equipe_canine, competences_securite, competences_sauvetage, communication, cartographie_sig, operation_urgence')
           .in('benevole_id', ids)
         const map: Record<string, ReservisteDetail> = {}
-        for (const r of (resData || [])) map[r.benevole_id] = r
+        for (const r of (resData || [])) { if (r.benevole_id) map[r.benevole_id] = r as unknown as ReservisteDetail }
         setResMap(map)
       }
 
@@ -161,7 +161,7 @@ function DisponibilitesInner() {
 
       const { data: vagData } = await supabase.from('vagues')
         .select('*').eq('deployment_id', depId).order('numero')
-      setVagues(vagData || [])
+      setVagues((vagData || []) as unknown as Vague[])
 
       setLoading(false)
     }

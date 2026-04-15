@@ -12,20 +12,22 @@ import { n8nUrl } from '@/utils/n8n'
 
 interface Reserviste {
   benevole_id: string
-  role?: string
+  role: string
   prenom: string
   nom: string
   email: string
-  telephone?: string
-  photo_url?: string
-  groupe?: string
-  date_naissance?: string
-  adresse?: string
-  code_postal?: string   
-  ville?: string
-  region?: string
-  contact_urgence_nom?: string
-  contact_urgence_telephone?: string
+  telephone?: string | null
+  photo_url?: string | null
+  groupe: string
+  date_naissance?: string | null
+  adresse?: string | null
+  code_postal?: string | null
+  ville?: string | null
+  region?: string | null
+  contact_urgence_nom?: string | null
+  contact_urgence_telephone?: string | null
+  antecedents_statut?: string | null
+  antecedents_date_expiration?: string | null
 }
 
 interface CampStatus {
@@ -135,7 +137,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
               .single()
             
             if (dataByUserId) {
-              res = dataByUserId
+              res = dataByUserId as unknown as Reserviste
             }
           }
           

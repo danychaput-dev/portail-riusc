@@ -95,13 +95,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // 2. Fallback par email si user_id pas lie
         if (!res && user.email) {
           const { data: byEmail } = await supabase.from('reservistes').select('role, benevole_id').ilike('email', user.email).single()
-          if (byEmail) {
+          if (byEmail && byEmail.benevole_id) {
             await supabase.from('reservistes').update({ user_id: user.id }).eq('benevole_id', byEmail.benevole_id)
             res = byEmail
           }
         }
         // 3. Si le role n'est pas detecte via SELECT (RLS), essayer via RPC
-        if (res && !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)) {
+        if (res && res.benevole_id && (!res.role || !['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role))) {
           const { data: roleFromDb } = await supabase.rpc('get_reserviste_role', { target_benevole_id: res.benevole_id })
           if (roleFromDb) res = { ...res, role: roleFromDb }
         }

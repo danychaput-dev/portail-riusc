@@ -485,7 +485,7 @@ export default function AdminSinistresPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
       const { data: res } = await supabase.from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
-      if (!res || (!['superadmin', 'admin', 'coordonnateur'].includes(res.role))) { router.push('/admin'); return }
+      if (!res || !res.benevole_id || !res.role || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) { router.push('/admin'); return }
       setAdminBenevoleId(res.benevole_id)
       await chargerSinistres()
       setLoading(false)
@@ -508,7 +508,7 @@ export default function AdminSinistresPage() {
       ...s,
       demandes: (demData || []).filter(d => d.sinistre_id === s.id)
     }))
-    setSinistres(enriched)
+    setSinistres(enriched as unknown as Sinistre[])
   }
 
   // ─── Chargement déploiements et rotations ───────────────────────────────────
@@ -535,7 +535,7 @@ export default function AdminSinistresPage() {
       ...dep,
       demandes_ids: (allJonction || []).filter(j => j.deployment_id === dep.id).map(j => j.demande_id)
     }))
-    setDeployments(enriched)
+    setDeployments(enriched as unknown as Deployment[])
     setSelectedDeploymentId(null)
     setRotations([])
   }
@@ -1067,7 +1067,7 @@ export default function AdminSinistresPage() {
                           numero={editRotation?.numero || rotations.length + 1}
                           contextDemandes={(selectedDeployment?.demandes_ids || []).map(did => {
                             const d = sinistres.find(s => s.id === selectedId)?.demandes?.find(d => d.id === did)
-                            return { organisme: d?.organisme || '', type_mission: d?.type_mission }
+                            return { organisme: d?.organisme || '', type_mission: d?.type_mission || undefined }
                           })}
                         />
                       </div>

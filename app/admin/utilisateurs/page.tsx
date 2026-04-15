@@ -189,7 +189,7 @@ export default function AdminUtilisateursPage() {
         .in('role', ['superadmin', 'admin', 'coordonnateur', 'adjoint', 'partenaire_lect', 'partenaire'])
         .order('nom')
 
-      setUtilisateurs(data || [])
+      setUtilisateurs((data || []).filter(u => u.benevole_id && u.prenom && u.nom && u.email) as Utilisateur[])
       setLoading(false)
     }
     init()
@@ -243,7 +243,7 @@ export default function AdminUtilisateursPage() {
       .or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%`)
       .in('role', ['reserviste', 'adjoint'])
       .limit(10)
-    setResultats(data || [])
+    setResultats((data || []).filter(u => u.benevole_id && u.prenom && u.nom && u.email) as Utilisateur[])
     setRechercheEnCours(false)
   }
 

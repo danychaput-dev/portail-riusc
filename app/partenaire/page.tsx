@@ -26,7 +26,7 @@ interface Demande {
   identifiant: string
   organisme: string
   type_mission: string
-  nb_personnes_requis: number
+  nb_personnes_requis: number | null
   date_debut: string
   date_fin_estimee: string | null
   statut: string

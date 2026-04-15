@@ -163,13 +163,13 @@ export default function OperationsPage() {
 
   useEffect(() => {
     supabase.from('sinistres').select('*').in('statut',['Actif','En cours'])
-      .order('created_at',{ascending:false}).then(({data})=>{ if(data) setSinistres(data) })
+      .order('created_at',{ascending:false}).then(({data})=>{ if(data) setSinistres(data as unknown as Sinistre[]) })
   }, [])
 
   useEffect(() => {
     if (!sinId) { setDemandes([]); return }
     supabase.from('demandes').select('*').eq('sinistre_id',sinId)
-      .order('date_reception',{ascending:false}).then(({data})=>{ if(data) setDemandes(data) })
+      .order('date_reception',{ascending:false}).then(({data})=>{ if(data) setDemandes(data as unknown as Demande[]) })
   }, [sinId])
 
   useEffect(() => {
@@ -195,7 +195,7 @@ export default function OperationsPage() {
   useEffect(() => {
     if (!depId || deployments.some(d => d.id === depId)) return
     supabase.from('deployments').select('*').eq('id', depId).single()
-      .then(({ data }) => { if (data) setDeployments([data]) })
+      .then(({ data }) => { if (data) setDeployments([data as unknown as Deployment]) })
   }, [depId])
 
   useEffect(() => {
@@ -210,20 +210,20 @@ export default function OperationsPage() {
           return
         }
         // Fetch noms séparément
-        const ids = cibData.map(c => c.benevole_id)
+        const ids = cibData.map(c => c.benevole_id).filter((x): x is string => !!x)
         const { data: resData } = await supabase.from('reservistes')
           .select('benevole_id,prenom,nom,telephone').in('benevole_id', ids)
         const resMap: Record<string,any> = {}
-        for (const r of (resData || [])) resMap[r.benevole_id] = r
+        for (const r of (resData || [])) { if (r.benevole_id) resMap[r.benevole_id] = r }
         setCiblages(cibData.map(c => ({
           ...c,
-          reservistes: resMap[c.benevole_id] || { prenom:'?', nom:'?', telephone:'' }
-        })))
+          reservistes: (c.benevole_id && resMap[c.benevole_id]) || { prenom:'?', nom:'?', telephone:'' }
+        })) as any)
       })
     supabase.from('disponibilites_v2').select('id,benevole_id,date_jour,disponible,a_confirmer,commentaire')
       .eq('deployment_id',depId).order('date_jour').then(({data})=>{ if(data) setDispos(data as any) })
     supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
-      .then(({data})=>{ if(data) setVagues(data) })
+      .then(({data})=>{ if(data) setVagues(data as any) })
   }, [depId, step4Override])
 
   useEffect(() => {
@@ -240,28 +240,38 @@ export default function OperationsPage() {
   // ── Actions ─────────────────────────────────────────────────────────────────
 
   const creerSinistre = async () => {
-    if (!fSin.nom.trim()) return
+    if (!fSin.nom.trim() || !fSin.type_incident || !fSin.lieu || !fSin.date_debut) {
+      alert('Tous les champs (nom, type, lieu, date de début) sont obligatoires.')
+      return
+    }
     setSavSin(true)
     const {data,error} = await supabase.from('sinistres')
-      .insert({ nom:fSin.nom.trim(), type_incident:fSin.type_incident||null, lieu:fSin.lieu||null, date_debut:fSin.date_debut||null, statut:'Actif' })
+      .insert({ nom:fSin.nom.trim(), type_incident:fSin.type_incident, lieu:fSin.lieu, date_debut:fSin.date_debut, statut:'Actif' })
       .select().single()
-    if (!error && data) { setSinistres(p=>[data,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
+    if (!error && data) { setSinistres(p=>[data as unknown as Sinistre,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
     setSavSin(false)
   }
 
   const creerDemande = async () => {
     if (!fDem.organisme || !sinId) return
+    if (!fDem.type_mission || !fDem.lieu || !fDem.date_debut) {
+      alert('Type de mission, lieu et date de début sont obligatoires.')
+      return
+    }
     setSavDem(true)
     const identifiant = genDemandeId(demandes, fDem.organisme, fDem.date_debut)
+    const description = `${fDem.type_mission} - ${fDem.lieu}`
     const {data,error} = await supabase.from('demandes').insert({
-      sinistre_id:sinId, organisme:fDem.organisme, type_mission:fDem.type_mission||null,
-      lieu:fDem.lieu||null, nb_personnes_requis:fDem.nb_personnes_requis?parseInt(fDem.nb_personnes_requis):null,
-      date_debut:fDem.date_debut||null, date_fin_estimee:fDem.date_fin_estimee||null,
+      sinistre_id:sinId, organisme:fDem.organisme, type_mission:fDem.type_mission,
+      description,
+      lieu:fDem.lieu, nb_personnes_requis:fDem.nb_personnes_requis?parseInt(fDem.nb_personnes_requis):null,
+      date_debut:fDem.date_debut, date_fin_estimee:fDem.date_fin_estimee||null,
       priorite:fDem.priorite, statut:'Nouvelle', identifiant,
+      date_reception:new Date().toISOString(),
       contact_nom:fDem.contact_nom||null, contact_telephone:fDem.contact_telephone||null,
     }).select().single()
     if (!error && data) {
-      setDemandes(p=>[data,...p]); setDemIds(p=>[...p,data.id])
+      setDemandes(p=>[data as unknown as Demande,...p]); setDemIds(p=>[...p,data.id])
       setShowFDem(false); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
     }
     setSavDem(false)
@@ -269,18 +279,22 @@ export default function OperationsPage() {
 
   const creerDeployment = async () => {
     if (!fDep.nom.trim() || !demIds.length) return
+    if (!fDep.lieu || !fDep.date_debut || !fDep.nb_personnes_par_vague) {
+      alert('Lieu, date de début et nombre de personnes par vague sont obligatoires.')
+      return
+    }
     setSavDep(true)
     const identifiant = genDeployId(deployments)
     const {data,error} = await supabase.from('deployments').insert({
-      identifiant, nom:fDep.nom.trim(), lieu:fDep.lieu||null,
-      date_debut:fDep.date_debut||null, date_fin:fDep.date_fin||null,
-      nb_personnes_par_vague:fDep.nb_personnes_par_vague?parseInt(fDep.nb_personnes_par_vague):null,
+      identifiant, nom:fDep.nom.trim(), lieu:fDep.lieu,
+      date_debut:fDep.date_debut, date_fin:fDep.date_fin||null,
+      nb_personnes_par_vague:parseInt(fDep.nb_personnes_par_vague),
       point_rassemblement:fDep.point_rassemblement||null, notes_logistique:fDep.notes_logistique||null,
       statut:'Planifié',
     }).select().single()
     if (!error && data) {
       await supabase.from('deployments_demandes').insert(demIds.map(did=>({ deployment_id:data.id, demande_id:did })))
-      setDeployments(p=>[...p,data]); setDepId(data.id)
+      setDeployments(p=>[...p,data as unknown as Deployment]); setDepId(data.id)
       setShowFDep(false); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
     }
     setSavDep(false)
@@ -291,15 +305,15 @@ export default function OperationsPage() {
     const {data: cibData} = await supabase.from('ciblages').select('id,benevole_id,statut')
       .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
     if (!cibData?.length) { setCiblages([]); return }
-    const ids = cibData.map(c => c.benevole_id)
+    const ids = cibData.map(c => c.benevole_id).filter((x): x is string => !!x)
     const { data: resData } = await supabase.from('reservistes')
       .select('benevole_id,prenom,nom,telephone').in('benevole_id', ids)
     const resMap: Record<string,any> = {}
-    for (const r of (resData || [])) resMap[r.benevole_id] = r
+    for (const r of (resData || [])) { if (r.benevole_id) resMap[r.benevole_id] = r }
     setCiblages(cibData.map(c => ({
       ...c,
-      reservistes: resMap[c.benevole_id] || { prenom:'?', nom:'?', telephone:'' }
-    })))
+      reservistes: (c.benevole_id && resMap[c.benevole_id]) || { prenom:'?', nom:'?', telephone:'' }
+    })) as any)
   }
 
   const sendNotifications = async () => {
@@ -343,7 +357,7 @@ export default function OperationsPage() {
       nb_personnes_requis:newVague.nb?parseInt(newVague.nb):null, statut:'Planifiée',
       identifiant:`ROT-${num.toString().padStart(2,'0')}`,
     }).select().single()
-    if (!error && data) { setVagues(p=>[...p,data]); setNewVague({date_debut:'',date_fin:'',nb:''}) }
+    if (!error && data) { setVagues(p=>[...p,data as unknown as Vague]); setNewVague({date_debut:'',date_fin:'',nb:''}) }
     setSavVague(false)
   }
 

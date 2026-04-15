@@ -233,7 +233,7 @@ export function CommunauteContent({ embedded = false }: { embedded?: boolean }) 
         reservisteData = data2;
       } else { reservisteData = data; }
     }
-    if (reservisteData) setReserviste(reservisteData);
+    if (reservisteData && reservisteData.benevole_id && reservisteData.prenom && reservisteData.nom && reservisteData.email) setReserviste(reservisteData as Reserviste);
 
     // Capturer le last_seen AVANT de le mettre à jour (pour marquer les nouveaux messages)
     const { data: lastSeenData } = await supabase
@@ -331,7 +331,7 @@ export function CommunauteContent({ embedded = false }: { embedded?: boolean }) 
       .order('created_at', { ascending: true })
       .limit(200);
     if (data) {
-      setMessages(data);
+      setMessages(data as unknown as Message[]);
       // Charger les réactions pour ces messages
       const msgIds = data.map((m) => m.id);
       if (msgIds.length > 0) {
@@ -339,7 +339,7 @@ export function CommunauteContent({ embedded = false }: { embedded?: boolean }) 
           .from('message_reactions')
           .select('*')
           .in('message_id', msgIds);
-        if (rData) setReactions(rData);
+        if (rData) setReactions(rData as unknown as Reaction[]);
         else setReactions([]);
       } else {
         setReactions([]);
@@ -389,7 +389,7 @@ export function CommunauteContent({ embedded = false }: { embedded?: boolean }) 
       if (data && !error) {
         setReactions((prev) => {
           if (prev.some((r) => r.id === data.id)) return prev;
-          return [...prev, data];
+          return [...prev, data as unknown as Reaction];
         });
       }
     }

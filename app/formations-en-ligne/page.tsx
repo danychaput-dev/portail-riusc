@@ -9,18 +9,18 @@ const supabase = createClient()
 interface Module {
   id: string
   titre: string
-  description: string
+  description: string | null
   bucket_path: string
-  ordre: number
-  certificat: boolean
+  ordre: number | null
+  certificat: boolean | null
 }
 
 interface Progression {
   module_id: string
-  statut: string
-  progression_pct: number
+  statut: string | null
+  progression_pct: number | null
   score: number | null
-  nb_tentatives: number
+  nb_tentatives: number | null
   date_debut: string | null
   date_completion: string | null
 }

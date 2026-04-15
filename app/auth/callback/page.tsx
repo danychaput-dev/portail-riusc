@@ -18,12 +18,13 @@ export default function AuthCallback() {
         return
       }
 
-      if (session) {
+      if (session && session.user.email) {
+        const userEmail = session.user.email
         // Vérifier si l'utilisateur existe dans reservistes
         const { data: reserviste } = await supabase
           .from('reservistes')
           .select('*')
-          .eq('email', session.user.email)
+          .eq('email', userEmail)
           .single()
 
         if (reserviste) {
@@ -32,7 +33,7 @@ export default function AuthCallback() {
             await supabase
               .from('reservistes')
               .update({ user_id: session.user.id })
-              .eq('email', session.user.email)
+              .eq('email', userEmail)
           }
           router.push('/')
         } else {

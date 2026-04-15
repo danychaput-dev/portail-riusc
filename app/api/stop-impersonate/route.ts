@@ -17,7 +17,7 @@ export async function POST() {
         .eq('user_id', user.id)
         .single()
 
-      if (!currentReserviste || !ADMIN_BENEVOLE_IDS.includes(currentReserviste.benevole_id)) {
+      if (!currentReserviste || !currentReserviste.benevole_id || !ADMIN_BENEVOLE_IDS.includes(currentReserviste.benevole_id)) {
         return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
       }
     }

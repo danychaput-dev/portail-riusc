@@ -90,7 +90,7 @@ export default function InscriptionPage() {
   const addressDropdownRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string }>>([])
+  const [villeSuggestions, setVilleSuggestions] = useState<Array<{ municipalite: string; region_administrative: string; mrc: string | null }>>([])
   const [showVilleSuggestions, setShowVilleSuggestions] = useState(false)
   const [isLoadingVille, setIsLoadingVille] = useState(false)
   const [regionNonDetectee, setRegionNonDetectee] = useState(false)
@@ -410,7 +410,7 @@ export default function InscriptionPage() {
     villeDebounceRef.current = setTimeout(() => searchVille(value), 250)
   }
 
-  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string }) => {
+  const selectVille = (suggestion: { municipalite: string; region_administrative: string; mrc: string | null }) => {
     setFormData(prev => ({ ...prev, ville: suggestion.municipalite, region: suggestion.region_administrative }))
     setShowVilleSuggestions(false)
     setVilleSuggestions([])
@@ -533,7 +533,7 @@ const newBenevoleId = responseData.benevole_id ? String(responseData.benevole_id
         if (Object.keys(rsUpdates).length > 0) {
           await supabase
             .from('reservistes')
-            .update(rsUpdates)
+            .update(rsUpdates as any)
             .eq('benevole_id', newBenevoleId)
         }
       }

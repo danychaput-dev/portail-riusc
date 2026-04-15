@@ -94,7 +94,7 @@ export default function MatchingCertificats() {
     const mapReserviste = new Map<string, any>()
     if (reservistes) {
       for (const r of reservistes) {
-        mapReserviste.set(r.email?.toLowerCase(), r)
+        if (r.email) mapReserviste.set(r.email.toLowerCase(), r)
       }
     }
 
@@ -112,6 +112,7 @@ export default function MatchingCertificats() {
     const mapFormations = new Map<string, any[]>()
     if (formations) {
       for (const f of formations) {
+        if (!f.benevole_id) continue
         const existing = mapFormations.get(f.benevole_id) || []
         existing.push(f)
         mapFormations.set(f.benevole_id, existing)

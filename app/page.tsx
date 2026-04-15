@@ -319,7 +319,7 @@ export default function HomePage() {
 
       return {
         mobilisation_item_id: ciblage.id,
-        vague_id: vague.identifiant,
+        vague_id: vague.identifiant || '',
         deploiement_nom: deployment?.nom || '',
         tache: deployment?.nom || '',
         ville: deployment?.lieu || '',
@@ -370,7 +370,7 @@ export default function HomePage() {
             )
             const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null
             if (campInsc) {
-              setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null })
+              setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom || '', dates: campInsc.camp_dates || '', site: campInsc.camp_lieu || '', location: campInsc.camp_lieu || '' }, lien_inscription: null })
             } else {
               setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null })
             }
@@ -568,7 +568,7 @@ export default function HomePage() {
         )
         const campInsc = campInscResult.status === 'fulfilled' ? campInscResult.value?.data : null
         if (campInsc) {
-          setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom, dates: campInsc.camp_dates, site: campInsc.camp_lieu, location: campInsc.camp_lieu }, lien_inscription: null })
+          setCampStatus({ is_certified: hasCampQualif, has_inscription: true, session_id: campInsc.session_id, camp: { nom: campInsc.camp_nom || '', dates: campInsc.camp_dates || '', site: campInsc.camp_lieu || '', location: campInsc.camp_lieu || '' }, lien_inscription: null })
         } else {
           setCampStatus({ is_certified: hasCampQualif, has_inscription: false, session_id: null, camp: null, lien_inscription: null })
         }

@@ -60,7 +60,7 @@ export default function PageCertificatsATrier() {
       if (!user) { router.push('/login'); return }
       const { data: r } = await supabase
         .from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
-      if (!r || !['superadmin', 'admin', 'coordonnateur'].includes(r.role)) {
+      if (!r || !r.benevole_id || !r.role || !['superadmin', 'admin', 'coordonnateur'].includes(r.role)) {
         router.push('/'); return
       }
       setAdminBenevoleId(r.benevole_id)
@@ -68,7 +68,7 @@ export default function PageCertificatsATrier() {
       const { data: rs } = await supabase
         .from('reservistes').select('benevole_id, prenom, nom, email')
         .order('nom')
-      setAllReservistes(rs || [])
+      setAllReservistes((rs || []).filter((r): r is ReservisteLite => r.benevole_id !== null))
       setLoading(false)
     })()
   }, [])
