@@ -48,7 +48,7 @@ export async function getCurrentUser(): Promise<AuthUser> {
 
   // Récupérer les données complètes du réserviste depuis Supabase
   const { data: reserviste } = await supabase
-    .from('reservistes')
+    .from('reservistes_actifs')
     .select('*')
     .eq('email', user.email)
     .maybeSingle()

@@ -41,7 +41,7 @@ export async function getAuthUser(): Promise<AuthResult | null> {
     if (!user) return null
 
     const { data } = await supabaseAdmin
-      .from('reservistes')
+      .from('reservistes_actifs')
       .select('benevole_id, role')
       .eq('user_id', user.id)
       .single()

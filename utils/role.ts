@@ -21,7 +21,7 @@ export async function getCurrentRole(): Promise<RoleInfo | null> {
   if (!user) return null
 
   const { data } = await supabase
-    .from('reservistes')
+    .from('reservistes_actifs')
     .select('benevole_id, role, prenom, nom')
     .eq('user_id', user.id)
     .single()
