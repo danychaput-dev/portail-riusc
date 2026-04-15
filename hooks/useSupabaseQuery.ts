@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import type { Database } from '@/types/supabase'
 
-// ─── useSupabaseQuery — Remplace les requêtes Supabase répétitives ──────────
+// ─── useSupabaseQuery ── Remplace les requêtes Supabase répétitives ─────────
 //
 // Avant :
 //   const [data, setData] = useState([])
@@ -20,6 +21,10 @@ import { createClient } from '@/utils/supabase/client'
 //     select: '*',
 //     filters: { user_id: userId },
 //   }, [userId])
+
+type TableName =
+  | keyof Database['public']['Tables']
+  | keyof Database['public']['Views']
 
 interface QueryOptions {
   /** Colonnes à sélectionner (défaut: '*') */
@@ -46,9 +51,9 @@ interface UseSupabaseQueryReturn<T> {
 /**
  * Hook pour les requêtes SELECT Supabase.
  *
- * @param table - Nom de la table
- * @param options - Options de requête
- * @param deps - Dépendances supplémentaires
+ * @param table Nom de la table (typé sur le schéma Database)
+ * @param options Options de requête
+ * @param deps Dépendances supplémentaires
  *
  * @example
  * // Requête simple
@@ -67,7 +72,7 @@ interface UseSupabaseQueryReturn<T> {
  * })
  */
 export function useSupabaseQuery<T = any>(
-  table: string,
+  table: TableName,
   options: QueryOptions = {},
   deps: React.DependencyList = []
 ): UseSupabaseQueryReturn<T> {
@@ -86,7 +91,9 @@ export function useSupabaseQuery<T = any>(
 
     try {
       const supabase = createClient()
-      let query = supabase.from(table).select(opts.select || '*')
+      // Cast nécessaire: le typage statique de .from() empêche de combiner
+      // dynamiquement filtres/tri/limite sans perdre le narrowing.
+      let query: any = (supabase.from(table as any) as any).select(opts.select || '*')
 
       // Appliquer les filtres
       if (opts.filters) {
@@ -131,7 +138,7 @@ export function useSupabaseQuery<T = any>(
   return { data, loading, error, retry: execute }
 }
 
-// ─── useSignedUrl — Génère une signed URL pour Supabase Storage ─────────────
+// ─── useSignedUrl ── Génère une signed URL pour Supabase Storage ────────────
 //
 // Pattern répété dans formation.tsx, formulaires.tsx, page.tsx :
 //   if (certUrl && certUrl.startsWith('storage:')) {
