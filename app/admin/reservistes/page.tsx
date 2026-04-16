@@ -1676,8 +1676,10 @@ function ReservistesPage() {
             <>
               <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
               <button
+                disabled={!contextMenu.reserviste.camp_inscrit}
                 onClick={async () => {
                   const r = contextMenu.reserviste
+                  if (!r.camp_inscrit) return
                   setTransferCible(r)
                   setTransferCampActuel(null)
                   setContextMenu(null)
@@ -1704,11 +1706,17 @@ function ReservistesPage() {
                     }
                   } catch { /* ignore */ }
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
-                onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none',
+                  cursor: contextMenu.reserviste.camp_inscrit ? 'pointer' : 'default',
+                  fontSize: '13px',
+                  color: contextMenu.reserviste.camp_inscrit ? '#374151' : '#cbd5e1',
+                  textAlign: 'left',
+                }}
+                onMouseOver={e => { if (contextMenu.reserviste.camp_inscrit) e.currentTarget.style.backgroundColor = '#f1f5f9' }}
                 onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
-                <span style={{ fontSize: '14px' }}>⛺</span> Changer de camp
+                <span style={{ fontSize: '14px' }}>⛺</span> Changer de camp{!contextMenu.reserviste.camp_inscrit ? ' (non inscrit)' : ''}
               </button>
               <button
                 onClick={() => { emprunterIdentite(contextMenu.reserviste); setContextMenu(null) }}
