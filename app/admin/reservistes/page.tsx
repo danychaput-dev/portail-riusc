@@ -217,6 +217,7 @@ function ReservistesPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null)
   // Transfert de camp
   const [transferCible, setTransferCible] = useState<Reserviste | null>(null)
+  const [transferCampActuel, setTransferCampActuel] = useState<string | null>(null)
   const [campsDisponibles, setCampsDisponibles] = useState<Array<{ session_id: string; nom: string; dates: string; site: string; location: string }>>([])
   const [transferLoading, setTransferLoading] = useState(false)
 
@@ -1678,13 +1679,28 @@ function ReservistesPage() {
                 onClick={async () => {
                   const r = contextMenu.reserviste
                   setTransferCible(r)
+                  setTransferCampActuel(null)
                   setContextMenu(null)
-                  // Charger les camps disponibles
+                  // Charger les camps disponibles + camp actuel
                   try {
-                    const res = await fetch('/api/admin/camp/transfer')
-                    if (res.ok) {
-                      const { camps } = await res.json()
+                    const [campsRes, inscRes] = await Promise.all([
+                      fetch('/api/admin/camp/transfer'),
+                      createClient().from('inscriptions_camps')
+                        .select('camp_nom, session_id')
+                        .eq('benevole_id', r.benevole_id)
+                        .neq('presence', 'annule')
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single()
+                    ])
+                    if (campsRes.ok) {
+                      const { camps } = await campsRes.json()
                       setCampsDisponibles(camps)
+                    }
+                    if (inscRes.data?.camp_nom) {
+                      setTransferCampActuel(inscRes.data.camp_nom)
+                    } else {
+                      setTransferCampActuel('Aucun camp')
                     }
                   } catch { /* ignore */ }
                 }}
@@ -1809,8 +1825,11 @@ function ReservistesPage() {
             <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: '700', color: C }}>
               Changer de camp
             </h3>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#374151', fontWeight: 600 }}>
               {transferCible.prenom} {transferCible.nom}
+            </p>
+            <p style={{ margin: '0 0 16px', fontSize: '12px', color: '#64748b' }}>
+              Camp actuel : {transferCampActuel === null ? '...' : transferCampActuel}
             </p>
             {campsDisponibles.length === 0 ? (
               <p style={{ fontSize: '13px', color: '#94a3b8' }}>Chargement des camps...</p>

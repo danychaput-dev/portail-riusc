@@ -490,6 +490,55 @@ export default function InscriptionsCampsPage() {
     )
   }
 
+  // Transfert de camp
+  const [showTransferModal, setShowTransferModal] = useState(false)
+  const [campsDisponibles, setCampsDisponibles] = useState<Array<{ session_id: string; nom: string; dates: string; site: string; location: string }>>([])
+  const [transferLoading, setTransferLoading] = useState(false)
+
+  async function openTransferModal() {
+    if (selectedIds.size === 0) return
+    setShowTransferModal(true)
+    try {
+      const res = await fetch('/api/admin/camp/transfer')
+      if (res.ok) {
+        const { camps: c } = await res.json()
+        setCampsDisponibles(c)
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function doTransfer(targetSessionId: string) {
+    const benevoleIds = Array.from(selectedIds).map(id => {
+      const ins = inscriptions.find(i => i.id === id)
+      return ins?.benevole_id
+    }).filter(Boolean) as string[]
+
+    if (benevoleIds.length === 0) return
+    setTransferLoading(true)
+    try {
+      const res = await fetch('/api/admin/camp/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benevole_ids: benevoleIds, target_session_id: targetSessionId }),
+      })
+      const data = await res.json()
+      const ok = data.results?.filter((r: any) => r.ok).length || 0
+      const fail = data.results?.filter((r: any) => !r.ok) || []
+      let msg = `${ok} participant(s) transféré(s).`
+      if (fail.length > 0) msg += `\n${fail.map((f: any) => f.message).join('\n')}`
+      alert(msg)
+      setShowTransferModal(false)
+      setSelectedIds(new Set())
+      // Retirer les transférés de la liste locale
+      const transferredBids = new Set(benevoleIds)
+      setInscriptions(prev => prev.filter(i => !transferredBids.has(i.benevole_id)))
+    } catch {
+      alert('Erreur réseau')
+    } finally {
+      setTransferLoading(false)
+    }
+  }
+
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [showSmsModal, setShowSmsModal] = useState(false)
   const [smsMessage, setSmsMessage] = useState('')
@@ -883,6 +932,18 @@ export default function InscriptionsCampsPage() {
             >
               ✉️ {selectedIds.size > 1 ? `Envoyer courriel (${selectedIds.size})` : 'Envoyer courriel'}
             </button>
+            <span style={{ color: '#94a3b8' }}>|</span>
+            <button
+              onClick={openTransferModal}
+              disabled={bulkUpdating}
+              style={{
+                padding: '4px 12px', borderRadius: 16, border: '1px solid #7c3aed',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                color: '#7c3aed', background: '#ede9fe',
+              }}
+            >
+              ⛺ Changer de camp
+            </button>
             <button
               onClick={() => setSelectedIds(new Set())}
               style={{
@@ -1062,6 +1123,64 @@ export default function InscriptionsCampsPage() {
           )}
         </div>
       </main>
+
+      {/* ── Modal Transfert de camp ──────────────────────────────────── */}
+      {showTransferModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => !transferLoading && setShowTransferModal(false)}
+        >
+          <div
+            style={{ backgroundColor: 'white', borderRadius: 12, padding: 24, minWidth: 380, maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#1e3a5f' }}>
+              Transférer vers un autre camp
+            </h3>
+            <p style={{ margin: '0 0 4px', fontSize: 13, color: '#374151', fontWeight: 600 }}>
+              {selectedIds.size} participant{selectedIds.size > 1 ? 's' : ''} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            </p>
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: '#64748b' }}>
+              Camp actuel : {selectedCamp?.camp_nom || '—'}
+            </p>
+            {campsDisponibles.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#94a3b8' }}>Chargement des camps...</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {campsDisponibles.filter(c => c.session_id !== selectedCampId).map(camp => (
+                  <button
+                    key={camp.session_id}
+                    disabled={transferLoading}
+                    onClick={() => {
+                      if (confirm(`Transférer ${selectedIds.size} participant(s) vers ${camp.nom} ?`)) {
+                        doTransfer(camp.session_id)
+                      }
+                    }}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2,
+                      padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: 8,
+                      background: 'white', cursor: transferLoading ? 'wait' : 'pointer', textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.backgroundColor = '#f5f3ff' }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = 'white' }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>⛺ {camp.nom}</span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>{camp.dates} - {camp.site}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setShowTransferModal(false)}
+              disabled={transferLoading}
+              style={{ marginTop: 16, padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 6, background: 'white', cursor: 'pointer', fontSize: 13, color: '#64748b' }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal SMS ─────────────────────────────────────────────────── */}
       {showSmsModal && (
