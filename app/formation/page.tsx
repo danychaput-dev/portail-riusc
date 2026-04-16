@@ -1084,8 +1084,15 @@ function FormationContent() {
                           </div>
                         )}
 
-                        {/* Bouton upload S'initier si pas de certificat */}
-                        {isInitier && certificats.length === 0 && !uploadedFormationIds.has(f.id) && !f.has_fichier && (
+                        {/* Note de validation admin (importé sans certificat) */}
+                        {isInitier && f.commentaire && f.commentaire.includes('importée depuis Monday') && (
+                          <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
+                            ✅ {f.commentaire}
+                          </div>
+                        )}
+
+                        {/* Bouton upload S'initier si pas de certificat et pas de note de validation */}
+                        {isInitier && certificats.length === 0 && !uploadedFormationIds.has(f.id) && !f.has_fichier && !(f.commentaire && f.commentaire.includes('importée depuis Monday')) && (
                           <div style={{ marginTop: '8px' }}>
                             <button
                               onClick={() => { setUploadingForFormationId(f.id); setUploadingForFormationNom(f.catalogue || f.nom); formationCertInputRef.current?.click(); }}
