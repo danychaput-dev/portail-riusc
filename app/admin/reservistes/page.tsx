@@ -210,13 +210,15 @@ function ReservistesPage() {
   // Cache des derniers retraits par benevole_id pour tooltip sur badge
   const [retraitsInfo, setRetraitsInfo] = useState<Record<string, { raison: string; effectue_le: string; effectue_par_email: string | null } | null>>({})
   const [currentUserId, setCurrentUserId] = useState<string>('')
-  // Menu contextuel (right-click + long press mobile)
+  // Menu contextuel (right-click desktop uniquement)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressTriggered = useRef(false)
   // Click-to-copy feedback (adjoint)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  // Transfert de camp
+  const [transferCible, setTransferCible] = useState<Reserviste | null>(null)
+  const [campsDisponibles, setCampsDisponibles] = useState<Array<{ session_id: string; nom: string; dates: string; site: string; location: string }>>([])
+  const [transferLoading, setTransferLoading] = useState(false)
 
   // Notes non lues
   const [notesNonLuesIds, setNotesNonLuesIds] = useState<Set<string>>(new Set())
@@ -1252,7 +1254,6 @@ function ReservistesPage() {
                   <div
                     onClick={(e) => {
                       e.stopPropagation()
-                      if (longPressTriggered.current) { longPressTriggered.current = false; return }
                       if (canEmail) setModalReserviste(r)
                     }}
                     onContextMenu={(e) => {
@@ -1261,35 +1262,8 @@ function ReservistesPage() {
                       e.stopPropagation()
                       setContextMenu({ x: e.clientX, y: e.clientY, reserviste: r })
                     }}
-                    ref={(el) => {
-                      if (!el || !canEmail) return
-                      // Long press mobile via ref pour pouvoir utiliser { passive: false }
-                      el.ontouchstart = (e) => {
-                        longPressTriggered.current = false
-                        const touch = e.touches[0]
-                        const startX = touch.clientX
-                        const startY = touch.clientY
-                        longPressTimer.current = setTimeout(() => {
-                          longPressTriggered.current = true
-                          // Vibration tactile si disponible
-                          if (navigator.vibrate) navigator.vibrate(30)
-                          setContextMenu({ x: startX, y: startY, reserviste: r })
-                        }, 400)
-                        // Bloquer le menu natif iOS/Android
-                        el.ontouchmove = (ev) => {
-                          const dx = Math.abs(ev.touches[0].clientX - startX)
-                          const dy = Math.abs(ev.touches[0].clientY - startY)
-                          if (dx > 10 || dy > 10) {
-                            if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
-                          }
-                        }
-                        el.ontouchend = () => {
-                          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
-                        }
-                      }
-                    }}
-                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'manipulation' } as React.CSSProperties}
-                    title={canEmail ? `Clic: fiche · Clic droit/appui long: actions rapides` : undefined}
+                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
+                    title={canEmail ? `Clic: fiche · Clic droit: actions rapides` : undefined}
                   >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
@@ -1701,6 +1675,26 @@ function ReservistesPage() {
             <>
               <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
               <button
+                onClick={async () => {
+                  const r = contextMenu.reserviste
+                  setTransferCible(r)
+                  setContextMenu(null)
+                  // Charger les camps disponibles
+                  try {
+                    const res = await fetch('/api/admin/camp/transfer')
+                    if (res.ok) {
+                      const { camps } = await res.json()
+                      setCampsDisponibles(camps)
+                    }
+                  } catch { /* ignore */ }
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#374151', textAlign: 'left' }}
+                onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f1f5f9')}
+                onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <span style={{ fontSize: '14px' }}>⛺</span> Changer de camp
+              </button>
+              <button
                 onClick={() => { emprunterIdentite(contextMenu.reserviste); setContextMenu(null) }}
                 style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px', color: '#d97706', textAlign: 'left' }}
                 onMouseOver={e => (e.currentTarget.style.backgroundColor = '#fffbeb')}
@@ -1801,6 +1795,75 @@ function ReservistesPage() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* Modal transfert de camp */}
+      {transferCible && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setTransferCible(null)}
+        >
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', minWidth: '380px', maxWidth: '480px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: '700', color: C }}>
+              Changer de camp
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+              {transferCible.prenom} {transferCible.nom}
+            </p>
+            {campsDisponibles.length === 0 ? (
+              <p style={{ fontSize: '13px', color: '#94a3b8' }}>Chargement des camps...</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {campsDisponibles.map(camp => (
+                  <button
+                    key={camp.session_id}
+                    disabled={transferLoading}
+                    onClick={async () => {
+                      setTransferLoading(true)
+                      try {
+                        const res = await fetch('/api/admin/camp/transfer', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ benevole_ids: [transferCible.benevole_id], target_session_id: camp.session_id }),
+                        })
+                        const data = await res.json()
+                        const r = data.results?.[0]
+                        if (r?.ok) {
+                          alert(`${r.message}`)
+                          setTransferCible(null)
+                        } else {
+                          alert(`Erreur : ${r?.message || 'Erreur inconnue'}`)
+                        }
+                      } catch {
+                        alert('Erreur réseau')
+                      } finally {
+                        setTransferLoading(false)
+                      }
+                    }}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px',
+                      padding: '12px 16px', border: '1px solid #e2e8f0', borderRadius: '8px',
+                      background: 'white', cursor: transferLoading ? 'wait' : 'pointer', textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.backgroundColor = '#f0f7ff' }}
+                    onMouseOut={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = 'white' }}
+                  >
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e293b' }}>⛺ {camp.nom}</span>
+                    <span style={{ fontSize: '12px', color: '#64748b' }}>{camp.dates} — {camp.site}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setTransferCible(null)}
+              style={{ marginTop: '16px', padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white', cursor: 'pointer', fontSize: '13px', color: '#64748b' }}
+            >
+              Annuler
+            </button>
+          </div>
         </div>
       )}
 
