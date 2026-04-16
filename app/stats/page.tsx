@@ -195,7 +195,7 @@ export default function StatsPage() {
   const [authorized, setAuthorized] = useState(false);
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [auditPages, setAuditPages] = useState<AuditPageRow[]>([]);
-  const [auditPagesAll, setAuditPagesAll] = useState<{ benevole_id: string | null; user_id: string | null }[]>([]);
+  const [allUserIds, setAllUserIds] = useState<Set<string>>(new Set());
   const [reservistes, setReservistes] = useState<Reserviste[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [excludeMe, setExcludeMe] = useState(true);
@@ -309,7 +309,7 @@ export default function StatsPage() {
       if (logsRes.data) setLogs(logsRes.data as LogRow[]);
       if (resRes.data) setReservistes(resRes.data as Reserviste[]);
       if (auditRes.pages) setAuditPages(auditRes.pages as AuditPageRow[]);
-      if (auditRes.all) setAuditPagesAll(auditRes.all as { benevole_id: string | null; user_id: string | null }[]);
+      if (auditRes.allUserIds) setAllUserIds(new Set(auditRes.allUserIds as string[]));
       setLoading(false);
     })();
   }, [authorized, from, to]);
@@ -490,11 +490,11 @@ export default function StatsPage() {
       .map(([key, count]) => ({ name: userMap[key] || key.slice(0, 8) + '…', count }));
 
     // Réservistes jamais vus dans audit_pages — on croise par user_id (fiable même sans cookie benevole_id)
-    const seenUserIds = new Set(auditPagesAll.map(p => p.user_id).filter(Boolean));
+    const seenUserIds = allUserIds;
     const neverConnected = reservistes.filter(r => r.user_id && !seenUserIds.has(r.user_id));
 
     return { totalPages: pages.length, connexions: connexions.length, uniqueUsers: uniqueUsers.size, pageRanking, activeUsers, neverConnected };
-  }, [auditPages, auditPagesAll, excludeMe, currentUserId, reservistes]);
+  }, [auditPages, allUserIds, excludeMe, currentUserId, reservistes]);
 
   // ─── Render ───────────────────────────────────────────────────────
   if (!authorized) {

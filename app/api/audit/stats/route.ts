@@ -14,13 +14,41 @@ export async function GET(req: NextRequest) {
   const from = searchParams.get('from');
   const to = searchParams.get('to');
 
-  const [pagesRes, allRes] = await Promise.all([
-    supabase.from('audit_pages').select('*').gte('visite_a', from!).lte('visite_a', to!).order('visite_a', { ascending: false }).range(0, 4999),
-    supabase.from('audit_pages').select('benevole_id, user_id').or('benevole_id.not.is.null,user_id.not.is.null').range(0, 4999),
-  ]);
+  // Pages de la période sélectionnée (max 5000)
+  const pagesRes = await supabase
+    .from('audit_pages')
+    .select('*')
+    .gte('visite_a', from!)
+    .lte('visite_a', to!)
+    .order('visite_a', { ascending: false })
+    .range(0, 4999);
+
+  // Tous les user_id distincts ayant visité le portail (toutes périodes)
+  // On pagine pour dépasser la limite de 1000 lignes par défaut
+  const allUserIds = new Set<string>();
+  let offset = 0;
+  const PAGE_SIZE = 1000;
+  let hasMore = true;
+  while (hasMore) {
+    const { data } = await supabase
+      .from('audit_pages')
+      .select('user_id')
+      .not('user_id', 'is', null)
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+    } else {
+      data.forEach((row: { user_id: string | null }) => {
+        if (row.user_id) allUserIds.add(row.user_id);
+      });
+      if (data.length < PAGE_SIZE) hasMore = false;
+      else offset += PAGE_SIZE;
+    }
+  }
 
   return NextResponse.json({
     pages: pagesRes.data || [],
-    all: allRes.data || [],
+    allUserIds: Array.from(allUserIds),
   });
 }
