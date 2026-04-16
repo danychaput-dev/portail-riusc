@@ -220,9 +220,9 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
           <div style={{ width: '64px', height: '64px', backgroundColor: '#f0f4f8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>👋</div>
           <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '22px', fontWeight: '700' }}>{isApproved ? 'Découvrez votre portail !' : 'Bienvenue dans la RIUSC !'}</h3>
           <p style={{ color: '#6b7280', margin: '0 0 28px 0', fontSize: '15px', lineHeight: '1.6' }}>{isApproved ? 'Laissez-nous vous faire un tour rapide de votre espace réserviste.' : 'On vous guide en quelques étapes pour bien démarrer votre parcours de réserviste.'}</p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <button onClick={skipTour} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '500' }}>Plus tard</button>
-            <button onClick={startTour} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '600' }}>C&apos;est parti !</button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}>
+            <button onPointerUp={skipTour} style={{ padding: '12px 24px', backgroundColor: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '500', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}>Plus tard</button>
+            <button onPointerUp={startTour} style={{ padding: '12px 24px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer', fontWeight: '600', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}>C&apos;est parti !</button>
           </div>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
 
   return (
     <>
-      <div onClick={endTour} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10000 }} />
+      <div onPointerUp={endTour} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10000 }} />
       <div style={highlightStyle} />
       <div style={tooltipStyle}>
         <div style={{ position: 'relative' }}>
@@ -247,11 +247,11 @@ export default function GuidedTour({ isApproved, hasCertificat, hasDeploiements,
               <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '8px', fontWeight: '500' }}>Étape {currentStep + 1} de {steps.length}</div>
               <h4 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '17px', fontWeight: '700' }}>{step.title}</h4>
               <p style={{ color: '#4b5563', margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.6' }}>{step.content}</p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button onClick={endTour} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#9ca3af', border: 'none', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>Passer le guide</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', WebkitUserSelect: 'none', userSelect: 'none' } as React.CSSProperties}>
+                <button onPointerUp={endTour} style={{ padding: '8px 16px', backgroundColor: 'transparent', color: '#9ca3af', border: 'none', fontSize: '13px', cursor: 'pointer', fontWeight: '500', touchAction: 'manipulation' } as React.CSSProperties}>Passer le guide</button>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  {currentStep > 0 && <button onClick={prevStep} style={{ padding: '8px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>← Précédent</button>}
-                  <button onClick={nextStep} style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600' }}>{currentStep === steps.length - 1 ? 'Terminer ✓' : 'Suivant →'}</button>
+                  {currentStep > 0 && <button onPointerUp={prevStep} style={{ padding: '8px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '500', touchAction: 'manipulation' } as React.CSSProperties}>← Précédent</button>}
+                  <button onPointerUp={nextStep} style={{ padding: '8px 16px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', touchAction: 'manipulation' } as React.CSSProperties}>{currentStep === steps.length - 1 ? 'Terminer ✓' : 'Suivant →'}</button>
                 </div>
               </div>
             </div>
