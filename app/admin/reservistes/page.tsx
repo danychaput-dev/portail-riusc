@@ -303,10 +303,13 @@ function ReservistesPage() {
       .catch(() => {})
   }, [authorized])
 
-  // Auto-refresh silencieux toutes les 60s (met à jour les données sans toucher l'UI)
+  // Auto-refresh silencieux toutes les 5 min — pause quand l'onglet est caché (économie Vercel)
   useEffect(() => {
     if (!authorized || !dataLoaded.current) return
-    const interval = setInterval(async () => {
+    let interval: ReturnType<typeof setInterval> | null = null
+
+    const doRefresh = async () => {
+      if (document.hidden) return // Ne pas recharger si l'onglet est en arrière-plan
       try {
         const params = new URLSearchParams()
         params.set('groupes', 'Approuvé,Intérêt,Partenaires,Retrait temporaire')
@@ -318,8 +321,24 @@ function ReservistesPage() {
         const json = await res.json()
         if (json.data) setAllData(json.data)
       } catch { /* silencieux */ }
-    }, 60000)
-    return () => clearInterval(interval)
+    }
+
+    const startInterval = () => { interval = setInterval(doRefresh, 300000) } // 5 min
+    const stopInterval = () => { if (interval) { clearInterval(interval); interval = null } }
+
+    // Rafraîchir immédiatement quand l'onglet redevient visible, puis relancer le timer
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopInterval()
+      } else {
+        doRefresh()
+        startInterval()
+      }
+    }
+
+    startInterval()
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => { stopInterval(); document.removeEventListener('visibilitychange', handleVisibility) }
   }, [authorized])
 
   // Charger les notes non lues (benevole_ids)

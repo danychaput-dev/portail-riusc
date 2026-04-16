@@ -381,5 +381,7 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ data: enriched, total: enriched.length })
+  return NextResponse.json({ data: enriched, total: enriched.length }, {
+    headers: { 'Cache-Control': 'private, s-maxage=60, stale-while-revalidate=120' }
+  })
 }

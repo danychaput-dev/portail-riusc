@@ -42,10 +42,17 @@ export default function DisponibilitesPage() {
 
   useEffect(() => { checkUser(); }, []);
 
+  // Auto-refresh toutes les 2 min — pause quand l'onglet est caché (économie Vercel)
   useEffect(() => {
     if (!reserviste) return;
-    const interval = setInterval(() => { refreshData(reserviste.benevole_id); }, 30000);
-    return () => clearInterval(interval);
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const doRefresh = () => { if (!document.hidden) refreshData(reserviste.benevole_id); };
+    const start = () => { interval = setInterval(doRefresh, 120000); }; // 2 min
+    const stop = () => { if (interval) { clearInterval(interval); interval = null; } };
+    const handleVisibility = () => { if (document.hidden) { stop(); } else { doRefresh(); start(); } };
+    start();
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', handleVisibility); };
   }, [reserviste, refreshData]);
 
   async function checkUser() {
