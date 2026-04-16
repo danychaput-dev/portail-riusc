@@ -1,6 +1,13 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+
+// Client service_role pour le logging (bypass RLS)
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // --- Rate limiting en mémoire (par IP) ---
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -91,15 +98,14 @@ export async function proxy(request: NextRequest) {
     if (!EXCLUDED.some(e => pathname.startsWith(e))) {
       const benevole_id = request.cookies.get('benevole_id')?.value || null;
 
-      fetch(`${request.nextUrl.origin}/api/audit/log-page`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Insert direct via service_role (bypass RLS, fire and forget)
+      Promise.resolve(
+        supabaseAdmin.from('audit_pages').insert({
           user_id: user.id,
           benevole_id,
-          page: pathname
+          page: pathname,
         })
-      }).catch(() => {});
+      ).catch(() => {});
     }
   }
 
