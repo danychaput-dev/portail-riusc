@@ -1084,8 +1084,8 @@ function FormationContent() {
                           </div>
                         )}
 
-                        {/* Note de validation admin (importé sans certificat) */}
-                        {f.commentaire && f.commentaire.includes('importée depuis Monday') && (
+                        {/* Note de validation admin (importé sans certificat) — masquer si certificat déjà présent */}
+                        {f.commentaire && f.commentaire.includes('importée depuis Monday') && !hasCert && (
                           <div style={{ marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534', fontWeight: '500' }}>
                             ✅ {f.commentaire}
                           </div>
