@@ -225,8 +225,13 @@ function ReservistesPage() {
 
   // Responsive — ne pas figer la page sur mobile
   const [isMobile, setIsMobile] = useState(false)
+  const [filtresOuverts, setFiltresOuverts] = useState(true)
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024)
+    const check = () => {
+      const mobile = window.innerWidth < 1024
+      setIsMobile(mobile)
+      if (mobile) setFiltresOuverts(false)
+    }
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
@@ -806,7 +811,7 @@ function ReservistesPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', ...(isMobile ? { minHeight: '100%' } : { height: '100%', overflow: 'hidden' }) }}>
-      <main style={{ margin: '0 auto', padding: '0 28px', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, ...(isMobile ? {} : { overflow: 'hidden' }) }}>
+      <main style={{ margin: '0 auto', padding: isMobile ? '0 10px' : '0 28px', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, ...(isMobile ? {} : { overflow: 'hidden' }) }}>
 
       {/* Zone fixe : filtres + readiness (ne défile pas) */}
       <div style={{ flexShrink: 0, paddingTop: '28px' }}>
@@ -830,13 +835,13 @@ function ReservistesPage() {
 
         {/* En-tête */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: C }}>Annuaire des réservistes</h1>
-            <span style={{ fontSize: '13px', color: '#6b7280', backgroundColor: '#f1f5f9', padding: '3px 10px', borderRadius: '20px' }}>
-              {loading ? '…' : `${data.length}${data.length !== total ? ` / ${total}` : ''} résultat${total !== 1 ? 's' : ''}`}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? '16px' : '20px', fontWeight: '700', color: C }}>Réservistes</h1>
+            <span style={{ fontSize: '12px', color: '#6b7280', backgroundColor: '#f1f5f9', padding: '3px 10px', borderRadius: '20px' }}>
+              {loading ? '…' : `${data.length}${data.length !== total ? ` / ${total}` : ''}`}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', ...( isMobile && !filtresOuverts ? { display: 'none' } : {}) }}>
             <button
               onClick={() => exporter()}
               disabled={exporting || data.length === 0}
@@ -924,58 +929,76 @@ function ReservistesPage() {
           </div>
         </div>
 
-        {/* Vues sauvegardées — compact dans l'en-tête */}
-        <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} resetKey={viewResetKey} />
+        {/* Vues sauvegardées — compact dans l'en-tête (masquer sur mobile si filtres fermés) */}
+        {(!isMobile || filtresOuverts) && (
+          <SavedViewsBar currentFilters={getCurrentFilters()} onLoadView={loadViewFilters} resetKey={viewResetKey} />
+        )}
 
-        {/* Filtres */}
-        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '12px', flexWrap: 'nowrap', alignItems: 'center' }}>
-          <div style={{ width: '260px', minWidth: '180px', flexShrink: 0, position: 'relative' }}>
-            <input
-              type="text"
-              placeholder="Rechercher…"
-              value={recherche}
-              onChange={e => handleRecherche(e.target.value)}
-              style={{ width: '100%', padding: '9px 12px', paddingRight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, outline: 'none' }}
-            />
-            {recherche && (
-              <button
-                onClick={() => handleRecherche('')}
-                style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9ca3af', lineHeight: 1, padding: '4px' }}
-                title="Effacer la recherche"
-              >
-                ×
-              </button>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Groupe :</span>
-            {GROUPES_OPTIONS.map(opt => (
-              <button
-                key={opt.val}
-                onClick={e => toggleGroupe(opt.val, e.shiftKey)}
-                style={{
-                  padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
-                  border: `1px solid ${groupesFiltres.includes(opt.val) ? opt.couleur : '#e2e8f0'}`,
-                  backgroundColor: groupesFiltres.includes(opt.val) ? opt.bg : 'white',
-                  color: groupesFiltres.includes(opt.val) ? opt.couleur : '#94a3b8',
-                  cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' as const
-                }}
-              >
-                {opt.label}
-              </button>
-            ))}
-            <span style={{ width: '80px', flexShrink: 0, display: 'inline-flex' }}>
-              {(groupesFiltres.length > 0 || recherche) && (
-                <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreNotesNonLues(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
-                  Tout effacer
+        {/* Bouton toggle filtres (mobile) + barre recherche toujours visible */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: isMobile ? '10px 14px' : '16px 20px', marginBottom: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: isMobile ? '120px' : '180px', maxWidth: isMobile ? '100%' : '260px', position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Rechercher…"
+                value={recherche}
+                onChange={e => handleRecherche(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', paddingRight: '32px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' as const, outline: 'none' }}
+              />
+              {recherche && (
+                <button
+                  onClick={() => handleRecherche('')}
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9ca3af', lineHeight: 1, padding: '4px' }}
+                  title="Effacer la recherche"
+                >
+                  ×
                 </button>
               )}
-            </span>
+            </div>
+            {isMobile && (
+              <button
+                onClick={() => setFiltresOuverts(f => !f)}
+                style={{
+                  padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '600',
+                  border: '1px solid #d1d5db', backgroundColor: filtresOuverts ? '#f1f5f9' : 'white',
+                  color: '#374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                  whiteSpace: 'nowrap' as const,
+                }}
+              >
+                {filtresOuverts ? '▲ Filtres' : '▼ Filtres'}
+                {hasAdvancedFilters && <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }} />}
+              </button>
+            )}
+            {(!isMobile || filtresOuverts) && (
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', ...(isMobile ? { width: '100%', marginTop: '8px' } : {}) }}>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Groupe :</span>
+                {GROUPES_OPTIONS.map(opt => (
+                  <button
+                    key={opt.val}
+                    onClick={e => toggleGroupe(opt.val, e.shiftKey)}
+                    style={{
+                      padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600',
+                      border: `1px solid ${groupesFiltres.includes(opt.val) ? opt.couleur : '#e2e8f0'}`,
+                      backgroundColor: groupesFiltres.includes(opt.val) ? opt.bg : 'white',
+                      color: groupesFiltres.includes(opt.val) ? opt.couleur : '#94a3b8',
+                      cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' as const
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+                {(groupesFiltres.length > 0 || recherche) && (
+                  <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreNotesNonLues(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                    Tout effacer
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Readiness filter bar — pastilles 3 états : neutre → vert (a) → rouge (manque) → neutre */}
-        {!isAdjoint && (
+        {!isAdjoint && (!isMobile || filtresOuverts) && (
         <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '12px 20px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', whiteSpace: 'nowrap' as const }}>Déployabilité :</span>
           {/* Pastille Déployable — aussi cliquable 3 états */}
