@@ -1052,15 +1052,22 @@ export default function StatsPage() {
                 .forEach(p => {
                   const key = p.user_id || p.benevole_id || '';
                   const t = new Date(p.visite_a).getTime();
-                  if (!userActivity[key] || t > userActivity[key].lastSeen) {
+                  const isRealPage = p.page !== '__connexion__';
+                  if (!userActivity[key]) {
                     userActivity[key] = {
                       name: userMap[key] || key.slice(0, 10) + '…',
-                      lastPage: p.page,
+                      lastPage: isRealPage ? p.page : '',
                       lastSeen: t,
-                      count: (userActivity[key]?.count || 0) + 1,
+                      count: 1,
                     };
                   } else {
                     userActivity[key].count++;
+                    if (t > userActivity[key].lastSeen) {
+                      userActivity[key].lastSeen = t;
+                      if (isRealPage) userActivity[key].lastPage = p.page;
+                    } else if (isRealPage && !userActivity[key].lastPage) {
+                      userActivity[key].lastPage = p.page;
+                    }
                   }
                 });
               const actifs = Object.values(userActivity).sort((a, b) => b.lastSeen - a.lastSeen);
