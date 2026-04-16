@@ -210,9 +210,11 @@ function ReservistesPage() {
   // Cache des derniers retraits par benevole_id pour tooltip sur badge
   const [retraitsInfo, setRetraitsInfo] = useState<Record<string, { raison: string; effectue_le: string; effectue_par_email: string | null } | null>>({})
   const [currentUserId, setCurrentUserId] = useState<string>('')
-  // Menu contextuel (right-click)
+  // Menu contextuel (right-click + long press mobile)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; reserviste: Reserviste } | null>(null)
   const contextMenuRef = useRef<HTMLDivElement | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTriggered = useRef(false)
   // Click-to-copy feedback (adjoint)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
@@ -1225,15 +1227,30 @@ function ReservistesPage() {
                 {/* Nom */}
                 <div style={{ padding: '11px 10px', overflow: 'hidden' }}>
                   <div
-                    onClick={(e) => { e.stopPropagation(); if (canEmail) setModalReserviste(r) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (longPressTriggered.current) { longPressTriggered.current = false; return }
+                      if (canEmail) setModalReserviste(r)
+                    }}
                     onContextMenu={(e) => {
                       if (!canEmail) return
                       e.preventDefault()
                       e.stopPropagation()
                       setContextMenu({ x: e.clientX, y: e.clientY, reserviste: r })
                     }}
-                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px' }}
-                    title={canEmail ? `Clic: fiche · Clic droit: actions rapides` : undefined}
+                    onTouchStart={(e) => {
+                      if (!canEmail) return
+                      longPressTriggered.current = false
+                      const touch = e.touches[0]
+                      longPressTimer.current = setTimeout(() => {
+                        longPressTriggered.current = true
+                        setContextMenu({ x: touch.clientX, y: touch.clientY, reserviste: r })
+                      }, 500)
+                    }}
+                    onTouchEnd={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
+                    onTouchMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
+                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px', WebkitTouchCallout: 'none', userSelect: 'none' }}
+                    title={canEmail ? `Clic: fiche · Clic droit/appui long: actions rapides` : undefined}
                   >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}</div>
                   {r.telephone_secondaire && (
                     <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px', whiteSpace: 'nowrap' }}>Alt: {formatPhone(r.telephone_secondaire)}</div>
