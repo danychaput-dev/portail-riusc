@@ -1238,18 +1238,34 @@ function ReservistesPage() {
                       e.stopPropagation()
                       setContextMenu({ x: e.clientX, y: e.clientY, reserviste: r })
                     }}
-                    onTouchStart={(e) => {
-                      if (!canEmail) return
-                      longPressTriggered.current = false
-                      const touch = e.touches[0]
-                      longPressTimer.current = setTimeout(() => {
-                        longPressTriggered.current = true
-                        setContextMenu({ x: touch.clientX, y: touch.clientY, reserviste: r })
-                      }, 500)
+                    ref={(el) => {
+                      if (!el || !canEmail) return
+                      // Long press mobile via ref pour pouvoir utiliser { passive: false }
+                      el.ontouchstart = (e) => {
+                        longPressTriggered.current = false
+                        const touch = e.touches[0]
+                        const startX = touch.clientX
+                        const startY = touch.clientY
+                        longPressTimer.current = setTimeout(() => {
+                          longPressTriggered.current = true
+                          // Vibration tactile si disponible
+                          if (navigator.vibrate) navigator.vibrate(30)
+                          setContextMenu({ x: startX, y: startY, reserviste: r })
+                        }, 400)
+                        // Bloquer le menu natif iOS/Android
+                        el.ontouchmove = (ev) => {
+                          const dx = Math.abs(ev.touches[0].clientX - startX)
+                          const dy = Math.abs(ev.touches[0].clientY - startY)
+                          if (dx > 10 || dy > 10) {
+                            if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+                          }
+                        }
+                        el.ontouchend = () => {
+                          if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+                        }
+                      }
                     }}
-                    onTouchEnd={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
-                    onTouchMove={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
-                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px', WebkitTouchCallout: 'none', userSelect: 'none' }}
+                    style={{ fontWeight: '600', fontSize: '13px', color: canEmail ? C : '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: canEmail ? 'pointer' : 'default', textDecoration: canEmail ? 'underline' : 'none', textDecorationColor: canEmail ? '#bfdbfe' : undefined, textUnderlineOffset: '2px', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'manipulation' } as React.CSSProperties}
                     title={canEmail ? `Clic: fiche · Clic droit/appui long: actions rapides` : undefined}
                   >{r.nom} {r.prenom}{r.responsable_groupe && <span style={{ marginLeft: '6px', fontSize: '10px', fontWeight: '700', color: '#7c3aed', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', padding: '1px 5px', borderRadius: '4px', verticalAlign: 'middle' }}>RG</span>}</div>
                   {r.telephone_secondaire && (
