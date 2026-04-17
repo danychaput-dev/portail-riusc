@@ -27,8 +27,11 @@ interface MembreAdmin extends MembreBasic {
   antecedents_date_expiration: string | null
   initiation_sc: boolean
   camp_complete: boolean
+  remboursement_bottes_date: string | null
   // Calculs locaux
   deployable: boolean
+  bottes: boolean       // true si remboursement_bottes_date est renseigné
+  fullyReady: boolean   // deployable + bottes — marqueur vert plein sur la carte
   missing: string[]
 }
 
@@ -45,10 +48,12 @@ interface PinReference {
 
 // ─── Constantes ─────────────────────────────────────────────────────────────
 
-const NAVY   = '#1e3a5f'
-const AMBER  = '#d97706'
-const RED    = '#dc2626'
-const GREEN  = '#16a34a'
+const NAVY        = '#1e3a5f'
+const AMBER       = '#d97706'
+const RED         = '#dc2626'
+const GREEN       = '#16a34a'
+const DARK_GREEN  = '#14532d'  // contour pour fully-ready (déployable + bottes)
+const LIGHT_GREEN = '#22c55e'  // centre pour fully-ready
 const MUTED  = '#6b7280'
 const BORDER = '#e5e7eb'
 const WHITE  = '#ffffff'
@@ -179,7 +184,7 @@ export default function MapMembres() {
   const [searching, setSearching] = useState(false)
   const [pin, setPin] = useState<PinReference | null>(null)
 
-  const [totaux, setTotaux] = useState({ total: 0, approuves: 0, interet: 0, deployables: 0, nonDeployables: 0 })
+  // Note : les compteurs de badges sont calculés via `counts` (useMemo plus bas).
 
   // Charger le rôle
   useEffect(() => {
@@ -205,6 +210,7 @@ export default function MapMembres() {
         .then(json => {
           const enriched: MembreAdmin[] = (json.data || []).map((r: any) => {
             const { deployable, missing } = computeDeployable(r)
+            const bottes = !!r.remboursement_bottes_date
             return {
               benevole_id: r.benevole_id,
               prenom: r.prenom || '',
@@ -224,19 +230,21 @@ export default function MapMembres() {
               antecedents_date_expiration: r.antecedents_date_expiration || null,
               initiation_sc: !!r.initiation_sc,
               camp_complete: !!r.camp_complete,
+              remboursement_bottes_date: r.remboursement_bottes_date || null,
               deployable,
+              bottes,
+              fullyReady: deployable && bottes,
               missing,
             }
           })
           const withCoords = enriched.filter(m => m.latitude && m.longitude && m.latitude !== 0 && m.longitude !== 0)
-          setTotaux({
-            total: enriched.length,
-            approuves: enriched.filter(m => m.groupe === 'Approuvé').length,
-            interet: enriched.filter(m => m.groupe === 'Intérêt').length,
-            deployables: enriched.filter(m => m.deployable).length,
-            nonDeployables: enriched.filter(m => !m.deployable).length,
-          })
-          setMembres(withCoords)
+          // On stocke les totaux sur TOUT l'ensemble (y compris sans coords).
+          // Les compteurs réactifs au filtre groupe sont calculés plus bas via useMemo
+          // en re-agrégeant sur `membres` (qui a les coords).
+          // Pour que le compteur "Non-déployables" suive le filtre Qualifiés/Intérêt,
+          // on garde aussi la liste enrichie complète dans `membres` (les non-coords
+          // seront filtrés au rendu des markers uniquement).
+          setMembres(enriched)
           setLoading(false)
         })
         .catch(err => {
@@ -258,14 +266,9 @@ export default function MapMembres() {
             setMapError(true)
           } else {
             const all = (data || []) as MembreBasic[]
-            setTotaux({
-              total: all.length,
-              approuves: all.filter(m => m.groupe === 'Approuvé').length,
-              interet: all.filter(m => m.groupe === 'Intérêt').length,
-              deployables: 0,
-              nonDeployables: 0,
-            })
-            setMembres(all.filter(m => m.latitude && m.longitude && m.latitude !== 0 && m.longitude !== 0))
+            // Mode basic — on garde tout (le compteur useMemo aggrège, et le
+            // filtrage coords se fait au rendu des markers).
+            setMembres(all)
           }
           setLoading(false)
         })
@@ -313,8 +316,9 @@ export default function MapMembres() {
   }, [])
 
   // Filtrer selon groupe ET déployabilité
+  // Membres filtrés + coordonnées valides — pour le rendu des markers
   const membresFiltres = useMemo(() => {
-    let result = membres
+    let result = membres.filter(m => m.latitude && m.longitude && m.latitude !== 0 && m.longitude !== 0)
     if (filtre !== 'Tous') {
       result = result.filter(m => m.groupe === filtre)
     }
@@ -326,6 +330,23 @@ export default function MapMembres() {
     }
     return result
   }, [membres, filtre, filtreDeploy, isAdminFull])
+
+  // Compteurs de badge — réactifs au filtre groupe
+  // - Les compteurs groupe (Tous/Qualifiés/Intérêt) restent sur la totalité
+  // - Les compteurs déployabilité (Déployables/Non-déployables) filtrent par groupe sélectionné
+  const counts = useMemo(() => {
+    const totalAll = membres.length
+    const approuves = membres.filter(m => m.groupe === 'Approuvé').length
+    const interet   = membres.filter(m => m.groupe === 'Intérêt').length
+
+    // Pour les badges déployabilité, on filtre par le groupe actif
+    const baseForDeploy = filtre === 'Tous' ? membres : membres.filter(m => m.groupe === filtre)
+    const totalDeployScope = baseForDeploy.length
+    const deployables    = baseForDeploy.filter(m => isAdminMembre(m) && m.deployable).length
+    const nonDeployables = baseForDeploy.filter(m => isAdminMembre(m) && !m.deployable).length
+
+    return { total: totalAll, approuves, interet, totalDeployScope, deployables, nonDeployables }
+  }, [membres, filtre])
 
   // Mettre a jour les markers quand le filtre ou les donnees changent
   useEffect(() => {
@@ -348,16 +369,27 @@ export default function MapMembres() {
     membresFiltres.forEach(m => {
       const groupeColor = GROUPE_COLORS[m.groupe] || MUTED
       const admin = isAdminMembre(m)
+      const fullyReady = admin && m.fullyReady
 
       const el = document.createElement('div')
       el.style.width = '12px'
       el.style.height = '12px'
       el.style.borderRadius = '50%'
-      el.style.backgroundColor = groupeColor
-      // En mode admin, un liseré coloré indique la déployabilité
-      el.style.border = admin
-        ? `2px solid ${m.deployable ? GREEN : RED}`
-        : '2px solid white'
+      // Mode admin :
+      //   - fully ready (déployable + bottes) : centre vert clair, contour vert foncé
+      //   - déployable sans bottes            : centre couleur groupe, contour vert
+      //   - non-déployable                     : centre couleur groupe, contour rouge
+      // Mode non-admin : ancien comportement (contour blanc)
+      if (admin && fullyReady) {
+        el.style.backgroundColor = LIGHT_GREEN
+        el.style.border = `2px solid ${DARK_GREEN}`
+      } else if (admin) {
+        el.style.backgroundColor = groupeColor
+        el.style.border = `2px solid ${m.deployable ? GREEN : RED}`
+      } else {
+        el.style.backgroundColor = groupeColor
+        el.style.border = '2px solid white'
+      }
       el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.3)'
       el.style.cursor = 'pointer'
 
@@ -369,13 +401,19 @@ export default function MapMembres() {
       if (admin) {
         el.addEventListener('mouseenter', () => {
           if (hoverPopupRef.current) hoverPopupRef.current.remove()
-          const statusHTML = m.deployable
-            ? `<div style="color:${GREEN};font-weight:700">✓ Déployable</div>`
-            : `<div style="color:${RED};font-weight:700;margin-bottom:3px">⚠ Non déployable</div>
-               <div style="font-size:11px;color:${MUTED}">Manque :</div>
-               <ul style="margin:2px 0 0 14px;padding:0;font-size:11px;color:${RED}">
-                 ${m.missing.map(x => `<li>${x}</li>`).join('')}
-               </ul>`
+          const bottesLine = m.bottes
+            ? `<div style="color:${GREEN};font-size:11px;margin-top:2px">🥾 Bottes remboursées</div>`
+            : `<div style="color:${AMBER};font-size:11px;margin-top:2px">🥾 Bottes non remboursées</div>`
+          const statusHTML = m.fullyReady
+            ? `<div style="color:${DARK_GREEN};font-weight:700">✓ Déployable et bottes remboursées</div>`
+            : m.deployable
+              ? `<div style="color:${GREEN};font-weight:700">✓ Déployable</div>${bottesLine}`
+              : `<div style="color:${RED};font-weight:700;margin-bottom:3px">⚠ Non déployable</div>
+                 <div style="font-size:11px;color:${MUTED}">Manque :</div>
+                 <ul style="margin:2px 0 0 14px;padding:0;font-size:11px;color:${RED}">
+                   ${m.missing.map(x => `<li>${x}</li>`).join('')}
+                 </ul>
+                 ${bottesLine}`
           const popup = new mapboxgl.Popup({ offset: 12, closeButton: false, closeOnClick: false, maxWidth: '240px' })
             .setLngLat([m.longitude, m.latitude])
             .setHTML(`
@@ -506,15 +544,15 @@ export default function MapMembres() {
   }
 
   const filtres: { key: FiltreGroupe; label: string; count: number; color: string }[] = [
-    { key: 'Tous',     label: 'Tous',      count: totaux.total,     color: MUTED },
-    { key: 'Approuvé', label: 'Qualifiés',  count: totaux.approuves, color: NAVY },
-    { key: 'Intérêt',  label: 'Intérêt',    count: totaux.interet,   color: AMBER },
+    { key: 'Tous',     label: 'Tous',      count: counts.total,     color: MUTED },
+    { key: 'Approuvé', label: 'Qualifiés',  count: counts.approuves, color: NAVY },
+    { key: 'Intérêt',  label: 'Intérêt',    count: counts.interet,   color: AMBER },
   ]
 
   const filtresDeploy: { key: FiltreDeploy; label: string; count: number; color: string }[] = [
-    { key: 'Tous',            label: 'Tous',             count: totaux.total,          color: MUTED },
-    { key: 'Déployables',     label: 'Déployables',      count: totaux.deployables,    color: GREEN },
-    { key: 'Non-déployables', label: 'Non-déployables',  count: totaux.nonDeployables, color: RED },
+    { key: 'Tous',            label: 'Tous',             count: counts.totalDeployScope, color: MUTED },
+    { key: 'Déployables',     label: 'Déployables',      count: counts.deployables,      color: GREEN },
+    { key: 'Non-déployables', label: 'Non-déployables',  count: counts.nonDeployables,   color: RED },
   ]
 
   if (!MAPBOX_TOKEN) {
@@ -689,6 +727,10 @@ export default function MapMembres() {
         {isAdminFull && (
           <>
             <div style={{ width: 1, height: 14, backgroundColor: BORDER }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="Profil + Initiation SC + Camp + Antécédents + Bottes remboursées">
+              <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: LIGHT_GREEN, border: `2px solid ${DARK_GREEN}`, boxSizing: 'border-box' }} />
+              Déployable + bottes 🥾
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: NAVY, border: `2px solid ${GREEN}`, boxSizing: 'border-box' }} />
               Déployable
@@ -708,8 +750,15 @@ export default function MapMembres() {
         <span style={{ marginLeft: 'auto' }}>
           {membresFiltres.length} sur la carte
           {(() => {
-            const totalFiltre = filtre === 'Tous' ? totaux.total : filtre === 'Approuvé' ? totaux.approuves : totaux.interet
-            const manquants = totalFiltre - membres.filter(m => filtre === 'Tous' || m.groupe === filtre).length
+            const scopeGroupe = filtre === 'Tous' ? membres : membres.filter(m => m.groupe === filtre)
+            const scopeFinal = (() => {
+              if (!isAdminFull || filtreDeploy === 'Tous') return scopeGroupe
+              return scopeGroupe.filter(m => {
+                if (!isAdminMembre(m)) return false
+                return filtreDeploy === 'Déployables' ? m.deployable : !m.deployable
+              })
+            })()
+            const manquants = scopeFinal.length - membresFiltres.length
             return manquants > 0 ? ` (${manquants} sans coordonnées)` : ''
           })()}
         </span>
