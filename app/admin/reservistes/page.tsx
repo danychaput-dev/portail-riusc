@@ -53,6 +53,8 @@ interface Reserviste {
   groupe_aqbrs: string
   groupe_recherche: string | null
   responsable_groupe: boolean
+  dispo_veille?: boolean | null
+  dispo_veille_note?: string | null
   created_at?: string
 }
 
@@ -194,6 +196,7 @@ function ReservistesPage() {
   // Filtres readiness 3 états : null (off) → 'has' (ceux qui l'ont) → 'missing' (ceux à qui ça manque) → null
   type FilterState = 'has' | 'missing' | null
   const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, FilterState>>({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null })
+  const [filtreDispoVeille, setFiltreDispoVeille] = useState(false)
   const [filtreDeployable, setFiltreDeployable] = useState<FilterState>(null)
   const [filtreCertifsManquants, setFiltreCertifsManquants] = useState(false)
   const [commsCount,     setCommsCount]     = useState<Record<string, { courriels: number; notes: number; non_lus?: number }>>({})
@@ -475,8 +478,10 @@ function ReservistesPage() {
     if (filtreCertifsManquants) filtered = filtered.filter(r => r.certifs_manquants > 0)
     // Filtre notes non lues
     if (filtreNotesNonLues) filtered = filtered.filter(r => notesNonLuesIds.has(r.benevole_id))
+    // Filtre dispo veille
+    if (filtreDispoVeille) filtered = filtered.filter(r => r.dispo_veille === true)
     return sortData(filtered, sortKey, sortDir)
-  }, [rawData, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, filtreNotesNonLues, notesNonLuesIds, sortKey, sortDir])
+  }, [rawData, filtreOrganisme, filtreGroupeRS, filtresReadiness, filtreDeployable, filtreCertifsManquants, filtreNotesNonLues, filtreDispoVeille, notesNonLuesIds, sortKey, sortDir])
 
   const handleRecherche = (val: string) => setRecherche(val)
 
@@ -667,6 +672,33 @@ function ReservistesPage() {
     }
   }
 
+  const toggleDispoVeille = async (benevole_id: string, currentValue: boolean | null | undefined) => {
+    const newValue = !currentValue
+    const res = await fetch('/api/admin/reservistes/dispo-veille', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_id, dispo_veille: newValue }),
+    })
+    if (res.ok) {
+      setAllData(prev => prev.map(r =>
+        r.benevole_id === benevole_id ? { ...r, dispo_veille: newValue } : r
+      ))
+    }
+  }
+
+  const saveDispoVeilleNote = async (benevole_id: string, note: string) => {
+    const res = await fetch('/api/admin/reservistes/dispo-veille', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_id, dispo_veille_note: note }),
+    })
+    if (res.ok) {
+      setAllData(prev => prev.map(r =>
+        r.benevole_id === benevole_id ? { ...r, dispo_veille_note: note.trim() || null } : r
+      ))
+    }
+  }
+
   const ouvrirModalAntecedents = (r: Reserviste) => {
     setModal({ benevole_id: r.benevole_id, nom: r.nom, prenom: r.prenom, date_actuelle: r.antecedents_date_verification, statut_actuel: r.antecedents_statut })
     setModalDate(r.antecedents_date_verification || '')
@@ -797,13 +829,13 @@ function ReservistesPage() {
     display: 'flex', alignItems: 'center', gap: '3px',
   }
 
-  // Columns: [checkbox] Nom [comms] Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents
-  // Adjoint: Nom Téléphone Courriel Adresse Ville Région Bottes Groupe
+  // Columns: [checkbox] Nom [comms] Téléphone Courriel Ville Région Organisme Bottes Groupe Prêt(3) Antécédents Dispo
+  // Adjoint: Nom Téléphone Courriel Adresse Ville Région Bottes Groupe Dispo
   const gridCols = isAdjoint
-    ? '0.8fr 0.65fr 0.9fr 1.2fr 0.55fr 0.55fr 70px 85px'
+    ? '0.8fr 0.65fr 0.9fr 1.2fr 0.55fr 0.55fr 70px 85px 70px'
     : canEmail
-      ? '36px 0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
-      : '0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px'
+      ? '36px 0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px 70px'
+      : '0.8fr 38px 0.65fr 0.9fr 0.6fr 0.55fr 0.85fr 0.85fr 70px 85px 120px 120px 70px'
 
   const copyToClipboard = (text: string, fieldId: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -1120,6 +1152,7 @@ function ReservistesPage() {
               <div style={thStyle()} onClick={() => handleSort('groupe')}>Groupe{sortArrow('groupe')}</div>
               {!isAdjoint && <div style={{ ...thStyle(), justifyContent: 'center' }} onClick={() => handleSort('readiness')}>Prêt{sortArrow('readiness')}</div>}
               {!isAdjoint && <div style={thStyle()} onClick={() => handleSort('antecedents')}>Antécédents{sortArrow('antecedents')}</div>}
+              <div style={{ ...thStyle(), justifyContent: 'center' }} title="Disponibilité indicative en phase de veille (pré-déploiement)">Dispo</div>
             </div>
             {/* Ligne 2 : Counts + Checkboxes de filtre */}
             <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '0' }}>
@@ -1223,6 +1256,25 @@ function ReservistesPage() {
                 </button>
               </div>
               )}
+              {/* Dispo veille — count + bouton filtre */}
+              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '10px', backgroundColor: '#ea580c', color: 'white', fontWeight: '700' }}>
+                  {data.filter(r => r.dispo_veille).length}
+                </span>
+                <button
+                  onClick={() => setFiltreDispoVeille(prev => !prev)}
+                  title={filtreDispoVeille ? 'Montrer tous' : 'Filtrer: dispo veille seulement'}
+                  style={{
+                    fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                    border: `1px solid ${filtreDispoVeille ? '#ea580c' : '#d1d5db'}`,
+                    backgroundColor: filtreDispoVeille ? '#fff7ed' : 'white',
+                    color: filtreDispoVeille ? '#ea580c' : '#94a3b8',
+                    cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                  }}
+                >
+                  ⏱
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1530,6 +1582,28 @@ function ReservistesPage() {
                   )}
                 </div>
                 )}
+                {/* Dispo veille — checkbox + note tooltip */}
+                <div style={{ padding: '8px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!r.dispo_veille}
+                    onChange={() => toggleDispoVeille(r.benevole_id, r.dispo_veille)}
+                    title={r.dispo_veille_note ? `Dispo veille\nNote: ${r.dispo_veille_note}` : 'Cocher si le réserviste a signalé être disponible (veille)'}
+                    style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#ea580c' }}
+                  />
+                  {r.dispo_veille && (
+                    <button
+                      onClick={() => {
+                        const note = prompt(`Note pour ${r.prenom} ${r.nom}:`, r.dispo_veille_note || '')
+                        if (note !== null) saveDispoVeilleNote(r.benevole_id, note)
+                      }}
+                      title={r.dispo_veille_note || 'Ajouter une note'}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: 1, padding: 0, color: r.dispo_veille_note ? '#ea580c' : '#cbd5e1' }}
+                    >
+                      {r.dispo_veille_note ? '📝' : '✏️'}
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}
