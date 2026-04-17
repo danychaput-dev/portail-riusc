@@ -19,6 +19,13 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // En CI contre prod, Cloudflare bloque Playwright (Bot Fight Mode) sans
+    // ce header. Une regle WAF "E2E Tests Bypass" cote Cloudflare reconnait
+    // ce token et skip Bot Fight + managed rules pour les requetes du test.
+    // Le token est inoffensif pour les requetes locales (localhost sans WAF).
+    extraHTTPHeaders: process.env.E2E_BYPASS_TOKEN
+      ? { 'x-e2e-bypass': process.env.E2E_BYPASS_TOKEN }
+      : undefined,
   },
 
   projects: [
