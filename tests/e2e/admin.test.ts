@@ -1,54 +1,61 @@
 /**
  * Tests E2E : pages admin (requiert auth).
  *
- * Ces tests utilisent le storageState cree par auth.setup.ts (voir
- * playwright.config.ts -> project chromium-admin).
+ * Ces tests utilisent le storageState cree par auth.setup.ts. Ils verifient
+ * que chaque page admin :
+ *   1. Se charge sans erreur serveur (status < 500)
+ *   2. Ne redirige pas vers /login (session admin active)
+ *   3. Affiche son contenu specifique (heading H1 attendu)
  *
- * TODO : actuellement skippes en CI car l'injection de cookies Supabase
- * via @supabase/ssr createServerClient + addCookies() ne produit pas une
- * session valide cote createBrowserClient. Debug abandonne le 2026-04-17
- * pour debloquer le CI. Le flow sous-jacent (generateLink -> verifyOtp ->
- * cookie jar) fonctionne cote serveur mais les cookies ne sont pas lus
- * correctement par le client browser apres injection. Pistes a explorer :
- *   - Incompatibilite entre format cookie @supabase/ssr v0.10.2 et les
- *     nouvelles cles sb_publishable_ / sb_secret_
- *   - Faire verifyOtp directement dans le browser via page.evaluate au
- *     lieu de createServerClient cote node
- *   - Creer une route /auth/callback dans l'app et reactiver le flow
- *     magic link classique
- * Les tests passent en local (npm run dev) grace au timing favorable du
- * useEffect client-side qui redirige apres le passage de l'assertion.
+ * L'assertion sur le H1 est la plus importante - elle detecte un crash
+ * silencieux (white screen) ou un re-render avortee qui n'afficherait plus
+ * le contenu attendu.
  */
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+/** Navigue vers une URL admin et laisse les useEffect client tourner. */
+async function gotoAdmin(page: Page, path: string) {
+  const response = await page.goto(path, { waitUntil: 'domcontentloaded' })
+  // Laisser 1s pour que le useEffect d'auth check ait le temps de rouler
+  // (supabase.auth.getUser + potentielle redirection).
+  await page.waitForTimeout(1000)
+  return response
+}
 
 test.describe('Pages admin authentifiees', () => {
-  test.skip(!!process.env.CI, 'Auth E2E a refactorer (voir TODO du fichier)')
-
-  test('la page reservistes se charge', async ({ page }) => {
-    const response = await page.goto('/admin/reservistes')
+  test('la page reservistes se charge avec le titre et la session admin', async ({ page }) => {
+    const response = await gotoAdmin(page, '/admin/reservistes')
     expect(response?.status()).toBeLessThan(500)
-    await expect(page.locator('body')).toBeVisible()
     await expect(page).not.toHaveURL(/\/login/)
+    // Contenu specifique : heading "Réservistes"
+    await expect(page.getByRole('heading', { name: /réservistes/i, level: 1 }))
+      .toBeVisible({ timeout: 10000 })
   })
 
-  test('la page stats se charge', async ({ page }) => {
-    const response = await page.goto('/admin/stats')
+  test('la page stats se charge avec le dashboard', async ({ page }) => {
+    const response = await gotoAdmin(page, '/admin/stats')
     expect(response?.status()).toBeLessThan(500)
-    await expect(page.locator('body')).toBeVisible()
     await expect(page).not.toHaveURL(/\/login/)
+    // Contenu specifique : heading "Statistiques du portail"
+    await expect(page.getByRole('heading', { name: /statistiques du portail/i }))
+      .toBeVisible({ timeout: 10000 })
   })
 
-  test('la page courriels se charge', async ({ page }) => {
-    const response = await page.goto('/admin/courriels')
+  test('la page courriels se charge avec le formulaire', async ({ page }) => {
+    const response = await gotoAdmin(page, '/admin/courriels')
     expect(response?.status()).toBeLessThan(500)
-    await expect(page.locator('body')).toBeVisible()
     await expect(page).not.toHaveURL(/\/login/)
+    // Contenu specifique : heading "Courriels"
+    await expect(page.getByRole('heading', { name: /^courriels$/i, level: 1 }))
+      .toBeVisible({ timeout: 10000 })
   })
 
-  test('la page certificats se charge', async ({ page }) => {
-    const response = await page.goto('/admin/certificats')
+  test('la page certificats se charge avec le titre de validation', async ({ page }) => {
+    const response = await gotoAdmin(page, '/admin/certificats')
     expect(response?.status()).toBeLessThan(500)
-    await expect(page.locator('body')).toBeVisible()
     await expect(page).not.toHaveURL(/\/login/)
+    // Contenu specifique : heading "Validation des certificats"
+    await expect(page.getByRole('heading', { name: /validation des certificats/i }))
+      .toBeVisible({ timeout: 10000 })
   })
 })
