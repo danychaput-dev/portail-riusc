@@ -27,11 +27,12 @@ export default defineConfig({
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
     },
-    // Tests publics (non authentifies).
+    // Tests publics (non authentifies). Ignore aussi admin.test.ts car il
+    // requiert le storageState - seul le projet chromium-admin doit le faire.
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /admin\.test\.ts/],
     },
     // Tests authentifies (admin). Depend de 'setup'.
     {

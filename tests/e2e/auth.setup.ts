@@ -113,6 +113,10 @@ setup('authenticate admin', async ({ page }) => {
   }
 
   // Etape 5 : injecter les cookies dans le contexte Playwright.
+  // IMPORTANT : forcer httpOnly=false car @supabase/ssr's createBrowserClient
+  // lit les cookies via document.cookie qui ne voit pas les httpOnly cookies.
+  // Dans le flow normal (user + UI), les cookies sont poses par le browser JS
+  // donc jamais httpOnly. On reproduit ce comportement ici.
   const host = new URL(E2E_BASE_URL).hostname
   const isHttps = E2E_BASE_URL.startsWith('https://')
   await page.context().addCookies(
@@ -121,23 +125,15 @@ setup('authenticate admin', async ({ page }) => {
       value: c.value,
       domain: host,
       path: c.options?.path ?? '/',
-      httpOnly: c.options?.httpOnly ?? false,
-      secure: c.options?.secure ?? isHttps,
-      sameSite: (c.options?.sameSite === 'strict' ? 'Strict'
-                : c.options?.sameSite === 'none' ? 'None'
-                : 'Lax') as 'Strict' | 'Lax' | 'None',
+      httpOnly: false,
+      secure: isHttps,
+      sameSite: 'Lax' as 'Strict' | 'Lax' | 'None',
     }))
   )
 
-  // Etape 6 : visite une page protegee pour valider que la session est active.
-  const response = await page.goto(`${E2E_BASE_URL}/admin/reservistes`)
-  if (!response || response.status() >= 500) {
-    throw new Error(`Page admin indisponible : status ${response?.status()}`)
-  }
-  await expect(page.locator('body')).toBeVisible()
-  await expect(page, 'Session admin invalide apres injection des cookies')
-    .not.toHaveURL(/\/login/)
-
-  // Etape 7 : sauvegarder le storageState pour les tests dependants.
+  // Etape 6 : sauvegarder IMMEDIATEMENT le storageState, sans visite de page
+  // intermediaire. Une visite de page declencherait un auto-refresh du token
+  // Supabase (les access_token expirent vite), ce qui peut invalider le
+  // refresh_token rotatif avant que storageState ne capture l'etat final.
   await page.context().storageState({ path: adminFile })
 })
