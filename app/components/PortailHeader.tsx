@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import Image from 'next/image'
 import ImpersonateBanner from './ImpersonateBanner'
 import ImpersonateModal from './ImpersonateModal'
+import QRScannerButton from './QRScannerButton'
 import { useAuth } from '@/utils/useAuth'
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
 import { n8nUrl } from '@/utils/n8n'
@@ -367,8 +368,13 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             </div>
           </a>
 
+          {/* Bouton scanner QR (pointage) */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+            <QRScannerButton />
+          </div>
+
           {/* Bouton support */}
-          <div style={{ position: 'relative', marginLeft: 'auto', marginRight: '16px' }}>
+          <div style={{ position: 'relative', marginRight: '16px' }}>
             <button
               onClick={() => setShowSupportTooltip(v => !v)}
               title="Aide et support"
@@ -667,7 +673,6 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
           </div>
         </div>
       </header>
-
       {showImpersonateModal && (
         <ImpersonateModal
           onClose={() => setShowImpersonateModal(false)}
