@@ -40,6 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { titre: 'Health Check',         icone: '🩺', href: '/admin/health-check',        statut: 'actif', superadminOnly: true },
   { titre: 'Debug Camp',           icone: '🔬', href: '/api/admin/debug-camp',      statut: 'actif', superadminOnly: true, externe: true },
   { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',        statut: 'bientot' },
+  { titre: 'Pointage QR',          icone: '📋', href: '/admin/pointage',          statut: 'actif' },
   { titre: 'Presences & CNESST',   icone: '📋', href: '/admin/presences',          statut: 'bientot' },
 ]
 
@@ -197,7 +198,7 @@ export default function AdminSidebar({ stats, userRole }: Props) {
           onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <span style={{ fontSize: '15px', flexShrink: 0 }}>←</span>
-          {!collapsed && <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '500' }}>Retour au portail</span>}
+          {!collapsed && <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: 500 }}>Retour portail</span>}
         </button>
       </div>
     </aside>
