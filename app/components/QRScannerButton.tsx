@@ -32,7 +32,32 @@ export default function QRScannerButton() {
       setError(null)
       setScanning(true)
       try {
-        // Chargement dynamique pour éviter SSR
+        // 1. Forcer la demande de permission caméra explicitement AVANT d'utiliser
+        // html5-qrcode. Sur certains navigateurs mobiles, getCameras() échoue
+        // silencieusement sans déclencher la popup de permission.
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+          })
+          // On libère immédiatement — html5-qrcode ouvrira son propre stream ensuite
+          stream.getTracks().forEach(t => t.stop())
+        } catch (permErr: any) {
+          const m = (permErr?.name || '') + ' ' + (permErr?.message || '')
+          if (cancelled) return
+          if (/NotAllowed|Permission/i.test(m)) {
+            setError("Accès caméra refusé. Va dans Chrome → 3 points → Paramètres → Paramètres du site → Appareil photo, et autorise portail.riusc.ca.")
+          } else if (/NotFound|DevicesNotFound/i.test(m)) {
+            setError('Aucune caméra disponible sur cet appareil.')
+          } else if (/NotReadable/i.test(m)) {
+            setError('La caméra est utilisée par une autre application. Ferme-la et réessaie.')
+          } else {
+            setError('Impossible d\'accéder à la caméra : ' + (permErr?.message || 'erreur inconnue'))
+          }
+          setScanning(false)
+          return
+        }
+
+        // 2. Chargement dynamique de html5-qrcode (évite SSR)
         const mod = await import('html5-qrcode')
         if (cancelled) return
 
@@ -165,7 +190,6 @@ export default function QRScannerButton() {
             Scanner un QR de pointage
           </div>
 
-          {/* Zone de scan */}
           <div id="qr-reader-region" style={{ width: '100%', maxWidth: 520, maxHeight: '80vh' }} />
 
           {error && (
