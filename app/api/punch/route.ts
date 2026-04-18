@@ -219,6 +219,56 @@ export async function POST(req: NextRequest) {
         error: 'Un pointage est déjà en cours. Termine-le avant d\'en ouvrir un nouveau.',
       }, { status: 409 })
     }
+
+    // Même garde-fou que 'arrivee' : refuser si pointage ouvert sur un autre QR
+    if (!body.close_others) {
+      const { data: autresOuverts } = await supabaseAdmin
+        .from('pointages')
+        .select('id, pointage_session_id, heure_arrivee')
+        .eq('benevole_id', user.benevole_id)
+        .is('heure_depart', null)
+        .neq('pointage_session_id', session.id)
+      if (autresOuverts && autresOuverts.length > 0) {
+        const sessIds = Array.from(new Set(autresOuverts.map((a: any) => a.pointage_session_id)))
+        const { data: sessList } = await supabaseAdmin
+          .from('pointage_sessions')
+          .select('id, contexte_nom')
+          .in('id', sessIds)
+        const nomMap: Record<string, string> = {}
+        for (const s of (sessList || [])) nomMap[(s as any).id] = (s as any).contexte_nom
+        return NextResponse.json({
+          error: 'open_elsewhere',
+          message: 'Tu as un pointage en cours sur un autre QR.',
+          autres: autresOuverts.map((a: any) => ({
+            id: a.id,
+            pointage_session_id: a.pointage_session_id,
+            heure_arrivee: a.heure_arrivee,
+            contexte_nom: nomMap[a.pointage_session_id] || '—',
+          })),
+        }, { status: 409 })
+      }
+    } else {
+      // Fermer les autres avant de créer la nouvelle entrée
+      const now = heureCible
+      const { data: fermes } = await supabaseAdmin
+        .from('pointages')
+        .update({ heure_depart: now })
+        .eq('benevole_id', user.benevole_id)
+        .is('heure_depart', null)
+        .neq('pointage_session_id', session.id)
+        .select('id, pointage_session_id, heure_arrivee')
+      if (fermes && fermes.length > 0) {
+        for (const f of fermes) {
+          await supabaseAdmin.from('pointage_logs').insert({
+            pointage_id: f.id, benevole_id: user.benevole_id,
+            action: 'depart', valeur_apres: now,
+            notes: 'Fermeture automatique — nouvelle entrée sur un autre QR',
+            modifie_par: user.benevole_id,
+          })
+        }
+      }
+    }
+
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('pointages')
       .insert({

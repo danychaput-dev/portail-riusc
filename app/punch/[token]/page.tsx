@@ -211,8 +211,8 @@ export default function PunchPage() {
           <CurrentPointageStatus pointage={pointage} state={state} />
         )}
 
-        {/* Bandeau : autre pointage ouvert ailleurs — demande de fermeture */}
-        {state === 'aucun' && autresOuverts.length > 0 && !showCorrection && !confirmShort && (
+        {/* Bandeau : pointage ouvert ailleurs — TOUJOURS visible si autres_ouverts > 0 */}
+        {autresOuverts.length > 0 && !showCorrection && !confirmShort && !confirmWrongDate && (
           <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#fffbeb', border: `1px solid #fde68a`, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, color: AMBER, marginBottom: 6, fontSize: 14 }}>
               ⚠️ Tu as un pointage ouvert ailleurs
@@ -223,15 +223,30 @@ export default function PunchPage() {
               </div>
             ))}
             <div style={{ fontSize: 12, color: '#92400e', marginTop: 8, marginBottom: 10 }}>
-              Tu veux fermer l'(les) autre(s) automatiquement avant de commencer ici ?
+              {state === 'aucun'
+                ? "Tu veux fermer l'(les) autre(s) automatiquement avant de commencer ici ?"
+                : state === 'complete'
+                  ? "Tu peux fermer l'(les) autre(s) automatiquement avant de créer une nouvelle entrée ici."
+                  : "Ton pointage sur ce QR est aussi ouvert. Termine l'un des deux."}
             </div>
-            <button
-              disabled={submitting}
-              onClick={() => action('arrivee', undefined, { close_others: true })}
-              style={{ ...bigBtn, backgroundColor: AMBER }}
-            >
-              ✓ Fermer les autres et commencer ici
-            </button>
+            {state === 'aucun' && (
+              <button
+                disabled={submitting}
+                onClick={() => action('arrivee', undefined, { close_others: true })}
+                style={{ ...bigBtn, backgroundColor: AMBER }}
+              >
+                ✓ Fermer les autres et commencer ici
+              </button>
+            )}
+            {state === 'complete' && (
+              <button
+                disabled={submitting}
+                onClick={() => action('nouvelle_entree', undefined, { close_others: true })}
+                style={{ ...bigBtn, backgroundColor: AMBER }}
+              >
+                ✓ Fermer les autres et nouvelle entrée ici
+              </button>
+            )}
           </div>
         )}
 
