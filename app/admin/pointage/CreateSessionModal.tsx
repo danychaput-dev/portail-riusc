@@ -118,7 +118,7 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
     <div onClick={onClose} style={overlayStyle}>
       <div onClick={e => e.stopPropagation()} style={modalStyle}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C }}>Nouveau QR de pointage</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C }}>Nouveau QR de présence</h2>
           <button onClick={onClose} style={closeBtn}>×</button>
         </div>
 

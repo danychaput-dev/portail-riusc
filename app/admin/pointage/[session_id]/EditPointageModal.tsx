@@ -63,7 +63,7 @@ export default function EditPointageModal({ pointage, onClose, onSaved }: Props)
     <div onClick={onClose} style={overlayStyle}>
       <div onClick={e => e.stopPropagation()} style={modalStyle}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C, marginBottom: 4 }}>
-          Modifier le pointage
+          Modifier la présence
         </h2>
         <div style={{ fontSize: 13, color: MUTED, marginBottom: 18 }}>
           {pointage.reserviste_nom}
@@ -78,7 +78,7 @@ export default function EditPointageModal({ pointage, onClose, onSaved }: Props)
             <label style={labelStyle}>Heure de départ</label>
             <input type="datetime-local" value={depart} onChange={e => setDepart(e.target.value)} style={inputStyle} />
             <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>
-              Vide = pointage toujours en cours.
+              Vide = présence toujours en cours.
             </div>
           </div>
           <div>

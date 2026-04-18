@@ -124,7 +124,7 @@ export default function PunchPage() {
           // Ce cas est normalement intercepté côté page par le bandeau —
           // mais on le gère aussi ici si l'API retourne cette erreur suite à un clic direct
           setAutresOuverts(json.autres || [])
-          setErr(json.message || 'Tu as un pointage en cours sur un autre QR.')
+          setErr(json.message || 'Tu as une présence en cours sur un autre QR.')
           setSubmitting(false)
           return
         }
@@ -203,7 +203,7 @@ export default function PunchPage() {
         {autresOuverts.length > 0 && !showCorrection && !confirmShort && !confirmWrongDate && (
           <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#fffbeb', border: `1px solid #fde68a`, marginBottom: 16 }}>
             <div style={{ fontWeight: 700, color: AMBER, marginBottom: 6, fontSize: 14 }}>
-              ⚠️ Tu as un pointage ouvert ailleurs
+              ⚠️ Tu as une présence ouverte ailleurs
             </div>
             {autresOuverts.map(a => (
               <div key={a.id} style={{ fontSize: 13, color: '#78350f', marginBottom: 4 }}>
@@ -215,7 +215,7 @@ export default function PunchPage() {
                 ? "Tu veux fermer l'(les) autre(s) automatiquement avant de commencer ici ?"
                 : state === 'complete'
                   ? "Tu peux fermer l'(les) autre(s) automatiquement avant de créer une nouvelle entrée ici."
-                  : "Ton pointage sur ce QR est aussi ouvert. Termine l'un des deux."}
+                  : "Ta présence sur ce QR est aussi ouverte. Termine l'une des deux."}
             </div>
             {state === 'aucun' && (
               <button
@@ -296,7 +296,7 @@ export default function PunchPage() {
                 onClick={() => setConfirmShort(null)}
                 style={{ ...bigBtn, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}` }}
               >
-                ← Annuler (garder le pointage ouvert)
+                ← Annuler (garder la présence ouverte)
               </button>
             </div>
           </div>
@@ -427,7 +427,7 @@ function Header({ reserviste, session }: { reserviste: Reserviste; session: Sess
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ fontSize: 12, color: MUTED, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-        Pointage {session.type_contexte === 'camp' ? 'camp' : 'déploiement'}
+        Présence — {session.type_contexte === 'camp' ? 'camp' : 'déploiement'}
       </div>
       <h1 style={{ margin: '4px 0 8px', fontSize: 22, fontWeight: 800, color: C }}>
         {session.contexte_nom}
@@ -448,7 +448,7 @@ function CurrentPointageStatus({ pointage, state }: { pointage: PointageInfo; st
   return (
     <div style={{ padding: 14, borderRadius: 10, backgroundColor: state === 'en_cours' ? '#f0fdf4' : '#f8fafc', border: `1px solid ${state === 'en_cours' ? '#bbf7d0' : BORDER}`, marginBottom: 16 }}>
       <div style={{ fontSize: 11, color: MUTED, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>
-        {state === 'en_cours' ? '🔵 Pointage en cours' : '✓ Dernier pointage complété'}
+        {state === 'en_cours' ? '🔵 Présence en cours' : '✓ Dernière présence complétée'}
       </div>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 13 }}>
         <div>

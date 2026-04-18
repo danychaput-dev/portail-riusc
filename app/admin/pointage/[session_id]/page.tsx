@@ -179,7 +179,7 @@ export default function SessionDetailPage() {
       {/* Tableau */}
       {pointages.length === 0 ? (
         <div style={{ padding: 60, textAlign: 'center', color: MUTED, backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
-          Aucun pointage pour cette session.
+          Aucune entrée de présence pour cette session.
         </div>
       ) : (
         <div style={{ backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'auto' }}>

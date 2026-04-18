@@ -67,7 +67,7 @@ export default function LogsModal({ pointage, onClose }: Props) {
     <div onClick={onClose} style={overlayStyle}>
       <div onClick={e => e.stopPropagation()} style={modalStyle}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C, marginBottom: 4 }}>
-          📜 Historique du pointage
+          📜 Historique de la présence
         </h2>
         <div style={{ fontSize: 13, color: MUTED, marginBottom: 18 }}>
           {pointage.reserviste_nom}

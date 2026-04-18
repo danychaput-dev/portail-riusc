@@ -251,7 +251,7 @@ export default function QRScannerButton() {
     }
 
     if (!token) {
-      setError('Ce QR ne correspond pas à un pointage RIUSC.')
+      setError('Ce QR ne correspond pas à un QR de présence RIUSC.')
       return
     }
 
@@ -269,8 +269,8 @@ export default function QRScannerButton() {
     <>
       <button
         onClick={handleOpenScanner}
-        title={onDuty ? 'Pointage en cours — scanner un QR' : 'Scanner un QR de pointage'}
-        aria-label="Scanner un QR de pointage"
+        title={onDuty ? 'Présence en cours — scanner un QR' : 'Scanner un QR de présence'}
+        aria-label="Scanner un QR de présence"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 36, height: 36, borderRadius: '50%',
@@ -322,7 +322,7 @@ export default function QRScannerButton() {
           </div>
 
           <div style={{ position: 'absolute', top: 24, left: 0, right: 0, textAlign: 'center', color: 'white', fontSize: 16, fontWeight: 600, pointerEvents: 'none', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-            Scanner un QR de pointage
+            Scanner un QR de présence
           </div>
 
           {!usePhotoMode && (
@@ -335,7 +335,7 @@ export default function QRScannerButton() {
             <div style={{ maxWidth: 420, padding: 30, textAlign: 'center', color: 'white' }}>
               <div style={{ fontSize: 54, marginBottom: 12 }}>📷</div>
               <div style={{ fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>
-                Prends une photo du QR avec ton appareil. On décode automatiquement et on t'amène sur la page de pointage.
+                Prends une photo du QR avec ton appareil. On décode automatiquement et on t'amène sur la page de présence.
               </div>
               <button
                 onClick={handleTakePhoto}

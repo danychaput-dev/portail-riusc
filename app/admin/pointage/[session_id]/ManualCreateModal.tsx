@@ -85,7 +85,7 @@ export default function ManualCreateModal({ sessionId, onClose, onCreated }: Pro
     <div onClick={onClose} style={overlayStyle}>
       <div onClick={e => e.stopPropagation()} style={modalStyle}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C, marginBottom: 18 }}>
-          + Créer un pointage manuellement
+          + Créer une présence manuellement
         </h2>
 
         <div style={{ display: 'grid', gap: 14 }}>
@@ -143,7 +143,7 @@ export default function ManualCreateModal({ sessionId, onClose, onCreated }: Pro
             </button>
             <button onClick={create} disabled={submitting}
               style={{ padding: '10px 20px', fontSize: 13, fontWeight: 700, backgroundColor: submitting ? '#9ca3af' : C, color: 'white', border: 'none', borderRadius: 8, cursor: submitting ? 'not-allowed' : 'pointer' }}>
-              {submitting ? 'Création…' : '✓ Créer le pointage'}
+              {submitting ? 'Création…' : '✓ Créer la présence'}
             </button>
           </div>
         </div>

@@ -134,9 +134,9 @@ export default function PointagePage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 16px 60px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C }}>📋 Pointage QR</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C }}>📋 Présences</h1>
           <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
-            Générer et suivre les QR codes pour la gestion des présences par camp (et déploiement bientôt).
+            Générer et suivre les QR codes de capture des présences par camp (et déploiement bientôt).
           </div>
         </div>
         <button
@@ -161,7 +161,7 @@ export default function PointagePage() {
         <div style={{ padding: 60, textAlign: 'center', color: MUTED, fontSize: 14 }}>Chargement…</div>
       ) : sorted.length === 0 ? (
         <div style={{ padding: 60, textAlign: 'center', color: MUTED, fontSize: 14, backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
-          Aucun QR pointage créé. Clique sur « + Nouveau QR » pour en créer un.
+          Aucun QR de présence créé. Clique sur « + Nouveau QR » pour en créer un.
         </div>
       ) : (
         <div style={{ backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>

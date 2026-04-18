@@ -40,8 +40,7 @@ const NAV_ITEMS: NavItem[] = [
   { titre: 'Health Check',         icone: '🩺', href: '/admin/health-check',        statut: 'actif', superadminOnly: true },
   { titre: 'Debug Camp',           icone: '🔬', href: '/api/admin/debug-camp',      statut: 'actif', superadminOnly: true, externe: true },
   { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',        statut: 'bientot' },
-  { titre: 'Pointage QR',          icone: '📋', href: '/admin/pointage',          statut: 'actif' },
-  { titre: 'Presences & CNESST',   icone: '📋', href: '/admin/presences',          statut: 'bientot' },
+  { titre: 'Présences',            icone: '📋', href: '/admin/pointage',          statut: 'actif' },
 ]
 
 export default function AdminSidebar({ stats, userRole }: Props) {
