@@ -29,6 +29,17 @@ export default function QRScannerButton() {
     setError(null)
     setUsePhotoMode(false)
 
+    // Diagnostic préalable : état actuel de la permission caméra
+    let permState = 'unknown'
+    try {
+      if ('permissions' in navigator && navigator.permissions.query) {
+        const p = await navigator.permissions.query({ name: 'camera' as PermissionName })
+        permState = p.state  // 'granted' | 'denied' | 'prompt'
+      }
+    } catch {
+      // Safari n'expose pas camera via Permissions API
+    }
+
     // Test de permission dans le contexte du clic (avant tout setState asynchrone)
     try {
       const testStream = await navigator.mediaDevices.getUserMedia({
@@ -41,17 +52,27 @@ export default function QRScannerButton() {
     } catch (err: any) {
       const name = err?.name || ''
       const msg = err?.message || ''
-      if (/NotAllowed|Permission/i.test(name + msg)) {
-        setError(
-          "Accès caméra refusé par ton navigateur. " +
-          "Essaie plutôt l'option « Prendre une photo » ci-dessous — ça marche dans tous les cas."
-        )
-      } else if (/NotFound|DevicesNotFound/i.test(name + msg)) {
-        setError('Aucune caméra détectée. Utilise « Prendre une photo ».')
-      } else if (/NotReadable|TrackStartError/i.test(name + msg)) {
-        setError('Caméra déjà utilisée par une autre app. Ferme-la et réessaie, ou prends une photo.')
+
+      // Message diagnostic explicite selon l'état de la permission
+      let detail = ''
+      if (permState === 'denied') {
+        detail = ` [État permission : DENIED] Le navigateur a un refus enregistré. Ouvre l'icône cadenas à gauche de l'URL → Autorisations → réinitialise ou autorise « Appareil photo ». Vérifie aussi Paramètres Android → Apps → Chrome → Autorisations → Appareil photo.`
+      } else if (permState === 'prompt') {
+        detail = ` [État permission : PROMPT — devrait demander mais ne le fait pas] Chrome a probablement un bug ou une config empêchant la popup. Vide les données du site : cadenas → Autorisations → Réinitialiser.`
+      } else if (permState === 'granted') {
+        detail = ` [État permission : GRANTED mais getUserMedia refuse quand même — probablement caméra utilisée par une autre app ou problème pilote.]`
       } else {
-        setError('Impossible d\'ouvrir la caméra : ' + (msg || name || 'erreur inconnue'))
+        detail = ` [Permissions API non disponible — impossible de diagnostiquer.]`
+      }
+
+      if (/NotAllowed|Permission/i.test(name + msg)) {
+        setError("Accès caméra refusé par le navigateur." + detail + " En attendant, le mode « Prendre une photo » fonctionne à 100%.")
+      } else if (/NotFound|DevicesNotFound/i.test(name + msg)) {
+        setError('Aucune caméra détectée.' + detail + ' Utilise « Prendre une photo ».')
+      } else if (/NotReadable|TrackStartError/i.test(name + msg)) {
+        setError('Caméra déjà utilisée par une autre app. Ferme-la et réessaie, ou prends une photo.' + detail)
+      } else {
+        setError('Impossible d\'ouvrir la caméra : ' + (msg || name || 'erreur inconnue') + detail)
       }
       // On laisse aussi l'option photo visible
       setOpen(true)

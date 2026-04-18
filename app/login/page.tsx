@@ -24,6 +24,12 @@ function LoginContent() {
 
   // Récupérer le camp_id si présent dans l'URL
   const campId = searchParams.get('camp') || ''
+  // Redirect après login — utilisé par ex. pour /punch/[token] après scan
+  // d'un QR. On valide que ça commence par '/' pour éviter les redirections
+  // vers des URLs externes (vecteur d'attaque classique).
+  const redirectRaw = searchParams.get('redirect') || ''
+  const redirect = redirectRaw.startsWith('/') && !redirectRaw.startsWith('//') ? redirectRaw : ''
+  const afterLoginUrl = redirect || (campId ? `/formation?camp=${campId}` : '/')
 
   // Pré-remplir le dernier courriel utilisé
   useEffect(() => {
@@ -98,7 +104,7 @@ function LoginContent() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        router.push(campId ? `/formation?camp=${campId}` : '/')
+        router.push(afterLoginUrl)
       }
     }
     checkUser()
@@ -157,7 +163,7 @@ function LoginContent() {
         localStorage.setItem('debug_email', email.trim())
 
         // Rediriger
-        window.location.href = campId ? `/formation?camp=${campId}` : '/'
+        window.location.href = afterLoginUrl
         return
       } catch (err) {
         console.error('Erreur mode debug:', err)
@@ -175,9 +181,9 @@ function LoginContent() {
       // Stocker le mode démo
       localStorage.setItem('demo_mode', 'true')
       localStorage.setItem('demo_groupe', 'Intérêt')
-      
+
       // Rediriger
-      window.location.href = '/'
+      window.location.href = afterLoginUrl
       return
     }
 
@@ -334,7 +340,7 @@ function LoginContent() {
         // Sauvegarder le courriel pour pré-remplissage futur
         try { localStorage.setItem('riusc_last_email', email.trim().toLowerCase()) } catch {}
 
-        router.push(campId ? `/formation?camp=${campId}` : '/')
+        router.push(afterLoginUrl)
       }
     } catch (err) {
       console.error('Verify unexpected error:', err)
