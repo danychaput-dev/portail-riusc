@@ -26,6 +26,12 @@ interface Candidat {
   langues: string[]
   niveau_ressource: number
   distance_km?: number
+  // Flags détaillés de déployabilité (renseignés par l'API pool)
+  profil_complet?: boolean
+  initiation_sc?: boolean
+  camp_complete?: boolean
+  bottes_ok?: boolean
+  antecedents_ok?: boolean
 }
 
 interface Cible {
@@ -738,12 +744,46 @@ export default function CiblagePage() {
           {/* ── COLONNE CENTRE : Pool ── */}
           <div style={{ ...carteStyle, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc', flexShrink: 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: badgesDisponibles.length > 0 ? '8px' : 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <h2 style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: C }}>Pool de candidats</h2>
                 <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  {loadingPool ? 'Chargement...' : `${poolFiltre.filter(c => c.deployable).length} déployables / ${poolFiltre.length} affichés`}
+                  {loadingPool ? 'Chargement...' : `${poolFiltre.length} affiché(s)`}
                 </span>
               </div>
+
+              {/* Ligne résumé déployabilité — même format que /admin/reservistes */}
+              {!loadingPool && poolFiltre.length > 0 && (() => {
+                const total = poolFiltre.length
+                const deployables = poolFiltre.filter(c => c.deployable).length
+                const profil = poolFiltre.filter(c => c.profil_complet === true).length
+                const initiation = poolFiltre.filter(c => c.initiation_sc === true).length
+                const camp = poolFiltre.filter(c => c.camp_complete === true).length
+                const bottes = poolFiltre.filter(c => c.bottes_ok === true).length
+                const antecedents = poolFiltre.filter(c => c.antecedents_ok === true).length
+                const steps: Array<{ icon: string; label: string; count: number }> = [
+                  { icon: '👤', label: 'Profil complet', count: profil },
+                  { icon: '🎓', label: 'Initiation SC complétée', count: initiation },
+                  { icon: '⛺', label: 'Camp de qualification', count: camp },
+                  { icon: '🥾', label: 'Bottes remboursées', count: bottes },
+                  { icon: '🔍', label: 'Antécédents vérifiés', count: antecedents },
+                ]
+                return (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: badgesDisponibles.length > 0 ? 8 : 0, fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                    <span style={{ color: '#475569' }}>Déployabilité :</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', color: '#16a34a' }}>
+                      {deployables} / {total} déployables
+                    </span>
+                    <span style={{ color: '#e2e8f0' }}>|</span>
+                    {steps.map(s => (
+                      <span key={s.label} title={`${s.count}/${total} ${s.label.toLowerCase()}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b' }}>
+                        {s.icon} {s.label}
+                        <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 8, fontWeight: 700, backgroundColor: '#16a34a', color: 'white' }}>{s.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                )
+              })()}
               {badgesDisponibles.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                   {filtreBadges.length > 0 && (

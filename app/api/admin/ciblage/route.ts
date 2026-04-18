@@ -105,7 +105,8 @@ export async function GET(req: NextRequest) {
 
     const benevoleIds = pool.map((c: any) => c.benevole_id)
 
-    // 2. Compétences + coordonnées (via reservistes_actifs: exclut les soft-deleted)
+    // 2. Compétences + coordonnées + champs pour flags de déployabilité
+    // (via reservistes_actifs: exclut les soft-deleted).
     // .range(0, 4999) pour supporter >1000 reservistes dans le pool (limite Supabase)
     const { data: competences } = await supabaseAdmin
       .from('reservistes_actifs')
@@ -114,7 +115,12 @@ export async function GET(req: NextRequest) {
         competence_rs, certificat_premiers_soins, vehicule_tout_terrain,
         navire_marin, permis_conduire, satp_drone, equipe_canine,
         competences_securite, competences_sauvetage, communication,
-        cartographie_sig, operation_urgence
+        cartographie_sig, operation_urgence,
+        prenom, nom, email, telephone, adresse, ville, region,
+        date_naissance, contact_urgence_nom, contact_urgence_telephone,
+        remboursement_bottes_date,
+        antecedents_statut, antecedents_date_expiration,
+        camp_qualif_complete
       `)
       .in('benevole_id', benevoleIds)
       .range(0, 4999)
@@ -122,6 +128,27 @@ export async function GET(req: NextRequest) {
     const compMap = Object.fromEntries(
       (competences || []).map((c: any) => [c.benevole_id, c])
     )
+
+    // 2b. Formations pour détecter initiation_sc_completee et camp_qualification
+    const { data: formations } = await supabaseAdmin
+      .from('formations_benevoles')
+      .select('benevole_id, nom_formation, resultat, source, initiation_sc_completee, deleted_at')
+      .in('benevole_id', benevoleIds)
+      .is('deleted_at', null)
+      .range(0, 9999)
+
+    const initiationMap: Record<string, boolean> = {}
+    const campFormMap: Record<string, boolean> = {}
+    for (const f of (formations || [])) {
+      const fr: any = f
+      const cat = (fr.nom_formation || '').toLowerCase()
+      if (fr.initiation_sc_completee === true || cat.includes('initier') || (fr.source === 'lms' && fr.resultat === 'Réussi')) {
+        initiationMap[fr.benevole_id] = true
+      }
+      if ((cat.includes('camp') && cat.includes('qualification')) && fr.resultat === 'Réussi') {
+        campFormMap[fr.benevole_id] = true
+      }
+    }
 
     // Filtrer le pool pour exclure les reservistes absents de reservistes_actifs
     // (en corbeille). La RPC get_pool_ciblage query encore la table brute.
@@ -142,26 +169,45 @@ export async function GET(req: NextRequest) {
       if (l.langues?.nom) languesMap[l.benevole_id].push(l.langues.nom)
     })
 
-    // 4. Merge
-    const result = poolFiltre.map((c: any) => ({
-      ...c,
-      latitude:              compMap[c.benevole_id]?.latitude || null,
-      longitude:             compMap[c.benevole_id]?.longitude || null,
-      competence_rs:         compMap[c.benevole_id]?.competence_rs || [],
-      certificat_premiers_soins: compMap[c.benevole_id]?.certificat_premiers_soins || [],
-      vehicule_tout_terrain: compMap[c.benevole_id]?.vehicule_tout_terrain || [],
-      navire_marin:          compMap[c.benevole_id]?.navire_marin || [],
-      permis_conduire:       compMap[c.benevole_id]?.permis_conduire || [],
-      satp_drone:            compMap[c.benevole_id]?.satp_drone || [],
-      equipe_canine:         compMap[c.benevole_id]?.equipe_canine || [],
-      competences_securite:  compMap[c.benevole_id]?.competences_securite || [],
-      competences_sauvetage: compMap[c.benevole_id]?.competences_sauvetage || [],
-      communication:         compMap[c.benevole_id]?.communication || [],
-      cartographie_sig:      compMap[c.benevole_id]?.cartographie_sig || [],
-      operation_urgence:     compMap[c.benevole_id]?.operation_urgence || [],
-      preference_tache:      compMap[c.benevole_id]?.preference_tache || c.preference_tache || 'aucune',
-      langues:               languesMap[c.benevole_id] || []
-    }))
+    // 4. Merge + flags de déployabilité
+    const now = new Date()
+    const result = poolFiltre.map((c: any) => {
+      const comp = compMap[c.benevole_id] || {}
+      const profilComplet = !!(
+        comp.prenom && comp.nom && comp.email && comp.telephone &&
+        comp.date_naissance && comp.adresse && comp.ville && comp.region &&
+        comp.contact_urgence_nom && comp.contact_urgence_telephone
+      )
+      const initiationSc = initiationMap[c.benevole_id] === true
+      const campComplete = comp.camp_qualif_complete === true || campFormMap[c.benevole_id] === true
+      const bottes = !!comp.remboursement_bottes_date
+      const antExpire = comp.antecedents_date_expiration && new Date(comp.antecedents_date_expiration) < now
+      const antecedentsOk = comp.antecedents_statut === 'verifie' && !antExpire
+      return {
+        ...c,
+        latitude:              comp.latitude || null,
+        longitude:             comp.longitude || null,
+        competence_rs:         comp.competence_rs || [],
+        certificat_premiers_soins: comp.certificat_premiers_soins || [],
+        vehicule_tout_terrain: comp.vehicule_tout_terrain || [],
+        navire_marin:          comp.navire_marin || [],
+        permis_conduire:       comp.permis_conduire || [],
+        satp_drone:            comp.satp_drone || [],
+        equipe_canine:         comp.equipe_canine || [],
+        competences_securite:  comp.competences_securite || [],
+        competences_sauvetage: comp.competences_sauvetage || [],
+        communication:         comp.communication || [],
+        cartographie_sig:      comp.cartographie_sig || [],
+        operation_urgence:     comp.operation_urgence || [],
+        preference_tache:      comp.preference_tache || c.preference_tache || 'aucune',
+        langues:               languesMap[c.benevole_id] || [],
+        profil_complet:        profilComplet,
+        initiation_sc:         initiationSc,
+        camp_complete:         campComplete,
+        bottes_ok:             bottes,
+        antecedents_ok:        antecedentsOk,
+      }
+    })
 
     return NextResponse.json(result)
   }
