@@ -338,10 +338,16 @@ export default function CiblagePage() {
       if (!filtreBadges.every(fb => badges.includes(fb))) return false
     }
     if (recherche) {
-      const q = recherche.toLowerCase()
-      if (!`${c.prenom} ${c.nom}`.toLowerCase().includes(q) &&
-          !c.ville?.toLowerCase().includes(q) &&
-          !c.region?.toLowerCase().includes(q)) return false
+      // Si l'utilisateur a collé des coordonnées GPS (format "lat, lon"),
+      // on ne filtre pas par texte — c'est juste un point de référence pour
+      // le tri par proximité (géré via un useEffect plus bas).
+      const isCoords = /^\s*-?\d+\.?\d*\s*,\s*-?\d+\.?\d*\s*$/.test(recherche)
+      if (!isCoords) {
+        const q = recherche.toLowerCase()
+        if (!`${c.prenom} ${c.nom}`.toLowerCase().includes(q) &&
+            !c.ville?.toLowerCase().includes(q) &&
+            !c.region?.toLowerCase().includes(q)) return false
+      }
     }
     return true
   }).sort((a, b) => {
@@ -398,6 +404,19 @@ export default function CiblagePage() {
     .filter(s => s.candidat && !s.candidat.deja_cible)
 
   // ── Géocodage Nominatim ───────────────────────────────────
+  // Si l'utilisateur colle des coordonnées GPS dans le filtre texte, les
+  // extraire et les utiliser comme point de référence pour le tri proximité.
+  // Exemple accepté : "45.52550158777838, -73.87702674625037"
+  useEffect(() => {
+    const m = recherche.trim().match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/)
+    if (!m) return
+    const lat = parseFloat(m[1])
+    const lon = parseFloat(m[2])
+    if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+      setDepCoords({ lat, lon })
+    }
+  }, [recherche])
+
   const geocoderLieu = useCallback(async (lieu: string) => {
     if (!lieu) return
     setGeocoding(true)
@@ -640,10 +659,21 @@ export default function CiblagePage() {
           {/* ── COLONNE GAUCHE : Filtres ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0', overflowY: 'auto', backgroundColor: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
 
-            {/* Recherche */}
+            {/* Recherche — accepte aussi des coordonnées GPS (lat, lon) comme point de référence */}
             <div style={{ padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
-              <input type="text" placeholder="Filtrer par nom, ville, région..." value={recherche} onChange={e => setRecherche(e.target.value)}
+              <input type="text" placeholder="Nom, ville, région OU lat, lon (ex: 45.525, -73.877)" value={recherche} onChange={e => setRecherche(e.target.value)}
                 style={{ width: '100%', padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' as const }} />
+              {(() => {
+                const m = recherche.trim().match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/)
+                if (!m) return null
+                const lat = parseFloat(m[1]), lon = parseFloat(m[2])
+                const valid = lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+                return (
+                  <div style={{ marginTop: 6, fontSize: 11, color: valid ? '#16a34a' : '#ef4444' }}>
+                    {valid ? `✓ Coordonnées GPS : ${lat.toFixed(5)}, ${lon.toFixed(5)} — point de référence pour tri proximité` : '✗ Coordonnées hors plage'}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Tri */}
