@@ -32,11 +32,11 @@ export function tplNotif(sinNom: string, depNom: string, dateDebut?: string): st
 
 Dans le cadre du sinistre « ${sinNom} », nous sollicitons votre disponibilité pour le déploiement ${depNom}${dateDebut ? ` prévu à partir du ${dateFr(dateDebut)}` : ''}.
 
-Veuillez soumettre vos disponibilités via le portail RIUSC dans les 4 prochains jours :
+Veuillez soumettre vos disponibilités via le portail dans les 4 prochains jours :
 https://portail.riusc.ca/disponibilites
 
 Merci pour votre engagement.
-L'équipe RIUSC / AQBRS`
+L'équipe AQBRS`
 }
 
 export function tplMobil(depNom: string, vagNom: string, debut: string, fin: string, lieu?: string): string {

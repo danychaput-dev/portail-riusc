@@ -96,7 +96,12 @@ function SoumettreContent() {
       }
 
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+      if (!user) {
+        // Préserver l'URL courante (avec ?deploiement=...) pour revenir ici après OTP
+        const returnTo = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/disponibilites'
+        router.push(`/login?redirect=${encodeURIComponent(returnTo)}`)
+        return
+      }
       if (!deploiementId) { setError('Aucun déploiement spécifié.'); setLoading(false); return }
 
       if (user.email) {
