@@ -70,25 +70,72 @@ export default function QRScannerButton() {
     const file = e.target.files?.[0]
     if (!file) return
     setScanning(true)
+    setError(null)
     try {
+      // Redimensionner la photo si trop grosse — sinon html5-qrcode peut échouer
+      // sur les images 4000x3000 typiques des cellulaires modernes.
+      const resized = await resizePhotoForQR(file)
+
       const mod = await import('html5-qrcode')
       const scanner = new mod.Html5Qrcode('qr-reader-region-photo', { verbose: false } as any)
       try {
-        const decoded = await scanner.scanFile(file, true)
+        const decoded = await scanner.scanFile(resized, false)
+        // Success : extraire le token et naviguer
         handleTokenFound(decoded)
       } catch (decodeErr: any) {
-        setError("Aucun QR détecté dans la photo. Assure-toi que le QR est net, bien cadré et éclairé.")
+        // Si le premier essai échoue, tenter avec l'image originale (cas rares)
+        try {
+          const decoded2 = await scanner.scanFile(file, false)
+          handleTokenFound(decoded2)
+        } catch {
+          setError("Aucun QR détecté dans la photo. Prends la photo en plein cadre, QR net, bien éclairé, sans angle trop incliné. Réessaie.")
+        }
       } finally {
         try { scanner.clear() } catch {}
       }
     } catch (err: any) {
-      setError('Erreur de décodage : ' + (err?.message || 'inconnu'))
+      setError('Erreur de traitement de la photo : ' + (err?.message || 'inconnu'))
     } finally {
       setScanning(false)
-      // Reset pour pouvoir re-sélectionner la même photo si besoin
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
+
+  // Redimensionne une photo pour optimiser le décodage QR.
+  // Cible : 1600px max sur le côté long, PNG à qualité 0.85.
+  const resizePhotoForQR = (file: File): Promise<File> => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1600
+        let w = img.width, h = img.height
+        if (Math.max(w, h) > MAX) {
+          const ratio = MAX / Math.max(w, h)
+          w = Math.round(w * ratio)
+          h = Math.round(h * ratio)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { reject(new Error('canvas non disponible')); return }
+        ctx.drawImage(img, 0, 0, w, h)
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) { reject(new Error('toBlob a échoué')); return }
+            resolve(new File([blob], 'qr.jpg', { type: 'image/jpeg' }))
+          },
+          'image/jpeg',
+          0.85
+        )
+      }
+      img.onerror = () => reject(new Error('image illisible'))
+      img.src = reader.result as string
+    }
+    reader.onerror = () => reject(new Error('lecture fichier échouée'))
+    reader.readAsDataURL(file)
+  })
 
   // Mode live — html5-qrcode démarre quand l'overlay est ouvert et pas en mode photo
   useEffect(() => {
