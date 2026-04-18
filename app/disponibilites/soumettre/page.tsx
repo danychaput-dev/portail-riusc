@@ -126,18 +126,23 @@ function SoumettreContent() {
   }, [])
 
   const handleSubmit = async () => {
-    if (!reserviste || !deploiement || !reponse) return
+    // Validation visible (remplace les return silencieux qui cachaient le vrai probleme)
+    if (!reserviste) { setError('Profil de reserviste non charge. Reconnecte-toi et reessaie.'); return }
+    if (!deploiement) { setError('Aucun deploiement selectionne. Retourne a la liste.'); return }
+    if (!reponse) { setError('Selectionne d\'abord une des 3 options : Disponible, A confirmer ou Non disponible.'); return }
 
     if (reponse !== 'non_disponible') {
-      if (!dateDebut || !dateFin) { setError('Veuillez indiquer vos dates de disponibilité. '); return }
-      if (dateDebut < minDate) { setError('La date de début doit être au plus tôt demain.'); return }
+      if (!dateDebut || !dateFin) { setError('Veuillez indiquer vos dates de disponibilite.'); return }
+      if (dateDebut < minDate) { setError('La date de debut doit etre au plus tot demain.'); return }
       const debut = new Date(dateDebut)
       const fin = new Date(dateFin)
       const diffJours = Math.ceil((fin.getTime() - debut.getTime()) / (1000 * 60 * 60 * 24))
-      if (diffJours < 4) { setError('La durée minimale de disponibilité est de 4 jours.'); return }
+      // Duree minimale abaissee de 4 a 3 jours pour les deploiements courts
+      // (ex: construction de digue Laval 19-21 avril = 3 jours)
+      if (diffJours < 3) { setError('La duree minimale de disponibilite est de 3 jours.'); return }
       if (!transport) { setError('Veuillez indiquer votre situation de transport.'); return }
-      if (reponse === 'disponible' && !engagementAccepte) { setError('Veuillez confirmer votre disponibilité.'); return }
-      if (reponse === 'disponible' && !aptitudeAcceptee) { setError('Veuillez confirmer votre aptitude physique et mentale au déploiement.'); return }
+      if (reponse === 'disponible' && !engagementAccepte) { setError('Veuillez cocher la case d\'engagement de disponibilite.'); return }
+      if (reponse === 'disponible' && !aptitudeAcceptee) { setError('Veuillez cocher la case d\'aptitude physique et mentale.'); return }
     }
 
     setSubmitting(true)
