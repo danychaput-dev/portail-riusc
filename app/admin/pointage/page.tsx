@@ -217,8 +217,13 @@ export default function PointagePage() {
                     </span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
+                    <a href={`/admin/pointage/${s.pointage_session_id}`}
+                      title="Voir les pointages + actions"
+                      style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-block' }}>
+                      📋 Détails
+                    </a>
                     <button onClick={() => viewQR(s)} title="Voir le QR"
-                      style={btnSecondary}>
+                      style={{ ...btnSecondary, marginLeft: 6 }}>
                       Voir QR
                     </button>
                     <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver' : 'Réactiver'}
