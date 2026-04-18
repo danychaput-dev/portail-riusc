@@ -182,6 +182,18 @@ export default function PunchPage() {
       <div style={cardStyle}>
         <Header reserviste={reserviste} session={session} />
 
+        {/* DEBUG TEMPORAIRE — à retirer après validation du fix */}
+        <div style={{ padding: 8, borderRadius: 6, backgroundColor: '#fef3c7', color: '#78350f', fontSize: 11, marginBottom: 12, fontFamily: 'monospace' }}>
+          🐛 DEBUG : autres_ouverts = {autresOuverts.length} · state = {state}
+          {autresOuverts.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              {autresOuverts.map(a => (
+                <div key={a.id}>→ {a.contexte_nom} (session {a.pointage_session_id.slice(0,8)}…)</div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {successMsg && (
           <div style={{ padding: 12, borderRadius: 8, backgroundColor: '#d1fae5', color: GREEN, fontWeight: 600, marginBottom: 16, textAlign: 'center' }}>
             {successMsg}

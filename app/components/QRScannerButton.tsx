@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const C = '#1e3a5f'
+const GREEN = '#16a34a'
+const LIGHT_GREEN = '#dcfce7'
 const RED = '#dc2626'
 const MUTED = '#6b7280'
 
@@ -21,8 +23,26 @@ export default function QRScannerButton() {
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
   const [usePhotoMode, setUsePhotoMode] = useState(false)
+  const [onDuty, setOnDuty] = useState(false)
   const scannerRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Poll on-duty status au montage + toutes les 60s pour garder la couleur
+  // à jour même si l'utilisateur ne recharge pas la page.
+  useEffect(() => {
+    let cancelled = false
+    const check = async () => {
+      try {
+        const res = await fetch('/api/punch/on-duty', { cache: 'no-store' })
+        if (!res.ok) return
+        const json = await res.json()
+        if (!cancelled) setOnDuty(!!json.on_duty)
+      } catch {}
+    }
+    check()
+    const interval = setInterval(check, 60_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
 
   // Ouverture du scanner live — demande de permission dans le user gesture
   const handleOpenScanner = async () => {
@@ -249,16 +269,18 @@ export default function QRScannerButton() {
     <>
       <button
         onClick={handleOpenScanner}
-        title="Scanner un QR de pointage"
+        title={onDuty ? 'Pointage en cours — scanner un QR' : 'Scanner un QR de pointage'}
         aria-label="Scanner un QR de pointage"
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 36, height: 36, borderRadius: '50%',
-          border: '1.5px solid #d1d5db', backgroundColor: 'white',
-          cursor: 'pointer', color: C, marginRight: 8, transition: 'all 0.15s',
+          border: onDuty ? `2px solid ${GREEN}` : '1.5px solid #d1d5db',
+          backgroundColor: onDuty ? LIGHT_GREEN : 'white',
+          cursor: 'pointer', color: onDuty ? GREEN : C, marginRight: 8, transition: 'all 0.15s',
+          boxShadow: onDuty ? `0 0 0 2px ${LIGHT_GREEN}, 0 0 8px rgba(22,163,74,0.4)` : 'none',
         }}
-        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
-        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+        onMouseOver={(e) => e.currentTarget.style.backgroundColor = onDuty ? '#bbf7d0' : '#f3f4f6'}
+        onMouseOut={(e) => e.currentTarget.style.backgroundColor = onDuty ? LIGHT_GREEN : 'white'}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="7" height="7" />
