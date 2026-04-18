@@ -248,7 +248,12 @@ export default function OperationsPage() {
     const {data,error} = await supabase.from('sinistres')
       .insert({ nom:fSin.nom.trim(), type_incident:fSin.type_incident, lieu:fSin.lieu, date_debut:fSin.date_debut, statut:'Actif' })
       .select().single()
-    if (!error && data) { setSinistres(p=>[data as unknown as Sinistre,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
+    if (error) {
+      console.error('Erreur creation sinistre:', error)
+      alert(`Erreur création sinistre : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+    } else if (data) {
+      setSinistres(p=>[data as unknown as Sinistre,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''})
+    }
     setSavSin(false)
   }
 
@@ -270,7 +275,10 @@ export default function OperationsPage() {
       date_reception:new Date().toISOString(),
       contact_nom:fDem.contact_nom||null, contact_telephone:fDem.contact_telephone||null,
     }).select().single()
-    if (!error && data) {
+    if (error) {
+      console.error('Erreur creation demande:', error)
+      alert(`Erreur création demande : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+    } else if (data) {
       setDemandes(p=>[data as unknown as Demande,...p]); setDemIds(p=>[...p,data.id])
       setShowFDem(false); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
     }
