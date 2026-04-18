@@ -58,6 +58,7 @@ export default function PunchPage() {
   const [showCorrection, setShowCorrection] = useState<null | 'arrivee' | 'depart'>(null)
   const [correctionTime, setCorrectionTime] = useState('')
   const [confirmShort, setConfirmShort] = useState<null | { minutes: number; heureArrivee: string }>(null)
+  const [confirmWrongDate, setConfirmWrongDate] = useState<null | { qrDate: string; today: string; actionType: string }>(null)
 
   // Charger l'état
   const load = async () => {
@@ -111,6 +112,11 @@ export default function PunchPage() {
         // Interception des erreurs spéciales pour afficher des UI adaptées
         if (json.error === 'short_duration') {
           setConfirmShort({ minutes: json.duree_minutes, heureArrivee: json.heure_arrivee })
+          setSubmitting(false)
+          return
+        }
+        if (json.error === 'wrong_date') {
+          setConfirmWrongDate({ qrDate: json.qr_date, today: json.today, actionType })
           setSubmitting(false)
           return
         }
@@ -217,6 +223,34 @@ export default function PunchPage() {
           </div>
         )}
 
+        {/* Modal de confirmation : date du QR ne correspond pas à aujourd'hui */}
+        {confirmWrongDate && (
+          <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#fef2f2', border: `1px solid #fecaca`, marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, color: RED, marginBottom: 6, fontSize: 14 }}>
+              📅 Date incorrecte
+            </div>
+            <div style={{ fontSize: 13, color: '#7f1d1d', marginBottom: 12 }}>
+              Ce QR est prévu pour le <strong>{formatDate(confirmWrongDate.qrDate)}</strong>, mais aujourd'hui on est le <strong>{formatDate(confirmWrongDate.today)}</strong>.
+              <br/>Scanne plutôt le QR de la bonne date, ou continue seulement si c'est intentionnel (ex: quart de nuit qui déborde).
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setConfirmWrongDate(null)}
+                style={{ flex: 1, ...bigBtn, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}` }}
+              >
+                Annuler
+              </button>
+              <button
+                disabled={submitting}
+                onClick={() => { const t = confirmWrongDate.actionType; setConfirmWrongDate(null); action(t, undefined, { confirm_wrong_date: true }) }}
+                style={{ flex: 1, ...bigBtn, backgroundColor: RED }}
+              >
+                Continuer quand même
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Modal de confirmation : départ dans les 5 min après l'arrivée */}
         {confirmShort && (
           <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#fef2f2', border: `1px solid #fecaca`, marginBottom: 16 }}>
@@ -246,7 +280,7 @@ export default function PunchPage() {
         )}
 
         {/* Boutons selon l'état (masqués si bandeau autre-ouvert ou confirm-short actif) */}
-        {!showCorrection && !confirmShort && !(state === 'aucun' && autresOuverts.length > 0) && (
+        {!showCorrection && !confirmShort && !confirmWrongDate && !(state === 'aucun' && autresOuverts.length > 0) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {state === 'aucun' && (
               <button disabled={submitting} onClick={() => action('arrivee')}

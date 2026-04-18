@@ -70,6 +70,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ce QR a été désactivé' }, { status: 403 })
   }
 
+  // Vérif date : si le QR est pour une date précise, elle doit correspondre à today
+  // (confirmation possible via confirm_wrong_date:true pour cas limites comme un quart
+  // de nuit qui déborde après minuit)
+  if (session.date_shift && action !== 'corriger_arrivee' && action !== 'corriger_depart' && !body.confirm_wrong_date) {
+    const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD local
+    // toISOString est en UTC. Pour être safe avec fuseaux, on compare la date locale :
+    const now = new Date()
+    const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    if (session.date_shift !== localToday) {
+      return NextResponse.json({
+        error: 'wrong_date',
+        message: `Ce QR est pour le ${session.date_shift}, mais aujourd'hui on est le ${localToday}. Es-tu certain ?`,
+        qr_date: session.date_shift,
+        today: localToday,
+      }, { status: 409 })
+    }
+  }
+
   // 2. Chercher le dernier pointage de ce réserviste pour cette session
   const { data: lastPointage } = await supabaseAdmin
     .from('pointages')
@@ -97,11 +115,19 @@ export async function POST(req: NextRequest) {
     if (!body.close_others) {
       const { data: autresOuverts } = await supabaseAdmin
         .from('pointages')
-        .select('id, pointage_session_id, heure_arrivee, pointage_sessions!inner(contexte_nom)')
+        .select('id, pointage_session_id, heure_arrivee')
         .eq('benevole_id', user.benevole_id)
         .is('heure_depart', null)
         .neq('pointage_session_id', session.id)
       if (autresOuverts && autresOuverts.length > 0) {
+        // Récupérer le contexte_nom de chaque autre session en une requête
+        const sessIds = Array.from(new Set(autresOuverts.map((a: any) => a.pointage_session_id)))
+        const { data: sessList } = await supabaseAdmin
+          .from('pointage_sessions')
+          .select('id, contexte_nom')
+          .in('id', sessIds)
+        const nomMap: Record<string, string> = {}
+        for (const s of (sessList || [])) nomMap[(s as any).id] = (s as any).contexte_nom
         return NextResponse.json({
           error: 'open_elsewhere',
           message: 'Tu as un pointage en cours sur un autre QR.',
@@ -109,7 +135,7 @@ export async function POST(req: NextRequest) {
             id: a.id,
             pointage_session_id: a.pointage_session_id,
             heure_arrivee: a.heure_arrivee,
-            contexte_nom: a.pointage_sessions?.contexte_nom || '—',
+            contexte_nom: nomMap[a.pointage_session_id] || '—',
           })),
         }, { status: 409 })
       }
@@ -272,10 +298,21 @@ export async function GET(req: NextRequest) {
   // Pointages ouverts sur D'AUTRES QR (l'utilisateur a oublié de fermer quelque part)
   const { data: autresOuverts } = await supabaseAdmin
     .from('pointages')
-    .select('id, pointage_session_id, heure_arrivee, pointage_sessions!inner(contexte_nom)')
+    .select('id, pointage_session_id, heure_arrivee')
     .eq('benevole_id', user.benevole_id)
     .is('heure_depart', null)
     .neq('pointage_session_id', session.id)
+
+  // Récupérer les contexte_nom en une seconde requête (plus fiable que la jointure)
+  let nomMap: Record<string, string> = {}
+  if (autresOuverts && autresOuverts.length > 0) {
+    const sessIds = Array.from(new Set(autresOuverts.map((a: any) => a.pointage_session_id)))
+    const { data: sessList } = await supabaseAdmin
+      .from('pointage_sessions')
+      .select('id, contexte_nom')
+      .in('id', sessIds)
+    for (const s of (sessList || [])) nomMap[(s as any).id] = (s as any).contexte_nom
+  }
 
   return NextResponse.json({
     reserviste: { prenom: user.prenom, nom: user.nom },
@@ -285,7 +322,7 @@ export async function GET(req: NextRequest) {
       id: a.id,
       pointage_session_id: a.pointage_session_id,
       heure_arrivee: a.heure_arrivee,
-      contexte_nom: a.pointage_sessions?.contexte_nom || '—',
+      contexte_nom: nomMap[a.pointage_session_id] || '—',
     })),
   })
 }
