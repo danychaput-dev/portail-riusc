@@ -25,6 +25,8 @@ export default function QRScannerButton() {
   const [usePhotoMode, setUsePhotoMode] = useState(false)
   const [onDuty, setOnDuty] = useState(false)
   const [supervisingCount, setSupervisingCount] = useState(0)
+  const [ouverts, setOuverts] = useState<Array<{ id: string; token: string | null; contexte_nom: string; contexte_lieu: string | null; shift: string | null; date_shift: string | null; heure_arrivee: string }>>([])
+  const [menuOpen, setMenuOpen] = useState(false)
   const scannerRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -39,6 +41,7 @@ export default function QRScannerButton() {
         if (!cancelled) {
           setOnDuty(!!json.on_duty)
           setSupervisingCount(json.supervising_count || 0)
+          setOuverts(json.ouverts || [])
         }
       } catch {}
     }
@@ -47,10 +50,21 @@ export default function QRScannerButton() {
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
+  // Clic sur l'icône : si on-duty, afficher un menu rapide (Terminer / Scanner)
+  // plutôt que d'ouvrir direct la caméra. Sinon, ouvrir le scanner comme avant.
+  const handleIconClick = async () => {
+    if (onDuty && ouverts.length > 0) {
+      setMenuOpen(true)
+      return
+    }
+    await handleOpenScanner()
+  }
+
   // Ouverture du scanner live — demande de permission dans le user gesture
   const handleOpenScanner = async () => {
     setError(null)
     setUsePhotoMode(false)
+    setMenuOpen(false)
 
     // Diagnostic préalable : état actuel de la permission caméra
     let permState = 'unknown'
@@ -271,7 +285,7 @@ export default function QRScannerButton() {
   return (
     <>
       <button
-        onClick={handleOpenScanner}
+        onClick={handleIconClick}
         title={
           onDuty && supervisingCount > 0
             ? `Présence en cours · ${supervisingCount} personne(s) active(s) sur tes QR`
@@ -324,6 +338,65 @@ export default function QRScannerButton() {
           <rect x="14" y="14" width="1" height="1" />
         </svg>
       </button>
+
+      {/* Menu rapide quand on-duty — évite de rescanner pour terminer */}
+      {menuOpen && (
+        <>
+          <div onClick={() => setMenuOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+          <div style={{
+            position: 'absolute', top: 56, right: 16,
+            backgroundColor: 'white', borderRadius: 10,
+            boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+            border: `1px solid ${RED === '#dc2626' ? '#e5e7eb' : '#e5e7eb'}`,
+            minWidth: 280, maxWidth: 360, zIndex: 1000,
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '10px 14px', fontSize: 11, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.04em', backgroundColor: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+              Tes présences en cours
+            </div>
+            {ouverts.map(o => (
+              <div key={o.id} style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C, marginBottom: 2 }}>
+                  {o.contexte_nom}
+                </div>
+                <div style={{ fontSize: 11, color: MUTED, marginBottom: 8 }}>
+                  Arrivée : {new Date(o.heure_arrivee).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}
+                  {o.contexte_lieu && <span> · 📍 {o.contexte_lieu}</span>}
+                </div>
+                {o.token ? (
+                  <button
+                    onClick={() => { setMenuOpen(false); router.push(`/punch/${o.token}`) }}
+                    style={{
+                      width: '100%', padding: '8px 12px', fontSize: 12, fontWeight: 700,
+                      backgroundColor: RED, color: 'white', border: 'none',
+                      borderRadius: 6, cursor: 'pointer',
+                    }}
+                  >
+                    ⏹️ Terminer cette présence
+                  </button>
+                ) : (
+                  <div style={{ fontSize: 11, color: MUTED, fontStyle: 'italic' }}>
+                    QR désactivé — demande à l'admin de fermer manuellement
+                  </div>
+                )}
+              </div>
+            ))}
+            <div style={{ padding: '10px 14px' }}>
+              <button
+                onClick={() => { setMenuOpen(false); handleOpenScanner() }}
+                style={{
+                  width: '100%', padding: '8px 12px', fontSize: 12, fontWeight: 600,
+                  backgroundColor: 'white', color: C, border: `1px solid #e5e7eb`,
+                  borderRadius: 6, cursor: 'pointer',
+                }}
+              >
+                📱 Scanner un autre QR
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Input caché pour capture photo (fallback) */}
       <input

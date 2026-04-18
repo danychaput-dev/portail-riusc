@@ -29,12 +29,33 @@ export async function GET() {
     .single()
   if (!res) return NextResponse.json({ on_duty: false })
 
-  const { data: ouverts, count } = await supabaseAdmin
+  const { data: ouvertsRaw, count } = await supabaseAdmin
     .from('pointages')
     .select('id, pointage_session_id, heure_arrivee', { count: 'exact' })
     .eq('benevole_id', res.benevole_id)
     .is('heure_depart', null)
     .neq('statut', 'annule')
+
+  // Enrichir avec le token et le nom du contexte de chaque session
+  // (pour que le menu du bouton QR puisse rediriger directement vers /punch/[token])
+  let ouverts: any[] = []
+  if (ouvertsRaw && ouvertsRaw.length > 0) {
+    const sessIds = ouvertsRaw.map((p: any) => p.pointage_session_id)
+    const { data: sessList } = await supabaseAdmin
+      .from('pointage_sessions')
+      .select('id, token, contexte_nom, contexte_lieu, shift, date_shift')
+      .in('id', sessIds)
+    const sessMap: Record<string, any> = {}
+    for (const s of (sessList || [])) sessMap[(s as any).id] = s
+    ouverts = ouvertsRaw.map((p: any) => ({
+      ...p,
+      token: sessMap[p.pointage_session_id]?.token || null,
+      contexte_nom: sessMap[p.pointage_session_id]?.contexte_nom || '',
+      contexte_lieu: sessMap[p.pointage_session_id]?.contexte_lieu || null,
+      shift: sessMap[p.pointage_session_id]?.shift || null,
+      date_shift: sessMap[p.pointage_session_id]?.date_shift || null,
+    }))
+  }
 
   // Supervision : combien de personnes sont actuellement actives sur les QR
   // que j'ai créés OU dont je suis l'approuveur désigné ?
@@ -60,7 +81,7 @@ export async function GET() {
   return NextResponse.json({
     on_duty: (count || 0) > 0,
     count: count || 0,
-    ouverts: ouverts || [],
+    ouverts,
     supervising_count: supervisingCount,
   })
 }
