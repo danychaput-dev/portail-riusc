@@ -1,14 +1,5 @@
 'use client'
 
-/**
- * ─────────────────────────────────────────────────────────────────
- * VERSION TEMPORAIRE (2026-04-18) — Sélection par jour (checkboxes)
- * Dates fixes : 19, 20, 21 avril 2026 (déploiement Laval digue)
- * L'ancienne version avec plage continue est dans page-plage-old.tsx
- * À remplacer par une page dynamique lisant les dates du déploiement
- * ─────────────────────────────────────────────────────────────────
- */
-
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
@@ -39,13 +30,6 @@ interface Reserviste {
 
 type ReponseType = 'disponible' | 'non_disponible' | 'a_confirmer';
 
-// Dates hardcodées pour cette version temporaire
-const DATES_FIXES = [
-  { iso: '2026-04-19', label: 'Dimanche 19 avril 2026' },
-  { iso: '2026-04-20', label: 'Lundi 20 avril 2026' },
-  { iso: '2026-04-21', label: 'Mardi 21 avril 2026' },
-]
-
 function SoumettreContent() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -56,7 +40,8 @@ function SoumettreContent() {
   const [showAide, setShowAide] = useState(false)
 
   const [reponse, setReponse] = useState<ReponseType | null>(null)
-  const [datesCochees, setDatesCochees] = useState<Set<string>>(new Set())
+  const [dateDebut, setDateDebut] = useState('')
+  const [dateFin, setDateFin] = useState('')
   const [transport, setTransport] = useState('')
   const [commentaires, setCommentaires] = useState('')
   const [engagementAccepte, setEngagementAccepte] = useState(false)
@@ -67,6 +52,10 @@ function SoumettreContent() {
   const supabase = createClient()
   const deploiementId = searchParams.get('deploiement') ?? ''
 
+  const demain = new Date()
+  demain.setDate(demain.getDate() + 1)
+  const minDate = demain.toISOString().split('T')[0]
+
   function formatDate(dateString: string): string {
     if (!dateString) return ''
     const [year, month, day] = dateString.split('-').map(Number)
@@ -74,23 +63,17 @@ function SoumettreContent() {
     return date.toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })
   }
 
-  const toggleDate = (iso: string) => {
-    setDatesCochees(prev => {
-      const next = new Set(prev)
-      if (next.has(iso)) next.delete(iso)
-      else next.add(iso)
-      return next
-    })
-    setError('')
-  }
+  const [demoToast, setDemoToast] = useState('')
 
   useEffect(() => {
     const loadData = async () => {
-      // Mode démo
+      // 🎯 MODE DÉMO
       if (isDemoActive()) {
         setReserviste({ benevole_id: DEMO_RESERVISTE.benevole_id, prenom: DEMO_RESERVISTE.prenom, nom: DEMO_RESERVISTE.nom, email: DEMO_RESERVISTE.email, telephone: DEMO_RESERVISTE.telephone })
         const demoDep = DEMO_DEPLOIEMENTS.find(d => d.deploiement_id === deploiementId) || DEMO_DEPLOIEMENTS[0]
         setDeploiement(demoDep as any)
+        if (demoDep.date_debut) setDateDebut(demoDep.date_debut)
+        if (demoDep.date_fin) setDateFin(demoDep.date_fin)
         setLoading(false)
         return
       }
@@ -128,6 +111,11 @@ function SoumettreContent() {
 
       if (dep) {
         setDeploiement(dep)
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        const tomorrowStr = tomorrow.toISOString().split('T')[0]
+        if (dep.date_debut && dep.date_debut >= tomorrowStr) setDateDebut(dep.date_debut)
+        if (dep.date_fin && dep.date_fin >= tomorrowStr) setDateFin(dep.date_fin)
       } else {
         setError('Déploiement introuvable.')
       }
@@ -138,84 +126,55 @@ function SoumettreContent() {
   }, [])
 
   const handleSubmit = async () => {
-    // Validation
-    if (!reserviste) { setError('Profil de réserviste non chargé. Reconnectez-vous et réessayez.'); return }
-    if (!deploiement) { setError('Aucun déploiement sélectionné. Retournez à la liste.'); return }
-    if (!reponse) { setError('Sélectionnez d\'abord une des 3 options : Disponible, À confirmer ou Non disponible.'); return }
+    // Validation visible (remplace les return silencieux qui cachaient le vrai probleme)
+    if (!reserviste) { setError('Profil de reserviste non charge. Reconnecte-toi et reessaie.'); return }
+    if (!deploiement) { setError('Aucun deploiement selectionne. Retourne a la liste.'); return }
+    if (!reponse) { setError('Selectionne d\'abord une des 3 options : Disponible, A confirmer ou Non disponible.'); return }
 
     if (reponse !== 'non_disponible') {
-      if (datesCochees.size === 0) { setError('Cochez au moins une date où vous êtes disponible.'); return }
+      if (!dateDebut || !dateFin) { setError('Veuillez indiquer vos dates de disponibilite.'); return }
+      if (dateDebut < minDate) { setError('La date de debut doit etre au plus tot demain.'); return }
+      const debut = new Date(dateDebut)
+      const fin = new Date(dateFin)
+      const diffJours = Math.ceil((fin.getTime() - debut.getTime()) / (1000 * 60 * 60 * 24))
+      // Duree minimale abaissee de 4 a 3 jours pour les deploiements courts
+      // (ex: construction de digue Laval 19-21 avril = 3 jours)
+      if (diffJours < 3) { setError('La duree minimale de disponibilite est de 3 jours.'); return }
       if (!transport) { setError('Veuillez indiquer votre situation de transport.'); return }
-      if (reponse === 'disponible' && !engagementAccepte) { setError('Veuillez cocher la case d\'engagement de disponibilité.'); return }
+      if (reponse === 'disponible' && !engagementAccepte) { setError('Veuillez cocher la case d\'engagement de disponibilite.'); return }
       if (reponse === 'disponible' && !aptitudeAcceptee) { setError('Veuillez cocher la case d\'aptitude physique et mentale.'); return }
     }
 
     setSubmitting(true)
     setError('')
 
-    // Mode démo
+    // 🎯 MODE DÉMO
     if (isDemoActive()) {
       setTimeout(() => { setSubmitting(false); setSubmitted(true) }, 1000)
       return
     }
 
     try {
-      // Cas NON DISPONIBLE : un seul appel sans dates
-      if (reponse === 'non_disponible') {
-        const response = await fetch(n8nUrl('/webhook/riusc-disponibilite'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            deployment_id: deploiement.deploiement_id,
-            date_debut: null,
-            date_fin: null,
-            transport: null,
-            commentaire: commentaires || null,
-            disponible: false,
-            a_confirmer: false,
-          })
+      const response = await fetch(n8nUrl('/webhook/riusc-disponibilite'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          benevole_id: reserviste.benevole_id,
+          deployment_id: deploiement.deploiement_id,
+          date_debut: reponse !== 'non_disponible' ? dateDebut : null,
+          date_fin: reponse !== 'non_disponible' ? dateFin : null,
+          transport: reponse !== 'non_disponible' ? transport : null,
+          commentaire: commentaires || null,
+          disponible: reponse === 'disponible',
+          a_confirmer: reponse === 'a_confirmer',
         })
-        if (response.ok) {
-          setSubmitted(true)
-        } else {
-          const data = await response.json().catch(() => ({}))
-          setError(data.error || 'Erreur lors de la soumission. Veuillez réessayer.')
-        }
-        setSubmitting(false)
-        return
-      }
+      })
 
-      // Cas DISPONIBLE / À CONFIRMER : un appel par date cochée
-      const datesTriees = Array.from(datesCochees).sort()
-      const erreurs: string[] = []
-      for (const date of datesTriees) {
-        const response = await fetch(n8nUrl('/webhook/riusc-disponibilite'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            benevole_id: reserviste.benevole_id,
-            deployment_id: deploiement.deploiement_id,
-            date_debut: date,
-            date_fin: date,
-            transport,
-            commentaire: commentaires || null,
-            disponible: reponse === 'disponible',
-            a_confirmer: reponse === 'a_confirmer',
-          })
-        })
-        if (!response.ok) {
-          const data = await response.json().catch(() => ({}))
-          erreurs.push(`${date}: ${data.error || response.status}`)
-        }
-      }
-
-      if (erreurs.length === 0) {
+      if (response.ok) {
         setSubmitted(true)
-      } else if (erreurs.length < datesTriees.length) {
-        setError(`Certaines dates ont échoué : ${erreurs.join(', ')}. Les autres sont bien enregistrées.`)
       } else {
-        setError(`Erreur lors de la soumission : ${erreurs.join(', ')}`)
+        const data = await response.json().catch(() => ({}))
+        setError(data.error || 'Erreur lors de la soumission. Veuillez réessayer.')
       }
     } catch (err) {
       console.error('Erreur soumission:', err)
@@ -232,22 +191,18 @@ function SoumettreContent() {
     )
   }
 
-  // ── Écran de confirmation ─────────────────────────────────────────────────
+  // ── Écran de confirmation post-soumission ─────────────────────────────────
   if (submitted && reponse) {
     type MsgConfig = { titre: string; icon: string; bg: string; texte: string; note: string }
     const prenom = reserviste?.prenom ?? ''
     const contact = reserviste?.telephone ? 'SMS' : 'courriel'
-
-    const datesChoisies = Array.from(datesCochees).sort()
-      .map(d => DATES_FIXES.find(x => x.iso === d)?.label || d)
-      .join(', ')
 
     const messages: Record<ReponseType, MsgConfig> = {
       disponible: {
         titre: 'Disponibilité enregistrée',
         icon: '✅',
         bg: '#d1fae5',
-        texte: `Merci, ${prenom} ! Vos dates ont bien été reçues : ${datesChoisies}.`,
+        texte: `Merci, ${prenom} ! Vos dates ont bien été reçues.`,
         note: `La planification débute rapidement après la fermeture des disponibilités. Si vous êtes sélectionné pour ce déploiement, vous en serez informé par ${contact}.`,
       },
       non_disponible: {
@@ -261,7 +216,7 @@ function SoumettreContent() {
         titre: 'Dates soumises',
         icon: '⏳',
         bg: '#fef3c7',
-        texte: `Merci, ${prenom} ! Vos dates ont été reçues sous réserve de confirmation : ${datesChoisies}.`,
+        texte: `Merci, ${prenom} ! Vos dates ont été reçues sous réserve de confirmation.`,
         note: 'Un suivi sera fait dans les 48 prochaines heures pour confirmer votre disponibilité.',
       },
     }
@@ -290,6 +245,14 @@ function SoumettreContent() {
               {msg.note}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              {reponse !== 'non_disponible' && deploiementId && (
+                <a
+                  href={`/disponibilites/soumettre?deploiement=${deploiementId}`}
+                  style={{ display: 'inline-block', padding: '12px 28px', backgroundColor: '#f0f4f8', color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
+                >
+                  + Ajouter une autre plage de disponibilité
+                </a>
+              )}
               <a
                 href="/disponibilites"
                 style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
@@ -323,7 +286,7 @@ function SoumettreContent() {
           <a href="/disponibilites" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour aux disponibilités</a>
         </div>
 
-        {/* Carte déploiement */}
+        {/* ── Carte déploiement ── */}
         {deploiement && (
           <div style={{ backgroundColor: '#1e3a5f', padding: '24px 28px', borderRadius: '12px', marginBottom: '24px', color: 'white' }}>
             {deploiement.nom_sinistre && (
@@ -337,7 +300,7 @@ function SoumettreContent() {
               {deploiement.lieu && <div>📍 {deploiement.lieu}</div>}
               {deploiement.organisme && <div>🏢 {deploiement.organisme}</div>}
               {deploiement.date_debut && (
-                <div>📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` au ${formatDate(deploiement.date_fin)}` : ''}</div>
+                <div>📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` — ${formatDate(deploiement.date_fin)}` : ''}</div>
               )}
               {deploiement.date_limite_reponse && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' }}>
@@ -348,7 +311,7 @@ function SoumettreContent() {
           </div>
         )}
 
-        {/* Bloc d'aide accordéon */}
+        {/* ── Bloc d'aide accordéon ── */}
         <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', overflow: 'hidden', border: '1px solid #e0e7ef' }}>
           <button
             onClick={() => setShowAide(!showAide)}
@@ -369,11 +332,11 @@ function SoumettreContent() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
                 <div style={{ display: 'flex', gap: '14px' }}>
-                  <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>✅</span>
+                  <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>📅</span>
                   <div>
-                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Cochez les jours où vous êtes disponible</p>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Plusieurs plages possibles</p>
                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.6' }}>
-                      Vous pouvez cocher <strong>un, deux ou trois jours</strong>. Par exemple : disponible dimanche et mardi, pas disponible lundi.
+                      Vous pouvez soumettre <strong>plusieurs plages de dates distinctes</strong> pour un même déploiement — par exemple, du <em>1 au 7 mars</em> puis du <em>20 au 26 mars</em>. Après votre première soumission, un bouton <strong>« Ajouter une autre plage »</strong> vous sera proposé.
                     </p>
                   </div>
                 </div>
@@ -385,7 +348,19 @@ function SoumettreContent() {
                   <div>
                     <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Planification rapide</p>
                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.6' }}>
-                      La planification débute peu après la fermeture des disponibilités. Indiquez des dates où vous seriez <strong>réellement disponible</strong>.
+                      La planification débute peu après la fermeture des disponibilités. Indiquez des dates où vous seriez <strong>réellement disponible</strong> — ça nous permet de vous inclure rapidement, sans allers-retours supplémentaires.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid #e5e7eb' }} />
+
+                <div style={{ display: 'flex', gap: '14px' }}>
+                  <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>✏️</span>
+                  <div>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Modifier une plage</p>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.6' }}>
+                      Vous pouvez modifier vos dates depuis la page <em>Mes disponibilités</em>, tant que la date limite de réponse n&apos;est pas dépassée. Après ce délai, les disponibilités sont verrouillées pour permettre la planification.
                     </p>
                   </div>
                 </div>
@@ -397,7 +372,7 @@ function SoumettreContent() {
                   <div>
                     <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Vous serez informé dans tous les cas</p>
                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.6' }}>
-                      Que vous soyez sélectionné pour ce déploiement ou non, vous recevrez une réponse.
+                      Que vous soyez sélectionné pour ce déploiement ou non, vous recevrez une réponse. Si vous n&apos;êtes pas retenu pour cette vague, nous reviendrons vers vous pour la suivante afin de valider vos disponibilités.
                     </p>
                   </div>
                 </div>
@@ -413,7 +388,7 @@ function SoumettreContent() {
           </div>
         )}
 
-        {/* Choix de réponse */}
+        {/* ── Choix de réponse ── */}
         <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
           <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Quelle est votre disponibilité ?</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -423,7 +398,7 @@ function SoumettreContent() {
               <span style={{ fontSize: '28px', flexShrink: 0 }}>✅</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#065f46' }}>Je suis disponible</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Cochez les jours où vous pouvez vous déplacer</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Indiquez vos dates — nous planifions rapidement à partir de votre réponse</div>
               </div>
             </button>
 
@@ -432,7 +407,7 @@ function SoumettreContent() {
               <span style={{ fontSize: '28px', flexShrink: 0 }}>⏳</span>
               <div>
                 <div style={{ fontSize: '15px', fontWeight: '600', color: '#92400e' }}>Je dois confirmer avec mon employeur</div>
-                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Cochez les jours souhaités, un suivi sera fait dans les 48h</div>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '2px' }}>Soumettez vos dates souhaitées — un suivi sera fait dans les 48h</div>
               </div>
             </button>
 
@@ -447,7 +422,7 @@ function SoumettreContent() {
           </div>
         </div>
 
-        {/* Formulaire disponible / à confirmer */}
+        {/* ── Formulaire disponible / à confirmer ── */}
         {reponse && reponse !== 'non_disponible' && (
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
 
@@ -456,7 +431,7 @@ function SoumettreContent() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <span style={{ fontSize: '20px', flexShrink: 0 }}>💡</span>
                   <p style={{ margin: 0, color: '#0369a1', fontSize: '14px', lineHeight: '1.7' }}>
-                    Cochez les jours où vous êtes réellement disponible. Si vous êtes sélectionné, nous vous contacterons.
+                    La planification débute rapidement après la fermeture des disponibilités. Indiquez des dates où vous seriez <strong>réellement disponible</strong> — ça nous permet de vous inclure sans délai supplémentaire. Si vous êtes sélectionné, nous vous contacterons.
                   </p>
                 </div>
               </div>
@@ -467,45 +442,31 @@ function SoumettreContent() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                   <span style={{ fontSize: '20px', flexShrink: 0 }}>⏳</span>
                   <p style={{ margin: 0, color: '#78350f', fontSize: '14px', lineHeight: '1.7' }}>
-                    Cochez les jours souhaités. Un suivi sera fait dans les <strong>48 heures</strong> pour confirmer ou ajuster votre disponibilité.
+                    Indiquez les dates souhaitées. Un suivi sera fait dans les <strong>48 heures</strong> pour confirmer ou ajuster votre disponibilité.
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Checkboxes dates */}
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
-                Êtes-vous disponible ces journées ?
+                {reponse === 'disponible' ? 'Vos dates de disponibilité' : 'Dates souhaitées'}
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {DATES_FIXES.map(({ iso, label }) => {
-                  const checked = datesCochees.has(iso)
-                  return (
-                    <label key={iso} style={{
-                      display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px',
-                      border: checked ? '2px solid #059669' : '1px solid #e5e7eb',
-                      borderRadius: '10px', cursor: 'pointer',
-                      backgroundColor: checked ? '#ecfdf5' : 'white',
-                      transition: 'all 0.2s'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleDate(iso)}
-                        style={{ accentColor: '#059669', width: '22px', height: '22px', flexShrink: 0 }}
-                      />
-                      <span style={{ fontSize: '15px', color: '#111827', fontWeight: checked ? '600' : '500' }}>
-                        {label}
-                      </span>
-                    </label>
-                  )
-                })}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date de début *</label>
+                  <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} min={minDate}
+                    style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date de fin *</label>
+                  <input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} min={dateDebut || minDate}
+                    style={{ width: '100%', padding: '12px 14px', fontSize: '15px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', color: '#111827' }} />
+                </div>
               </div>
-              <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280' }}>Cochez au moins une date.</p>
+              <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280' }}>Durée minimale : 4 jours</p>
             </div>
 
-            {/* Transport */}
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>Transport *</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -524,7 +485,6 @@ function SoumettreContent() {
               </div>
             </div>
 
-            {/* Commentaires */}
             <div style={{ marginBottom: '28px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Commentaires</h3>
               <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>Informations supplémentaires pertinentes (limitations, compétences particulières, etc.)</p>
@@ -532,20 +492,18 @@ function SoumettreContent() {
                 style={{ width: '100%', padding: '12px 14px', fontSize: '14px', border: '2px solid #e5e7eb', borderRadius: '8px', boxSizing: 'border-box', resize: 'vertical', color: '#111827', fontFamily: 'inherit' }} />
             </div>
 
-            {/* Engagement */}
             {reponse === 'disponible' && (
               <div style={{ backgroundColor: '#f9fafb', padding: '16px 20px', borderRadius: '8px', marginBottom: '16px', border: '1px solid #e5e7eb' }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={engagementAccepte} onChange={(e) => setEngagementAccepte(e.target.checked)}
                     style={{ accentColor: '#1e3a5f', width: '20px', height: '20px', marginTop: '2px', flexShrink: 0 }} />
                   <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
-                    Je confirme que les dates cochées reflètent ma <strong>disponibilité réelle</strong> au moment de la soumission.
+                    Je confirme que les dates indiquées reflètent ma <strong>disponibilité réelle</strong> au moment de la soumission.
                   </span>
                 </label>
               </div>
             )}
 
-            {/* Aptitude */}
             {reponse === 'disponible' && (
               <div style={{ backgroundColor: '#f9fafb', padding: '16px 20px', borderRadius: '8px', marginBottom: '28px', border: '1px solid #e5e7eb' }}>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }}>
@@ -560,21 +518,21 @@ function SoumettreContent() {
 
             <button
               onClick={handleSubmit}
-              disabled={submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee))}
+              disabled={submitting || (reponse === 'disponible' && !engagementAccepte) || (reponse === 'disponible' && !aptitudeAcceptee) || !dateDebut || !dateFin || !transport}
               style={{
                 width: '100%', padding: '16px 24px',
-                backgroundColor: (submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee)))
+                backgroundColor: (submitting || (reponse === 'disponible' && !engagementAccepte) || (reponse === 'disponible' && !aptitudeAcceptee) || !dateDebut || !dateFin || !transport)
                   ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706',
                 color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600',
-                cursor: (submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee))) ? 'not-allowed' : 'pointer',
+                cursor: (submitting || (reponse === 'disponible' && !engagementAccepte) || (reponse === 'disponible' && !aptitudeAcceptee)) ? 'not-allowed' : 'pointer',
                 transition: 'background-color 0.2s'
               }}>
-              {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? `Envoyer mes disponibilités (${datesCochees.size} jour${datesCochees.size > 1 ? 's' : ''})` : `Soumettre mes dates à confirmer (${datesCochees.size} jour${datesCochees.size > 1 ? 's' : ''})`}
+              {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? 'Envoyer mes disponibilités' : 'Soumettre mes dates (à confirmer)'}
             </button>
           </div>
         )}
 
-        {/* Formulaire non disponible */}
+        {/* ── Formulaire non disponible ── */}
         {reponse === 'non_disponible' && (
           <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
             <div style={{ marginBottom: '24px' }}>
