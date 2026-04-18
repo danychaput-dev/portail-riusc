@@ -1,16 +1,17 @@
 'use client'
 
 // Bouton QR dans l'en-tête du portail.
-// Clic → overlay plein écran avec caméra → scan du QR → redirect /punch/[token].
-//
-// Utilise html5-qrcode côté client (chargement dynamique pour éviter
-// les erreurs SSR de Next.js).
+// Deux stratégies pour garantir un scan dans tous les cas :
+//   1. Caméra live (html5-qrcode) — préférée, plus rapide. La permission est
+//      demandée DANS LE onClick (user gesture) pour que le navigateur mobile
+//      ne refuse pas silencieusement.
+//   2. Prendre une photo (input file avec capture=environment) — fallback
+//      toujours fonctionnel, contourne les blocages de permission.
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const C = '#1e3a5f'
-const GREEN = '#16a34a'
 const RED = '#dc2626'
 const MUTED = '#6b7280'
 
@@ -19,45 +20,86 @@ export default function QRScannerButton() {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [scanning, setScanning] = useState(false)
+  const [usePhotoMode, setUsePhotoMode] = useState(false)
   const scannerRef = useRef<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Démarrer le scanner quand l'overlay s'ouvre
+  // Ouverture du scanner live — demande de permission dans le user gesture
+  const handleOpenScanner = async () => {
+    setError(null)
+    setUsePhotoMode(false)
+
+    // Test de permission dans le contexte du clic (avant tout setState asynchrone)
+    try {
+      const testStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+      })
+      // On libère immédiatement — html5-qrcode ouvrira son propre stream
+      // mais la permission est maintenant cachée pour la session, donc pas de re-prompt
+      testStream.getTracks().forEach(t => t.stop())
+      setOpen(true)
+    } catch (err: any) {
+      const name = err?.name || ''
+      const msg = err?.message || ''
+      if (/NotAllowed|Permission/i.test(name + msg)) {
+        setError(
+          "Accès caméra refusé par ton navigateur. " +
+          "Essaie plutôt l'option « Prendre une photo » ci-dessous — ça marche dans tous les cas."
+        )
+      } else if (/NotFound|DevicesNotFound/i.test(name + msg)) {
+        setError('Aucune caméra détectée. Utilise « Prendre une photo ».')
+      } else if (/NotReadable|TrackStartError/i.test(name + msg)) {
+        setError('Caméra déjà utilisée par une autre app. Ferme-la et réessaie, ou prends une photo.')
+      } else {
+        setError('Impossible d\'ouvrir la caméra : ' + (msg || name || 'erreur inconnue'))
+      }
+      // On laisse aussi l'option photo visible
+      setOpen(true)
+      setUsePhotoMode(true)
+    }
+  }
+
+  // Mode fallback — utilisation de l'input file natif, qui ouvre l'appareil
+  // photo sans passer par getUserMedia (toujours fonctionnel, pas de permission requise).
+  const handleTakePhoto = () => {
+    setError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setScanning(true)
+    try {
+      const mod = await import('html5-qrcode')
+      const scanner = new mod.Html5Qrcode('qr-reader-region-photo', { verbose: false } as any)
+      try {
+        const decoded = await scanner.scanFile(file, true)
+        handleTokenFound(decoded)
+      } catch (decodeErr: any) {
+        setError("Aucun QR détecté dans la photo. Assure-toi que le QR est net, bien cadré et éclairé.")
+      } finally {
+        try { scanner.clear() } catch {}
+      }
+    } catch (err: any) {
+      setError('Erreur de décodage : ' + (err?.message || 'inconnu'))
+    } finally {
+      setScanning(false)
+      // Reset pour pouvoir re-sélectionner la même photo si besoin
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  // Mode live — html5-qrcode démarre quand l'overlay est ouvert et pas en mode photo
   useEffect(() => {
-    if (!open) return
+    if (!open || usePhotoMode) return
 
     let cancelled = false
     let htmlScanner: any = null
 
     ;(async () => {
-      setError(null)
       setScanning(true)
       try {
-        // 1. Forcer la demande de permission caméra explicitement AVANT d'utiliser
-        // html5-qrcode. Sur certains navigateurs mobiles, getCameras() échoue
-        // silencieusement sans déclencher la popup de permission.
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' } },
-          })
-          // On libère immédiatement — html5-qrcode ouvrira son propre stream ensuite
-          stream.getTracks().forEach(t => t.stop())
-        } catch (permErr: any) {
-          const m = (permErr?.name || '') + ' ' + (permErr?.message || '')
-          if (cancelled) return
-          if (/NotAllowed|Permission/i.test(m)) {
-            setError("Accès caméra refusé. Va dans Chrome → 3 points → Paramètres → Paramètres du site → Appareil photo, et autorise portail.riusc.ca.")
-          } else if (/NotFound|DevicesNotFound/i.test(m)) {
-            setError('Aucune caméra disponible sur cet appareil.')
-          } else if (/NotReadable/i.test(m)) {
-            setError('La caméra est utilisée par une autre application. Ferme-la et réessaie.')
-          } else {
-            setError('Impossible d\'accéder à la caméra : ' + (permErr?.message || 'erreur inconnue'))
-          }
-          setScanning(false)
-          return
-        }
-
-        // 2. Chargement dynamique de html5-qrcode (évite SSR)
         const mod = await import('html5-qrcode')
         if (cancelled) return
 
@@ -69,33 +111,24 @@ export default function QRScannerButton() {
         if (cancelled) return
 
         if (!cameras || cameras.length === 0) {
-          setError("Aucune caméra détectée. Autorise l'accès dans les paramètres du navigateur.")
+          setError("Aucune caméra détectée. Utilise « Prendre une photo ».")
+          setUsePhotoMode(true)
           setScanning(false)
           return
         }
 
-        // Priorité : caméra arrière (en mobile)
         const rear = cameras.find((c: any) => /back|rear|arrière/i.test(c.label)) || cameras[cameras.length - 1]
 
         await htmlScanner.start(
           rear.id,
           { fps: 10, qrbox: { width: 260, height: 260 } },
-          (decodedText: string) => {
-            // Succès — arrêter le scan et naviguer
-            handleScanned(decodedText, htmlScanner)
-          },
+          (decodedText: string) => handleTokenFound(decodedText, htmlScanner),
           () => { /* erreurs par frame ignorées */ }
         )
       } catch (e: any) {
         if (cancelled) return
-        const msg = (e?.message || '').toString()
-        if (msg.includes('Permission') || msg.includes('NotAllowed')) {
-          setError("Accès caméra refusé. Autorise-le dans les paramètres du navigateur.")
-        } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
-          setError('Aucune caméra disponible sur cet appareil.')
-        } else {
-          setError('Impossible de démarrer le scanner. ' + (msg || ''))
-        }
+        setError('Impossible de démarrer le scanner live. Essaie « Prendre une photo ».')
+        setUsePhotoMode(true)
         setScanning(false)
       }
     })()
@@ -103,30 +136,27 @@ export default function QRScannerButton() {
     return () => {
       cancelled = true
       if (scannerRef.current) {
-        try {
-          scannerRef.current.stop().catch(() => {})
-          scannerRef.current.clear()
-        } catch {}
+        try { scannerRef.current.stop().catch(() => {}) } catch {}
+        try { scannerRef.current.clear() } catch {}
         scannerRef.current = null
       }
     }
-  }, [open])
+  }, [open, usePhotoMode])
 
-  const handleScanned = async (decodedText: string, scanner: any) => {
-    // Stopper le scanner
-    try { await scanner.stop() } catch {}
-    try { scanner.clear() } catch {}
-    scannerRef.current = null
+  // Extraction du token depuis le contenu scanné + redirection
+  const handleTokenFound = async (decodedText: string, scanner?: any) => {
+    if (scanner) {
+      try { await scanner.stop() } catch {}
+      try { scanner.clear() } catch {}
+      scannerRef.current = null
+    }
 
-    // Parser l'URL du QR — attendu : https://portail.riusc.ca/punch/TOKEN
-    // On tolère tout host — on extrait juste le /punch/TOKEN
     let token: string | null = null
     try {
       const u = new URL(decodedText)
       const m = u.pathname.match(/\/punch\/([a-zA-Z0-9]+)/)
       if (m) token = m[1]
     } catch {
-      // Peut-être juste le token brut sans URL
       if (/^[a-zA-Z0-9]{12,}$/.test(decodedText.trim())) {
         token = decodedText.trim()
       }
@@ -134,7 +164,6 @@ export default function QRScannerButton() {
 
     if (!token) {
       setError('Ce QR ne correspond pas à un pointage RIUSC.')
-      setScanning(false)
       return
     }
 
@@ -142,10 +171,16 @@ export default function QRScannerButton() {
     router.push(`/punch/${token}`)
   }
 
+  const closeOverlay = () => {
+    setOpen(false)
+    setError(null)
+    setUsePhotoMode(false)
+  }
+
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleOpenScanner}
         title="Scanner un QR de pointage"
         aria-label="Scanner un QR de pointage"
         style={{
@@ -168,11 +203,21 @@ export default function QRScannerButton() {
         </svg>
       </button>
 
+      {/* Input caché pour capture photo (fallback) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePhotoSelected}
+      />
+
       {open && (
         <div style={overlayStyle}>
           <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
             <button
-              onClick={() => setOpen(false)}
+              onClick={closeOverlay}
               aria-label="Fermer"
               style={{
                 width: 40, height: 40, borderRadius: '50%',
@@ -190,15 +235,52 @@ export default function QRScannerButton() {
             Scanner un QR de pointage
           </div>
 
-          <div id="qr-reader-region" style={{ width: '100%', maxWidth: 520, maxHeight: '80vh' }} />
+          {!usePhotoMode && (
+            <div id="qr-reader-region" style={{ width: '100%', maxWidth: 520, maxHeight: '70vh' }} />
+          )}
 
-          {error && (
-            <div style={{ position: 'absolute', bottom: 24, left: 16, right: 16, padding: 14, borderRadius: 10, backgroundColor: 'white', color: RED, fontSize: 13, textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
-              {error}
+          <div id="qr-reader-region-photo" style={{ display: 'none' }} />
+
+          {usePhotoMode && (
+            <div style={{ maxWidth: 420, padding: 30, textAlign: 'center', color: 'white' }}>
+              <div style={{ fontSize: 54, marginBottom: 12 }}>📷</div>
+              <div style={{ fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>
+                Prends une photo du QR avec ton appareil. On décode automatiquement et on t'amène sur la page de pointage.
+              </div>
+              <button
+                onClick={handleTakePhoto}
+                disabled={scanning}
+                style={{
+                  padding: '14px 28px', fontSize: 16, fontWeight: 700,
+                  backgroundColor: 'white', color: C, border: 'none',
+                  borderRadius: 10, cursor: scanning ? 'wait' : 'pointer',
+                  opacity: scanning ? 0.6 : 1,
+                }}
+              >
+                {scanning ? 'Décodage…' : '📸 Prendre une photo'}
+              </button>
             </div>
           )}
 
-          {scanning && !error && (
+          {error && (
+            <div style={{ position: 'absolute', bottom: 24, left: 16, right: 16, padding: 14, borderRadius: 10, backgroundColor: 'white', color: RED, fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}>
+              <div style={{ marginBottom: 10 }}>{error}</div>
+              {!usePhotoMode && (
+                <button
+                  onClick={() => { setError(null); setUsePhotoMode(true) }}
+                  style={{
+                    padding: '8px 14px', fontSize: 13, fontWeight: 700,
+                    backgroundColor: C, color: 'white', border: 'none',
+                    borderRadius: 6, cursor: 'pointer',
+                  }}
+                >
+                  📸 Prendre une photo à la place
+                </button>
+              )}
+            </div>
+          )}
+
+          {scanning && !error && !usePhotoMode && (
             <div style={{ position: 'absolute', bottom: 30, left: 0, right: 0, textAlign: 'center', color: 'white', fontSize: 13, pointerEvents: 'none' }}>
               Pointe la caméra sur le QR code
             </div>
