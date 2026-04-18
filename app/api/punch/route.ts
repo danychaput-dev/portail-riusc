@@ -85,13 +85,56 @@ export async function POST(req: NextRequest) {
 
   // 3. Traiter selon l'action
   if (action === 'arrivee') {
-    // Refuser si un pointage est déjà en cours (le partial unique index le refuserait aussi)
+    // Refuser si un pointage est déjà en cours SUR CETTE session
     if (lastPointage && lastPointage.heure_arrivee && !lastPointage.heure_depart) {
       return NextResponse.json({
         error: 'Tu as déjà un pointage en cours. Utilise « Terminer » ou « Corriger l\'arrivée ».',
         existing: lastPointage,
       }, { status: 409 })
     }
+
+    // Garde-fou : si pointage ouvert sur UN AUTRE QR, refuser sauf close_others:true
+    if (!body.close_others) {
+      const { data: autresOuverts } = await supabaseAdmin
+        .from('pointages')
+        .select('id, pointage_session_id, heure_arrivee, pointage_sessions!inner(contexte_nom)')
+        .eq('benevole_id', user.benevole_id)
+        .is('heure_depart', null)
+        .neq('pointage_session_id', session.id)
+      if (autresOuverts && autresOuverts.length > 0) {
+        return NextResponse.json({
+          error: 'open_elsewhere',
+          message: 'Tu as un pointage en cours sur un autre QR.',
+          autres: autresOuverts.map((a: any) => ({
+            id: a.id,
+            pointage_session_id: a.pointage_session_id,
+            heure_arrivee: a.heure_arrivee,
+            contexte_nom: a.pointage_sessions?.contexte_nom || '—',
+          })),
+        }, { status: 409 })
+      }
+    } else {
+      // Fermeture automatique des autres pointages ouverts avant de créer le nouveau
+      const now = heureCible
+      const { data: fermes } = await supabaseAdmin
+        .from('pointages')
+        .update({ heure_depart: now })
+        .eq('benevole_id', user.benevole_id)
+        .is('heure_depart', null)
+        .neq('pointage_session_id', session.id)
+        .select('id, pointage_session_id, heure_arrivee')
+      if (fermes && fermes.length > 0) {
+        for (const f of fermes) {
+          await supabaseAdmin.from('pointage_logs').insert({
+            pointage_id: f.id, benevole_id: user.benevole_id,
+            action: 'depart', valeur_apres: now,
+            notes: 'Fermeture automatique — nouveau scan sur un autre QR',
+            modifie_par: user.benevole_id,
+          })
+        }
+      }
+    }
+
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('pointages')
       .insert({
@@ -116,6 +159,16 @@ export async function POST(req: NextRequest) {
     if (!lastPointage || !lastPointage.heure_arrivee || lastPointage.heure_depart) {
       return NextResponse.json({
         error: "Aucun pointage en cours à terminer. Utilise « Commencer » d'abord.",
+      }, { status: 409 })
+    }
+    // Garde-fou : si la durée est < 5 min, demander confirmation (sauf si confirm_short:true)
+    const dureeMin = (new Date(heureCible).getTime() - new Date(lastPointage.heure_arrivee).getTime()) / 60000
+    if (dureeMin < 5 && !body.confirm_short) {
+      return NextResponse.json({
+        error: 'short_duration',
+        message: `Tu as pointé ton arrivée il y a seulement ${Math.floor(dureeMin)} minute(s). Es-tu certain de vouloir terminer ?`,
+        duree_minutes: Math.floor(dureeMin),
+        heure_arrivee: lastPointage.heure_arrivee,
       }, { status: 409 })
     }
     const { data: updated, error: updErr } = await supabaseAdmin
@@ -216,9 +269,23 @@ export async function GET(req: NextRequest) {
     .limit(1)
     .maybeSingle()
 
+  // Pointages ouverts sur D'AUTRES QR (l'utilisateur a oublié de fermer quelque part)
+  const { data: autresOuverts } = await supabaseAdmin
+    .from('pointages')
+    .select('id, pointage_session_id, heure_arrivee, pointage_sessions!inner(contexte_nom)')
+    .eq('benevole_id', user.benevole_id)
+    .is('heure_depart', null)
+    .neq('pointage_session_id', session.id)
+
   return NextResponse.json({
     reserviste: { prenom: user.prenom, nom: user.nom },
     session,
     pointage: lastPointage,
+    autres_ouverts: (autresOuverts || []).map((a: any) => ({
+      id: a.id,
+      pointage_session_id: a.pointage_session_id,
+      heure_arrivee: a.heure_arrivee,
+      contexte_nom: a.pointage_sessions?.contexte_nom || '—',
+    })),
   })
 }

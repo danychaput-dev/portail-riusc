@@ -33,6 +33,13 @@ interface PointageInfo {
 
 interface Reserviste { prenom: string; nom: string }
 
+interface AutreOuvert {
+  id: string
+  pointage_session_id: string
+  heure_arrivee: string
+  contexte_nom: string
+}
+
 type PunchState = 'aucun' | 'en_cours' | 'complete'
 
 export default function PunchPage() {
@@ -44,11 +51,13 @@ export default function PunchPage() {
   const [session, setSession] = useState<SessionInfo | null>(null)
   const [pointage, setPointage] = useState<PointageInfo | null>(null)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
+  const [autresOuverts, setAutresOuverts] = useState<AutreOuvert[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [showCorrection, setShowCorrection] = useState<null | 'arrivee' | 'depart'>(null)
   const [correctionTime, setCorrectionTime] = useState('')
+  const [confirmShort, setConfirmShort] = useState<null | { minutes: number; heureArrivee: string }>(null)
 
   // Charger l'état
   const load = async () => {
@@ -70,6 +79,7 @@ export default function PunchPage() {
       setSession(json.session)
       setPointage(json.pointage)
       setReserviste(json.reserviste)
+      setAutresOuverts(json.autres_ouverts || [])
     } catch (e: any) {
       setErr(e.message || 'Erreur réseau')
     } finally {
@@ -85,8 +95,8 @@ export default function PunchPage() {
       ? 'en_cours'
       : 'complete'
 
-  // Action
-  const action = async (actionType: string, customHeure?: string) => {
+  // Action — extras peut contenir confirm_short:true ou close_others:true
+  const action = async (actionType: string, customHeure?: string, extras?: Record<string, any>) => {
     setSubmitting(true)
     setErr(null)
     setSuccessMsg(null)
@@ -94,10 +104,24 @@ export default function PunchPage() {
       const res = await fetch('/api/punch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: actionType, heure: customHeure }),
+        body: JSON.stringify({ token, action: actionType, heure: customHeure, ...extras }),
       })
       const json = await res.json()
       if (!res.ok) {
+        // Interception des erreurs spéciales pour afficher des UI adaptées
+        if (json.error === 'short_duration') {
+          setConfirmShort({ minutes: json.duree_minutes, heureArrivee: json.heure_arrivee })
+          setSubmitting(false)
+          return
+        }
+        if (json.error === 'open_elsewhere') {
+          // Ce cas est normalement intercepté côté page par le bandeau —
+          // mais on le gère aussi ici si l'API retourne cette erreur suite à un clic direct
+          setAutresOuverts(json.autres || [])
+          setErr(json.message || 'Tu as un pointage en cours sur un autre QR.')
+          setSubmitting(false)
+          return
+        }
         setErr(json.error || 'Erreur')
         setSubmitting(false)
         return
@@ -169,8 +193,60 @@ export default function PunchPage() {
           <CurrentPointageStatus pointage={pointage} state={state} />
         )}
 
-        {/* Boutons selon l'état */}
-        {!showCorrection && (
+        {/* Bandeau : autre pointage ouvert ailleurs — demande de fermeture */}
+        {state === 'aucun' && autresOuverts.length > 0 && !showCorrection && !confirmShort && (
+          <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#fffbeb', border: `1px solid #fde68a`, marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, color: AMBER, marginBottom: 6, fontSize: 14 }}>
+              ⚠️ Tu as un pointage ouvert ailleurs
+            </div>
+            {autresOuverts.map(a => (
+              <div key={a.id} style={{ fontSize: 13, color: '#78350f', marginBottom: 4 }}>
+                • <strong>{a.contexte_nom}</strong> — ouvert à {formatTime(a.heure_arrivee)}
+              </div>
+            ))}
+            <div style={{ fontSize: 12, color: '#92400e', marginTop: 8, marginBottom: 10 }}>
+              Tu veux fermer l'(les) autre(s) automatiquement avant de commencer ici ?
+            </div>
+            <button
+              disabled={submitting}
+              onClick={() => action('arrivee', undefined, { close_others: true })}
+              style={{ ...bigBtn, backgroundColor: AMBER }}
+            >
+              ✓ Fermer les autres et commencer ici
+            </button>
+          </div>
+        )}
+
+        {/* Modal de confirmation : départ dans les 5 min après l'arrivée */}
+        {confirmShort && (
+          <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#fef2f2', border: `1px solid #fecaca`, marginBottom: 16 }}>
+            <div style={{ fontWeight: 700, color: RED, marginBottom: 6, fontSize: 14 }}>
+              ⏱️ Départ très rapide
+            </div>
+            <div style={{ fontSize: 13, color: '#7f1d1d', marginBottom: 12 }}>
+              Tu as pointé ton arrivée il y a seulement <strong>{confirmShort.minutes} minute(s)</strong>.
+              Est-ce une fausse manœuvre ?
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setConfirmShort(null)}
+                style={{ flex: 1, ...bigBtn, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}` }}
+              >
+                Annuler (pas de départ)
+              </button>
+              <button
+                disabled={submitting}
+                onClick={() => { setConfirmShort(null); action('depart', undefined, { confirm_short: true }) }}
+                style={{ flex: 1, ...bigBtn, backgroundColor: RED }}
+              >
+                Oui, terminer quand même
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Boutons selon l'état (masqués si bandeau autre-ouvert ou confirm-short actif) */}
+        {!showCorrection && !confirmShort && !(state === 'aucun' && autresOuverts.length > 0) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {state === 'aucun' && (
               <button disabled={submitting} onClick={() => action('arrivee')}
