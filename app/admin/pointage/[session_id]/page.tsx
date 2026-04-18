@@ -217,6 +217,12 @@ export default function SessionDetailPage() {
                   <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button onClick={() => setEditTarget(p)} title="Corriger heures / notes" style={btnIcon}>✏️</button>
                     <button onClick={() => setLogsTarget(p)} title="Voir l'historique" style={btnIcon}>📜</button>
+                    {p.statut === 'en_cours' && (
+                      <button
+                        onClick={() => setEditTarget({ ...p, heure_depart: new Date().toISOString(), notes: p.notes || '' })}
+                        title="Terminer ce pointage (heure actuelle préremplie)"
+                        style={{ ...btnIcon, color: RED }}>⏹️</button>
+                    )}
                     {p.statut === 'complete' && (
                       <button onClick={() => doAction(p.id, 'approuver')} title="Approuver"
                         style={{ ...btnIcon, color: GREEN }}>✓</button>
