@@ -24,11 +24,11 @@ export default function QRScannerButton() {
   const [scanning, setScanning] = useState(false)
   const [usePhotoMode, setUsePhotoMode] = useState(false)
   const [onDuty, setOnDuty] = useState(false)
+  const [supervisingCount, setSupervisingCount] = useState(0)
   const scannerRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Poll on-duty status au montage + toutes les 60s pour garder la couleur
-  // à jour même si l'utilisateur ne recharge pas la page.
+  // Poll on-duty + supervising au montage + toutes les 60s
   useEffect(() => {
     let cancelled = false
     const check = async () => {
@@ -36,7 +36,10 @@ export default function QRScannerButton() {
         const res = await fetch('/api/punch/on-duty', { cache: 'no-store' })
         if (!res.ok) return
         const json = await res.json()
-        if (!cancelled) setOnDuty(!!json.on_duty)
+        if (!cancelled) {
+          setOnDuty(!!json.on_duty)
+          setSupervisingCount(json.supervising_count || 0)
+        }
       } catch {}
     }
     check()
@@ -269,19 +272,48 @@ export default function QRScannerButton() {
     <>
       <button
         onClick={handleOpenScanner}
-        title={onDuty ? 'Présence en cours — scanner un QR' : 'Scanner un QR de présence'}
+        title={
+          onDuty && supervisingCount > 0
+            ? `Présence en cours · ${supervisingCount} personne(s) active(s) sur tes QR`
+            : onDuty
+              ? 'Présence en cours — scanner un QR'
+              : supervisingCount > 0
+                ? `${supervisingCount} personne(s) active(s) sur tes QR`
+                : 'Scanner un QR de présence'
+        }
         aria-label="Scanner un QR de présence"
         style={{
+          position: 'relative',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 36, height: 36, borderRadius: '50%',
-          border: onDuty ? `2px solid ${GREEN}` : '1.5px solid #d1d5db',
+          // Contour : bleu (supervisant) a priorité sur vert (on duty) pour rester visible
+          border: supervisingCount > 0
+            ? `2px solid #3b82f6`
+            : onDuty
+              ? `2px solid ${GREEN}`
+              : '1.5px solid #d1d5db',
+          // Fond : vert si on duty, blanc sinon
           backgroundColor: onDuty ? LIGHT_GREEN : 'white',
           cursor: 'pointer', color: onDuty ? GREEN : C, marginRight: 8, transition: 'all 0.15s',
-          boxShadow: onDuty ? `0 0 0 2px ${LIGHT_GREEN}, 0 0 8px rgba(22,163,74,0.4)` : 'none',
+          boxShadow: onDuty ? `0 0 0 2px ${LIGHT_GREEN}, 0 0 8px rgba(22,163,74,0.4)` : (supervisingCount > 0 ? '0 0 0 2px #dbeafe, 0 0 8px rgba(59,130,246,0.35)' : 'none'),
         }}
         onMouseOver={(e) => e.currentTarget.style.backgroundColor = onDuty ? '#bbf7d0' : '#f3f4f6'}
         onMouseOut={(e) => e.currentTarget.style.backgroundColor = onDuty ? LIGHT_GREEN : 'white'}
       >
+        {/* Bulle chiffrée si supervision active */}
+        {supervisingCount > 0 && (
+          <span style={{
+            position: 'absolute', top: -4, right: -4,
+            minWidth: 16, height: 16, padding: '0 4px',
+            borderRadius: 8, backgroundColor: '#3b82f6', color: 'white',
+            fontSize: 10, fontWeight: 800,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid white', lineHeight: 1,
+            pointerEvents: 'none',
+          }}>
+            {supervisingCount > 99 ? '99+' : supervisingCount}
+          </span>
+        )}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="3" width="7" height="7" />
           <rect x="14" y="3" width="7" height="7" />

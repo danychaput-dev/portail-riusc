@@ -36,9 +36,31 @@ export async function GET() {
     .is('heure_depart', null)
     .neq('statut', 'annule')
 
+  // Supervision : combien de personnes sont actuellement actives sur les QR
+  // que j'ai créés OU dont je suis l'approuveur désigné ?
+  const { data: mesSessions } = await supabaseAdmin
+    .from('pointage_sessions')
+    .select('id')
+    .or(`cree_par.eq.${res.benevole_id},approuveur_id.eq.${res.benevole_id}`)
+    .eq('actif', true)
+
+  let supervisingCount = 0
+  if (mesSessions && mesSessions.length > 0) {
+    const sessIds = mesSessions.map((s: any) => s.id)
+    const { count: supCount } = await supabaseAdmin
+      .from('pointages')
+      .select('id', { count: 'exact', head: true })
+      .in('pointage_session_id', sessIds)
+      .is('heure_depart', null)
+      .neq('statut', 'annule')
+      .neq('benevole_id', res.benevole_id)
+    supervisingCount = supCount || 0
+  }
+
   return NextResponse.json({
     on_duty: (count || 0) > 0,
     count: count || 0,
     ouverts: ouverts || [],
+    supervising_count: supervisingCount,
   })
 }
