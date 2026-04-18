@@ -259,21 +259,29 @@ export default function PunchPage() {
             </div>
             <div style={{ fontSize: 13, color: '#7f1d1d', marginBottom: 12 }}>
               Tu as pointé ton arrivée il y a seulement <strong>{confirmShort.minutes} minute(s)</strong>.
-              Est-ce une fausse manœuvre ?
+              Est-ce une fausse manœuvre, ou as-tu scanné le mauvais QR ?
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <button
-                onClick={() => setConfirmShort(null)}
-                style={{ flex: 1, ...bigBtn, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}` }}
+                disabled={submitting}
+                onClick={() => { setConfirmShort(null); action('annuler') }}
+                style={{ ...bigBtn, backgroundColor: '#7c3aed' }}
+                title="Supprime l'entrée comme si elle n'avait jamais eu lieu"
               >
-                Annuler (pas de départ)
+                🗑️ Retirer cette entrée (mauvais QR scanné)
               </button>
               <button
                 disabled={submitting}
                 onClick={() => { setConfirmShort(null); action('depart', undefined, { confirm_short: true }) }}
-                style={{ flex: 1, ...bigBtn, backgroundColor: RED }}
+                style={{ ...bigBtn, backgroundColor: RED }}
               >
-                Oui, terminer quand même
+                ✓ Terminer quand même (c'est intentionnel)
+              </button>
+              <button
+                onClick={() => setConfirmShort(null)}
+                style={{ ...bigBtn, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}` }}
+              >
+                ← Annuler (garder le pointage ouvert)
               </button>
             </div>
           </div>

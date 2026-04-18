@@ -23,8 +23,8 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-type Action = 'arrivee' | 'depart' | 'nouvelle_entree' | 'corriger_arrivee' | 'corriger_depart'
-const VALID_ACTIONS: Action[] = ['arrivee', 'depart', 'nouvelle_entree', 'corriger_arrivee', 'corriger_depart']
+type Action = 'arrivee' | 'depart' | 'nouvelle_entree' | 'corriger_arrivee' | 'corriger_depart' | 'annuler'
+const VALID_ACTIONS: Action[] = ['arrivee', 'depart', 'nouvelle_entree', 'corriger_arrivee', 'corriger_depart', 'annuler']
 
 async function getCurrentUser() {
   const cookieStore = await cookies()
@@ -237,6 +237,34 @@ export async function POST(req: NextRequest) {
       action: 'nouvelle_entree', valeur_apres: heureCible, modifie_par: user.benevole_id,
     })
     return NextResponse.json({ ok: true, pointage: inserted, action: 'nouvelle_entree' })
+  }
+
+  if (action === 'annuler') {
+    // Cas : la personne a scanné le mauvais QR, veut supprimer complètement
+    // son entrée. On fait un soft-delete via statut='annule' + heure_depart
+    // égale à heure_arrivee (pour que le partial unique index libère la session).
+    if (!lastPointage || !lastPointage.heure_arrivee) {
+      return NextResponse.json({ error: 'Aucun pointage à annuler' }, { status: 409 })
+    }
+    const { data: updated, error: updErr } = await supabaseAdmin
+      .from('pointages')
+      .update({
+        heure_depart: lastPointage.heure_arrivee,
+        statut: 'annule',
+        notes: (body.notes || 'Annulé par le réserviste (mauvais QR scanné)'),
+      })
+      .eq('id', lastPointage.id)
+      .select('id, heure_arrivee, heure_depart, statut')
+      .single()
+    if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 })
+
+    await supabaseAdmin.from('pointage_logs').insert({
+      pointage_id: lastPointage.id, benevole_id: user.benevole_id,
+      action: 'annule', valeur_avant: lastPointage.heure_arrivee, valeur_apres: null,
+      notes: body.notes || 'Annulé par le réserviste (mauvais QR scanné)',
+      modifie_par: user.benevole_id,
+    })
+    return NextResponse.json({ ok: true, pointage: updated, action: 'annuler' })
   }
 
   if (action === 'corriger_arrivee' || action === 'corriger_depart') {
