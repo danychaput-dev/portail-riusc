@@ -258,6 +258,11 @@ export default function CiblagePage() {
   const [recherche,         setRecherche]         = useState('')
   const [filtreSubComp,     setFiltreSubComp]     = useState<Record<string,string>>({})
   const [filtreBadges,      setFiltreBadges]      = useState<string[]>([])
+  // Filtres déployabilité cliquables : null=off, 'has'=ont le critère, 'missing'=leur manque
+  type ReadinessKey = 'profil' | 'initiation' | 'camp' | 'bottes' | 'antecedents' | 'deployable'
+  const [filtresReadiness, setFiltresReadiness] = useState<Record<ReadinessKey, null | 'has' | 'missing'>>({
+    profil: null, initiation: null, camp: null, bottes: null, antecedents: null, deployable: null,
+  })
 
   // Loading
   const [loadingSinistres,   setLoadingSinistres]   = useState(true)
@@ -348,6 +353,20 @@ export default function CiblagePage() {
             !c.ville?.toLowerCase().includes(q) &&
             !c.region?.toLowerCase().includes(q)) return false
       }
+    }
+    // Filtres déployabilité (pastilles cliquables)
+    const rd: Record<string, boolean> = {
+      profil: c.profil_complet === true,
+      initiation: c.initiation_sc === true,
+      camp: c.camp_complete === true,
+      bottes: c.bottes_ok === true,
+      antecedents: c.antecedents_ok === true,
+      deployable: c.deployable === true,
+    }
+    for (const key of Object.keys(filtresReadiness) as (keyof typeof filtresReadiness)[]) {
+      const state = filtresReadiness[key]
+      if (state === 'has' && !rd[key]) return false
+      if (state === 'missing' && rd[key]) return false
     }
     return true
   }).sort((a, b) => {
@@ -781,7 +800,7 @@ export default function CiblagePage() {
                 </span>
               </div>
 
-              {/* Ligne résumé déployabilité — même format que /admin/reservistes */}
+              {/* Ligne résumé déployabilité — pastilles cliquables */}
               {!loadingPool && poolFiltre.length > 0 && (() => {
                 const total = poolFiltre.length
                 const deployables = poolFiltre.filter(c => c.deployable).length
@@ -790,27 +809,67 @@ export default function CiblagePage() {
                 const camp = poolFiltre.filter(c => c.camp_complete === true).length
                 const bottes = poolFiltre.filter(c => c.bottes_ok === true).length
                 const antecedents = poolFiltre.filter(c => c.antecedents_ok === true).length
-                const steps: Array<{ icon: string; label: string; count: number }> = [
-                  { icon: '👤', label: 'Profil complet', count: profil },
-                  { icon: '🎓', label: 'Initiation SC complétée', count: initiation },
-                  { icon: '⛺', label: 'Camp de qualification', count: camp },
-                  { icon: '🥾', label: 'Bottes remboursées', count: bottes },
-                  { icon: '🔍', label: 'Antécédents vérifiés', count: antecedents },
+                const steps: Array<{ key: ReadinessKey; icon: string; label: string; count: number }> = [
+                  { key: 'profil',      icon: '👤', label: 'Profil complet',          count: profil },
+                  { key: 'initiation',  icon: '🎓', label: 'Initiation SC complétée', count: initiation },
+                  { key: 'camp',        icon: '⛺', label: 'Camp de qualification',    count: camp },
+                  { key: 'bottes',      icon: '🥾', label: 'Bottes remboursées',       count: bottes },
+                  { key: 'antecedents', icon: '🔍', label: 'Antécédents vérifiés',    count: antecedents },
                 ]
+                const cycle = (cur: null | 'has' | 'missing'): null | 'has' | 'missing' =>
+                  cur === null ? 'has' : cur === 'has' ? 'missing' : null
+                const toggle = (key: ReadinessKey) => setFiltresReadiness(p => ({ ...p, [key]: cycle(p[key]) }))
+                const stateDeploy = filtresReadiness.deployable
                 return (
                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: badgesDisponibles.length > 0 ? 8 : 0, fontSize: 12, color: '#64748b', fontWeight: 600 }}>
                     <span style={{ color: '#475569' }}>Déployabilité :</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', color: '#16a34a' }}>
-                      {deployables} / {total} déployables
-                    </span>
+                    <button
+                      onClick={() => toggle('deployable')}
+                      title={`${deployables}/${total} déployables`}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                        border: `1px solid ${stateDeploy === 'has' ? '#16a34a' : stateDeploy === 'missing' ? '#ef4444' : '#bbf7d0'}`,
+                        backgroundColor: stateDeploy === 'has' ? '#f0fdf4' : stateDeploy === 'missing' ? '#fef2f2' : '#f0fdf4',
+                        color: stateDeploy === 'has' ? '#16a34a' : stateDeploy === 'missing' ? '#ef4444' : '#16a34a',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      {stateDeploy === 'has' ? '✓ ' : stateDeploy === 'missing' ? '✗ ' : ''}
+                      {stateDeploy === 'missing' ? (total - deployables) : deployables} / {total} déployables
+                    </button>
                     <span style={{ color: '#e2e8f0' }}>|</span>
-                    {steps.map(s => (
-                      <span key={s.label} title={`${s.count}/${total} ${s.label.toLowerCase()}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, border: '1px solid #e2e8f0', backgroundColor: 'white', color: '#64748b' }}>
-                        {s.icon} {s.label}
-                        <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 8, fontWeight: 700, backgroundColor: '#16a34a', color: 'white' }}>{s.count}</span>
-                      </span>
-                    ))}
+                    {steps.map(s => {
+                      const state = filtresReadiness[s.key]
+                      const missing = total - s.count
+                      const colors = state === 'has'
+                        ? { border: '#16a34a', bg: '#f0fdf4', text: '#16a34a', badgeBg: '#16a34a', badgeCount: s.count }
+                        : state === 'missing'
+                        ? { border: '#ef4444', bg: '#fef2f2', text: '#ef4444', badgeBg: '#ef4444', badgeCount: missing }
+                        : { border: '#e2e8f0', bg: 'white', text: '#64748b', badgeBg: '#16a34a', badgeCount: s.count }
+                      return (
+                        <button key={s.key}
+                          onClick={() => toggle(s.key)}
+                          title={`${s.count}/${total} ${s.label.toLowerCase()}`}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                            border: `1px solid ${colors.border}`, backgroundColor: colors.bg, color: colors.text,
+                            cursor: 'pointer', transition: 'all 0.15s',
+                          }}
+                        >
+                          {state === 'has' && '✓ '}{state === 'missing' && '✗ '}{s.icon} {s.label}
+                          <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 8, fontWeight: 700, backgroundColor: colors.badgeBg, color: 'white' }}>
+                            {colors.badgeCount}
+                          </span>
+                        </button>
+                      )
+                    })}
+                    {Object.values(filtresReadiness).some(v => v !== null) && (
+                      <button
+                        onClick={() => setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null, deployable: null })}
+                        style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 4 }}>
+                        ✕ Réinitialiser
+                      </button>
+                    )}
                   </div>
                 )
               })()}
