@@ -11,7 +11,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
 import { isDemoActive, DEMO_RESERVISTE, DEMO_DEPLOIEMENTS } from '@/utils/demoMode'
@@ -66,6 +66,21 @@ function SoumettreContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const deploiementId = searchParams.get('deploiement') ?? ''
+
+  // Ref vers la section formulaire (qui apparaît après choix d'une option)
+  // Permet de scroller automatiquement la page vers la suite du formulaire
+  // quand le réserviste clique sur "Je suis dispo", "À confirmer" ou "Non disponible".
+  const formSectionRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll vers le formulaire dès que l'utilisateur sélectionne une option.
+  // On attend la prochaine frame pour que le DOM ait le temps de monter la section.
+  useEffect(() => {
+    if (!reponse) return
+    const id = requestAnimationFrame(() => {
+      formSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [reponse])
 
   function formatDate(dateString: string): string {
     if (!dateString) return ''
@@ -454,7 +469,7 @@ function SoumettreContent() {
 
         {/* Formulaire disponible / à confirmer */}
         {reponse && reponse !== 'non_disponible' && (
-          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
+          <div ref={formSectionRef} style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', scrollMarginTop: '24px' }}>
 
             {reponse === 'disponible' && (
               <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '16px 20px', marginBottom: '28px' }}>
@@ -581,7 +596,7 @@ function SoumettreContent() {
 
         {/* Formulaire non disponible */}
         {reponse === 'non_disponible' && (
-          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
+          <div ref={formSectionRef} style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', scrollMarginTop: '24px' }}>
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Commentaire (optionnel)</h3>
               <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>Vous pouvez indiquer la raison de votre indisponibilité si vous le souhaitez.</p>
