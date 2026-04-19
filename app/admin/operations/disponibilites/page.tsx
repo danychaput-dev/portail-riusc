@@ -138,26 +138,20 @@ function DisponibilitesInner() {
       const { data: depData } = await supabase.from('deployments').select('*').eq('id', depId).single()
       if (depData) { setDep(depData as unknown as Deployment); setRotStart(depData.date_debut || ''); setRotEnd(depData.date_fin || '') }
 
-      const { data: cibData } = await supabase.from('ciblages')
-        .select('id, benevole_id, statut')
-        .eq('niveau', 'deploiement').eq('reference_id', depId).neq('statut', 'retire')
-      const cibs = cibData || []
-      setCiblages(cibs)
-
-      if (cibs.length) {
-        const ids = cibs.map(c => c.benevole_id)
-        const { data: resData } = await supabase.from('reservistes')
-          .select('benevole_id, prenom, nom, telephone, ville, region, latitude, longitude, competence_rs, certificat_premiers_soins, vehicule_tout_terrain, navire_marin, permis_conduire, satp_drone, equipe_canine, competences_securite, competences_sauvetage, communication, cartographie_sig, operation_urgence')
-          .in('benevole_id', ids)
-        const map: Record<string, ReservisteDetail> = {}
-        for (const r of (resData || [])) { if (r.benevole_id) map[r.benevole_id] = r as unknown as ReservisteDetail }
-        setResMap(map)
+      // Utiliser l'API admin (service_role) pour bypass les RLS auth browser
+      try {
+        const resp = await fetch(`/api/admin/operations/dispos?dep=${encodeURIComponent(depId)}&full=1`, { credentials: 'include' })
+        if (resp.ok) {
+          const data = await resp.json() as { ciblages: Ciblage[], reservistes: ReservisteDetail[], dispos: DispoV2[] }
+          setCiblages(data.ciblages || [])
+          const map: Record<string, ReservisteDetail> = {}
+          for (const r of (data.reservistes || [])) { if (r.benevole_id) map[r.benevole_id] = r as unknown as ReservisteDetail }
+          setResMap(map)
+          setDispos(data.dispos || [])
+        }
+      } catch (err) {
+        console.error('Erreur fetch dispos admin:', err)
       }
-
-      const { data: dispoData } = await supabase.from('disponibilites_v2')
-        .select('benevole_id, date_jour, disponible, a_confirmer')
-        .eq('deployment_id', depId).order('date_jour')
-      setDispos(dispoData || [])
 
       const { data: vagData } = await supabase.from('vagues')
         .select('*').eq('deployment_id', depId).order('numero')

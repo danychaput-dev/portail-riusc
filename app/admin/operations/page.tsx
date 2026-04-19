@@ -200,28 +200,25 @@ export default function OperationsPage() {
 
   useEffect(() => {
     if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
-    // Fetch ciblages sans join pour éviter blocage RLS sur reservistes
-    supabase.from('ciblages').select('id,benevole_id,statut')
-      .eq('niveau','deploiement').eq('reference_id',depId).neq('statut','retire')
-      .then(async ({data: cibData}) => {
-        if (!cibData?.length) {
-          // Ne pas écraser si on a déjà des ciblages (ex: restaurés depuis cache)
+    // Utiliser l'API admin (service_role) pour bypass les RLS auth browser qui
+    // ne propagent pas toujours correctement auth.uid() côté client.
+    fetch(`/api/admin/operations/dispos?dep=${encodeURIComponent(depId)}`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { ciblages: any[], reservistes: any[], dispos: any[] } | null) => {
+        if (!data) return
+        const resMap: Record<string, any> = {}
+        for (const r of (data.reservistes || [])) { if (r.benevole_id) resMap[r.benevole_id] = r }
+        if (data.ciblages?.length) {
+          setCiblages(data.ciblages.map(c => ({
+            ...c,
+            reservistes: (c.benevole_id && resMap[c.benevole_id]) || { prenom: '?', nom: '?', telephone: '' }
+          })) as any)
+        } else {
           setCiblages(prev => prev.length > 0 ? prev : [])
-          return
         }
-        // Fetch noms séparément
-        const ids = cibData.map(c => c.benevole_id).filter((x): x is string => !!x)
-        const { data: resData } = await supabase.from('reservistes')
-          .select('benevole_id,prenom,nom,telephone').in('benevole_id', ids)
-        const resMap: Record<string,any> = {}
-        for (const r of (resData || [])) { if (r.benevole_id) resMap[r.benevole_id] = r }
-        setCiblages(cibData.map(c => ({
-          ...c,
-          reservistes: (c.benevole_id && resMap[c.benevole_id]) || { prenom:'?', nom:'?', telephone:'' }
-        })) as any)
+        setDispos((data.dispos || []) as any)
       })
-    supabase.from('disponibilites_v2').select('id,benevole_id,date_jour,disponible,a_confirmer,commentaire')
-      .eq('deployment_id',depId).order('date_jour').then(({data})=>{ if(data) setDispos(data as any) })
+      .catch(err => console.error('Erreur fetch dispos admin:', err))
     supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
       .then(({data})=>{ if(data) setVagues(data as any) })
   }, [depId, step4Override])
