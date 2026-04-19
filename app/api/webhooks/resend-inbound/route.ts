@@ -244,11 +244,40 @@ export async function POST(req: NextRequest) {
     }
 
     // Préparer les métadonnées des pièces jointes
-    const piecesJointes = attachments.map((att: any) => ({
+    // Resend n'envoie pas les attachments dans le payload webhook — il faut les fetcher séparément
+    let piecesJointes = attachments.map((att: any) => ({
       id: att.id,
       filename: att.filename,
       content_type: att.content_type,
     }))
+
+    if (piecesJointes.length === 0 && resendEmailId) {
+      try {
+        console.log(`📎 Fetch attachments from Resend API for emailId=${resendEmailId}`)
+        const attResp = await fetch(`https://api.resend.com/emails/receiving/${resendEmailId}/attachments`, {
+          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+        })
+        if (attResp.ok) {
+          const attData = await attResp.json()
+          const list = attData.data || attData.attachments || attData || []
+          if (Array.isArray(list) && list.length > 0) {
+            piecesJointes = list.map((att: any) => ({
+              id: att.id,
+              filename: att.filename,
+              content_type: att.content_type,
+            }))
+            console.log(`📎 ${piecesJointes.length} attachments fetched from Resend API`)
+          } else {
+            console.log(`📎 Aucune PJ dans la réponse Resend attachments`)
+          }
+        } else {
+          const errText = await attResp.text().catch(() => '')
+          console.error(`❌ Fetch attachments échoué: HTTP ${attResp.status}`, errText.slice(0, 200))
+        }
+      } catch (err) {
+        console.error(`❌ Exception fetch attachments:`, err)
+      }
+    }
 
     // Log final avant insert
     console.log(`📝 Insert courriel_reponses: html=${!!content.html} (${content.html?.length || 0} chars), text=${!!content.text} (${content.text?.length || 0} chars), courriel_id=${courrielId}, email_id=${resendEmailId}`)
