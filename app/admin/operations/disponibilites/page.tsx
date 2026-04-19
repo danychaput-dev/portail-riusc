@@ -23,8 +23,8 @@ interface ReservisteDetail {
   competences_securite?: string[]; competences_sauvetage?: string[]
   communication?: string[]; cartographie_sig?: string[]; operation_urgence?: string[]
 }
-interface DispoV2 { benevole_id: string; date_jour: string; disponible: boolean; a_confirmer: boolean; commentaire?: string | null; transport?: string | null }
-interface Ciblage { id: string; benevole_id: string; statut: string }
+interface DispoV2 { benevole_id: string; date_jour: string; disponible: boolean; a_confirmer: boolean; commentaire?: string | null; transport?: string | null; created_at?: string }
+interface Ciblage { id: string; benevole_id: string; statut: string; updated_at?: string }
 interface Vague {
   id: string; identifiant?: string; numero: number
   date_debut: string; date_fin: string; nb_personnes_requis?: number; statut: string
@@ -283,6 +283,17 @@ function DisponibilitesInner() {
     const dist     = getDistance(bid)
     const isSel    = selected.has(bid)
 
+    // Délai entre l'envoi du ciblage (updated_at) et la 1ère soumission de dispo
+    const ciblage = ciblages.find(c => c.benevole_id === bid)
+    const firstDispoMs = myDispos.length > 0
+      ? Math.min(...myDispos.map(d => d.created_at ? new Date(d.created_at).getTime() : Infinity))
+      : Infinity
+    const cibMs = ciblage?.updated_at ? new Date(ciblage.updated_at).getTime() : null
+    const delayMin = (cibMs !== null && firstDispoMs !== Infinity && firstDispoMs > cibMs)
+      ? Math.round((firstDispoMs - cibMs) / 60000)
+      : null
+    const formatDelay = (m: number) => m < 60 ? `${m} min` : `${Math.floor(m/60)}h${(m%60).toString().padStart(2,'0')}`
+
     return (
       <tr style={{ backgroundColor: isSel ? '#eff6ff' : 'transparent', transition:'background 0.1s' }}
         onMouseOver={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc' }}
@@ -308,6 +319,11 @@ function DisponibilitesInner() {
           </div>
           {r && <BadgesComp r={r}/>}
           {r?.ville && <div style={{ fontSize:10, color:'#94a3b8', marginTop:2 }}>{r.ville}{r.region ? ` · ${r.region}` : ''}</div>}
+          {delayMin !== null && (
+            <div style={{ fontSize:9, color:'#64748b', marginTop:2 }}>
+              ⏱ Réponse en {formatDelay(delayMin)}
+            </div>
+          )}
         </td>
         {/* Cellule par jour */}
         {allDates.map(date => {
@@ -454,6 +470,7 @@ function DisponibilitesInner() {
                 { label:'Partiel',       val:grouped.partiel.length, color:'#92400e', bg:'#fef3c7' },
                 { label:'Non dispo',     val:grouped.nondispo.length,color:'#991b1b', bg:'#fee2e2' },
                 { label:'Sans réponse',  val:grouped.silence.length, color:'#475569', bg:'#f1f5f9' },
+                { label:'% Réponses',    val: ciblages.length > 0 ? Math.round((ciblages.length - grouped.silence.length) / ciblages.length * 100) + '%' : '0%', color:'#0369a1', bg:'#e0f2fe' },
                 ...(nbRequis > 0 ? [{ label:'Requis', val:nbRequis, color:'#1e3a5f', bg:'#e0e7ff' }] : []),
               ].map(s => (
                 <div key={s.label} style={{ textAlign:'center', padding:'6px 14px', borderRadius:10, backgroundColor:s.bg }}>

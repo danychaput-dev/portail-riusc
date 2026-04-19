@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
   // Ciblages du déploiement (non retirés)
   const { data: ciblages, error: cibErr } = await supabaseAdmin
     .from('ciblages')
-    .select('id, benevole_id, statut')
+    .select('id, benevole_id, statut, updated_at')
     .eq('niveau', 'deploiement')
     .eq('reference_id', depId)
     .neq('statut', 'retire')
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
   // Disponibilités du déploiement
   const { data: dispos, error: dispErr } = await supabaseAdmin
     .from('disponibilites_v2')
-    .select('id, benevole_id, date_jour, disponible, a_confirmer, commentaire, transport')
+    .select('id, benevole_id, date_jour, disponible, a_confirmer, commentaire, transport, created_at')
     .eq('deployment_id', depId)
     .order('date_jour')
   if (dispErr) return NextResponse.json({ error: dispErr.message }, { status: 500 })
