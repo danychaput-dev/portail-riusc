@@ -144,11 +144,12 @@ function DisponibilitesInner() {
         input[type="checkbox"] { display: none !important; }
         [data-print-hide] { display: none !important; }
         main { max-width: none !important; padding: 0 !important; }
+        /* CRUCIAL: forcer tous les conteneurs a laisser deborder le contenu en impression */
+        div, section, article { overflow: visible !important; max-height: none !important; height: auto !important; }
         tr { page-break-inside: avoid !important; }
         thead { display: table-header-group !important; }
         body { font-size: 10pt !important; }
         table { font-size: 9pt !important; }
-        [data-print-expand] { overflow: visible !important; max-height: none !important; }
       }
     `
     document.head.appendChild(el)
