@@ -559,7 +559,32 @@ function DisponibilitesInner() {
           <div style={{ backgroundColor:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden', marginBottom:16 }}>
             <div style={{ padding:'10px 16px', backgroundColor:'#f8fafc', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
               <span style={{ fontSize:12, fontWeight:700, color:C }}>Échéancier complet · {ciblages.length} réservistes · triés par distance</span>
-              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                {/* Raccourcis selection par categorie + ouvrir courriel */}
+                {grouped.silence.length > 0 && (
+                  <button
+                    onClick={() => { setSelected(new Set(grouped.silence)); setShowEmailModal(true) }}
+                    title="Selectionne tous les non-repondants et ouvre le compose courriel"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'#eef2ff', color:'#4338ca', border:'1px solid #c7d2fe', cursor:'pointer', fontWeight:600 }}>
+                    📧 Relancer sans-réponse ({grouped.silence.length})
+                  </button>
+                )}
+                {grouped.nondispo.length > 0 && (
+                  <button
+                    onClick={() => { setSelected(new Set(grouped.nondispo)); setShowEmailModal(true) }}
+                    title="Selectionne les non-dispos et ouvre le compose courriel"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'#fef2f2', color:'#991b1b', border:'1px solid #fecaca', cursor:'pointer', fontWeight:600 }}>
+                    📧 Remercier non-dispo ({grouped.nondispo.length})
+                  </button>
+                )}
+                {(grouped.plage.length + grouped.partiel.length) > 0 && (
+                  <button
+                    onClick={() => { setSelected(new Set([...grouped.plage, ...grouped.partiel])); setShowEmailModal(true) }}
+                    title="Selectionne les dispos (plage + partiel) et ouvre le compose courriel"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'#ecfdf5', color:'#065f46', border:'1px solid #a7f3d0', cursor:'pointer', fontWeight:600 }}>
+                    📧 Contacter dispos ({grouped.plage.length + grouped.partiel.length})
+                  </button>
+                )}
                 {selected.size > 0 && (
                   <span style={{ fontSize:12, padding:'3px 12px', borderRadius:20, backgroundColor:'#eff6ff', color:C, fontWeight:700 }}>
                     {selected.size} sélectionné{selected.size > 1 ? 's' : ''}
