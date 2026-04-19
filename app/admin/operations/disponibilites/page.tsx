@@ -216,7 +216,21 @@ function DisponibilitesInner() {
   }, [ciblages, dispos, rotDates])
 
   const nbRequis  = dep?.nb_personnes_par_vague ?? 0
-  const deficit   = nbRequis > 0 ? Math.max(0, nbRequis - grouped.plage.length) : 0
+
+  // Déficit par jour : un jour est en déficit si (oui + à confirmer) < requis
+  // C'est plus représentatif que de compter les plages continues car on est en jour-par-jour
+  const joursDeficit = useMemo(() => {
+    if (nbRequis === 0 || rotDates.length === 0) return [] as string[]
+    return rotDates.filter(d => {
+      const dispoJour = dispos.filter(x => x.date_jour === d && x.disponible).length
+      const confJour  = dispos.filter(x => x.date_jour === d && x.a_confirmer).length
+      return dispoJour + confJour < nbRequis
+    })
+  }, [rotDates, dispos, nbRequis])
+
+  // % Oui : proportion des cibles qui ont dit oui à au moins une journée
+  const nbOuiAuMoinsUnJour = grouped.plage.length + grouped.partiel.length
+  const pctOui = ciblages.length > 0 ? Math.round(nbOuiAuMoinsUnJour / ciblages.length * 100) : 0
 
   function getDistance(bid: string): number | null {
     if (!dep?.latitude || !dep?.longitude) return null
@@ -482,6 +496,7 @@ function DisponibilitesInner() {
                 { label:'Non dispo',     val:grouped.nondispo.length,color:'#991b1b', bg:'#fee2e2' },
                 { label:'Sans réponse',  val:grouped.silence.length, color:'#475569', bg:'#f1f5f9' },
                 { label:'% Réponses',    val: ciblages.length > 0 ? Math.round((ciblages.length - grouped.silence.length) / ciblages.length * 100) + '%' : '0%', color:'#0369a1', bg:'#e0f2fe' },
+                { label:'% Oui ≥1 jour', val: pctOui + '%',          color:'#065f46', bg:'#d1fae5' },
                 ...(nbRequis > 0 ? [{ label:'Requis', val:nbRequis, color:'#1e3a5f', bg:'#e0e7ff' }] : []),
               ].map(s => (
                 <div key={s.label} style={{ textAlign:'center', padding:'6px 14px', borderRadius:10, backgroundColor:s.bg }}>
@@ -491,9 +506,9 @@ function DisponibilitesInner() {
               ))}
             </div>
 
-            {deficit > 0 && (
+            {joursDeficit.length > 0 && (
               <div style={{ padding:'8px 14px', borderRadius:8, backgroundColor:'#fef3c7', border:'1px solid #fde68a', fontSize:12, color:'#92400e', fontWeight:600 }}>
-                ⚠️ Déficit de {deficit} personne{deficit > 1 ? 's' : ''} — vérifier les partiels et les non-répondants
+                ⚠️ {joursDeficit.length} jour{joursDeficit.length > 1 ? 's' : ''} avec déficit — voir stats par jour ci-dessous
               </div>
             )}
 
