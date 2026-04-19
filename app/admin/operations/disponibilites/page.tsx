@@ -118,6 +118,8 @@ function DisponibilitesInner() {
   const [loadAI,      setLoadAI]      = useState(false)
   const [saving,      setSaving]      = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [autresDeployables, setAutresDeployables] = useState<Array<{ benevole_id: string; email: string; prenom: string; nom: string }>>([])
+  const [loadingAutres, setLoadingAutres] = useState(false)
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -585,6 +587,28 @@ function DisponibilitesInner() {
                     📧 Contacter dispos ({grouped.plage.length + grouped.partiel.length})
                   </button>
                 )}
+                <button
+                  disabled={loadingAutres}
+                  onClick={async () => {
+                    if (!depId) return
+                    setLoadingAutres(true)
+                    try {
+                      const resp = await fetch(`/api/admin/operations/deployables-autres?dep=${encodeURIComponent(depId)}`, { credentials: 'include' })
+                      if (resp.ok) {
+                        const data = await resp.json() as { deployables: Array<{ benevole_id: string; email: string; prenom: string; nom: string }> }
+                        setAutresDeployables(data.deployables || [])
+                        setShowEmailModal(true)
+                      } else {
+                        alert('Erreur chargement autres deployables')
+                      }
+                    } finally {
+                      setLoadingAutres(false)
+                    }
+                  }}
+                  title="Deployables (qualification complete) qui ne sont PAS cibles dans ce deployment"
+                  style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'#fdf4ff', color:'#86198f', border:'1px solid #f5d0fe', cursor: loadingAutres ? 'wait' : 'pointer', fontWeight:600, opacity: loadingAutres ? 0.6 : 1 }}>
+                  {loadingAutres ? '⏳ Chargement…' : '📧 Autres déployables (non ciblés)'}
+                </button>
                 {selected.size > 0 && (
                   <span style={{ fontSize:12, padding:'3px 12px', borderRadius:20, backgroundColor:'#eff6ff', color:C, fontWeight:700 }}>
                     {selected.size} sélectionné{selected.size > 1 ? 's' : ''}
@@ -694,20 +718,24 @@ function DisponibilitesInner() {
         </>}
       </main>
 
-      {/* Modal composition courriel */}
+      {/* Modal composition courriel
+          - Si autresDeployables a des entrees => on les utilise (bouton 'Autres deployables')
+          - Sinon => liste basee sur la selection locale (resMap) */}
       {showEmailModal && (
         <ModalComposeCourriel
-          destinataires={Array.from(selected)
-            .map(bid => resMap[bid])
-            .filter(r => r && r.email)
-            .map(r => ({
-              benevole_id: r!.benevole_id,
-              email: r!.email!,
-              prenom: r!.prenom,
-              nom: r!.nom,
-            }))}
-          onClose={() => setShowEmailModal(false)}
-          onSent={() => setShowEmailModal(false)}
+          destinataires={autresDeployables.length > 0
+            ? autresDeployables
+            : Array.from(selected)
+                .map(bid => resMap[bid])
+                .filter(r => r && r.email)
+                .map(r => ({
+                  benevole_id: r!.benevole_id,
+                  email: r!.email!,
+                  prenom: r!.prenom,
+                  nom: r!.nom,
+                }))}
+          onClose={() => { setShowEmailModal(false); setAutresDeployables([]) }}
+          onSent={() => { setShowEmailModal(false); setAutresDeployables([]) }}
         />
       )}
     </div>
