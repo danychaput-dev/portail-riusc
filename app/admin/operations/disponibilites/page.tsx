@@ -23,7 +23,7 @@ interface ReservisteDetail {
   competences_securite?: string[]; competences_sauvetage?: string[]
   communication?: string[]; cartographie_sig?: string[]; operation_urgence?: string[]
 }
-interface DispoV2 { benevole_id: string; date_jour: string; disponible: boolean; a_confirmer: boolean }
+interface DispoV2 { benevole_id: string; date_jour: string; disponible: boolean; a_confirmer: boolean; commentaire?: string | null }
 interface Ciblage { id: string; benevole_id: string; statut: string }
 interface Vague {
   id: string; identifiant?: string; numero: number
@@ -329,6 +329,13 @@ function DisponibilitesInner() {
             </td>
           )
         })}
+        {/* Commentaires — premier commentaire non vide parmi les dispos du réserviste */}
+        <td style={{ padding:'5px 10px', borderBottom:'1px solid #f1f5f9', fontSize:10, color:'#475569', verticalAlign:'top' }}>
+          {(() => {
+            const com = myDispos.find(d => d.commentaire && d.commentaire.trim())?.commentaire
+            return com ? <span style={{ whiteSpace:'pre-wrap' }}>{com}</span> : <span style={{ color:'#cbd5e1' }}>—</span>
+          })()}
+        </td>
       </tr>
     )
   }
@@ -340,7 +347,7 @@ function DisponibilitesInner() {
     return (
       <>
         <tr>
-          <td colSpan={2 + allDates.length} style={{
+          <td colSpan={3 + allDates.length} style={{
             padding:'6px 14px', backgroundColor:cfg.bg,
             borderTop:'2px solid ' + cfg.border, borderBottom:'1px solid ' + cfg.border,
           }}>
@@ -507,6 +514,9 @@ function DisponibilitesInner() {
                         </th>
                       )
                     })}
+                    <th style={{ padding:'6px 10px', textAlign:'left', color:'#64748b', fontWeight:700, borderBottom:'2px solid #e5e7eb', minWidth:200 }}>
+                      Commentaires
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
