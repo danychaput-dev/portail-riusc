@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
   let reservistes: any[] = []
   if (benevoleIds.length > 0) {
     const cols = full
-      ? 'benevole_id, prenom, nom, telephone, ville, region, latitude, longitude, competence_rs, certificat_premiers_soins, vehicule_tout_terrain, navire_marin, permis_conduire, satp_drone, equipe_canine, competences_securite, competences_sauvetage, communication, cartographie_sig, operation_urgence'
-      : 'benevole_id, prenom, nom, telephone'
+      ? 'benevole_id, prenom, nom, email, telephone, ville, region, latitude, longitude, competence_rs, certificat_premiers_soins, vehicule_tout_terrain, navire_marin, permis_conduire, satp_drone, equipe_canine, competences_securite, competences_sauvetage, communication, cartographie_sig, operation_urgence'
+      : 'benevole_id, prenom, nom, email, telephone'
     const { data: resData, error: resErr } = await supabaseAdmin
       .from('reservistes')
       .select(cols)

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import ModalComposeCourriel from '@/app/components/ModalComposeCourriel'
 
 const C = '#1e3a5f'
 
@@ -15,7 +16,7 @@ interface Deployment {
   latitude?: number; longitude?: number
 }
 interface ReservisteDetail {
-  benevole_id: string; prenom: string; nom: string; telephone: string
+  benevole_id: string; prenom: string; nom: string; telephone: string; email?: string
   ville?: string; region?: string; latitude?: number; longitude?: number
   competence_rs?: string[]; certificat_premiers_soins?: string[]
   vehicule_tout_terrain?: string[]; navire_marin?: string[]
@@ -116,6 +117,7 @@ function DisponibilitesInner() {
   const [aiSugg,      setAiSugg]      = useState<string | null>(null)
   const [loadAI,      setLoadAI]      = useState(false)
   const [saving,      setSaving]      = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -622,6 +624,20 @@ function DisponibilitesInner() {
               {saving ? '⏳ Création…' : `✅ Créer la rotation — ${selected.size} pers. · ${dateFr(rotStart)} → ${dateFr(rotEnd)}`}
             </button>
 
+            <button
+              onClick={() => setShowEmailModal(true)}
+              disabled={selected.size === 0}
+              title={selected.size === 0 ? 'Sélectionnez au moins 1 réserviste' : `Composer courriel à ${selected.size} réserviste(s)`}
+              style={{
+                padding:'10px 18px', borderRadius:8, fontSize:13, fontWeight:600,
+                backgroundColor: selected.size === 0 ? '#e5e7eb' : '#1d4ed8',
+                color: selected.size === 0 ? '#9ca3af' : 'white',
+                border:'none',
+                cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
+              }}>
+              📧 Envoyer courriel ({selected.size})
+            </button>
+
             <button disabled title="Disponible prochainement" style={{
               padding:'10px 18px', borderRadius:8, fontSize:13, fontWeight:600,
               backgroundColor:'#f8fafc', color:'#94a3b8',
@@ -644,6 +660,23 @@ function DisponibilitesInner() {
 
         </>}
       </main>
+
+      {/* Modal composition courriel */}
+      {showEmailModal && (
+        <ModalComposeCourriel
+          destinataires={Array.from(selected)
+            .map(bid => resMap[bid])
+            .filter(r => r && r.email)
+            .map(r => ({
+              benevole_id: r!.benevole_id,
+              email: r!.email!,
+              prenom: r!.prenom,
+              nom: r!.nom,
+            }))}
+          onClose={() => setShowEmailModal(false)}
+          onSent={() => setShowEmailModal(false)}
+        />
+      )}
     </div>
   )
 }
