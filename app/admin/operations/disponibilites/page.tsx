@@ -23,7 +23,7 @@ interface ReservisteDetail {
   competences_securite?: string[]; competences_sauvetage?: string[]
   communication?: string[]; cartographie_sig?: string[]; operation_urgence?: string[]
 }
-interface DispoV2 { benevole_id: string; date_jour: string; disponible: boolean; a_confirmer: boolean; commentaire?: string | null }
+interface DispoV2 { benevole_id: string; date_jour: string; disponible: boolean; a_confirmer: boolean; commentaire?: string | null; transport?: string | null }
 interface Ciblage { id: string; benevole_id: string; statut: string }
 interface Vague {
   id: string; identifiant?: string; numero: number
@@ -329,6 +329,25 @@ function DisponibilitesInner() {
             </td>
           )
         })}
+        {/* Transport — badge colore selon le mode */}
+        <td style={{ padding:'5px 8px', borderBottom:'1px solid #f1f5f9', fontSize:10, verticalAlign:'top', whiteSpace:'nowrap' }}>
+          {(() => {
+            const t = myDispos.find(d => d.transport)?.transport
+            if (!t) return <span style={{ color:'#cbd5e1' }}>—</span>
+            const cfg: Record<string, { icon: string; label: string; bg: string; color: string }> = {
+              autonome:               { icon:'🚗', label:'Autonome',         bg:'#f0fdf4', color:'#065f46' },
+              covoiturage_offre:      { icon:'🤝', label:'Offre covoit.',    bg:'#eff6ff', color:'#1d4ed8' },
+              covoiturage_recherche:  { icon:'🔎', label:'Cherche covoit.',  bg:'#faf5ff', color:'#7c3aed' },
+              besoin_transport:       { icon:'🚌', label:'Besoin transport', bg:'#fff7ed', color:'#c2410c' },
+            }
+            const c = cfg[t] || { icon:'?', label:t, bg:'#f1f5f9', color:'#475569' }
+            return (
+              <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 8px', borderRadius:6, backgroundColor:c.bg, color:c.color, fontWeight:600, fontSize:10 }}>
+                {c.icon} {c.label}
+              </span>
+            )
+          })()}
+        </td>
         {/* Commentaires — premier commentaire non vide parmi les dispos du réserviste */}
         <td style={{ padding:'5px 10px', borderBottom:'1px solid #f1f5f9', fontSize:10, color:'#475569', verticalAlign:'top' }}>
           {(() => {
@@ -347,7 +366,7 @@ function DisponibilitesInner() {
     return (
       <>
         <tr>
-          <td colSpan={3 + allDates.length} style={{
+          <td colSpan={4 + allDates.length} style={{
             padding:'6px 14px', backgroundColor:cfg.bg,
             borderTop:'2px solid ' + cfg.border, borderBottom:'1px solid ' + cfg.border,
           }}>
@@ -514,6 +533,9 @@ function DisponibilitesInner() {
                         </th>
                       )
                     })}
+                    <th style={{ padding:'6px 8px', textAlign:'left', color:'#64748b', fontWeight:700, borderBottom:'2px solid #e5e7eb', whiteSpace:'nowrap' as const, minWidth:130 }}>
+                      Transport
+                    </th>
                     <th style={{ padding:'6px 10px', textAlign:'left', color:'#64748b', fontWeight:700, borderBottom:'2px solid #e5e7eb', minWidth:200 }}>
                       Commentaires
                     </th>
