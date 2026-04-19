@@ -129,6 +129,32 @@ function DisponibilitesInner() {
     init()
   }, [])
 
+  // ── Injection des styles d'impression (avant early return pour respecter Rules of Hooks) ─
+  useEffect(() => {
+    const existing = document.querySelector('style[data-print-dispo]')
+    if (existing) return
+    const el = document.createElement('style')
+    el.setAttribute('data-print-dispo', 'true')
+    el.textContent = `
+      @media print {
+        @page { size: letter landscape; margin: 10mm; }
+        html, body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        header, nav, aside, footer, .no-print { display: none !important; }
+        button { display: none !important; }
+        input[type="checkbox"] { display: none !important; }
+        [data-print-hide] { display: none !important; }
+        main { max-width: none !important; padding: 0 !important; }
+        tr { page-break-inside: avoid !important; }
+        thead { display: table-header-group !important; }
+        body { font-size: 10pt !important; }
+        table { font-size: 9pt !important; }
+        [data-print-expand] { overflow: visible !important; max-height: none !important; }
+      }
+    `
+    document.head.appendChild(el)
+    return () => { el.remove() }
+  }, [])
+
   // ── Data ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!authorized || !depId) return
@@ -331,32 +357,6 @@ function DisponibilitesInner() {
       </>
     )
   }
-
-  // Injection des styles d'impression
-  useEffect(() => {
-    const existing = document.querySelector('style[data-print-dispo]')
-    if (existing) return
-    const el = document.createElement('style')
-    el.setAttribute('data-print-dispo', 'true')
-    el.textContent = `
-      @media print {
-        @page { size: letter landscape; margin: 10mm; }
-        html, body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        header, nav, aside, footer, .no-print { display: none !important; }
-        button { display: none !important; }
-        input[type="checkbox"] { display: none !important; }
-        [data-print-hide] { display: none !important; }
-        main { max-width: none !important; padding: 0 !important; }
-        tr { page-break-inside: avoid !important; }
-        thead { display: table-header-group !important; }
-        body { font-size: 10pt !important; }
-        table { font-size: 9pt !important; }
-        [data-print-expand] { overflow: visible !important; max-height: none !important; }
-      }
-    `
-    document.head.appendChild(el)
-    return () => { el.remove() }
-  }, [])
 
   // ─── Rendu ────────────────────────────────────────────────────────────────
   return (
