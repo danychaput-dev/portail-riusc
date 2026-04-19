@@ -332,6 +332,32 @@ function DisponibilitesInner() {
     )
   }
 
+  // Injection des styles d'impression
+  useEffect(() => {
+    const existing = document.querySelector('style[data-print-dispo]')
+    if (existing) return
+    const el = document.createElement('style')
+    el.setAttribute('data-print-dispo', 'true')
+    el.textContent = `
+      @media print {
+        @page { size: letter landscape; margin: 10mm; }
+        html, body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        header, nav, aside, footer, .no-print { display: none !important; }
+        button { display: none !important; }
+        input[type="checkbox"] { display: none !important; }
+        [data-print-hide] { display: none !important; }
+        main { max-width: none !important; padding: 0 !important; }
+        tr { page-break-inside: avoid !important; }
+        thead { display: table-header-group !important; }
+        body { font-size: 10pt !important; }
+        table { font-size: 9pt !important; }
+        [data-print-expand] { overflow: visible !important; max-height: none !important; }
+      }
+    `
+    document.head.appendChild(el)
+    return () => { el.remove() }
+  }, [])
+
   // ─── Rendu ────────────────────────────────────────────────────────────────
   return (
     <div>
@@ -418,7 +444,7 @@ function DisponibilitesInner() {
           </div>
 
           {/* Suggestion IA */}
-          <div style={{ backgroundColor:'white', borderRadius:12, border:'1.5px solid #ddd6fe', padding:'14px 20px', marginBottom:16 }}>
+          <div data-print-hide style={{ backgroundColor:'white', borderRadius:12, border:'1.5px solid #ddd6fe', padding:'14px 20px', marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: aiSugg ? 12 : 0 }}>
               <span style={{ fontSize:13, fontWeight:700, color:'#5b21b6' }}>✦ Suggestion IA — Fenêtres de rotation</span>
               <span style={{ fontSize:10, padding:'1px 6px', borderRadius:8, backgroundColor:'#8b5cf6', color:'white', fontWeight:600 }}>IA</span>
