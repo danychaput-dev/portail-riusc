@@ -485,6 +485,45 @@ function DisponibilitesInner() {
                 ⚠️ Déficit de {deficit} personne{deficit > 1 ? 's' : ''} — vérifier les partiels et les non-répondants
               </div>
             )}
+
+            {/* Stats par jour : nb dispo + à confirmer pour chaque date de la fenêtre */}
+            {allDates.length > 0 && (
+              <div style={{ width:'100%', marginTop:4 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>
+                  Disponibles par jour (oui + à confirmer)
+                </div>
+                <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                  {allDates.map(d => {
+                    const dispoJour = dispos.filter(x => x.date_jour === d && x.disponible).length
+                    const confJour  = dispos.filter(x => x.date_jour === d && x.a_confirmer).length
+                    const total     = dispoJour + confJour
+                    const manque    = nbRequis > 0 ? Math.max(0, nbRequis - total) : 0
+                    const inRot     = rotDates.includes(d)
+                    const labelDate = new Date(d + 'T00:00:00').toLocaleDateString('fr-CA', { weekday:'short', day:'numeric', month:'short' })
+                    return (
+                      <div key={d} style={{
+                        textAlign:'center', padding:'8px 14px', borderRadius:10,
+                        backgroundColor: inRot ? '#eff6ff' : '#f8fafc',
+                        border: inRot ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                        minWidth:100,
+                      }}>
+                        <div style={{ fontSize:10, color:'#64748b', fontWeight:600, textTransform:'uppercase' as const }}>
+                          {labelDate}
+                        </div>
+                        <div style={{ fontSize:22, fontWeight:800, color: nbRequis > 0 && total < nbRequis ? '#d97706' : '#065f46', marginTop:2 }}>
+                          {total}
+                          {nbRequis > 0 && <span style={{ fontSize:11, color:'#94a3b8', fontWeight:600 }}> / {nbRequis}</span>}
+                        </div>
+                        <div style={{ fontSize:10, color:'#64748b', fontWeight:500, marginTop:2 }}>
+                          ✓ {dispoJour}{confJour > 0 && ` + ⏳ ${confJour}`}
+                          {manque > 0 && <span style={{ color:'#dc2626', fontWeight:700 }}> (−{manque})</span>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Suggestion IA */}
