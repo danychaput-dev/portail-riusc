@@ -259,16 +259,23 @@ function DisponibilitesInner() {
     setLoadAI(false)
   }
 
+  // Selection filtree pour la rotation : exclut les nondispo
+  // (nondispo peut etre selectionne pour courriel de remerciement mais pas mobilise)
+  const selectedForRotation = useMemo(
+    () => Array.from(selected).filter(bid => !grouped.nondispo.includes(bid)),
+    [selected, grouped.nondispo]
+  )
+
   // ── Créer rotation ────────────────────────────────────────────────────────
   const creerRotation = async () => {
-    if (!depId || !rotStart || !rotEnd || selected.size === 0) return
+    if (!depId || !rotStart || !rotEnd || selectedForRotation.length === 0) return
     setSaving(true)
     const nextNum  = (vagues.length || 0) + 1
     const identifiant = `ROT-${nextNum.toString().padStart(2,'0')}`
     const { error } = await supabase.from('vagues').insert({
       deployment_id: depId, numero: nextNum, identifiant,
       date_debut: rotStart, date_fin: rotEnd,
-      nb_personnes_requis: selected.size, statut: 'Planifiée',
+      nb_personnes_requis: selectedForRotation.length, statut: 'Planifiée',
     })
     if (!error) router.push(`/admin/operations?dep=${depId}`)
     setSaving(false)
@@ -300,12 +307,10 @@ function DisponibilitesInner() {
       <tr style={{ backgroundColor: isSel ? '#eff6ff' : 'transparent', transition:'background 0.1s' }}
         onMouseOver={e => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc' }}
         onMouseOut={e  => { if (!isSel) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent' }}>
-        {/* Checkbox */}
+        {/* Checkbox — tous les groupes selectionnables (nondispo filtre en creer-rotation) */}
         <td style={{ padding:'5px 8px', textAlign:'center', borderBottom:'1px solid #f1f5f9', verticalAlign:'middle' }}>
-          {groupe !== 'nondispo' && (
-            <input type="checkbox" checked={isSel} onChange={() => toggleSelect(bid)}
-              style={{ width:14, height:14, cursor:'pointer', accentColor:C }}/>
-          )}
+          <input type="checkbox" checked={isSel} onChange={() => toggleSelect(bid)}
+            style={{ width:14, height:14, cursor:'pointer', accentColor:C }}/>
         </td>
         {/* Nom + badges + distance */}
         <td style={{ padding:'5px 10px', borderBottom:'1px solid #f1f5f9', minWidth:170, verticalAlign:'top' }}>
@@ -390,12 +395,14 @@ function DisponibilitesInner() {
           }}>
             <span style={{ fontSize:11, fontWeight:700, color:'#475569' }}>{cfg.label}</span>
             <span style={{ marginLeft:8, fontSize:11, color:'#64748b' }}>— {ids.length} pers.</span>
-            {groupe === 'plage' && (
-              <button onClick={() => setSelected(new Set(ids))}
-                style={{ marginLeft:12, fontSize:10, padding:'2px 8px', borderRadius:6, backgroundColor:C, color:'white', border:'none', cursor:'pointer', fontWeight:600 }}>
-                Tout sélectionner
-              </button>
-            )}
+            <button onClick={() => setSelected(prev => { const next = new Set(prev); ids.forEach(id => next.add(id)); return next })}
+              style={{ marginLeft:12, fontSize:10, padding:'2px 8px', borderRadius:6, backgroundColor:C, color:'white', border:'none', cursor:'pointer', fontWeight:600 }}>
+              Sélectionner ce groupe
+            </button>
+            <button onClick={() => setSelected(prev => { const next = new Set(prev); ids.forEach(id => next.delete(id)); return next })}
+              style={{ marginLeft:6, fontSize:10, padding:'2px 8px', borderRadius:6, backgroundColor:'white', color:'#64748b', border:'1px solid #e5e7eb', cursor:'pointer', fontWeight:600 }}>
+              Désélectionner
+            </button>
           </td>
         </tr>
         {sorted.map(bid => <PersonRow key={bid} bid={bid} groupe={groupe}/>)}
@@ -613,15 +620,16 @@ function DisponibilitesInner() {
           <div style={{ backgroundColor:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:'16px 20px', display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
             <button
               onClick={creerRotation}
-              disabled={saving || selected.size === 0 || !rotStart || !rotEnd}
+              disabled={saving || selectedForRotation.length === 0 || !rotStart || !rotEnd}
+              title={selected.size > selectedForRotation.length ? `${selected.size - selectedForRotation.length} non dispo sera exclu(e)(s) de la rotation` : undefined}
               style={{
                 padding:'10px 22px', borderRadius:8, fontSize:13, fontWeight:700,
-                backgroundColor: selected.size === 0 ? '#e5e7eb' : '#065f46',
-                color: selected.size === 0 ? '#9ca3af' : 'white',
-                border:'none', cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
+                backgroundColor: selectedForRotation.length === 0 ? '#e5e7eb' : '#065f46',
+                color: selectedForRotation.length === 0 ? '#9ca3af' : 'white',
+                border:'none', cursor: selectedForRotation.length === 0 ? 'not-allowed' : 'pointer',
               }}
             >
-              {saving ? '⏳ Création…' : `✅ Créer la rotation — ${selected.size} pers. · ${dateFr(rotStart)} → ${dateFr(rotEnd)}`}
+              {saving ? '⏳ Création…' : `✅ Créer la rotation — ${selectedForRotation.length} pers. · ${dateFr(rotStart)} → ${dateFr(rotEnd)}`}
             </button>
 
             <button
