@@ -51,9 +51,17 @@ export async function GET(req: NextRequest) {
   // 2) Tous les reservistes actifs avec les champs pour computer deployable
   const { data: resList, error: resErr } = await supabaseAdmin
     .from('reservistes_actifs')
-    .select('benevole_id, prenom, nom, email, telephone, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, initiation_sc, camp_complete, antecedents_statut, antecedents_date_expiration, groupe, statut')
+    .select('benevole_id, prenom, nom, email, telephone, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, antecedents_statut, antecedents_date_expiration, groupe, statut')
     .range(0, 4999)
   if (resErr) return NextResponse.json({ error: resErr.message }, { status: 500 })
+
+  // 3) Formations pour detecter initiation_sc_completee
+  const { data: formations } = await supabaseAdmin
+    .from('formations_benevoles')
+    .select('benevole_id, initiation_sc_completee, deleted_at')
+    .is('deleted_at', null)
+    .eq('initiation_sc_completee', true)
+  const initiationCompleteIds = new Set((formations || []).map((f: any) => f.benevole_id))
 
   const now = new Date()
   const deployables = (resList || []).filter((r: any) => {
@@ -69,8 +77,8 @@ export async function GET(req: NextRequest) {
     )
     if (!profilComplet) return false
     // Formations
-    if (r.initiation_sc !== true) return false
-    if (r.camp_complete !== true) return false
+    if (!initiationCompleteIds.has(r.benevole_id)) return false
+    if (r.camp_qualif_complete !== true) return false
     // Antécédents
     const antExpire = r.antecedents_date_expiration && new Date(r.antecedents_date_expiration) < now
     const antOk = r.antecedents_statut === 'verifie' && !antExpire
