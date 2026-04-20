@@ -56,6 +56,7 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
   const [loadingStatus, setLoadingStatus] = useState(true)
   const [isApproved, setIsApproved] = useState(false)
   const [hasCiblages, setHasCiblages] = useState(false)
+  const [isResponsableGroupe, setIsResponsableGroupe] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showImpersonateModal, setShowImpersonateModal] = useState(false)
   const [showStatusTooltip, setShowStatusTooltip] = useState(false)
@@ -261,6 +262,20 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             .gt('created_at', lastSeenAt)
 
           setUnreadCommunaute(count ?? 0)
+        }
+      }
+
+      // Vérifier si l'utilisateur est responsable d'au moins un groupe R&S.
+      // On s'appuie sur la RLS (le réserviste voit uniquement ses propres
+      // lignes dans groupes_recherche_responsables), donc count > 0 ⇒ responsable.
+      if (res) {
+        try {
+          const { count } = await (supabase as any)
+            .from('groupes_recherche_responsables')
+            .select('*', { count: 'exact', head: true })
+          setIsResponsableGroupe((count || 0) > 0)
+        } catch {
+          setIsResponsableGroupe(false)
         }
       }
 
@@ -528,6 +543,15 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                     <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     Mes disponibilités
+                  </a>
+                )}
+
+                {/* Menu réservé aux responsables de groupe R&S */}
+                {isResponsableGroupe && (
+                  <a href="/mon-groupe" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#7c3aed', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6', fontWeight: 600 }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#faf5ff'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                    <span style={{ fontSize: '18px' }}>🎖️</span>
+                    Mon groupe R&amp;S
                   </a>
                 )}
 
