@@ -123,6 +123,11 @@ export default function OperationsPage() {
   const [savDem, setSavDem] = useState(false)
   const [savDep, setSavDep] = useState(false)
 
+  // Mode édition : quand non-null, les formulaires passent en mode UPDATE au lieu de INSERT
+  const [editingSinId, setEditingSinId] = useState<string | null>(null)
+  const [editingDemId, setEditingDemId] = useState<string | null>(null)
+  const [editingDepId, setEditingDepId] = useState<string | null>(null)
+
   // wizard
   const [step4Override, setStep4Override] = useState(false)
   const [step6Ok,       setStep6Ok]       = useState(false)
@@ -250,14 +255,24 @@ export default function OperationsPage() {
       return
     }
     setSavSin(true)
-    const {data,error} = await supabase.from('sinistres')
-      .insert({ nom:fSin.nom.trim(), type_incident:fSin.type_incident, lieu:fSin.lieu, date_debut:fSin.date_debut, statut:'Actif' })
-      .select().single()
+    const payload = { nom:fSin.nom.trim(), type_incident:fSin.type_incident, lieu:fSin.lieu, date_debut:fSin.date_debut }
+    const query = editingSinId
+      ? supabase.from('sinistres').update(payload).eq('id', editingSinId).select().single()
+      : supabase.from('sinistres').insert({ ...payload, statut:'Actif' }).select().single()
+    const {data,error} = await query
     if (error) {
-      console.error('Erreur creation sinistre:', error)
-      alert(`Erreur création sinistre : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      console.error('Erreur sinistre:', error)
+      alert(`Erreur ${editingSinId ? 'modification' : 'création'} sinistre : ${error.message}${error.code ? ` (${error.code})` : ''}`)
     } else if (data) {
-      setSinistres(p=>[data as unknown as Sinistre,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''})
+      const sinistre = data as unknown as Sinistre
+      if (editingSinId) {
+        setSinistres(p => p.map(s => s.id === editingSinId ? sinistre : s))
+      } else {
+        setSinistres(p => [sinistre, ...p])
+        setSinId(sinistre.id)
+      }
+      setShowFSin(false); setEditingSinId(null)
+      setFSin({nom:'',type_incident:'',lieu:'',date_debut:''})
     }
     setSavSin(false)
   }
@@ -269,48 +284,130 @@ export default function OperationsPage() {
       return
     }
     setSavDem(true)
-    const identifiant = genDemandeId(demandes, fDem.organisme, fDem.date_debut)
     const description = `${fDem.type_mission} - ${fDem.lieu}`
-    const {data,error} = await supabase.from('demandes').insert({
-      sinistre_id:sinId, organisme:fDem.organisme, type_mission:fDem.type_mission,
-      description,
-      lieu:fDem.lieu, nb_personnes_requis:fDem.nb_personnes_requis?parseInt(fDem.nb_personnes_requis):null,
-      date_debut:fDem.date_debut, date_fin_estimee:fDem.date_fin_estimee||null,
-      priorite:fDem.priorite, statut:'Nouvelle', identifiant,
-      date_reception:new Date().toISOString(),
-      contact_nom:fDem.contact_nom||null, contact_telephone:fDem.contact_telephone||null,
-    }).select().single()
+    const payload = {
+      organisme: fDem.organisme, type_mission: fDem.type_mission, description,
+      lieu: fDem.lieu,
+      nb_personnes_requis: fDem.nb_personnes_requis ? parseInt(fDem.nb_personnes_requis) : null,
+      date_debut: fDem.date_debut, date_fin_estimee: fDem.date_fin_estimee || null,
+      priorite: fDem.priorite,
+      contact_nom: fDem.contact_nom || null, contact_telephone: fDem.contact_telephone || null,
+    }
+    const query = editingDemId
+      ? supabase.from('demandes').update(payload).eq('id', editingDemId).select().single()
+      : (() => {
+          const identifiant = genDemandeId(demandes, fDem.organisme, fDem.date_debut)
+          return supabase.from('demandes').insert({
+            ...payload,
+            sinistre_id: sinId, statut: 'Nouvelle', identifiant,
+            date_reception: new Date().toISOString(),
+          }).select().single()
+        })()
+    const {data,error} = await query
     if (error) {
-      console.error('Erreur creation demande:', error)
-      alert(`Erreur création demande : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      console.error('Erreur demande:', error)
+      alert(`Erreur ${editingDemId ? 'modification' : 'création'} demande : ${error.message}${error.code ? ` (${error.code})` : ''}`)
     } else if (data) {
-      setDemandes(p=>[data as unknown as Demande,...p]); setDemIds(p=>[...p,data.id])
-      setShowFDem(false); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
+      const demande = data as unknown as Demande
+      if (editingDemId) {
+        setDemandes(p => p.map(d => d.id === editingDemId ? demande : d))
+      } else {
+        setDemandes(p => [demande, ...p])
+        setDemIds(p => [...p, demande.id])
+      }
+      setShowFDem(false); setEditingDemId(null)
+      setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
     }
     setSavDem(false)
   }
 
   const creerDeployment = async () => {
-    if (!fDep.nom.trim() || !demIds.length) return
+    if (!fDep.nom.trim()) return
+    if (!editingDepId && !demIds.length) return
     if (!fDep.lieu || !fDep.date_debut || !fDep.nb_personnes_par_vague) {
       alert('Lieu, date de début et nombre de personnes par vague sont obligatoires.')
       return
     }
     setSavDep(true)
-    const identifiant = genDeployId(deployments)
-    const {data,error} = await supabase.from('deployments').insert({
-      identifiant, nom:fDep.nom.trim(), lieu:fDep.lieu,
-      date_debut:fDep.date_debut, date_fin:fDep.date_fin||null,
-      nb_personnes_par_vague:parseInt(fDep.nb_personnes_par_vague),
-      point_rassemblement:fDep.point_rassemblement||null, notes_logistique:fDep.notes_logistique||null,
-      statut:'Planifié',
-    }).select().single()
-    if (!error && data) {
-      await supabase.from('deployments_demandes').insert(demIds.map(did=>({ deployment_id:data.id, demande_id:did })))
-      setDeployments(p=>[...p,data as unknown as Deployment]); setDepId(data.id)
-      setShowFDep(false); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+    const payload = {
+      nom: fDep.nom.trim(), lieu: fDep.lieu,
+      date_debut: fDep.date_debut, date_fin: fDep.date_fin || null,
+      nb_personnes_par_vague: parseInt(fDep.nb_personnes_par_vague),
+      point_rassemblement: fDep.point_rassemblement || null,
+      notes_logistique: fDep.notes_logistique || null,
+    }
+    if (editingDepId) {
+      const {data, error} = await supabase.from('deployments').update(payload).eq('id', editingDepId).select().single()
+      if (error) {
+        console.error('Erreur modification déploiement:', error)
+        alert(`Erreur modification déploiement : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      } else if (data) {
+        const dep = data as unknown as Deployment
+        setDeployments(p => p.map(d => d.id === editingDepId ? dep : d))
+        setShowFDep(false); setEditingDepId(null)
+        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+      }
+    } else {
+      const identifiant = genDeployId(deployments)
+      const {data, error} = await supabase.from('deployments').insert({
+        ...payload, identifiant, statut: 'Planifié',
+      }).select().single()
+      if (!error && data) {
+        await supabase.from('deployments_demandes').insert(demIds.map(did => ({ deployment_id: data.id, demande_id: did })))
+        setDeployments(p => [...p, data as unknown as Deployment]); setDepId(data.id)
+        setShowFDep(false)
+        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+      } else if (error) {
+        console.error('Erreur creation déploiement:', error)
+        alert(`Erreur création déploiement : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      }
     }
     setSavDep(false)
+  }
+
+  // ── Helpers pour entrer en mode édition ──────────────────────────────────
+  const editSinistre = (s: Sinistre) => {
+    setEditingSinId(s.id)
+    setFSin({
+      nom: s.nom || '',
+      type_incident: s.type_incident || '',
+      lieu: s.lieu || '',
+      date_debut: s.date_debut || '',
+    })
+    setShowFSin(true)
+  }
+  const editDemande = (d: Demande) => {
+    setEditingDemId(d.id)
+    setFDem({
+      organisme: d.organisme || '',
+      type_mission: d.type_mission || '',
+      lieu: d.lieu || '',
+      nb_personnes_requis: d.nb_personnes_requis ? String(d.nb_personnes_requis) : '',
+      date_debut: d.date_debut || '',
+      date_fin_estimee: d.date_fin_estimee || '',
+      priorite: d.priorite || 'Normale',
+      contact_nom: d.contact_nom || '',
+      contact_telephone: d.contact_telephone || '',
+    })
+    setShowFDem(true)
+  }
+  const editDeployment = (d: Deployment) => {
+    setEditingDepId(d.id)
+    setFDep({
+      nom: d.nom || '',
+      lieu: d.lieu || '',
+      date_debut: d.date_debut || '',
+      date_fin: d.date_fin || '',
+      nb_personnes_par_vague: d.nb_personnes_par_vague ? String(d.nb_personnes_par_vague) : '',
+      point_rassemblement: (d as any).point_rassemblement || '',
+      notes_logistique: (d as any).notes_logistique || '',
+    })
+    setShowFDep(true)
+  }
+  const cancelEdit = (kind: 'sin' | 'dem' | 'dep') => {
+    if (kind === 'sin') { setShowFSin(false); setEditingSinId(null); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
+    if (kind === 'dem') { setShowFDem(false); setEditingDemId(null); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''}) }
+    if (kind === 'dep') { setShowFDep(false); setEditingDepId(null); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''}) }
   }
 
   const rafraichirCiblages = async () => {
@@ -501,9 +598,16 @@ export default function OperationsPage() {
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {sinistres.map(s => (
                 <SelCard key={s.id} selected={sinId===s.id} onClick={()=>{ setSinId(s.id); setDemIds([]); setDepId(null) }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                     <span style={{ fontWeight:600, fontSize:13, color:'#1e3a5f' }}>{s.nom}</span>
-                    <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#d1fae5', color:'#065f46', fontWeight:600 }}>{s.statut}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#d1fae5', color:'#065f46', fontWeight:600 }}>{s.statut}</span>
+                      <button onClick={(e) => { e.stopPropagation(); editSinistre(s) }}
+                        title="Modifier ce sinistre"
+                        style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                        ✏️
+                      </button>
+                    </div>
                   </div>
                   <div style={{ fontSize:11, color:'#64748b', marginTop:2, display:'flex', gap:12, flexWrap:'wrap' }}>
                     {s.type_incident && <span>🔥 {s.type_incident}</span>}
@@ -514,7 +618,9 @@ export default function OperationsPage() {
               ))}
               {showFSin ? (
                 <SBox>
-                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>Nouveau sinistre</div>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
+                    {editingSinId ? '✏️ Modifier le sinistre' : 'Nouveau sinistre'}
+                  </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <div style={G2}>
                       <Field label="Nom *"><input style={IS} value={fSin.nom} onChange={e=>setFSin(f=>({...f,nom:e.target.value}))} placeholder="ex : Inondation Saguenay 2025"/></Field>
@@ -530,8 +636,10 @@ export default function OperationsPage() {
                       <Field label="Date de début"><input type="date" style={IS} value={fSin.date_debut} onChange={e=>setFSin(f=>({...f,date_debut:e.target.value}))}/></Field>
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
-                      <Btn onClick={creerSinistre} loading={savSin} disabled={!fSin.nom.trim()} color="#1e3a5f">✓ Créer</Btn>
-                      <Btn onClick={()=>setShowFSin(false)} outline color="#6b7280">Annuler</Btn>
+                      <Btn onClick={creerSinistre} loading={savSin} disabled={!fSin.nom.trim()} color="#1e3a5f">
+                        {editingSinId ? '✓ Mettre à jour' : '✓ Créer'}
+                      </Btn>
+                      <Btn onClick={()=>cancelEdit('sin')} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
                 </SBox>
@@ -566,7 +674,14 @@ export default function OperationsPage() {
                         <span style={{ fontSize:13, color:'#1e3a5f' }}>{d.organisme}</span>
                         {d.type_mission && <span style={{ fontSize:11, color:'#64748b' }}>· {d.type_mission}</span>}
                       </div>
-                      <span style={{ fontSize:11, padding:'2px 7px', borderRadius:8, backgroundColor:'#f3f4f6', color:'#6b7280', flexShrink:0 }}>{d.statut}</span>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                        <span style={{ fontSize:11, padding:'2px 7px', borderRadius:8, backgroundColor:'#f3f4f6', color:'#6b7280' }}>{d.statut}</span>
+                        <button onClick={(e) => { e.stopPropagation(); editDemande(d) }}
+                          title="Modifier cette demande"
+                          style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                          ✏️
+                        </button>
+                      </div>
                     </div>
                     <div style={{ fontSize:11, color:'#64748b', marginTop:3, paddingLeft:22, display:'flex', gap:10, flexWrap:'wrap' }}>
                       {d.lieu && <span>📍 {d.lieu}</span>}
@@ -579,7 +694,9 @@ export default function OperationsPage() {
               })}
               {showFDem ? (
                 <SBox>
-                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>Nouvelle demande</div>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
+                    {editingDemId ? '✏️ Modifier la demande' : 'Nouvelle demande'}
+                  </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <div style={G2}>
                       <Field label="Organisme *">
@@ -608,8 +725,10 @@ export default function OperationsPage() {
                       <Field label="Contact (téléphone)"><input style={IS} value={fDem.contact_telephone} onChange={e=>setFDem(f=>({...f,contact_telephone:e.target.value}))} placeholder="(418) 000-0000"/></Field>
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
-                      <Btn onClick={creerDemande} loading={savDem} disabled={!fDem.organisme} color="#7c3aed">✓ Créer la demande</Btn>
-                      <Btn onClick={()=>setShowFDem(false)} outline color="#6b7280">Annuler</Btn>
+                      <Btn onClick={creerDemande} loading={savDem} disabled={!fDem.organisme} color="#7c3aed">
+                        {editingDemId ? '✓ Mettre à jour' : '✓ Créer la demande'}
+                      </Btn>
+                      <Btn onClick={()=>cancelEdit('dem')} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
                 </SBox>
@@ -626,12 +745,19 @@ export default function OperationsPage() {
               {demIds.length===0 && !depId && <p style={{ fontSize:12, color:'#f59e0b', margin:0 }}>⚠️ Sélectionnez d'abord les demandes à l'étape 2.</p>}
               {deployments.map(d => (
                 <SelCard key={d.id} selected={depId===d.id} onClick={()=>setDepId(d.id)}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                     <div>
                       <span style={{ fontWeight:700, fontSize:12, color:'#7c3aed' }}>{d.identifiant}</span>
                       <span style={{ fontSize:13, color:'#1e3a5f', marginLeft:8 }}>{d.nom}</span>
                     </div>
-                    <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#f3f4f6', color:'#6b7280', fontWeight:600 }}>{d.statut}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#f3f4f6', color:'#6b7280', fontWeight:600 }}>{d.statut}</span>
+                      <button onClick={(e) => { e.stopPropagation(); editDeployment(d) }}
+                        title="Modifier ce déploiement"
+                        style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                        ✏️
+                      </button>
+                    </div>
                   </div>
                   <div style={{ fontSize:11, color:'#64748b', marginTop:3, display:'flex', gap:12, flexWrap:'wrap' }}>
                     {d.lieu && <span>📍 {d.lieu}</span>}
@@ -644,8 +770,8 @@ export default function OperationsPage() {
               {showFDep ? (
                 <SBox>
                   <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
-                    Nouveau déploiement
-                    {demIds.length>0 && <span style={{ fontWeight:400, fontSize:11, color:'#64748b', marginLeft:8 }}>— lié à {demIds.length} demande(s)</span>}
+                    {editingDepId ? '✏️ Modifier le déploiement' : 'Nouveau déploiement'}
+                    {!editingDepId && demIds.length>0 && <span style={{ fontWeight:400, fontSize:11, color:'#64748b', marginLeft:8 }}>— lié à {demIds.length} demande(s)</span>}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <Field label="Nom du déploiement *"><input style={IS} value={fDep.nom} onChange={e=>setFDep(f=>({...f,nom:e.target.value}))} placeholder="ex : Déploiement Gatineau — Digues"/></Field>
@@ -663,8 +789,10 @@ export default function OperationsPage() {
                         value={fDep.notes_logistique} onChange={e=>setFDep(f=>({...f,notes_logistique:e.target.value}))} placeholder="Transport, hébergement, équipement..."/>
                     </Field>
                     <div style={{ display:'flex', gap:8 }}>
-                      <Btn onClick={creerDeployment} loading={savDep} disabled={!fDep.nom.trim()||demIds.length===0} color="#7c3aed">✓ Créer le déploiement</Btn>
-                      <Btn onClick={()=>setShowFDep(false)} outline color="#6b7280">Annuler</Btn>
+                      <Btn onClick={creerDeployment} loading={savDep} disabled={!fDep.nom.trim() || (!editingDepId && demIds.length===0)} color="#7c3aed">
+                        {editingDepId ? '✓ Mettre à jour' : '✓ Créer le déploiement'}
+                      </Btn>
+                      <Btn onClick={()=>cancelEdit('dep')} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
                 </SBox>
@@ -807,6 +935,31 @@ export default function OperationsPage() {
           <StepCard id="step-7" n={7} status={ss(7)} title="Rotation créée" ai
             subtitle={vagues.length>0?`${vagues.length} rotation(s) planifiée(s)`:'IA suggère les affectations optimales'}>
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+              {/* Action principale : aller à la page des dispos pour sélectionner les gens */}
+              <div style={{
+                backgroundColor:'#eff6ff', borderRadius:10, border:'1.5px solid #93c5fd',
+                padding:'14px 18px', display:'flex', gap:14, alignItems:'center', flexWrap:'wrap',
+              }}>
+                <div style={{ flex:1, minWidth:220 }}>
+                  <div style={{ fontWeight:700, fontSize:13, color:'#1e3a5f', marginBottom:3 }}>
+                    📊 Voir les disponibilités et sélectionner
+                  </div>
+                  <div style={{ fontSize:11, color:'#475569', lineHeight:1.5 }}>
+                    Ouvre le tableau complet avec la grille des membres, leurs réponses
+                    par date et leurs compétences. C'est là que tu coches précisément
+                    qui va dans la rotation.
+                  </div>
+                </div>
+                <Btn
+                  onClick={() => { if (depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }}
+                  disabled={!depId}
+                  color="#1d4ed8"
+                >
+                  📊 Ouvrir les disponibilités
+                </Btn>
+              </div>
+
               <div>
                 <Btn onClick={getAISuggestion} loading={loadAI} color="#6d28d9">✦ Demander une suggestion à Claude</Btn>
                 <p style={{ fontSize:11, color:'#94a3b8', margin:'6px 0 0' }}>
