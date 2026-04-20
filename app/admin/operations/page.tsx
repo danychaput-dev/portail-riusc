@@ -30,15 +30,24 @@ export default function OperationsPage() {
     const urlDep  = params.get('dep')
     const urlDems = params.get('dems')
     if (urlSin || urlDep || urlDems) {
-      // URL prime pour sin/dep, mais si dems absent → lire localStorage
+      // URL prime pour les params présents ; pour les params ABSENTS (ex: retour
+      // de /disponibilites qui ne garde que ?dep=...), on tombe en fallback
+      // localStorage pour ne pas perdre le contexte sinistre/demandes.
       let demIds = urlDems ? urlDems.split(',').filter(Boolean) : []
-      if (!demIds.length) {
+      let sinId  = urlSin || null
+      let depId  = urlDep || null
+      if (!sinId || !demIds.length || !depId) {
         try {
           const raw = localStorage.getItem(LS_KEY)
-          if (raw) demIds = JSON.parse(raw)?.demIds || []
+          if (raw) {
+            const saved = JSON.parse(raw)
+            if (!sinId  && saved?.sinId)  sinId  = saved.sinId
+            if (!depId  && saved?.depId)  depId  = saved.depId
+            if (!demIds.length && saved?.demIds) demIds = saved.demIds
+          }
         } catch {}
       }
-      return { sinId: urlSin || null, depId: urlDep || null, demIds }
+      return { sinId, depId, demIds }
     }
     try {
       const raw = localStorage.getItem(LS_KEY)
