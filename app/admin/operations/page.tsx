@@ -310,8 +310,20 @@ export default function OperationsPage() {
 
   useEffect(() => {
     if (!selDep) return
-    const v = vagues[0]
-    setMsgMobil(tplMobil(selDep.nom, v?(v.identifiant||`Rotation #${v.numero}`):'[rotation à définir]', v?.date_debut||'[date début]', v?.date_fin||'[date fin]', selDep.lieu))
+    // On ne régénère le template que si l'admin n'a pas déjà édité le message.
+    // Ça préserve les modifications manuelles (ex: adresse exacte, heure de
+    // rassemblement) quand une nouvelle vague est créée ou modifiée.
+    setMsgMobil((prev: string) => {
+      if (prev && prev.trim()) return prev
+      const v = vagues[0]
+      return tplMobil(
+        selDep.nom,
+        v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
+        v?.date_debut || '[date début]',
+        v?.date_fin || '[date fin]',
+        selDep.lieu
+      )
+    })
   }, [depId, vagues.length])
 
   // ── Actions ─────────────────────────────────────────────────────────────────
@@ -997,6 +1009,19 @@ export default function OperationsPage() {
               </div>
               <Field label="Aperçu du message (éditable)">
                 <textarea style={TA} value={msgNotif} onChange={e=>setMsgNotif(e.target.value)}/>
+                <div style={{ display:'flex', gap:8, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selSin || !selDep) return
+                      if (msgNotif.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis les données ?')) return
+                      setMsgNotif(tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
+                    }}
+                    style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>
+                    🔄 Regénérer depuis les données
+                  </button>
+                  <span style={{ fontSize:11, color:'#94a3b8' }}>(utilise ça si tu as édité le sinistre ou le déploiement après)</span>
+                </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                 <Btn onClick={sendNotifications} disabled={!ciblages.length||ciblages.every(c=>c.statut==='notifie')} loading={sendingNotif} color="#1d4ed8">
@@ -1213,6 +1238,34 @@ export default function OperationsPage() {
               )}
               <Field label="Aperçu du message de mobilisation (éditable)">
                 <textarea style={TA} value={msgMobil} onChange={e=>setMsgMobil(e.target.value)}/>
+                <div style={{ display:'flex', gap:8, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selDep) return
+                      if (msgMobil.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis les données ?')) return
+                      const v = vagues[0]
+                      setMsgMobil(tplMobil(
+                        selDep.nom,
+                        v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
+                        v?.date_debut || '[date début]',
+                        v?.date_fin || '[date fin]',
+                        selDep.lieu
+                      ))
+                    }}
+                    style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>
+                    🔄 Regénérer depuis les données
+                  </button>
+                  <span style={{ fontSize:11, color:'#94a3b8' }}>(utilise ça si tu as édité le déploiement/sinistre après)</span>
+                </div>
+                <div style={{ fontSize:11, color:'#64748b', marginTop:8, lineHeight:1.5 }}>
+                  💡 Astuce : pour envoyer un texte <strong>SMS différent</strong> du courriel, encadre-le avec :
+                  <code style={{ backgroundColor:'#eef2ff', padding:'1px 5px', borderRadius:4, margin:'0 3px' }}>---SMS---</code>
+                  au début et
+                  <code style={{ backgroundColor:'#eef2ff', padding:'1px 5px', borderRadius:4, margin:'0 3px' }}>---FIN---</code>
+                  à la fin.
+                  Le bloc SMS sera envoyé par texto (max 160&nbsp;car.), retiré du courriel, et le reste ira uniquement par courriel.
+                </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                 <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSentDerived} loading={sendingMobil} color="#065f46">
