@@ -507,8 +507,28 @@ function DeploiementCard({
                     {m.ville && <div style={{ fontSize: 10, color: MUTED }}>📍 {m.ville}{m.region ? `, ${m.region}` : ''}</div>}
                   </td>
                   <td style={tdStyle}>
-                    {m.email && <div style={{ fontSize: 11, color: MUTED }}>✉ {m.email}</div>}
-                    {m.telephone && <div style={{ fontSize: 11, color: MUTED }}>📞 {m.telephone}</div>}
+                    {m.email && (
+                      <div style={{ fontSize: 11 }}>
+                        <a
+                          href={`mailto:${encodeURIComponent(m.email)}`}
+                          title={`Écrire à ${m.prenom} ${m.nom}`}
+                          style={{ color: '#1d4ed8', textDecoration: 'none', borderBottom: '1px dotted #93c5fd' }}
+                        >
+                          ✉ {m.email}
+                        </a>
+                      </div>
+                    )}
+                    {m.telephone && (
+                      <div style={{ fontSize: 11 }}>
+                        <a
+                          href={`tel:${m.telephone.replace(/\s+/g, '')}`}
+                          title={`Appeler ${m.prenom} ${m.nom}`}
+                          style={{ color: '#1d4ed8', textDecoration: 'none', borderBottom: '1px dotted #93c5fd' }}
+                        >
+                          📞 {m.telephone}
+                        </a>
+                      </div>
+                    )}
                   </td>
                   <td style={tdStyle}>
                     <span style={{

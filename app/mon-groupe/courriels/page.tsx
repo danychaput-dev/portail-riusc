@@ -363,13 +363,29 @@ function CourrielCard({
               <tbody>
                 {courriel.destinataires.map(d => {
                   const cat = categorizeStatut(d)
+                  // Mailto individuel : clic sur l'adresse ouvre le client mail du responsable
+                  // avec le destinataire et un sujet de référence pré-rempli.
+                  const sujetIndiv = `À propos de : ${courriel.subject}`
+                  const mailtoIndiv = d.email
+                    ? `mailto:${encodeURIComponent(d.email)}?subject=${encodeURIComponent(sujetIndiv)}`
+                    : null
                   return (
                     <tr key={d.courriel_id} style={{ borderTop: `1px solid #f3f4f6` }}>
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 600, color: C }}>{d.prenom} {d.nom}</div>
                       </td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 11, color: MUTED }}>{d.email}</span>
+                        {mailtoIndiv ? (
+                          <a
+                            href={mailtoIndiv}
+                            title={`Écrire à ${d.prenom} ${d.nom} depuis ton courriel`}
+                            style={{ fontSize: 11, color: '#1d4ed8', textDecoration: 'none', borderBottom: '1px dotted #93c5fd' }}
+                          >
+                            ✉️ {d.email}
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 11, color: MUTED }}>{d.email}</span>
+                        )}
                       </td>
                       <td style={tdStyle}>
                         <span style={{
