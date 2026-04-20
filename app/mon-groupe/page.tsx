@@ -93,12 +93,30 @@ export default function MonGroupePage() {
   const [error, setError] = useState<string | null>(null)
   // Filtre par groupe : 'all' = tous
   const [filtreGroupe, setFiltreGroupe] = useState<string>('all')
+  // Nouveaux filtres
+  const [search, setSearch] = useState('')
+  const [onlyResponded, setOnlyResponded] = useState(false)
+  const [includeTermines, setIncludeTermines] = useState(false)
+
+  // Tri partagé entre tous les tableaux de la page
+  type SortKey = 'statut' | 'nom' | 'ville' | 'rotation'
+  const [sortKey, setSortKey] = useState<SortKey>('statut')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   useEffect(() => {
     ;(async () => {
       setLoading(true)
       try {
-        const res = await fetch('/api/mon-groupe/deploiements', { cache: 'no-store' })
+        const qs = includeTermines ? '?include_termines=true' : ''
+        const res = await fetch(`/api/mon-groupe/deploiements${qs}`, { cache: 'no-store' })
         if (res.status === 401) { router.push('/login'); return }
         const json: ApiResponse = await res.json()
         if (json.error) setError(json.error)
@@ -109,21 +127,42 @@ export default function MonGroupePage() {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [includeTermines])
+
+  // Normalisation pour la recherche insensible à la casse et aux accents
+  const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const searchTerms = useMemo(
+    () => normalize(search.trim()).split(/\s+/).filter(Boolean),
+    [search]
+  )
+  function matchesSearch(m: MembreLigne): boolean {
+    if (searchTerms.length === 0) return true
+    const haystack = normalize([m.prenom, m.nom, m.email, m.ville, m.region].filter(Boolean).join(' '))
+    return searchTerms.every(t => haystack.includes(t))
+  }
 
   const deploiementsAffiches = useMemo(() => {
     if (!data) return [] as Deploiement[]
-    if (filtreGroupe === 'all') return data.deploiements
-    // Filtrer par groupe : ne garder que les membres dont groupe_recherche contient le nom du groupe sélectionné
-    const groupe = data.groupes.find(g => g.id === filtreGroupe)
-    if (!groupe) return data.deploiements
+    const groupe = filtreGroupe === 'all' ? null : data.groupes.find(g => g.id === filtreGroupe)
     return data.deploiements
-      .map(d => ({
-        ...d,
-        membres: d.membres.filter(m => (m.groupe_recherche || '').toLowerCase().includes(groupe.nom.toLowerCase())),
-      }))
+      .map(d => {
+        let membres = d.membres
+        if (groupe) {
+          membres = membres.filter(m => (m.groupe_recherche || '').toLowerCase().includes(groupe.nom.toLowerCase()))
+        }
+        if (onlyResponded) {
+          membres = membres.filter(m => m.dispos.length > 0)
+        }
+        if (searchTerms.length > 0) {
+          membres = membres.filter(matchesSearch)
+        }
+        return { ...d, membres }
+      })
       .filter(d => d.membres.length > 0)
-  }, [data, filtreGroupe])
+  }, [data, filtreGroupe, onlyResponded, searchTerms])
+
+  // Stats globales (après filtres) pour l'en-tête
+  const totalFiltres = deploiementsAffiches.reduce((sum, d) => sum + d.membres.length, 0)
 
   if (loading) {
     return (
@@ -170,14 +209,27 @@ export default function MonGroupePage() {
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px', flex: 1, width: '100%' }}>
 
         {/* En-tête */}
-        <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: C, margin: '0 0 6px' }}>
-            🎖️ Mon groupe
-          </h1>
-          <p style={{ fontSize: 13, color: MUTED, margin: 0, lineHeight: 1.6 }}>
-            Membres de ton/tes groupe(s) de recherche et sauvetage sollicités sur les déploiements actifs.
-            Tu peux voir qui a répondu, qui est disponible et qui a été mobilisé dans une rotation.
-          </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: C, margin: '0 0 6px' }}>
+              🎖️ Mon groupe
+            </h1>
+            <p style={{ fontSize: 13, color: MUTED, margin: 0, lineHeight: 1.6 }}>
+              Membres de ton/tes groupe(s) de recherche et sauvetage sollicités sur les déploiements actifs.
+              Tu peux voir qui a répondu, qui est disponible et qui a été mobilisé dans une rotation.
+            </p>
+          </div>
+          <a
+            href="/mon-groupe/courriels"
+            style={{
+              padding: '8px 14px', fontSize: 12, fontWeight: 600,
+              backgroundColor: 'white', color: C,
+              border: `1px solid ${C}`, borderRadius: 8,
+              textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            📧 Courriels aux membres →
+          </a>
         </div>
 
         {/* Groupes dont je suis responsable + filtre */}
@@ -216,19 +268,73 @@ export default function MonGroupePage() {
           ))}
         </div>
 
+        {/* Barre de recherche + filtres */}
+        <div style={{
+          display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+          padding: '10px 14px', marginBottom: 16,
+          backgroundColor: 'white', borderRadius: 10, border: `1px solid ${BORDER}`,
+        }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+            <input
+              type="text" placeholder="🔍 Rechercher un membre (nom, courriel, ville…)"
+              value={search} onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%', padding: '6px 28px 6px 10px', fontSize: 13,
+                border: `1px solid ${BORDER}`, borderRadius: 8, outline: 'none',
+                color: '#1e293b', boxSizing: 'border-box',
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                title="Effacer la recherche"
+                style={{
+                  position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#94a3b8', fontSize: 16, padding: '2px 8px', lineHeight: 1,
+                }}
+              >×</button>
+            )}
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: MUTED, cursor: 'pointer' }}>
+            <input type="checkbox" checked={onlyResponded} onChange={e => setOnlyResponded(e.target.checked)} style={{ accentColor: C }} />
+            Avec réponse seulement
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: MUTED, cursor: 'pointer' }}>
+            <input type="checkbox" checked={includeTermines} onChange={e => setIncludeTermines(e.target.checked)} style={{ accentColor: C }} />
+            Inclure déploiements terminés (archives)
+          </label>
+
+          <span style={{ fontSize: 12, color: MUTED, marginLeft: 'auto' }}>
+            {totalFiltres} membre{totalFiltres > 1 ? 's' : ''} · {deploiementsAffiches.length} déploiement{deploiementsAffiches.length > 1 ? 's' : ''}
+          </span>
+        </div>
+
         {/* Liste des déploiements */}
         {deploiementsAffiches.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center', backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>✨</div>
-            <div style={{ color: C, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Aucun membre sollicité pour le moment</div>
+            <div style={{ color: C, fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+              {search || onlyResponded ? 'Aucun résultat ne correspond aux filtres' : 'Aucun membre sollicité pour le moment'}
+            </div>
             <div style={{ color: MUTED, fontSize: 13 }}>
-              Quand des membres de ton groupe seront ciblés pour un déploiement, tu les verras ici.
+              {search || onlyResponded
+                ? 'Essaie de relâcher les filtres.'
+                : 'Quand des membres de ton groupe seront ciblés pour un déploiement, tu les verras ici.'}
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {deploiementsAffiches.map(dep => (
-              <DeploiementCard key={dep.id} dep={dep} />
+              <DeploiementCard
+                key={dep.id}
+                dep={dep}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={toggleSort}
+              />
             ))}
           </div>
         )}
@@ -238,24 +344,63 @@ export default function MonGroupePage() {
   )
 }
 
-function DeploiementCard({ dep }: { dep: Deploiement }) {
+type SortKey = 'statut' | 'nom' | 'ville' | 'rotation'
+
+function DeploiementCard({
+  dep, sortKey, sortDir, onSort,
+}: {
+  dep: Deploiement
+  sortKey: SortKey
+  sortDir: 'asc' | 'desc'
+  onSort: (k: SortKey) => void
+}) {
   const dates = useMemo(() =>
     dep.date_debut && dep.date_fin ? genDates(dep.date_debut, dep.date_fin) : []
   , [dep.date_debut, dep.date_fin])
 
-  // Trier les membres : mobilisés d'abord, puis dispos, puis silence
+  // Priorité de statut pour le tri "statut" : mobilisé > dispo > à confirmer > non dispo > silence
+  const statutPriority = (m: MembreLigne): number => {
+    if (m.vague_id) return 0
+    if (m.dispos.some(d => d.disponible)) return 1
+    if (m.dispos.some(d => d.a_confirmer)) return 2
+    if (m.dispos.length > 0) return 3 // a répondu non dispo
+    return 4 // silence
+  }
+
+  // Tri des membres selon la colonne cliquée
   const membresTries = useMemo(() => {
-    const order = (m: MembreLigne) => {
-      if (m.vague_id) return 0
-      const dispoOui = m.dispos.some(d => d.disponible)
-      const aConfirmer = m.dispos.some(d => d.a_confirmer)
-      if (dispoOui) return 1
-      if (aConfirmer) return 2
-      if (m.dispos.length > 0) return 3 // a répondu non dispo
-      return 4 // silence
+    const compare = (a: MembreLigne, b: MembreLigne): number => {
+      let v = 0
+      switch (sortKey) {
+        case 'nom':
+          v = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr', { sensitivity: 'base' })
+          break
+        case 'ville':
+          v = (a.ville || '').localeCompare(b.ville || '', 'fr', { sensitivity: 'base' })
+          break
+        case 'rotation':
+          // Nulls en dernier quel que soit le sens
+          if (!a.vague_identifiant && !b.vague_identifiant) v = 0
+          else if (!a.vague_identifiant) v = 1
+          else if (!b.vague_identifiant) v = -1
+          else v = a.vague_identifiant.localeCompare(b.vague_identifiant)
+          break
+        case 'statut':
+        default:
+          v = statutPriority(a) - statutPriority(b)
+          if (v === 0) v = `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr', { sensitivity: 'base' })
+          break
+      }
+      return sortDir === 'asc' ? v : -v
     }
-    return [...dep.membres].sort((a, b) => order(a) - order(b))
-  }, [dep.membres])
+    return [...dep.membres].sort(compare)
+  }, [dep.membres, sortKey, sortDir])
+
+  // Icône de tri sur l'en-tête cliquable
+  const sortIndicator = (k: SortKey) => {
+    if (sortKey !== k) return <span style={{ color: '#cbd5e1', marginLeft: 4 }}>↕</span>
+    return <span style={{ color: C, marginLeft: 4, fontWeight: 700 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>
+  }
 
   const stats = useMemo(() => {
     let mobilises = 0, dispoOui = 0, aConfirmer = 0, nondispo = 0, silence = 0
@@ -269,11 +414,19 @@ function DeploiementCard({ dep }: { dep: Deploiement }) {
     return { mobilises, dispoOui, aConfirmer, nondispo, silence }
   }, [dep.membres])
 
+  const isTermine = dep.statut === 'Terminé'
+
   return (
-    <div style={{ backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
-      {/* En-tête déploiement */}
-      <div style={{ padding: '14px 18px', backgroundColor: '#1e3a5f', color: 'white' }}>
+    <div style={{
+      backgroundColor: 'white', borderRadius: 12,
+      border: `1px solid ${isTermine ? '#cbd5e1' : BORDER}`,
+      overflow: 'hidden',
+      opacity: isTermine ? 0.85 : 1,
+    }}>
+      {/* En-tête déploiement — gris pour les archives, bleu marine sinon */}
+      <div style={{ padding: '14px 18px', backgroundColor: isTermine ? '#64748b' : '#1e3a5f', color: 'white' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {isTermine && <span title="Archivé" style={{ fontSize: 14 }}>📦</span>}
           <span style={{
             fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 8,
             backgroundColor: 'rgba(255,255,255,0.2)',
@@ -281,7 +434,9 @@ function DeploiementCard({ dep }: { dep: Deploiement }) {
           <span style={{ fontSize: 16, fontWeight: 700 }}>{dep.nom}</span>
           <span style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 8,
-            backgroundColor: dep.statut === 'En cours' ? '#10b981' : 'rgba(255,255,255,0.2)',
+            backgroundColor: dep.statut === 'En cours' ? '#10b981'
+              : isTermine ? 'rgba(0,0,0,0.25)'
+              : 'rgba(255,255,255,0.2)',
             color: 'white', fontWeight: 600, textTransform: 'uppercase',
           }}>{dep.statut}</span>
         </div>
@@ -317,15 +472,23 @@ function DeploiementCard({ dep }: { dep: Deploiement }) {
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc' }}>
-              <th style={thStyle}>Membre</th>
-              <th style={thStyle}>Contact</th>
-              <th style={thStyle}>Statut</th>
+              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }} onClick={() => onSort('nom')}>
+                Membre{sortIndicator('nom')}
+              </th>
+              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }} onClick={() => onSort('ville')}>
+                Contact{sortIndicator('ville')}
+              </th>
+              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }} onClick={() => onSort('statut')}>
+                Statut{sortIndicator('statut')}
+              </th>
               {dates.map(d => (
                 <th key={d} style={{ ...thStyle, textAlign: 'center', minWidth: 40, whiteSpace: 'nowrap' }}>
                   {d.slice(5)}
                 </th>
               ))}
-              <th style={thStyle}>Rotation</th>
+              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none' }} onClick={() => onSort('rotation')}>
+                Rotation{sortIndicator('rotation')}
+              </th>
             </tr>
           </thead>
           <tbody>
