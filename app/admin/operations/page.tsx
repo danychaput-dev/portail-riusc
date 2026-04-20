@@ -236,6 +236,13 @@ export default function OperationsPage() {
       .then(({data})=>{ if(data) setVagues(data as any) })
   }, [depId, step4Override])
 
+  // Helper exposé pour rafraîchir les vagues à la demande (bouton Refresh étape 7)
+  const rafraichirVagues = async () => {
+    if (!depId) return
+    const { data } = await supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+    if (data) setVagues(data as any)
+  }
+
   // Quand l'utilisateur revient sur l'onglet (depuis /admin/operations/disponibilites
   // où il a pu créer/modifier une rotation), on refetch les vagues pour que le wizard
   // reflète l'état actuel de la DB. Sans ça, le wizard pense que step 7/8 ne sont pas
@@ -250,6 +257,10 @@ export default function OperationsPage() {
     }
     window.addEventListener('focus', refreshVagues)
     document.addEventListener('visibilitychange', refreshVagues)
+    // Refetch aussi quand on arrive sur la page (router.push depuis /disponibilites
+    // ne retriggère pas les useEffect depId-based, donc on ajoute un refetch initial
+    // explicite).
+    refreshVagues()
     return () => {
       window.removeEventListener('focus', refreshVagues)
       document.removeEventListener('visibilitychange', refreshVagues)
@@ -1014,14 +1025,28 @@ export default function OperationsPage() {
                   <pre style={{ fontSize:12, color:'#4c1d95', margin:0, whiteSpace:'pre-wrap', lineHeight:1.6, fontFamily:'inherit' }}>{aiSugg}</pre>
                 </div>
               )}
-              {vagues.length>0 && (
-                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#065f46', marginBottom:8 }}>Rotations créées ({vagues.length})</div>
-                  {vagues.map(v=>(
-                    <div key={v.id} style={{ fontSize:12, color:'#065f46', marginBottom:4 }}>
-                      <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>{' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}
-                    </div>
-                  ))}
+              {vagues.length>0 ? (
+                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px', display:'flex', alignItems:'flex-start', gap:10 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#065f46', marginBottom:8 }}>Rotations créées ({vagues.length})</div>
+                    {vagues.map(v=>(
+                      <div key={v.id} style={{ fontSize:12, color:'#065f46', marginBottom:4 }}>
+                        <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>{' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={rafraichirVagues} title="Recharger la liste depuis la DB"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'white', color:'#065f46', border:'1px solid #a7f3d0', cursor:'pointer', fontWeight:600, flexShrink:0 }}>
+                    🔄 Rafraîchir
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding:'10px 14px', display:'flex', gap:10, alignItems:'center' }}>
+                  <span style={{ fontSize:12, color:'#94a3b8' }}>Aucune rotation créée pour ce déploiement.</span>
+                  <button onClick={rafraichirVagues} title="Recharger depuis la DB au cas où une rotation vient d'être créée"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'white', color:'#475569', border:'1px solid #e5e7eb', cursor:'pointer', fontWeight:600 }}>
+                    🔄 Rafraîchir
+                  </button>
                 </div>
               )}
               <SBox>
