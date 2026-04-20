@@ -94,7 +94,11 @@ export default function ResponsablesGroupesPage() {
         .select('id, nom, district, actif')
         .order('district')
         .order('nom'),
-      supabase
+      // Cast as any : la vue v_responsables_groupes_detail n'est pas dans les
+      // types Supabase générés. Créée en migration SQL manuelle, donc TS
+      // ne la connaît pas. Safe ici puisque le shape est défini dans l'interface
+      // Responsable et qu'on mappe les champs explicitement plus bas.
+      (supabase as any)
         .from('v_responsables_groupes_detail')
         .select('*')
         .order('nom'),
@@ -148,7 +152,7 @@ export default function ResponsablesGroupesPage() {
   }
 
   const ajouterResponsable = async (groupeId: string, benevoleId: string) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('groupes_recherche_responsables')
       .insert({ groupe_id: groupeId, benevole_id: benevoleId })
     if (error) {
@@ -167,7 +171,7 @@ export default function ResponsablesGroupesPage() {
 
   const retirerResponsable = async (groupeId: string, benevoleId: string) => {
     if (!confirm('Retirer ce responsable de ce groupe ?')) return
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('groupes_recherche_responsables')
       .delete()
       .eq('groupe_id', groupeId)
@@ -182,7 +186,7 @@ export default function ResponsablesGroupesPage() {
   }
 
   const toggleCc = async (groupeId: string, benevoleId: string, nouvelleValeur: boolean) => {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('groupes_recherche_responsables')
       .update({ recoit_cc_courriels: nouvelleValeur })
       .eq('groupe_id', groupeId)
