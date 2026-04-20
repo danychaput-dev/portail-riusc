@@ -15,12 +15,24 @@ interface CampOption {
   camp_lieu: string
 }
 
+interface DeploymentOption {
+  id: string
+  identifiant?: string | null
+  nom: string
+  lieu?: string | null
+  date_debut?: string | null
+  date_fin?: string | null
+  statut?: string | null
+}
+
 interface Approuveur {
   benevole_id: string
   prenom: string
   nom: string
   role: string
 }
+
+type ContexteType = 'camp' | 'deploiement'
 
 interface Props {
   onClose: () => void
@@ -31,27 +43,36 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
   const supabase = createClient()
 
   const [camps, setCamps] = useState<CampOption[]>([])
+  const [deployments, setDeployments] = useState<DeploymentOption[]>([])
   const [approuveurs, setApprouveurs] = useState<Approuveur[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   // Champs formulaire
+  const [typeContexte, setTypeContexte] = useState<ContexteType>('camp')
   const [campSessionId, setCampSessionId] = useState('')
+  const [deploymentId, setDeploymentId] = useState('')
   const [shift, setShift] = useState<'' | 'jour' | 'nuit' | 'complet'>('')
   const [dateShift, setDateShift] = useState('')
   const [approuveurId, setApprouveurId] = useState('')
 
-  // Charger camps + approuveurs
+  // Charger camps + déploiements + approuveurs
   useEffect(() => {
     ;(async () => {
       setLoadingData(true)
-      const [campsRes, appsRes] = await Promise.all([
+      const [campsRes, depsRes, appsRes] = await Promise.all([
         supabase
           .from('inscriptions_camps')
           .select('session_id, camp_nom, camp_dates, camp_lieu')
           .not('session_id', 'is', null)
           .range(0, 4999),
+        // On ne montre que les déploiements actifs/planifiés (pas les Annulé/Terminé)
+        supabase
+          .from('deployments')
+          .select('id, identifiant, nom, lieu, date_debut, date_fin, statut')
+          .in('statut', ['Planifié', 'En cours', 'Actif'])
+          .order('date_debut', { ascending: false }),
         supabase
           .from('reservistes')
           .select('benevole_id, prenom, nom, role')
@@ -68,20 +89,60 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
         return true
       }) as CampOption[]
       setCamps(uniqueCamps)
+      setDeployments((depsRes.data || []) as DeploymentOption[])
       setApprouveurs((appsRes.data || []) as Approuveur[])
       setLoadingData(false)
     })()
   }, [])
 
   const selectedCamp = camps.find(c => c.session_id === campSessionId)
+  const selectedDep  = deployments.find(d => d.id === deploymentId)
+
+  // Format helper pour les dates de déploiement
+  const fmtDate = (iso?: string | null) => {
+    if (!iso) return ''
+    const [y, m, d] = iso.split('-')
+    return `${d}/${m}/${y}`
+  }
+  const depDatesText = (d: DeploymentOption) => {
+    if (!d.date_debut) return ''
+    const debut = fmtDate(d.date_debut)
+    const fin   = d.date_fin ? fmtDate(d.date_fin) : null
+    return fin && fin !== debut ? `${debut} → ${fin}` : debut
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErr(null)
 
-    if (!campSessionId) { setErr('Sélectionne un camp'); return }
     if (!approuveurId) { setErr('Sélectionne un approuveur'); return }
-    if (!selectedCamp) { setErr('Camp introuvable'); return }
+
+    // Construire le payload selon le type de contexte
+    let payload: Record<string, any>
+    if (typeContexte === 'camp') {
+      if (!campSessionId) { setErr('Sélectionne un camp'); return }
+      if (!selectedCamp)  { setErr('Camp introuvable'); return }
+      payload = {
+        type_contexte: 'camp',
+        session_id: campSessionId,
+        contexte_nom: selectedCamp.camp_nom,
+        contexte_dates: selectedCamp.camp_dates || null,
+        contexte_lieu: selectedCamp.camp_lieu || null,
+      }
+    } else {
+      if (!deploymentId) { setErr('Sélectionne un déploiement'); return }
+      if (!selectedDep)  { setErr('Déploiement introuvable'); return }
+      const nom = selectedDep.identifiant
+        ? `${selectedDep.identifiant} — ${selectedDep.nom}`
+        : selectedDep.nom
+      payload = {
+        type_contexte: 'deploiement',
+        session_id: selectedDep.id,
+        contexte_nom: nom,
+        contexte_dates: depDatesText(selectedDep) || null,
+        contexte_lieu: selectedDep.lieu || null,
+      }
+    }
 
     setSubmitting(true)
     try {
@@ -89,11 +150,7 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type_contexte: 'camp',
-          session_id: campSessionId,
-          contexte_nom: selectedCamp.camp_nom,
-          contexte_dates: selectedCamp.camp_dates || null,
-          contexte_lieu: selectedCamp.camp_lieu || null,
+          ...payload,
           shift: shift || null,
           date_shift: dateShift || null,
           approuveur_id: approuveurId,
@@ -127,39 +184,85 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gap: 14 }}>
-              {/* Type contexte — camp seulement pour MVP */}
+              {/* Type contexte — camp ou déploiement */}
               <div>
                 <label style={labelStyle}>Type de contexte</label>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ ...typeBtn, borderColor: C, backgroundColor: '#eff6ff', color: C }}>
+                  <button
+                    type="button"
+                    onClick={() => setTypeContexte('camp')}
+                    style={{
+                      ...typeBtn,
+                      cursor: 'pointer',
+                      borderColor: typeContexte === 'camp' ? C : BORDER,
+                      backgroundColor: typeContexte === 'camp' ? '#eff6ff' : 'white',
+                      color: typeContexte === 'camp' ? C : MUTED,
+                    }}
+                  >
                     🏕️ Camp de qualification
-                  </div>
-                  <div style={{ ...typeBtn, opacity: 0.5, cursor: 'not-allowed' }} title="Bientôt — Phase 2b">
-                    🚨 Déploiement (bientôt)
-                  </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTypeContexte('deploiement')}
+                    style={{
+                      ...typeBtn,
+                      cursor: 'pointer',
+                      borderColor: typeContexte === 'deploiement' ? RED : BORDER,
+                      backgroundColor: typeContexte === 'deploiement' ? '#fef2f2' : 'white',
+                      color: typeContexte === 'deploiement' ? RED : MUTED,
+                    }}
+                  >
+                    🚨 Déploiement
+                  </button>
                 </div>
               </div>
 
-              {/* Camp */}
-              <div>
-                <label style={labelStyle}>Camp *</label>
-                <select
-                  value={campSessionId}
-                  onChange={e => setCampSessionId(e.target.value)}
-                  style={inputStyle}
-                  required
-                >
-                  <option value="">— Choisir un camp —</option>
-                  {camps.map(c => (
-                    <option key={c.session_id} value={c.session_id}>
-                      {c.camp_nom}{c.camp_dates ? ` — ${c.camp_dates}` : ''}{c.camp_lieu ? ` (${c.camp_lieu})` : ''}
-                    </option>
-                  ))}
-                </select>
-                {camps.length === 0 && (
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Aucun camp trouvé dans inscriptions_camps.</div>
-                )}
-              </div>
+              {/* Camp ou Déploiement — rendu conditionnel selon le type */}
+              {typeContexte === 'camp' ? (
+                <div>
+                  <label style={labelStyle}>Camp *</label>
+                  <select
+                    value={campSessionId}
+                    onChange={e => setCampSessionId(e.target.value)}
+                    style={inputStyle}
+                    required
+                  >
+                    <option value="">— Choisir un camp —</option>
+                    {camps.map(c => (
+                      <option key={c.session_id} value={c.session_id}>
+                        {c.camp_nom}{c.camp_dates ? ` — ${c.camp_dates}` : ''}{c.camp_lieu ? ` (${c.camp_lieu})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {camps.length === 0 && (
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>Aucun camp trouvé dans inscriptions_camps.</div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label style={labelStyle}>Déploiement *</label>
+                  <select
+                    value={deploymentId}
+                    onChange={e => setDeploymentId(e.target.value)}
+                    style={inputStyle}
+                    required
+                  >
+                    <option value="">— Choisir un déploiement —</option>
+                    {deployments.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.identifiant ? `${d.identifiant} — ` : ''}{d.nom}
+                        {d.lieu ? ` (${d.lieu})` : ''}
+                        {d.date_debut ? ` · ${depDatesText(d)}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {deployments.length === 0 && (
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>
+                      Aucun déploiement actif. Crée-en un via /admin/operations.
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Shift + Date */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
