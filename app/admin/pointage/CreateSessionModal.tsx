@@ -53,6 +53,7 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
   const [typeContexte, setTypeContexte] = useState<ContexteType>('camp')
   const [campSessionId, setCampSessionId] = useState('')
   const [deploymentId, setDeploymentId] = useState('')
+  const [titre, setTitre] = useState('')
   const [shift, setShift] = useState<'' | 'jour' | 'nuit' | 'complet'>('')
   const [dateShift, setDateShift] = useState('')
   const [approuveurId, setApprouveurId] = useState('')
@@ -151,6 +152,7 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...payload,
+          titre: titre.trim() || null,
           shift: shift || null,
           date_shift: dateShift || null,
           approuveur_id: approuveurId,
@@ -263,6 +265,22 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
                   )}
                 </div>
               )}
+
+              {/* Titre libre — permet plusieurs QR par camp/shift/date */}
+              <div>
+                <label style={labelStyle}>Titre du QR (optionnel)</label>
+                <input
+                  type="text"
+                  value={titre}
+                  onChange={e => setTitre(e.target.value)}
+                  style={inputStyle}
+                  placeholder="Ex: Équipe Alpha, Chef Marc, Zone Nord…"
+                  maxLength={80}
+                />
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>
+                  Sert à distinguer plusieurs QR d'un même contexte/shift/date (ex: un QR par équipe ou par chef). Sera affiché au-dessus du QR à l'impression.
+                </div>
+              </div>
 
               {/* Shift + Date */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

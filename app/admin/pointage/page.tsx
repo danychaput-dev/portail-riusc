@@ -22,6 +22,7 @@ interface Session {
   session_id: string
   contexte_nom: string
   contexte_lieu: string | null
+  titre: string | null
   shift: 'jour' | 'nuit' | 'complet' | null
   date_shift: string | null
   actif: boolean
@@ -181,6 +182,11 @@ export default function PointagePage() {
                 <tr key={s.pointage_session_id} style={{ borderTop: `1px solid ${BORDER}`, opacity: s.actif ? 1 : 0.55 }}>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 600, color: C }}>{s.contexte_nom}</div>
+                    {s.titre && (
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginTop: 2 }}>
+                        🏷️ {s.titre}
+                      </div>
+                    )}
                     <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
                       <span style={{
                         padding: '1px 6px', borderRadius: 8, fontSize: 10, fontWeight: 700,
