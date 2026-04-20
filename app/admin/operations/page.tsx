@@ -508,6 +508,51 @@ export default function OperationsPage() {
     setSendingNotif(false)
   }
 
+  // Envoi d'un test de notification (ciblage) à l'admin courant uniquement.
+  // Le flag test:true indique à n8n de router vers test_destinataire plutôt
+  // que les vrais ciblages. AUCUNE modification de DB (statut des ciblages
+  // inchangé) pour qu'on puisse tester plusieurs fois sans effet de bord.
+  const sendTestCiblage = async () => {
+    if (!depId) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { alert('Non authentifié'); return }
+    const { data: me } = await supabase
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, email, telephone')
+      .eq('user_id', user.id)
+      .single()
+    if (!me) { alert('Ton profil réserviste est introuvable'); return }
+    if (!me.email && !me.telephone) {
+      alert('Aucun email ni téléphone dans ton profil — impossible de tester')
+      return
+    }
+    setSendingNotif(true)
+    try {
+      const res = await fetch(n8nUrl('/webhook/riusc-envoi-ciblage-portail'), {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          test: true,
+          test_destinataire: {
+            benevole_id: me.benevole_id,
+            prenom: me.prenom, nom: me.nom,
+            email: me.email, telephone: me.telephone,
+          },
+          deployment_id: depId,
+          message_override: msgNotif,
+          type_envoi: 'disponibilites',
+        }),
+      })
+      if (res.ok) {
+        alert(`✅ Test envoyé à ${me.email || ''}${me.email && me.telephone ? ' + ' : ''}${me.telephone || ''}.\n\nVérifie ta boîte courriel et tes SMS dans la prochaine minute.`)
+      } else {
+        alert(`⚠️ n8n a renvoyé un code ${res.status}. Vérifie le workflow.`)
+      }
+    } catch(e: any) {
+      alert('Erreur : ' + (e?.message || 'connexion n8n'))
+    }
+    setSendingNotif(false)
+  }
+
   const getAISuggestion = async () => {
     if (!selDep) return
     setLoadAI(true); setAiSugg(null)
@@ -563,6 +608,51 @@ export default function OperationsPage() {
       setVagues(prev => prev.map(v => v.statut === 'Planifiée' ? { ...v, statut: 'Mobilisée' } : v))
     } catch(e) { console.error('n8n mobil',e) }
     setMobilSent(true); setSendingMobil(false)
+  }
+
+  // Envoi d'un test de mobilisation à l'admin courant uniquement.
+  // Même logique que sendTestCiblage : flag test:true + test_destinataire,
+  // AUCUNE modification de DB (vagues restent en leur statut actuel).
+  const sendTestMobilisation = async () => {
+    if (!depId || !vagues.length) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { alert('Non authentifié'); return }
+    const { data: me } = await supabase
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, email, telephone')
+      .eq('user_id', user.id)
+      .single()
+    if (!me) { alert('Ton profil réserviste est introuvable'); return }
+    if (!me.email && !me.telephone) {
+      alert('Aucun email ni téléphone dans ton profil — impossible de tester')
+      return
+    }
+    setSendingMobil(true)
+    try {
+      const res = await fetch(n8nUrl('/webhook/riusc-envoi-mobilisation-portail'), {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          test: true,
+          test_destinataire: {
+            benevole_id: me.benevole_id,
+            prenom: me.prenom, nom: me.nom,
+            email: me.email, telephone: me.telephone,
+          },
+          deployment_id: depId,
+          vague_ids: vagues.map(v => v.id),
+          message_override: msgMobil,
+          type_envoi: 'mobilisation',
+        }),
+      })
+      if (res.ok) {
+        alert(`✅ Test envoyé à ${me.email || ''}${me.email && me.telephone ? ' + ' : ''}${me.telephone || ''}.\n\nVérifie ta boîte courriel et tes SMS dans la prochaine minute.`)
+      } else {
+        alert(`⚠️ n8n a renvoyé un code ${res.status}. Vérifie le workflow.`)
+      }
+    } catch(e: any) {
+      alert('Erreur : ' + (e?.message || 'connexion n8n'))
+    }
+    setSendingMobil(false)
   }
 
   // ── Données dérivées ────────────────────────────────────────────────────────
@@ -912,6 +1002,10 @@ export default function OperationsPage() {
                 <Btn onClick={sendNotifications} disabled={!ciblages.length||ciblages.every(c=>c.statut==='notifie')} loading={sendingNotif} color="#1d4ed8">
                   📨 Envoyer via n8n ({ciblages.filter(c=>c.statut!=='notifie').length})
                 </Btn>
+                {/* Test : envoi SMS+courriel à l'admin courant uniquement, aucune modif DB */}
+                <Btn onClick={sendTestCiblage} disabled={!depId} loading={sendingNotif} outline color="#d97706">
+                  🧪 Envoyer un test à moi
+                </Btn>
                 {ciblages.some(c=>c.statut==='notifie') && (
                   <span style={{ fontSize:12, color:'#10b981', fontWeight:600 }}>✓ {ciblages.filter(c=>c.statut==='notifie').length} déjà notifié(s)</span>
                 )}
@@ -1123,6 +1217,10 @@ export default function OperationsPage() {
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                 <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSentDerived} loading={sendingMobil} color="#065f46">
                   {mobilSentDerived?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
+                </Btn>
+                {/* Test : envoi SMS+courriel à l'admin courant uniquement, aucune modif DB */}
+                <Btn onClick={sendTestMobilisation} disabled={vagues.length===0} loading={sendingMobil} outline color="#d97706">
+                  🧪 Envoyer un test à moi
                 </Btn>
                 {vagues.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>Créez d'abord les rotations à l'étape 7</span>}
               </div>
