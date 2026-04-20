@@ -202,6 +202,18 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   const [editCcNom, setEditCcNom] = useState('')
   const [editCcEmail, setEditCcEmail] = useState('')
 
+  // CC auto des responsables de groupes R&S — calculé à partir des destinataires
+  interface AutoCcResponsable {
+    benevole_id: string
+    prenom: string
+    nom: string
+    email: string
+    groupes: Array<{ id: string; nom: string; district: number }>
+  }
+  const [autoCcResponsables, setAutoCcResponsables] = useState<AutoCcResponsable[]>([])
+  const [selectedAutoCc, setSelectedAutoCc] = useState<Set<string>>(new Set())
+  const [loadingAutoCc, setLoadingAutoCc] = useState(false)
+
   // Charger config + contacts CC
   useEffect(() => {
     fetch('/api/admin/courriels/config')
@@ -213,6 +225,34 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
       .then(json => setCcContacts(json.contacts || []))
       .catch(() => {})
   }, [])
+
+  // Calculer les responsables à mettre en CC auto dès que les destinataires changent
+  useEffect(() => {
+    const ids = effectiveDests.map(d => d.benevole_id).filter(Boolean)
+    if (ids.length === 0) {
+      setAutoCcResponsables([])
+      setSelectedAutoCc(new Set())
+      return
+    }
+    setLoadingAutoCc(true)
+    fetch('/api/admin/courriels/responsables-cc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ benevole_ids: ids }),
+    })
+      .then(r => r.json())
+      .then(json => {
+        const list: AutoCcResponsable[] = json.responsables || []
+        setAutoCcResponsables(list)
+        // Par défaut, tous les responsables trouvés sont pré-cochés
+        setSelectedAutoCc(new Set(list.map(r => r.benevole_id)))
+      })
+      .catch(() => {
+        setAutoCcResponsables([])
+        setSelectedAutoCc(new Set())
+      })
+      .finally(() => setLoadingAutoCc(false))
+  }, [effectiveDests])
 
   const loadBrouillons = async () => {
     const res = await fetch('/api/admin/courriels/brouillons')
@@ -277,7 +317,16 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     setSendProgress(null)
     try {
       // Construire la liste CC à partir des contacts sélectionnés
-      const ccEmails = ccContacts.filter(c => selectedCc.has(c.id)).map(c => c.email)
+      // CC manuels (contacts ajoutés par l'admin) + CC auto (responsables des
+      // groupes R&S des destinataires). On déduplique pour éviter les doublons
+      // au cas où un contact CC manuel serait aussi responsable de groupe.
+      const ccManuels = ccContacts.filter(c => selectedCc.has(c.id)).map(c => c.email)
+      const ccAuto    = autoCcResponsables
+        .filter(r => selectedAutoCc.has(r.benevole_id))
+        .map(r => r.email)
+      const ccEmails = Array.from(new Set(
+        [...ccManuels, ...ccAuto].map(e => e.toLowerCase().trim()).filter(Boolean)
+      ))
 
       const attPayload = attachments.map(a => a.storagePath
         ? { filename: a.filename, storage_path: a.storagePath, size: a.size }
@@ -901,6 +950,59 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                           {c.nom}
                         </label>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* CC auto des responsables de groupes R&S — visible s'il y en a */}
+              {(autoCcResponsables.length > 0 || loadingAutoCc) && (
+                <div style={{ padding: '10px 12px', backgroundColor: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: autoCcResponsables.length > 0 ? '8px' : 0 }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6' }}>
+                      🎖️ Responsables de groupes R&amp;S {selectedAutoCc.size > 0 && (
+                        <span style={{ padding: '1px 7px', borderRadius: '8px', backgroundColor: '#7c3aed', color: 'white', fontSize: '11px', fontWeight: '700', marginLeft: '4px' }}>
+                          {selectedAutoCc.size} en CC
+                        </span>
+                      )}
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#7c3aed' }}>
+                      {loadingAutoCc ? '⏳ détection en cours…' : '(détectés automatiquement d\'après les destinataires)'}
+                    </span>
+                  </div>
+                  {autoCcResponsables.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {autoCcResponsables.map(r => {
+                        const checked = selectedAutoCc.has(r.benevole_id)
+                        const groupesLabel = r.groupes.map(g => g.nom.replace(/^District \d+:\s*/, '')).join(', ')
+                        return (
+                          <label key={r.benevole_id}
+                            title={`${r.email}\n${r.groupes.map(g => g.nom).join('\n')}`}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              padding: '4px 10px', borderRadius: '8px',
+                              backgroundColor: checked ? '#ede9fe' : 'white',
+                              border: `1px solid ${checked ? '#a78bfa' : '#e2e8f0'}`,
+                              cursor: 'pointer', fontSize: '12px',
+                              color: checked ? '#5b21b6' : '#374151',
+                              fontWeight: checked ? 600 : 400,
+                              transition: 'all 0.1s',
+                            }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => setSelectedAutoCc(prev => {
+                                const next = new Set(prev)
+                                next.has(r.benevole_id) ? next.delete(r.benevole_id) : next.add(r.benevole_id)
+                                return next
+                              })}
+                              style={{ width: 14, height: 14, accentColor: '#7c3aed', margin: 0 }}
+                            />
+                            <span>{r.prenom} {r.nom}</span>
+                            <span style={{ fontSize: '10px', color: '#8b5cf6', fontWeight: 500 }}>· {groupesLabel}</span>
+                          </label>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
