@@ -11,7 +11,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState, Suspense } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, Suspense } from 'react'
 import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
 import { isDemoActive, DEMO_RESERVISTE, DEMO_DEPLOIEMENTS } from '@/utils/demoMode'
@@ -81,6 +81,32 @@ function SoumettreContent() {
     })
     return () => cancelAnimationFrame(id)
   }, [reponse])
+
+  // Bouton "Envoyer" — cible du scroll automatique quand le formulaire devient valide.
+  const submitButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Validité du formulaire (sans tenir compte de l'état submitting).
+  // Pour 'non_disponible', le bouton est toujours dispo donc on n'a pas besoin de scroller.
+  const isReadyToSubmit = useMemo(() => {
+    if (!reponse || reponse === 'non_disponible') return false
+    if (datesCochees.size === 0 || !transport) return false
+    if (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee)) return false
+    return true
+  }, [reponse, datesCochees, transport, engagementAccepte, aptitudeAcceptee])
+
+  // Détecte la transition invalide → valide pour scroller UNE SEULE FOIS vers le bouton.
+  // Si l'utilisateur décoche puis recoche, ça re-déclenche un scroll, ce qui est attendu.
+  const wasReadyRef = useRef(false)
+  useEffect(() => {
+    if (isReadyToSubmit && !wasReadyRef.current) {
+      const id = requestAnimationFrame(() => {
+        submitButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+      wasReadyRef.current = true
+      return () => cancelAnimationFrame(id)
+    }
+    if (!isReadyToSubmit) wasReadyRef.current = false
+  }, [isReadyToSubmit])
 
   function formatDate(dateString: string): string {
     if (!dateString) return ''
@@ -324,8 +350,27 @@ function SoumettreContent() {
   }
 
   // ── Formulaire principal ──────────────────────────────────────────────────
+
+  // Étapes de l'indicateur de progression (haut de page).
+  // Étape 2 est considérée 'done' soit si le formulaire est valide (disponible/à confirmer),
+  // soit si la personne a choisi 'non disponible' (aucun détail à remplir).
+  const progressSteps = [
+    { n: 1, label: 'Votre choix', done: !!reponse },
+    { n: 2, label: 'Détails', done: !!reponse && (reponse === 'non_disponible' || isReadyToSubmit) },
+    { n: 3, label: 'Envoi', done: false },
+  ]
+  const activeStepIndex = progressSteps.findIndex(s => !s.done)
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
+      {/* Animation du flash visuel sur la section formulaire */}
+      <style>{`
+        @keyframes pulseFormHighlight {
+          0%   { box-shadow: 0 0 0 0 rgba(30, 58, 95, 0.35), 0 1px 3px rgba(0,0,0,0.1); }
+          60%  { box-shadow: 0 0 0 12px rgba(30, 58, 95, 0), 0 1px 3px rgba(0,0,0,0.1); }
+          100% { box-shadow: 0 0 0 0 rgba(30, 58, 95, 0), 0 1px 3px rgba(0,0,0,0.1); }
+        }
+      `}</style>
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
@@ -433,6 +478,43 @@ function SoumettreContent() {
           </div>
         )}
 
+        {/* Indicateur de progression — 3 étapes Choix → Détails → Envoi */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '14px 18px', backgroundColor: 'white', borderRadius: '10px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: '20px',
+          flexWrap: 'wrap'
+        }}>
+          {progressSteps.map((s, i) => {
+            const active = i === activeStepIndex
+            const done = s.done
+            return (
+              <Fragment key={s.n}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '26px', height: '26px', borderRadius: '50%',
+                    backgroundColor: done ? '#059669' : active ? '#1e3a5f' : '#e5e7eb',
+                    color: (done || active) ? 'white' : '#6b7280',
+                    fontSize: '13px', fontWeight: 700, flexShrink: 0,
+                    transition: 'background-color 0.3s, color 0.3s'
+                  }}>
+                    {done ? '✓' : s.n}
+                  </span>
+                  <span style={{
+                    fontSize: '13px',
+                    fontWeight: active ? 600 : 500,
+                    color: done ? '#059669' : active ? '#1e3a5f' : '#9ca3af'
+                  }}>{s.label}</span>
+                </div>
+                {i < progressSteps.length - 1 && (
+                  <span style={{ color: s.done ? '#059669' : '#d1d5db', fontSize: '14px' }}>→</span>
+                )}
+              </Fragment>
+            )
+          })}
+        </div>
+
         {/* Choix de réponse */}
         <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
           <h3 style={{ color: '#1e3a5f', margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>Quelle est votre disponibilité ?</h3>
@@ -469,7 +551,7 @@ function SoumettreContent() {
 
         {/* Formulaire disponible / à confirmer */}
         {reponse && reponse !== 'non_disponible' && (
-          <div ref={formSectionRef} style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', scrollMarginTop: '24px' }}>
+          <div key={reponse} ref={formSectionRef} style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', scrollMarginTop: '24px', animation: 'pulseFormHighlight 1.2s ease-out' }}>
 
             {reponse === 'disponible' && (
               <div style={{ backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px', padding: '16px 20px', marginBottom: '28px' }}>
@@ -579,10 +661,11 @@ function SoumettreContent() {
             )}
 
             <button
+              ref={submitButtonRef}
               onClick={handleSubmit}
               disabled={submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee))}
               style={{
-                width: '100%', padding: '16px 24px',
+                width: '100%', padding: '16px 24px', scrollMarginTop: '24px',
                 backgroundColor: (submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee)))
                   ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706',
                 color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600',
@@ -596,7 +679,7 @@ function SoumettreContent() {
 
         {/* Formulaire non disponible */}
         {reponse === 'non_disponible' && (
-          <div ref={formSectionRef} style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', scrollMarginTop: '24px' }}>
+          <div ref={formSectionRef} style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px', scrollMarginTop: '24px', animation: 'pulseFormHighlight 1.2s ease-out' }}>
             <div style={{ marginBottom: '24px' }}>
               <h3 style={{ color: '#1e3a5f', margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>Commentaire (optionnel)</h3>
               <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#6b7280' }}>Vous pouvez indiquer la raison de votre indisponibilité si vous le souhaitez.</p>
