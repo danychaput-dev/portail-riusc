@@ -920,13 +920,32 @@ export default function OperationsPage() {
               </div>
 
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <Btn onClick={()=>{ if(depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }} disabled={dispos.length===0} color="#1d4ed8">
-                  📊 Voir les disponibilités
+                {/* Bouton principal : mène à la page de sélection des gens pour la rotation.
+                    Toujours cliquable tant qu'il y a des dispos, même si l'étape 6 a déjà
+                    été marquée comme validée (vagues créées) — on veut pouvoir revenir
+                    modifier la sélection à tout moment. */}
+                <Btn
+                  onClick={() => { if (depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }}
+                  disabled={dispos.length === 0}
+                  color="#1d4ed8"
+                >
+                  📊 Choisir les personnes à déployer
                 </Btn>
-                <Btn onClick={()=>setStep6Ok(true)} disabled={dispos.length===0||step6OkDerived} color="#065f46">
-                  {step6OkDerived?'✅ Étape validée':`✅ Valider (${nbReponses} réponse(s))`}
-                </Btn>
-                {dispos.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>En attente des réponses des réservistes</span>}
+                {/* Badge discret qui confirme visuellement l'état de l'étape, sans bloquer
+                    l'accès à la page de sélection. */}
+                {step6OkDerived && (
+                  <span style={{
+                    fontSize:12, color:'#065f46', fontWeight:600,
+                    padding:'4px 10px', borderRadius:6, backgroundColor:'#d1fae5',
+                  }}>
+                    ✅ Étape validée
+                  </span>
+                )}
+                {dispos.length === 0 && (
+                  <span style={{ fontSize:12, color:'#f59e0b' }}>
+                    En attente des réponses des réservistes
+                  </span>
+                )}
               </div>
             </div>
           </StepCard>
