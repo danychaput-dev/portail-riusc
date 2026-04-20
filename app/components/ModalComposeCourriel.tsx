@@ -317,16 +317,42 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
     setSendProgress(null)
     try {
       // Construire la liste CC à partir des contacts sélectionnés
-      // CC manuels (contacts ajoutés par l'admin) + CC auto (responsables des
-      // groupes R&S des destinataires). On déduplique pour éviter les doublons
-      // au cas où un contact CC manuel serait aussi responsable de groupe.
+      // CC manuels (contacts ajoutés par l'admin, toujours CC).
       const ccManuels = ccContacts.filter(c => selectedCc.has(c.id)).map(c => c.email)
-      const ccAuto    = autoCcResponsables
-        .filter(r => selectedAutoCc.has(r.benevole_id))
-        .map(r => r.email)
+      // Responsables de groupes R&S :
+      //   - 1 destinataire → CC (immédiat, liste visible côté responsable)
+      //   - 2+ destinataires → résumé post-envoi (un seul courriel par responsable
+      //     avec la liste complète des membres de son groupe qui ont reçu)
+      const useSummaryForResponsables = effectiveDests.length >= 2
+      const ccAuto = useSummaryForResponsables
+        ? []
+        : autoCcResponsables.filter(r => selectedAutoCc.has(r.benevole_id)).map(r => r.email)
       const ccEmails = Array.from(new Set(
         [...ccManuels, ...ccAuto].map(e => e.toLowerCase().trim()).filter(Boolean)
       ))
+      // Ids responsables à notifier par résumé (si mode résumé)
+      const respIdsResume = useSummaryForResponsables
+        ? autoCcResponsables.filter(r => selectedAutoCc.has(r.benevole_id)).map(r => r.benevole_id)
+        : []
+      // Helper : déclenche l'envoi des résumés aux responsables. Appelé après
+      // que l'envoi principal a réussi. Fire-and-forget (ne bloque pas l'UI).
+      const envoyerResume = async () => {
+        if (respIdsResume.length === 0) return
+        try {
+          await fetch('/api/admin/courriels/resume-responsables', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              destinataire_benevole_ids: effectiveDests.map(d => d.benevole_id).filter(Boolean),
+              responsable_benevole_ids: respIdsResume,
+              subject,
+              body_html: bodyHtml.replace(/\n/g, '<br/>'),
+            }),
+          })
+        } catch (e) {
+          console.error('Envoi résumé responsables échoué:', e)
+        }
+      }
 
       const attPayload = attachments.map(a => a.storagePath
         ? { filename: a.filename, storage_path: a.storagePath, size: a.size }
@@ -374,6 +400,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
 
         const campagneId = json.campagne_id
         if (!campagneId) {
+          envoyerResume()
           setSuccess({ envoyes: json.envoyes, echoues: json.echoues })
           onSent?.({ envoyes: json.envoyes, echoues: json.echoues })
         } else {
@@ -401,6 +428,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
             .eq('campagne_id', campagneId)
           const finalSent = (finalStats || []).filter((s: any) => !['queued', 'failed'].includes(s.statut)).length
           const finalFailed = (finalStats || []).filter((s: any) => s.statut === 'failed').length
+          envoyerResume()
           setSuccess({ envoyes: finalSent, echoues: finalFailed })
           onSent?.({ envoyes: finalSent, echoues: finalFailed })
         }
@@ -450,6 +478,7 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
           fetch(`/api/admin/courriels/brouillons?id=${brouillonId}`, { method: 'DELETE' }).catch(() => {})
         }
 
+        envoyerResume()
         setSuccess({ envoyes: json.envoyes, echoues: json.echoues })
         onSent?.({ envoyes: json.envoyes, echoues: json.echoues })
       }
@@ -955,19 +984,24 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                 </div>
               )}
 
-              {/* CC auto des responsables de groupes R&S — visible s'il y en a */}
-              {(autoCcResponsables.length > 0 || loadingAutoCc) && (
+              {/* Responsables de groupes R&S : CC si 1 destinataire, résumé post-envoi si 2+ */}
+              {(autoCcResponsables.length > 0 || loadingAutoCc) && (() => {
+                const useSummary = effectiveDests.length >= 2
+                const bandeau = useSummary
+                  ? `recevront un résumé après envoi (liste des destinataires de leur groupe)`
+                  : `seront ajoutés en CC`
+                return (
                 <div style={{ padding: '10px 12px', backgroundColor: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: autoCcResponsables.length > 0 ? '8px' : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: autoCcResponsables.length > 0 ? '8px' : 0, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6' }}>
                       🎖️ Responsables de groupes R&amp;S {selectedAutoCc.size > 0 && (
                         <span style={{ padding: '1px 7px', borderRadius: '8px', backgroundColor: '#7c3aed', color: 'white', fontSize: '11px', fontWeight: '700', marginLeft: '4px' }}>
-                          {selectedAutoCc.size} en CC
+                          {selectedAutoCc.size} {useSummary ? 'résumé' : 'en CC'}
                         </span>
                       )}
                     </span>
                     <span style={{ fontSize: '11px', color: '#7c3aed' }}>
-                      {loadingAutoCc ? '⏳ détection en cours…' : '(détectés automatiquement d\'après les destinataires)'}
+                      {loadingAutoCc ? '⏳ détection en cours…' : `(${bandeau})`}
                     </span>
                   </div>
                   {autoCcResponsables.length > 0 && (
@@ -1006,7 +1040,8 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                     </div>
                   )}
                 </div>
-              )}
+                )
+              })()}
 
               {config && (
                 <div style={{ fontSize: '12px', color: '#6b7280' }}>De : <strong>{config.from_name || 'RIUSC'}</strong> &lt;{config.from_email || 'noreply@aqbrs.ca'}&gt;</div>
