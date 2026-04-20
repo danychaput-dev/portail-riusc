@@ -236,6 +236,26 @@ export default function OperationsPage() {
       .then(({data})=>{ if(data) setVagues(data as any) })
   }, [depId, step4Override])
 
+  // Quand l'utilisateur revient sur l'onglet (depuis /admin/operations/disponibilites
+  // où il a pu créer/modifier une rotation), on refetch les vagues pour que le wizard
+  // reflète l'état actuel de la DB. Sans ça, le wizard pense que step 7/8 ne sont pas
+  // encore done et les bloque.
+  useEffect(() => {
+    if (!depId) return
+    const refreshVagues = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+          .then(({ data }) => { if (data) setVagues(data as any) })
+      }
+    }
+    window.addEventListener('focus', refreshVagues)
+    document.addEventListener('visibilitychange', refreshVagues)
+    return () => {
+      window.removeEventListener('focus', refreshVagues)
+      document.removeEventListener('visibilitychange', refreshVagues)
+    }
+  }, [depId])
+
   useEffect(() => {
     if (!selSin || !selDep) return
     setMsgNotif((prev: string) => prev ? prev : tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
