@@ -36,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { titre: 'Communaute',           icone: '💬', href: '/admin/communaute',         statut: 'actif' },
   { titre: 'Dashboard',            icone: '📈', href: '/admin/dashboard',          statut: 'actif' },
   { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',              statut: 'actif' },
+  { titre: 'Resp. de groupes',     icone: '🎖️', href: '/admin/responsables-groupes', statut: 'actif' },
   { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',       statut: 'actif', superadminOnly: true },
   { titre: 'Health Check',         icone: '🩺', href: '/admin/health-check',        statut: 'actif', superadminOnly: true },
   { titre: 'Debug Camp',           icone: '🔬', href: '/api/admin/debug-camp',      statut: 'actif', superadminOnly: true, externe: true },
