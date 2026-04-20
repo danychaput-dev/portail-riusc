@@ -137,6 +137,14 @@ export default function OperationsPage() {
   const [fullscreen,    setFullscreen]    = useState(false)
 
   // ── Complétion ─────────────────────────────────────────────────────────────
+  // Les étapes 6 et 8 sont dérivées de la DB (pas seulement de l'état local) pour
+  // que TOUS les admins (Dany, Esther, Guy…) voient la même progression du wizard.
+  // - Étape 6 (validation des dispos) : implicite si des vagues existent (étape 7
+  //   ne se fait pas sans avoir vu les dispos).
+  // - Étape 8 (mobilisation envoyée) : dérivée du statut des vagues — sendMobilisation()
+  //   passe les vagues à 'Mobilisée' en DB.
+  const mobilSentDerived = mobilSent || (vagues.length > 0 && vagues.some(v => v.statut === 'Mobilisée' || v.statut === 'Confirmée'))
+  const step6OkDerived   = step6Ok   || vagues.length > 0 || mobilSentDerived
   const done = useCallback((n: number): boolean => {
     switch(n) {
       case 1: return !!sinId
@@ -144,12 +152,12 @@ export default function OperationsPage() {
       case 3: return !!depId
       case 4: return ciblages.length > 0 || step4Override
       case 5: return ciblages.some(c=>c.statut==='notifie')
-      case 6: return step6Ok
+      case 6: return step6OkDerived
       case 7: return vagues.length > 0
-      case 8: return mobilSent
+      case 8: return mobilSentDerived
       default: return false
     }
-  }, [sinId, demIds, depId, ciblages, step4Override, step6Ok, vagues, mobilSent])
+  }, [sinId, demIds, depId, ciblages, step4Override, step6OkDerived, vagues, mobilSentDerived])
 
   const curStep = useMemo(() => {
     for (let i=1;i<=8;i++) if(!done(i)) return i
@@ -368,12 +376,27 @@ export default function OperationsPage() {
 
   const sendMobilisation = async () => {
     if (!depId || !vagues.length) return
+    // Guard anti-double-clic : refuse l'envoi si la mobilisation est déjà marquée en DB.
+    // Protège contre les reloads, les changements d'admin ou les clics accidentels.
+    const dejaMobilise = vagues.some(v => v.statut === 'Mobilisée' || v.statut === 'Confirmée')
+    if (dejaMobilise) {
+      const ok = confirm('⚠️ La mobilisation semble déjà avoir été envoyée pour ce déploiement (vagues marquées "Mobilisée" en DB).\n\nCliquer OK va RE-envoyer les SMS/courriels via n8n. Les réservistes recevront une deuxième notification.\n\nContinuer quand même ?')
+      if (!ok) return
+    }
     setSendingMobil(true)
     try {
       await fetch(n8nUrl('/webhook/riusc-envoi-mobilisation-portail'), {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' }),
       })
+      // Persister l'état "mobilisée" au niveau des vagues pour que TOUS les admins
+      // voient que la mobilisation a été envoyée. On limite aux vagues encore 'Planifiée'
+      // pour ne pas écraser les statuts ultérieurs (En cours, Terminée...).
+      await supabase.from('vagues')
+        .update({ statut: 'Mobilisée' })
+        .eq('deployment_id', depId)
+        .eq('statut', 'Planifiée')
+      setVagues(prev => prev.map(v => v.statut === 'Planifiée' ? { ...v, statut: 'Mobilisée' } : v))
     } catch(e) { console.error('n8n mobil',e) }
     setMobilSent(true); setSendingMobil(false)
   }
@@ -426,6 +449,39 @@ export default function OperationsPage() {
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:13, fontWeight:700, color:'#1e3a5f' }}>Tableau de bord opérationnel</div>
             <div style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>Étape {curStep} / 8</div>
+            {/* Partage : copie l'URL avec sin/dems/dep pour que les autres admins
+                ouvrent exactement le même contexte d'opération */}
+            {(sinId || depId) && (
+              <button
+                onClick={async () => {
+                  try {
+                    const p = new URLSearchParams()
+                    if (sinId)         p.set('sin',  sinId)
+                    if (depId)         p.set('dep',  depId)
+                    if (demIds.length) p.set('dems', demIds.join(','))
+                    const url = `${window.location.origin}${window.location.pathname}?${p.toString()}`
+                    await navigator.clipboard.writeText(url)
+                    const btn = document.activeElement as HTMLButtonElement | null
+                    if (btn) {
+                      const orig = btn.innerText
+                      btn.innerText = '✓ Lien copié'
+                      setTimeout(() => { btn.innerText = orig }, 1800)
+                    }
+                  } catch (e) {
+                    alert('Impossible de copier le lien — copiez l\'URL depuis la barre d\'adresse.')
+                  }
+                }}
+                title="Copie l'URL de cette opération pour la partager avec un autre admin"
+                style={{
+                  marginTop:10, width:'100%', padding:'7px 10px', fontSize:11, fontWeight:600,
+                  borderRadius:6, border:'1px solid #c7d2fe', backgroundColor:'#eef2ff',
+                  color:'#4338ca', cursor:'pointer', display:'flex', alignItems:'center',
+                  justifyContent:'center', gap:6
+                }}
+              >
+                🔗 Partager le lien
+              </button>
+            )}
           </div>
           <SidebarStepper
             statuses={statuses}
@@ -739,8 +795,8 @@ export default function OperationsPage() {
                 <Btn onClick={()=>{ if(depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }} disabled={dispos.length===0} color="#1d4ed8">
                   📊 Voir les disponibilités
                 </Btn>
-                <Btn onClick={()=>setStep6Ok(true)} disabled={dispos.length===0||step6Ok} color="#065f46">
-                  {step6Ok?'✅ Étape validée':`✅ Valider (${nbReponses} réponse(s))`}
+                <Btn onClick={()=>setStep6Ok(true)} disabled={dispos.length===0||step6OkDerived} color="#065f46">
+                  {step6OkDerived?'✅ Étape validée':`✅ Valider (${nbReponses} réponse(s))`}
                 </Btn>
                 {dispos.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>En attente des réponses des réservistes</span>}
               </div>
@@ -794,7 +850,7 @@ export default function OperationsPage() {
 
           {/* ─── ÉTAPE 8 : Mobilisation ──────────────────────────────────── */}
           <StepCard id="step-8" n={8} status={ss(8)} title="Mobilisation confirmée"
-            subtitle={mobilSent?'Confirmations envoyées via n8n ✓':'Envoyer les confirmations de mobilisation'}>
+            subtitle={mobilSentDerived?'Confirmations envoyées via n8n ✓':'Envoyer les confirmations de mobilisation'}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {vagues.length>0 && (
                 <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
@@ -812,12 +868,12 @@ export default function OperationsPage() {
                 <textarea style={TA} value={msgMobil} onChange={e=>setMsgMobil(e.target.value)}/>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSent} loading={sendingMobil} color="#065f46">
-                  {mobilSent?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
+                <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSentDerived} loading={sendingMobil} color="#065f46">
+                  {mobilSentDerived?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
                 </Btn>
                 {vagues.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>Créez d'abord les rotations à l'étape 7</span>}
               </div>
-              {mobilSent && (
+              {mobilSentDerived && (
                 <div style={{ backgroundColor:'#d1fae5', borderRadius:8, border:'1px solid #6ee7b7', padding:'12px 16px', fontSize:13, color:'#065f46', fontWeight:600 }}>
                   🎉 Opération complète — La mobilisation est confirmée et les notifications ont été envoyées via n8n.
                 </div>
