@@ -21,7 +21,7 @@
 // (le responsable n'est pas admin mais doit voir les données de ses membres).
 
 import { createClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 
@@ -30,7 +30,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const includeTermines = searchParams.get('include_termines') === 'true'
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,13 +43,27 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  // Récupérer le benevole_id courant
-  const { data: self } = await supabaseAdmin
-    .from('reservistes')
-    .select('benevole_id')
-    .eq('user_id', user.id)
-    .single()
-  if (!self) return NextResponse.json({ error: 'Profil réserviste introuvable' }, { status: 404 })
+  // Respecter l'emprunt d'identité : si le cookie 'impersonate' existe, on se
+  // fait passer pour ce benevole_id (l'endpoint /api/impersonate s'est déjà
+  // assuré que le caller est admin, donc on peut faire confiance au cookie).
+  const impersonateCookie = cookieStore.get('impersonate')
+  let selfBenevoleId: string | null = null
+  if (impersonateCookie) {
+    try {
+      const parsed = JSON.parse(impersonateCookie.value)
+      if (parsed?.benevole_id) selfBenevoleId = parsed.benevole_id
+    } catch {}
+  }
+  if (!selfBenevoleId) {
+    const { data: me } = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id')
+      .eq('user_id', user.id)
+      .single()
+    selfBenevoleId = me?.benevole_id || null
+  }
+  if (!selfBenevoleId) return NextResponse.json({ error: 'Profil réserviste introuvable' }, { status: 404 })
+  const self = { benevole_id: selfBenevoleId }
 
   // Trouver les groupes dont je suis responsable
   const { data: mesResponsabilites } = await supabaseAdmin
@@ -109,13 +125,18 @@ export async function GET() {
     })
   }
 
-  // Récupérer les infos des déploiements concernés (actifs seulement)
+  // Récupérer les infos des déploiements concernés.
+  // Par défaut, seuls les actifs. Si include_termines=true, on ajoute les Terminé
+  // pour consulter l'historique/les archives.
+  const statutsFiltres = includeTermines
+    ? ['Planifié', 'En cours', 'Actif', 'Terminé']
+    : ['Planifié', 'En cours', 'Actif']
   const depIds = Array.from(new Set(ciblages.map((c: any) => c.reference_id).filter(Boolean)))
   const { data: deployments } = await supabaseAdmin
     .from('deployments')
     .select('id, identifiant, nom, lieu, date_debut, date_fin, statut')
     .in('id', depIds)
-    .in('statut', ['Planifié', 'En cours', 'Actif'])
+    .in('statut', statutsFiltres)
 
   const deployments_active = deployments || []
   const activeDepIds = deployments_active.map((d: any) => d.id)

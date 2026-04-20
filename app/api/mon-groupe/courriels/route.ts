@@ -35,9 +35,22 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
 
-  const { data: self } = await supabaseAdmin
-    .from('reservistes').select('benevole_id').eq('user_id', user.id).single()
-  if (!self) return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 })
+  // Respecter l'emprunt d'identité via le cookie 'impersonate'
+  const impersonateCookie = cookieStore.get('impersonate')
+  let selfBenevoleId: string | null = null
+  if (impersonateCookie) {
+    try {
+      const parsed = JSON.parse(impersonateCookie.value)
+      if (parsed?.benevole_id) selfBenevoleId = parsed.benevole_id
+    } catch {}
+  }
+  if (!selfBenevoleId) {
+    const { data: me } = await supabaseAdmin
+      .from('reservistes').select('benevole_id').eq('user_id', user.id).single()
+    selfBenevoleId = me?.benevole_id || null
+  }
+  if (!selfBenevoleId) return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 })
+  const self = { benevole_id: selfBenevoleId }
 
   // 1. Trouver les groupes dont l'user est responsable
   const { data: mesResp } = await supabaseAdmin
