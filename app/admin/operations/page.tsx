@@ -220,6 +220,33 @@ export default function OperationsPage() {
       .then(({ data }) => { if (data) setDeployments([data as unknown as Deployment]) })
   }, [depId])
 
+  // Filet de sécurité : si on arrive sur le wizard avec un depId mais sans sinId
+  // ni demIds (ex: retour depuis /admin/operations/disponibilites via router.push
+  // qui ne garde que ?dep=...), on remonte la chaîne DB pour reconstruire le
+  // contexte : deployment → demandes (via deployments_demandes) → sinistre.
+  // Sans ça, l'étape 1 reste "active" et l'étape 8 reste locked, ce qui bloque
+  // le workflow même quand tout est fait côté données.
+  useEffect(() => {
+    if (!depId) return
+    if (sinId && demIds.length > 0) return  // contexte déjà complet
+    ;(async () => {
+      const { data: liens } = await supabase
+        .from('deployments_demandes')
+        .select('demande_id, demandes(id, sinistre_id)')
+        .eq('deployment_id', depId)
+      if (!liens || liens.length === 0) return
+      const dems = (liens as any[])
+        .map(l => l.demandes)
+        .filter(Boolean) as { id: string; sinistre_id: string }[]
+      if (dems.length === 0) return
+      // Tous les demandes d'un même déploiement partagent le même sinistre
+      const sinFromDB = dems[0].sinistre_id
+      const demIdsFromDB = dems.map(d => d.id)
+      if (!sinId && sinFromDB) setSinId(sinFromDB)
+      if (demIds.length === 0 && demIdsFromDB.length > 0) setDemIds(demIdsFromDB)
+    })()
+  }, [depId, sinId, demIds.length])
+
   useEffect(() => {
     if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
     // Utiliser l'API admin (service_role) pour bypass les RLS auth browser qui
