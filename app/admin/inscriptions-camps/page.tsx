@@ -1009,11 +1009,24 @@ export default function InscriptionsCampsPage() {
                         />
                       </td>
                     )}
-                    {!isPartenaireLect && (
-                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
-                        {ins.prenom_nom}
-                      </td>
-                    )}
+                    {!isPartenaireLect && (() => {
+                      // Signaler visuellement les inscrits sans téléphone (confirme/incertain)
+                      // → ils ne recevront pas le rappel SMS. Rouge + tooltip.
+                      const eligibleSms = ['confirme', 'incertain'].includes(ins.presence)
+                      const phoneManquant = eligibleSms && !ins.telephone?.trim()
+                      return (
+                        <td
+                          style={{
+                            padding: '8px 10px', fontWeight: 600, whiteSpace: 'nowrap',
+                            color: phoneManquant ? '#dc2626' : '#111827',
+                          }}
+                          title={phoneManquant ? '⚠️ Téléphone manquant — ne recevra pas le rappel SMS' : undefined}
+                        >
+                          {phoneManquant && <span style={{ marginRight: 4 }}>⚠️</span>}
+                          {ins.prenom_nom}
+                        </td>
+                      )
+                    })()}
                     <td style={{ padding: '8px 10px' }}>
                       {isAdmin ? (
                         <div>
@@ -1216,6 +1229,26 @@ export default function InscriptionsCampsPage() {
               </div>
             ) : (
               <>
+                {/* Alerte préventive : liste des inscrits sans téléphone qui NE recevront PAS le SMS */}
+                {(() => {
+                  const sansTel = inscriptions.filter(i =>
+                    ['confirme', 'incertain'].includes(i.presence) && !i.telephone?.trim()
+                  )
+                  if (sansTel.length === 0) return null
+                  return (
+                    <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, marginBottom: 14, fontSize: 12, color: '#991b1b', lineHeight: 1.5 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                        ⚠️ {sansTel.length} personne{sansTel.length > 1 ? 's' : ''} ne recevra{sansTel.length > 1 ? 'ont' : ''} pas le SMS (téléphone manquant) :
+                      </div>
+                      <div>
+                        {sansTel.map(i => i.prenom_nom).join(', ')}
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 11, color: '#7f1d1d', fontStyle: 'italic' }}>
+                        Pense à les rejoindre par un autre moyen (courriel, téléphone du contact d&apos;urgence, etc.)
+                      </div>
+                    </div>
+                  )
+                })()}
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                     Message
@@ -1252,15 +1285,25 @@ export default function InscriptionsCampsPage() {
                   </button>
                   <button
                     onClick={() => {
-                      const nb = inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence)).length
-                      if (confirm(`⚠️ Vous êtes sur le point d'envoyer un SMS à ${nb} personnes pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}\n\nCette action est irréversible. Continuer?`)) {
+                      const eligibles = inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence))
+                      const sansTel = eligibles.filter(i => !i.telephone?.trim())
+                      const avecTel = eligibles.length - sansTel.length
+                      let msg = `⚠️ Vous êtes sur le point d'envoyer un SMS à ${avecTel} personne${avecTel > 1 ? 's' : ''} pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}`
+                      if (sansTel.length > 0) {
+                        msg += `\n\n⚠️ ${sansTel.length} personne${sansTel.length > 1 ? 's' : ''} SANS téléphone (ne recevra${sansTel.length > 1 ? 'ont' : ''} pas le SMS):\n• ${sansTel.map(i => i.prenom_nom).join('\n• ')}`
+                      }
+                      msg += `\n\nCette action est irréversible. Continuer?`
+                      if (confirm(msg)) {
                         envoyerRappelSms()
                       }
                     }}
                     disabled={sendingSms || !smsMessage.trim()}
                     style={{ padding: '9px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0d9488', color: 'white', fontSize: 13, fontWeight: 600, cursor: sendingSms ? 'not-allowed' : 'pointer', opacity: sendingSms ? 0.7 : 1 }}
                   >
-                    {sendingSms ? '⟳ Envoi en cours…' : `📱 Envoyer aux ${inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence)).length} inscrits`}
+                    {sendingSms
+                      ? '⟳ Envoi en cours…'
+                      : `📱 Envoyer aux ${inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence) && i.telephone?.trim()).length} inscrits`
+                    }
                   </button>
                 </div>
               </>
