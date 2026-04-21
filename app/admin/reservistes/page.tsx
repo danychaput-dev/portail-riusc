@@ -1564,7 +1564,7 @@ function ReservistesPage() {
                     (même position pour toutes les lignes, peu importe la longueur du contenu). */}
                 {!isAdjoint && (
                 <div style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px', flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
                       {badgeAnt.label}
                     </span>
