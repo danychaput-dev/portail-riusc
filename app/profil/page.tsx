@@ -13,6 +13,7 @@ import { n8nUrl } from '@/utils/n8n'
 import type { Reserviste, Organisation, Langue, MapboxFeature, DossierData } from '@/types'
 import { Section, TextInput, TextArea, Checkbox, CheckboxGroup } from './components'
 import TrajetsTab from '@/app/dossier/TrajetsTab'
+import HeuresTab from '@/app/dossier/HeuresTab'
 import {
   MAPBOX_TOKEN, AQBRS_ORG_ID, LANGUES_EPINGLEES,
   GROUPES_SANGUIN, GROUPE_SANGUIN_MAP, GROUPE_SANGUIN_REVERSE,
@@ -41,9 +42,11 @@ function ProfilPage() {
   const tabParam = searchParams.get('tab')
   const supabase = createClient()
 
-  // Onglet actif (lu depuis ?tab=trajets, défaut 'dossier')
-  const [activeTab, setActiveTab] = useState<'dossier' | 'trajets'>(tabParam === 'trajets' ? 'trajets' : 'dossier')
-  const switchTab = (t: 'dossier' | 'trajets') => {
+  // Onglet actif (lu depuis ?tab=trajets|heures, défaut 'dossier')
+  const [activeTab, setActiveTab] = useState<'dossier' | 'trajets' | 'heures'>(
+    tabParam === 'trajets' ? 'trajets' : tabParam === 'heures' ? 'heures' : 'dossier'
+  )
+  const switchTab = (t: 'dossier' | 'trajets' | 'heures') => {
     setActiveTab(t)
     const url = new URL(window.location.href)
     if (t === 'dossier') url.searchParams.delete('tab')
@@ -1368,6 +1371,10 @@ function ProfilPage() {
             style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'trajets' ? 'white' : 'transparent', color: activeTab === 'trajets' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'trajets' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
             🚗 Mes trajets
           </button>
+          <button onClick={() => switchTab('heures')}
+            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'heures' ? 'white' : 'transparent', color: activeTab === 'heures' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'heures' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
+            📊 Mes heures
+          </button>
         </div>
       </div>
 
@@ -1375,6 +1382,13 @@ function ProfilPage() {
       {activeTab === 'trajets' && (
         <main style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 24px 80px' }}>
           <TrajetsTab />
+        </main>
+      )}
+
+      {/* Onglet HEURES */}
+      {activeTab === 'heures' && (
+        <main style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 24px 80px' }}>
+          <HeuresTab />
         </main>
       )}
 
