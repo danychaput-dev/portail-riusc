@@ -13,11 +13,12 @@ import SavedViewsBar, { type VueFiltres } from '@/app/components/SavedViewsBar'
 const C = '#1e3a5f'
 
 const GROUPES_OPTIONS = [
-  { val: 'Approuvé',           label: 'Approuvé',            couleur: '#22c55e', bg: '#f0fdf4' },
-  { val: 'Intérêt',            label: 'Intérêt',             couleur: '#f59e0b', bg: '#fffbeb' },
-  { val: 'Partenaires',        label: 'Partenaires',         couleur: '#4a7b65', bg: '#f0fdf4' },
-  { val: 'Partenaires RS',     label: 'Partenaires RS',      couleur: '#7c3aed', bg: '#f5f3ff' },
-  { val: 'Retrait temporaire', label: 'Retrait temporaire',  couleur: '#ef4444', bg: '#fef2f2' },
+  { val: 'Approuvé',             label: 'Approuvé',             couleur: '#22c55e', bg: '#f0fdf4' },
+  { val: 'Intérêt',              label: 'Intérêt',              couleur: '#f59e0b', bg: '#fffbeb' },
+  { val: 'Partenaires',          label: 'Partenaires',          couleur: '#4a7b65', bg: '#f0fdf4' },
+  { val: 'Partenaires RS',       label: 'Partenaires RS',       couleur: '#7c3aed', bg: '#f5f3ff' },
+  { val: 'Retrait temporaire',   label: 'Retrait temporaire',   couleur: '#ef4444', bg: '#fef2f2' },
+  { val: 'Formation incomplète', label: 'Formation incomplète', couleur: '#0891b2', bg: '#ecfeff' },
 ]
 
 function badgeGroupe(groupe: string) {
@@ -291,7 +292,7 @@ function ReservistesPage() {
       // Quand on vient du dashboard, respecter les groupes du URL ; sinon charger tous les groupes
       const groupesACharger = urlFrom === 'dashboard' && urlGroupes
         ? urlGroupes
-        : 'Approuvé,Intérêt,Partenaires,Partenaires RS,Retrait temporaire'
+        : 'Approuvé,Intérêt,Partenaires,Partenaires RS,Retrait temporaire,Formation incomplète'
       params.set('groupes', groupesACharger)
       // Passer les URL params spéciaux (camp, etc.) qui nécessitent un filtre serveur
       if (urlCampSession) params.set('camp_session', urlCampSession)
@@ -326,7 +327,7 @@ function ReservistesPage() {
       if (document.hidden) return // Ne pas recharger si l'onglet est en arrière-plan
       try {
         const params = new URLSearchParams()
-        params.set('groupes', 'Approuvé,Intérêt,Partenaires,Partenaires RS,Retrait temporaire')
+        params.set('groupes', 'Approuvé,Intérêt,Partenaires,Partenaires RS,Retrait temporaire,Formation incomplète')
         if (urlCampSession) params.set('camp_session', urlCampSession)
         if (urlCampStatut) params.set('camp_statut', urlCampStatut)
         if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
@@ -900,7 +901,7 @@ function ReservistesPage() {
                   } else {
                     // Activer le filtre — montrer tous les groupes pour pas manquer des notes
                     setFiltreNotesNonLues(true)
-                    setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires', 'Partenaires RS', 'Retrait temporaire'])
+                    setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires', 'Partenaires RS', 'Retrait temporaire', 'Formation incomplète'])
                   }
                 }}
                 style={{
