@@ -1199,23 +1199,24 @@ function ReservistesPage() {
                 </span>
               </div>
               <div /> {/* Groupe */}
-              {/* Prêt — 3 checkboxes filtre */}
+              {/* Prêt — 3 checkboxes filtre + bouton certif (alignés avec les boxes 26px du body) */}
               {!isAdjoint && (
-              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '2px', padding: '0 4px 6px' }}>
+              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px', padding: '0 6px 6px' }}>
                 {PRET_STEPS.map(step => {
                   const state = filtresReadiness[step.key]
-                  const isActive = state !== null
                   return (
                     <button
                       key={step.key}
                       onClick={() => toggleReadinessFilter(step.key)}
                       title={`${step.label}\n${state === null ? 'Cliquer → montrer ceux qui l\'ont' : state === 'has' ? 'Cliquer → montrer manquants' : 'Cliquer → retirer filtre'}`}
                       style={{
-                        fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                        width: '26px', height: '22px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '10px', fontWeight: '700', padding: 0, borderRadius: '4px',
                         border: `1px solid ${state === 'has' ? '#16a34a' : state === 'missing' ? '#ef4444' : '#d1d5db'}`,
                         backgroundColor: state === 'has' ? '#f0fdf4' : state === 'missing' ? '#fef2f2' : 'white',
                         color: state === 'has' ? '#16a34a' : state === 'missing' ? '#ef4444' : '#94a3b8',
-                        cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                        cursor: 'pointer', transition: 'all 0.15s',
                       }}
                     >
                       {step.key === 'profil' ? 'P' : step.key === 'initiation' ? 'I' : 'C'}
@@ -1226,14 +1227,16 @@ function ReservistesPage() {
                   onClick={() => handleSort('certifs')}
                   title={`Trier par certificats manquants`}
                   style={{
-                    fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                    width: '26px', height: '22px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '10px', fontWeight: '700', padding: 0, borderRadius: '4px',
                     border: `1px solid ${sortKey === 'certifs' ? '#d97706' : '#d1d5db'}`,
                     backgroundColor: sortKey === 'certifs' ? '#fffbeb' : 'white',
                     color: sortKey === 'certifs' ? '#d97706' : '#94a3b8',
-                    cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                    cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
-                  📎{sortKey === 'certifs' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  📎{sortKey === 'certifs' && (sortDir === 'asc' ? '↑' : '↓')}
                 </button>
               </div>
               )}
