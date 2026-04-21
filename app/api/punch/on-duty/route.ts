@@ -22,12 +22,27 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ on_duty: false })
 
-  const { data: res } = await supabaseAdmin
+  // Récupérer l'acteur connecté (pour savoir s'il est admin et respecter l'emprunt)
+  const { data: acteur } = await supabaseAdmin
     .from('reservistes')
     .select('benevole_id, role')
     .eq('user_id', user.id)
     .single()
-  if (!res) return NextResponse.json({ on_duty: false })
+  if (!acteur) return NextResponse.json({ on_duty: false })
+
+  const acteurIsAdmin = ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(acteur.role)
+
+  // Si emprunt d'identité par un admin, utiliser le benevole_id et le rôle de la cible
+  const impersonateCookie = cookieStore.get('impersonate')?.value
+  let res: { benevole_id: string; role: string } = acteur
+  if (impersonateCookie && acteurIsAdmin) {
+    const { data: cible } = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id, role')
+      .eq('benevole_id', impersonateCookie)
+      .single()
+    if (cible) res = cible
+  }
 
   const isAdmin = ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)
 
