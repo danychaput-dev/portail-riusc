@@ -701,14 +701,35 @@ export default function HomePage() {
     setConsentementPhoto(reserviste?.consent_photos || false)
 
     // Charger les sessions depuis la liste statique partagée (source de vérité)
-    // et les capacités depuis n8n (optionnel — si le webhook est down, on ignore)
     try {
       setSessionsDisponibles(getCampsSessionsActifs())
 
-      const capacityResp = await fetch(n8nUrl('/webhook/camp-capacity')).catch(() => null)
+      // Charger les capacités via notre API server-side (bypass RLS + CORS)
+      // Retourne { session_id: count } — on le transforme vers la structure attendue par l'UI
+      const capacityResp = await fetch('/api/camp/capacity').catch(() => null)
       if (capacityResp && capacityResp.ok) {
-        const capData = await capacityResp.json()
-        if (capData.success && capData.sessions) setSessionCapacities(capData.sessions)
+        const counts: Record<string, number> = await capacityResp.json()
+        const CAPACITE_MAX = 80
+        const ATTENTE_MAX = 10
+        const capacities: Record<string, { inscrits: number; capacite: number; attente: number; attente_max: number; places_restantes: number; statut: string }> = {}
+        for (const [session_id, count] of Object.entries(counts)) {
+          const inscrits = Math.min(count, CAPACITE_MAX)
+          const attente = Math.max(0, count - CAPACITE_MAX)
+          const places_restantes = Math.max(0, CAPACITE_MAX - count)
+          let statut: string
+          if (attente >= ATTENTE_MAX) statut = 'complet'
+          else if (places_restantes === 0) statut = 'liste_attente'
+          else statut = 'ouvert'
+          capacities[session_id] = {
+            inscrits,
+            capacite: CAPACITE_MAX,
+            attente,
+            attente_max: ATTENTE_MAX,
+            places_restantes,
+            statut,
+          }
+        }
+        setSessionCapacities(capacities)
       }
     } catch (error) {
       console.error('Erreur fetch sessions:', error)
@@ -927,8 +948,8 @@ export default function HomePage() {
                                 {isAttente && (
                                   <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Liste d&apos;attente</span>
                                 )}
-                                {cap && !isComplet && !isAttente && cap.places_restantes <= 10 && (
-                                  <span style={{ backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>{cap.places_restantes} place{cap.places_restantes > 1 ? 's' : ''}</span>
+                                {cap && !isComplet && !isAttente && cap.places_restantes <= 20 && (
+                                  <span style={{ backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' }}>Places limitées - {cap.places_restantes} restante{cap.places_restantes > 1 ? 's' : ''}</span>
                                 )}
                               </div>
                               <div style={{ fontSize: '13px', color: '#6b7280', lineHeight: '1.5' }}>
