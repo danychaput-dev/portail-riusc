@@ -1451,7 +1451,7 @@ function ReservistesPage() {
                   )}
                 </div>
                 {/* Groupe */}
-                <div style={{ padding: '11px 10px' }}>
+                <div style={{ padding: '11px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span
                     style={{
                       fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
@@ -1560,27 +1560,28 @@ function ReservistesPage() {
                   })()}
                 </div>
                 )}
-                {/* Antécédents */}
+                {/* Antécédents : 2 zones — badge+date à gauche, crayon toujours à droite
+                    (même position pour toutes les lignes, peu importe la longueur du contenu). */}
                 {!isAdjoint && (
-                <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <div style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px', flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
                       {badgeAnt.label}
                     </span>
-                    {isAdmin && (
-                      <button
-                        onClick={() => ouvrirModalAntecedents(r)}
-                        title="Modifier"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: '#94a3b8', fontSize: '12px', lineHeight: 1 }}
-                      >
-                        ✏️
-                      </button>
+                    {r.antecedents_date_verification && (
+                      <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
+                        {moisAnnee(r.antecedents_date_verification)}
+                      </span>
                     )}
                   </div>
-                  {r.antecedents_date_verification && (
-                    <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
-                      {moisAnnee(r.antecedents_date_verification)}
-                    </span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => ouvrirModalAntecedents(r)}
+                      title="Modifier"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: '#94a3b8', fontSize: '12px', lineHeight: 1, flexShrink: 0 }}
+                    >
+                      ✏️
+                    </button>
                   )}
                 </div>
                 )}
