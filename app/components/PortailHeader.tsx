@@ -534,50 +534,62 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             {showUserMenu && (
               <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 10px 40px rgba(0,0,0,0.15)', border: '1px solid #e5e7eb', minWidth: '210px', overflow: 'hidden', zIndex: 200 }}>
 
-                <a href="/profil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                <a href="/profil" style={menuItemStyle}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  </span>
                   Mon profil
                 </a>
 
                 {isApproved && hasCiblages && (
-                  <a href="/disponibilites" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                  <a href="/disponibilites" style={menuItemStyle}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span style={iconBoxStyle}>
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </span>
                     Mes disponibilités
                   </a>
                 )}
 
                 {/* Menu réservé aux responsables de groupe R&S */}
                 {isResponsableGroupe && (
-                  <a href="/mon-groupe" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                  <a href="/mon-groupe" style={menuItemStyle}
                     onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                    <span style={{ fontSize: '18px' }}>🎖️</span>
+                    <span style={iconBoxStyle}>🎖️</span>
                     Mon groupe R&amp;S
                   </a>
                 )}
 
-                <a href="/informations" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                <a href="/informations" style={menuItemStyle}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                  </span>
                   Informations pratiques
                 </a>
 
-                <a href="/formation" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                <a href="/formation" style={menuItemStyle}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" /></svg>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342" /></svg>
+                  </span>
                   Formation et parcours
                 </a>
 
-                <a href="/formations-en-ligne" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                <a href="/formations-en-ligne" style={menuItemStyle}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </span>
                   Formations en ligne
                 </a>
 
-                <a href="/communaute" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                <a href="/communaute" style={menuItemStyle}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </span>
                   <span style={{ flex: 1 }}>Communauté</span>
                   {unreadCommunaute > 0 && (
                     <span style={{ backgroundColor: '#dc2626', color: 'white', borderRadius: '10px', padding: '2px 7px', fontSize: '11px', fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>
@@ -588,9 +600,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
                 {isAdjoint && (
                   <>
-                    <a href="/admin/reservistes" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                      <span style={{ fontSize: '18px' }}>👥</span>
+                    <a href="/admin/reservistes" style={menuItemStyle}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                      <span style={iconBoxStyle}>👥</span>
                       Annuaire réservistes
                     </a>
                   </>
@@ -599,21 +611,21 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                 {isAdmin && (
                   <>
                     {/* Raccourci vers l'espace admin (tous les autres items sont dans le sidebar) */}
-                    <a href="/admin/reservistes" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', backgroundColor: 'white', borderBottom: '1px solid #f3f4f6', fontWeight: 600 }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'}
+                    <a href="/admin/reservistes" style={menuItemStyle}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <span style={{ fontSize: '18px' }}>🛡️</span>
+                      <span style={iconBoxStyle}>🛡️</span>
                       Espace admin →
                     </a>
                     {/* Emprunt d'identité — fonction admin-seule, gardée dans le header pour accès rapide */}
                     <button
                       onClick={() => { setShowUserMenu(false); setShowImpersonateModal(true) }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#d97706', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'}
+                      style={menuButtonStyle}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <span style={{ fontSize: '18px' }}>🎭</span>
+                      <span style={iconBoxStyle}>🎭</span>
                       Emprunt d{"'"}identité
                     </button>
                   </>
@@ -621,9 +633,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
 
                 {(isAdmin || isAdjoint || isPartenaire) && (
-                  <a href="/outils/transports" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#0891b2', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#ecfeff'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                    <span style={{ fontSize: '18px' }}>🚌</span>
+                  <a href="/outils/transports" style={menuItemStyle}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                    <span style={iconBoxStyle}>🚌</span>
                     Estimation transports
                   </a>
                 )}
@@ -637,11 +649,13 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                       window.dispatchEvent(new Event('restart-guided-tour'))
                     }
                   }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
+                  style={menuButtonStyle}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                 >
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                  </span>
                   Visite guidée
                 </button>
 
@@ -654,19 +668,21 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                         if (response.ok) window.location.href = '/'
                       } catch {}
                     }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: '#fef2f2', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', fontWeight: '600', borderBottom: '1px solid #f3f4f6' }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
-                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                    style={menuButtonStyle}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                   >
-                    <span style={{ fontSize: '18px' }}>🎭</span>
+                    <span style={iconBoxStyle}>🎭</span>
                     Retour a mon compte
                   </button>
                 )}
 
                 <button onClick={handleSignOut}
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer' }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  style={{ ...menuButtonStyle, borderBottom: 'none' }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                  <span style={iconBoxStyle}>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                  </span>
                   Déconnexion
                 </button>
               </div>
@@ -683,3 +699,38 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
     </>
   )
 }
+
+// Styles partagés pour le dropdown du menu utilisateur — uniforme et neutre
+const menuItemStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  padding: '12px 16px',
+  color: '#374151',
+  textDecoration: 'none',
+  fontSize: '14px',
+  borderBottom: '1px solid #f3f4f6',
+  fontWeight: 'normal',
+}
+
+const menuButtonStyle: React.CSSProperties = {
+  ...menuItemStyle,
+  backgroundColor: 'white',
+  border: 'none',
+  width: '100%',
+  textAlign: 'left',
+  cursor: 'pointer',
+}
+
+// Boîte à largeur fixe pour l'icône : garantit que le texte démarre toujours
+// au même endroit, peu importe si l'icône est un SVG ou un emoji.
+const iconBoxStyle: React.CSSProperties = {
+  width: 20,
+  height: 20,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '18px',
+  flexShrink: 0,
+}
+
