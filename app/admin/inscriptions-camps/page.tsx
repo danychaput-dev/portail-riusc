@@ -347,26 +347,40 @@ export default function InscriptionsCampsPage() {
   }>>(new Map())
   const refetchRappels = async () => {
     if (!selectedCampId) { setRappels(new Map()); return }
+    console.log('[refetchRappels] Fetch rappels pour session_id =', selectedCampId)
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('rappels_camps')
         .select('inscription_id, envoye_at, reponse, reponse_confirmee, reponse_at')
         .eq('session_id', selectedCampId)
         .order('envoye_at', { ascending: false })
+      console.log('[refetchRappels] Supabase a retourné:', { data, error, nbRows: data?.length ?? 0 })
+      if (error) {
+        console.error('[refetchRappels] ERREUR Supabase:', error.message, error)
+      }
       if (!data) { setRappels(new Map()); return }
       // Garder le plus récent par inscription
       const m = new Map<string, any>()
       for (const r of data as any[]) {
         if (!m.has(r.inscription_id)) m.set(r.inscription_id, r)
       }
+      console.log('[refetchRappels] Map construite avec', m.size, 'entrées uniques')
       setRappels(m)
-    } catch {
+    } catch (e) {
+      console.error('[refetchRappels] EXCEPTION:', e)
       setRappels(new Map())
     }
   }
   useEffect(() => { refetchRappels() }, [selectedCampId, roleChecked])
 
   // ── Filtres ─────────────────────────────────────────────────────────────────
+  // Filtre sur le statut du rappel SMS (pour repérer ceux à relancer)
+  //   null/'tous'         : pas de filtre
+  //   'sans_rappel'       : pas de rappel envoyé (aucune entrée rappels_camps)
+  //   'envoye_pas_repondu': rappel envoyé mais pas encore de réponse
+  //   'a_repondu'         : a répondu OUI/NON
+  const [filterRappel, setFilterRappel] = useState<'tous' | 'sans_rappel' | 'envoye_pas_repondu' | 'a_repondu'>('tous')
+
   const filtered = useMemo(() => {
     return inscriptions.filter(i => {
       const matchSearch = !search
@@ -374,9 +388,16 @@ export default function InscriptionsCampsPage() {
         || (i.courriel || '').toLowerCase().includes(search.toLowerCase())
         || (i.region || '').toLowerCase().includes(search.toLowerCase())
       const matchPresence = filterPresence === 'tous' || i.presence === filterPresence
-      return matchSearch && matchPresence
+      const r = rappels.get(i.id)
+      const matchRappel =
+        filterRappel === 'tous' ? true
+        : filterRappel === 'sans_rappel' ? !r
+        : filterRappel === 'envoye_pas_repondu' ? (r && !r.reponse)
+        : filterRappel === 'a_repondu' ? (r && r.reponse)
+        : true
+      return matchSearch && matchPresence && matchRappel
     })
-  }, [inscriptions, search, filterPresence])
+  }, [inscriptions, search, filterPresence, filterRappel, rappels])
 
   const selectedCamp = camps.find(c => c.session_id === selectedCampId)
   const upcomingCamps = camps.filter(c => !c.isPast)
@@ -887,9 +908,25 @@ export default function InscriptionsCampsPage() {
                 <option value="annule">Annulé</option>
                 <option value="Jy_etais">J&apos;y étais</option>
               </select>
-              {(search || filterPresence !== 'tous') && (
+              {isAdmin && (
+                <select
+                  value={filterRappel}
+                  onChange={e => setFilterRappel(e.target.value as any)}
+                  title="Filtrer selon le statut de réponse au rappel SMS"
+                  style={{
+                    padding: '7px 10px', borderRadius: 8, border: '1px solid #d1d5db',
+                    fontSize: 13, color: '#374151', background: '#fff', cursor: 'pointer',
+                  }}
+                >
+                  <option value="tous">📱 Tous — rappel SMS</option>
+                  <option value="sans_rappel">📵 Sans rappel envoyé</option>
+                  <option value="envoye_pas_repondu">⏳ Envoyé, pas de réponse</option>
+                  <option value="a_repondu">✅ A répondu</option>
+                </select>
+              )}
+              {(search || filterPresence !== 'tous' || filterRappel !== 'tous') && (
                 <button
-                  onClick={() => { setSearch(''); setFilterPresence('tous') }}
+                  onClick={() => { setSearch(''); setFilterPresence('tous'); setFilterRappel('tous') }}
                   style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, background: '#fff', cursor: 'pointer', color: '#6b7280' }}
                 >
                   Effacer filtres
