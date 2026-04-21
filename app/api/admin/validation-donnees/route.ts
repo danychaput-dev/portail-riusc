@@ -284,6 +284,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const envoyer = searchParams.get('envoyer') === 'true'
 
+    // Protection par Bearer token pour l'envoi automatisé (n8n cron).
+    // Obligatoire seulement si envoyer=true, pour éviter qu'un appel GET public
+    // déclenche un courriel aux admins. La consultation simple reste ouverte
+    // (utile pour debug ou monitoring manuel).
+    //
+    // Config :
+    //   - Env var côté serveur : VALIDATION_CRON_SECRET (Vercel + .env.local)
+    //   - Côté n8n : ajouter header Authorization: Bearer <valeur>
+    //
+    // Si la variable n'est pas définie côté serveur, on n'applique pas le check
+    // (tolérance transitoire le temps de déployer la config). À enlever plus tard.
+    if (envoyer) {
+      const expected = process.env.VALIDATION_CRON_SECRET
+      if (expected) {
+        const authHeader = request.headers.get('authorization') || ''
+        const providedToken = authHeader.toLowerCase().startsWith('bearer ')
+          ? authHeader.slice(7).trim()
+          : ''
+        if (providedToken !== expected) {
+          return NextResponse.json(
+            { error: 'Token d\'autorisation manquant ou invalide' },
+            { status: 401 }
+          )
+        }
+      }
+    }
+
     // Executer les validations
     const result = await validerDonnees()
 

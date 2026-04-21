@@ -120,6 +120,7 @@ function DisponibilitesInner() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [autresDeployables, setAutresDeployables] = useState<Array<{ benevole_id: string; email: string; prenom: string; nom: string }>>([])
   const [loadingAutres, setLoadingAutres] = useState(false)
+  const [search,     setSearch]     = useState('')
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -232,6 +233,60 @@ function DisponibilitesInner() {
   const nbOuiAuMoinsUnJour = grouped.plage.length + grouped.partiel.length
   const pctOui = ciblages.length > 0 ? Math.round(nbOuiAuMoinsUnJour / ciblages.length * 100) : 0
 
+  // ── Vagues d'envoi ────────────────────────────────────────────────────────
+  // Détecte automatiquement les vagues de notification (ciblage → SMS/email)
+  // en regroupant les ciblages notifiés par clusters temporels (gap > 30 min = nouvelle vague).
+  // Utile quand l'admin relance des ciblages supplémentaires pour combler un déficit :
+  // permet de visualiser qui a répondu dans chaque vague.
+  const WAVE_COLORS = useMemo(() => ([
+    { bg: '#f1f5f9', color: '#475569' }, // V1 — gris neutre
+    { bg: '#ffedd5', color: '#c2410c' }, // V2 — orange
+    { bg: '#f5f3ff', color: '#7c3aed' }, // V3 — violet
+    { bg: '#ecfeff', color: '#0891b2' }, // V4 — teal
+    { bg: '#fef3c7', color: '#a16207' }, // V5 — ambre
+  ]), [])
+
+  const wavesInfo = useMemo(() => {
+    const GAP_MS = 30 * 60 * 1000 // 30 minutes entre deux vagues
+    const fallback = { bg: '#f1f5f9', color: '#475569' }
+    const notified = ciblages
+      .filter(c => c.statut === 'notifie' && c.updated_at)
+      .map(c => ({ bid: c.benevole_id, t: new Date(c.updated_at!).getTime() }))
+      .sort((a, b) => a.t - b.t)
+
+    const waveByBid = new Map<string, number>()
+    if (notified.length === 0) {
+      return { waveByBid, waveCount: 0, waveStats: [] as Array<{ wave: number; total: number; repondus: number; silence: number; notifiedAt: Date; color: { bg: string; color: string } }> }
+    }
+
+    const waveFirstTime: number[] = [notified[0].t]
+    let currentWave = 1
+    waveByBid.set(notified[0].bid, 1)
+    for (let i = 1; i < notified.length; i++) {
+      if (notified[i].t - notified[i-1].t > GAP_MS) {
+        currentWave++
+        waveFirstTime.push(notified[i].t)
+      }
+      waveByBid.set(notified[i].bid, currentWave)
+    }
+
+    const waveStats = [] as Array<{ wave: number; total: number; repondus: number; silence: number; notifiedAt: Date; color: { bg: string; color: string } }>
+    for (let w = 1; w <= currentWave; w++) {
+      const bidsOfWave = [...waveByBid.entries()].filter(([, n]) => n === w).map(([bid]) => bid)
+      const repondus = bidsOfWave.filter(bid => dispos.some(d => d.benevole_id === bid)).length
+      waveStats.push({
+        wave: w,
+        total: bidsOfWave.length,
+        repondus,
+        silence: bidsOfWave.length - repondus,
+        notifiedAt: new Date(waveFirstTime[w-1]),
+        color: WAVE_COLORS[w-1] || fallback,
+      })
+    }
+
+    return { waveByBid, waveCount: currentWave, waveStats }
+  }, [ciblages, dispos, WAVE_COLORS])
+
   function getDistance(bid: string): number | null {
     if (!dep?.latitude || !dep?.longitude) return null
     const r = resMap[bid]
@@ -246,6 +301,25 @@ function DisponibilitesInner() {
       if (da === null) return 1; if (db === null) return -1
       return da - db
     })
+  }
+
+  // Filtre par recherche : prénom, nom, ville, ou n'importe quel mot du nom complet.
+  // Recherche insensible à la casse et aux accents.
+  const normalize = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const searchTerms = useMemo(
+    () => normalize(search.trim()).split(/\s+/).filter(Boolean),
+    [search]
+  )
+  function matchesSearch(bid: string): boolean {
+    if (searchTerms.length === 0) return true
+    const r = resMap[bid]
+    if (!r) return false
+    const haystack = normalize([r.prenom, r.nom, r.ville, r.region].filter(Boolean).join(' '))
+    return searchTerms.every(t => haystack.includes(t))
+  }
+  function filterAndSort(ids: string[]): string[] {
+    const filtered = searchTerms.length > 0 ? ids.filter(matchesSearch) : ids
+    return sortedByDist(filtered)
   }
 
   const toggleSelect = (bid: string) => setSelected(prev => {
@@ -334,6 +408,20 @@ function DisponibilitesInner() {
             <span style={{ fontSize:12, fontWeight:600, color:'#1e293b' }}>
               {r ? `${r.prenom} ${r.nom}` : bid}
             </span>
+            {/* Badge de vague d'envoi — seulement si 2+ vagues détectées */}
+            {wavesInfo.waveCount >= 2 && (() => {
+              const w = wavesInfo.waveByBid.get(bid)
+              if (!w) return null
+              const c = wavesInfo.waveStats[w-1]?.color
+              if (!c) return null
+              return (
+                <span title={`Notifié en vague ${w}`} style={{
+                  fontSize:9, padding:'1px 6px', borderRadius:6,
+                  backgroundColor: c.color, color:'white',
+                  fontWeight:700, whiteSpace:'nowrap', letterSpacing:'0.02em'
+                }}>V{w}</span>
+              )
+            })()}
             {dist !== null && (
               <span style={{ fontSize:10, color:'#64748b', whiteSpace:'nowrap', padding:'1px 6px', borderRadius:6, backgroundColor:'#f1f5f9' }}>
                 📍 {dist < 10 ? dist.toFixed(1) : Math.round(dist)} km
@@ -401,7 +489,9 @@ function DisponibilitesInner() {
   const GroupeSection = ({ ids, groupe }: { ids: string[]; groupe: Groupe }) => {
     if (!ids.length) return null
     const cfg    = GROUPE_CFG[groupe]
-    const sorted = sortedByDist(ids)
+    const sorted = filterAndSort(ids)
+    // Si une recherche est active mais qu'aucun résultat dans ce groupe, on cache la section.
+    if (searchTerms.length > 0 && sorted.length === 0) return null
     return (
       <>
         <tr>
@@ -552,6 +642,50 @@ function DisponibilitesInner() {
             )}
           </div>
 
+          {/* Vagues d'envoi — affiche un panneau si 2+ vagues détectées */}
+          {wavesInfo.waveCount >= 2 && (
+            <div style={{ backgroundColor:'white', borderRadius:12, border:'1px solid #e5e7eb', padding:'14px 18px', marginBottom:16 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'#64748b', textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>
+                  📨 Vagues d'envoi détectées ({wavesInfo.waveCount})
+                </span>
+                <span style={{ fontSize:10, color:'#94a3b8' }}>
+                  · regroupement automatique par cluster temporel (gap &gt; 30 min)
+                </span>
+              </div>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                {wavesInfo.waveStats.map(w => {
+                  const pct = w.total > 0 ? Math.round(w.repondus / w.total * 100) : 0
+                  const envoyeLe = w.notifiedAt.toLocaleDateString('fr-CA', { day:'numeric', month:'short' }) + ' ' +
+                                   w.notifiedAt.toLocaleTimeString('fr-CA', { hour:'2-digit', minute:'2-digit' })
+                  return (
+                    <div key={w.wave} style={{
+                      padding:'10px 14px', borderRadius:10,
+                      backgroundColor: w.color.bg,
+                      border: `1.5px solid ${w.color.color}55`,
+                      minWidth:180, flex:'0 0 auto'
+                    }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                        <span style={{
+                          padding:'2px 8px', borderRadius:6, fontSize:11, fontWeight:700,
+                          backgroundColor: w.color.color, color:'white'
+                        }}>V{w.wave}</span>
+                        <span style={{ fontSize:10, color:'#64748b' }}>envoyé le {envoyeLe}</span>
+                      </div>
+                      <div style={{ fontSize:15, fontWeight:700, color: w.color.color }}>
+                        {w.repondus} / {w.total}
+                        <span style={{ fontWeight:500, fontSize:11, color:'#64748b', marginLeft:6 }}>répondu ({pct}%)</span>
+                      </div>
+                      <div style={{ fontSize:11, color:'#64748b', marginTop:2 }}>
+                        · {w.silence} sans réponse
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Suggestion IA */}
           <div data-print-hide style={{ backgroundColor:'white', borderRadius:12, border:'1.5px solid #ddd6fe', padding:'14px 20px', marginBottom:16 }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: aiSugg ? 12 : 0 }}>
@@ -575,7 +709,45 @@ function DisponibilitesInner() {
           {/* Grille principale */}
           <div style={{ backgroundColor:'white', borderRadius:12, border:'1px solid #e5e7eb', overflow:'hidden', marginBottom:16 }}>
             <div style={{ padding:'10px 16px', backgroundColor:'#f8fafc', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
-              <span style={{ fontSize:12, fontWeight:700, color:C }}>Échéancier complet · {ciblages.length} réservistes · triés par distance</span>
+              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                <span style={{ fontSize:12, fontWeight:700, color:C }}>
+                  Échéancier complet · {ciblages.length} réservistes · triés par distance
+                </span>
+                {/* Recherche par nom/prénom/ville (insensible à la casse et aux accents) */}
+                <div style={{ display:'flex', alignItems:'center', gap:6, position:'relative' }}>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="🔍 Rechercher (nom, ville…)"
+                    style={{
+                      padding:'5px 28px 5px 10px', fontSize:12, borderRadius:6,
+                      border:'1px solid #cbd5e1', backgroundColor:'white',
+                      width:220, color:'#1e293b'
+                    }}
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch('')}
+                      title="Effacer la recherche"
+                      style={{
+                        position:'absolute', right:4, top:'50%', transform:'translateY(-50%)',
+                        background:'none', border:'none', cursor:'pointer',
+                        color:'#94a3b8', fontSize:14, padding:'2px 6px', lineHeight:1
+                      }}
+                    >×</button>
+                  )}
+                  {searchTerms.length > 0 && (() => {
+                    const matchCount = (['plage','partiel','nondispo','silence'] as Groupe[])
+                      .reduce((sum, g) => sum + grouped[g].filter(matchesSearch).length, 0)
+                    return (
+                      <span style={{ fontSize:11, color: matchCount > 0 ? '#059669' : '#dc2626', fontWeight:600 }}>
+                        {matchCount} résultat{matchCount > 1 ? 's' : ''}
+                      </span>
+                    )
+                  })()}
+                </div>
+              </div>
               <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
                 {/* Raccourcis selection par categorie + ouvrir courriel */}
                 {grouped.silence.length > 0 && (

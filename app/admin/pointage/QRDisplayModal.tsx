@@ -10,6 +10,7 @@ const BORDER = '#e5e7eb'
 interface Session {
   contexte_nom: string
   contexte_lieu: string | null
+  titre?: string | null
   shift: string | null
   date_shift: string | null
   approuveur_nom?: string | null
@@ -37,11 +38,10 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
     if (!dataUrl) return
     const a = document.createElement('a')
     a.href = dataUrl
-    const slug = (session.contexte_nom || 'qr')
-      .toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    const suffix = [session.shift, session.date_shift].filter(Boolean).join('-')
+    const toSlug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const slug = toSlug(session.contexte_nom || 'qr')
+    const titreSlug = session.titre ? toSlug(session.titre) : ''
+    const suffix = [titreSlug, session.shift, session.date_shift].filter(Boolean).join('-')
     a.download = `qr-${slug}${suffix ? '-' + suffix : ''}.png`
     a.click()
   }
@@ -50,16 +50,19 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
     if (!dataUrl) return
     const w = window.open('', '_blank', 'width=800,height=900')
     if (!w) return
+    const titreHtml = session.titre ? `<div class="titre">${escapeHtml(session.titre)}</div>` : ''
     w.document.write(`
       <!doctype html>
       <html>
         <head>
-          <title>QR Pointage — ${escapeHtml(session.contexte_nom)}</title>
+          <title>QR Pointage — ${escapeHtml(session.titre || session.contexte_nom)}</title>
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 40px; margin: 0; }
-            h1 { font-size: 24px; margin: 0 0 8px; color: #1e3a5f; }
-            .sub { font-size: 14px; color: #6b7280; margin-bottom: 24px; }
-            img { max-width: 70vw; max-height: 70vh; border: 2px solid #e5e7eb; padding: 12px; background: white; }
+            h1 { font-size: 22px; margin: 0 0 6px; color: #1e3a5f; font-weight: 600; }
+            .titre { font-size: 34px; font-weight: 800; color: #1e3a5f; margin: 12px 0 16px; letter-spacing: 0.02em; }
+            .sub { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+            img { max-width: 70vw; max-height: 65vh; border: 2px solid #e5e7eb; padding: 12px; background: white; }
+            .sous-qr { margin-top: 14px; font-size: 16px; font-weight: 600; color: #475569; }
             .footer { margin-top: 20px; font-size: 11px; color: #9ca3af; word-break: break-all; }
             @media print {
               .no-print { display: none; }
@@ -74,7 +77,9 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
             ${session.date_shift ? ' · ' + formatDate(session.date_shift) : ''}
             ${session.contexte_lieu ? ' · 📍 ' + escapeHtml(session.contexte_lieu) : ''}
           </div>
+          ${titreHtml}
           <img src="${dataUrl}" alt="QR code" />
+          ${session.titre ? `<div class="sous-qr">${escapeHtml(session.titre)}</div>` : ''}
           <div class="footer">${escapeHtml(url)}</div>
           <div class="no-print" style="margin-top:30px">
             <button onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer;background:#1e3a5f;color:white;border:none;border-radius:6px">🖨️ Imprimer</button>
@@ -86,8 +91,8 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
   }
 
   return (
-    <div onClick={onClose} style={overlayStyle}>
-      <div onClick={e => e.stopPropagation()} style={modalStyle}>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C }}>✅ QR généré</h2>
@@ -100,6 +105,11 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
 
         <div style={{ padding: 14, borderRadius: 10, backgroundColor: '#f8fafc', border: `1px solid ${BORDER}`, marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: C, fontSize: 14 }}>{session.contexte_nom}</div>
+          {session.titre && (
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', marginTop: 3 }}>
+              🏷️ {session.titre}
+            </div>
+          )}
           <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
             {session.shift && <span style={{ fontWeight: 600 }}>{labelShift(session.shift)}</span>}
             {!session.shift && <span>Tout le camp</span>}
@@ -113,13 +123,21 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
           )}
         </div>
 
-        {/* QR */}
+        {/* QR — avec titre en surimpression pour différencier visuellement */}
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          {session.titre && (
+            <div style={{ fontSize: 18, fontWeight: 800, color: C, marginBottom: 10, letterSpacing: '0.02em' }}>
+              {session.titre}
+            </div>
+          )}
           {dataUrl ? (
             <img src={dataUrl} alt="QR code" style={{ maxWidth: '100%', width: 320, height: 320, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 8, backgroundColor: 'white' }} />
           ) : (
             <div style={{ padding: 60, color: MUTED }}>Erreur de génération du QR.</div>
           )}
+          <div style={{ fontSize: 13, fontWeight: 600, color: MUTED, marginTop: 8 }}>
+            {session.contexte_nom}
+          </div>
         </div>
 
         {/* URL */}

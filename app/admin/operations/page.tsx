@@ -30,15 +30,24 @@ export default function OperationsPage() {
     const urlDep  = params.get('dep')
     const urlDems = params.get('dems')
     if (urlSin || urlDep || urlDems) {
-      // URL prime pour sin/dep, mais si dems absent → lire localStorage
+      // URL prime pour les params présents ; pour les params ABSENTS (ex: retour
+      // de /disponibilites qui ne garde que ?dep=...), on tombe en fallback
+      // localStorage pour ne pas perdre le contexte sinistre/demandes.
       let demIds = urlDems ? urlDems.split(',').filter(Boolean) : []
-      if (!demIds.length) {
+      let sinId  = urlSin || null
+      let depId  = urlDep || null
+      if (!sinId || !demIds.length || !depId) {
         try {
           const raw = localStorage.getItem(LS_KEY)
-          if (raw) demIds = JSON.parse(raw)?.demIds || []
+          if (raw) {
+            const saved = JSON.parse(raw)
+            if (!sinId  && saved?.sinId)  sinId  = saved.sinId
+            if (!depId  && saved?.depId)  depId  = saved.depId
+            if (!demIds.length && saved?.demIds) demIds = saved.demIds
+          }
         } catch {}
       }
-      return { sinId: urlSin || null, depId: urlDep || null, demIds }
+      return { sinId, depId, demIds }
     }
     try {
       const raw = localStorage.getItem(LS_KEY)
@@ -123,6 +132,11 @@ export default function OperationsPage() {
   const [savDem, setSavDem] = useState(false)
   const [savDep, setSavDep] = useState(false)
 
+  // Mode édition : quand non-null, les formulaires passent en mode UPDATE au lieu de INSERT
+  const [editingSinId, setEditingSinId] = useState<string | null>(null)
+  const [editingDemId, setEditingDemId] = useState<string | null>(null)
+  const [editingDepId, setEditingDepId] = useState<string | null>(null)
+
   // wizard
   const [step4Override, setStep4Override] = useState(false)
   const [step6Ok,       setStep6Ok]       = useState(false)
@@ -137,6 +151,14 @@ export default function OperationsPage() {
   const [fullscreen,    setFullscreen]    = useState(false)
 
   // ── Complétion ─────────────────────────────────────────────────────────────
+  // Les étapes 6 et 8 sont dérivées de la DB (pas seulement de l'état local) pour
+  // que TOUS les admins (Dany, Esther, Guy…) voient la même progression du wizard.
+  // - Étape 6 (validation des dispos) : implicite si des vagues existent (étape 7
+  //   ne se fait pas sans avoir vu les dispos).
+  // - Étape 8 (mobilisation envoyée) : dérivée du statut des vagues — sendMobilisation()
+  //   passe les vagues à 'Mobilisée' en DB.
+  const mobilSentDerived = mobilSent || (vagues.length > 0 && vagues.some(v => v.statut === 'Mobilisée' || v.statut === 'Confirmée'))
+  const step6OkDerived   = step6Ok   || vagues.length > 0 || mobilSentDerived
   const done = useCallback((n: number): boolean => {
     switch(n) {
       case 1: return !!sinId
@@ -144,12 +166,12 @@ export default function OperationsPage() {
       case 3: return !!depId
       case 4: return ciblages.length > 0 || step4Override
       case 5: return ciblages.some(c=>c.statut==='notifie')
-      case 6: return step6Ok
+      case 6: return step6OkDerived
       case 7: return vagues.length > 0
-      case 8: return mobilSent
+      case 8: return mobilSentDerived
       default: return false
     }
-  }, [sinId, demIds, depId, ciblages, step4Override, step6Ok, vagues, mobilSent])
+  }, [sinId, demIds, depId, ciblages, step4Override, step6OkDerived, vagues, mobilSentDerived])
 
   const curStep = useMemo(() => {
     for (let i=1;i<=8;i++) if(!done(i)) return i
@@ -198,6 +220,33 @@ export default function OperationsPage() {
       .then(({ data }) => { if (data) setDeployments([data as unknown as Deployment]) })
   }, [depId])
 
+  // Filet de sécurité : si on arrive sur le wizard avec un depId mais sans sinId
+  // ni demIds (ex: retour depuis /admin/operations/disponibilites via router.push
+  // qui ne garde que ?dep=...), on remonte la chaîne DB pour reconstruire le
+  // contexte : deployment → demandes (via deployments_demandes) → sinistre.
+  // Sans ça, l'étape 1 reste "active" et l'étape 8 reste locked, ce qui bloque
+  // le workflow même quand tout est fait côté données.
+  useEffect(() => {
+    if (!depId) return
+    if (sinId && demIds.length > 0) return  // contexte déjà complet
+    ;(async () => {
+      const { data: liens } = await supabase
+        .from('deployments_demandes')
+        .select('demande_id, demandes(id, sinistre_id)')
+        .eq('deployment_id', depId)
+      if (!liens || liens.length === 0) return
+      const dems = (liens as any[])
+        .map(l => l.demandes)
+        .filter(Boolean) as { id: string; sinistre_id: string }[]
+      if (dems.length === 0) return
+      // Tous les demandes d'un même déploiement partagent le même sinistre
+      const sinFromDB = dems[0].sinistre_id
+      const demIdsFromDB = dems.map(d => d.id)
+      if (!sinId && sinFromDB) setSinId(sinFromDB)
+      if (demIds.length === 0 && demIdsFromDB.length > 0) setDemIds(demIdsFromDB)
+    })()
+  }, [depId, sinId, demIds.length])
+
   useEffect(() => {
     if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
     // Utiliser l'API admin (service_role) pour bypass les RLS auth browser qui
@@ -223,6 +272,37 @@ export default function OperationsPage() {
       .then(({data})=>{ if(data) setVagues(data as any) })
   }, [depId, step4Override])
 
+  // Helper exposé pour rafraîchir les vagues à la demande (bouton Refresh étape 7)
+  const rafraichirVagues = async () => {
+    if (!depId) return
+    const { data } = await supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+    if (data) setVagues(data as any)
+  }
+
+  // Quand l'utilisateur revient sur l'onglet (depuis /admin/operations/disponibilites
+  // où il a pu créer/modifier une rotation), on refetch les vagues pour que le wizard
+  // reflète l'état actuel de la DB. Sans ça, le wizard pense que step 7/8 ne sont pas
+  // encore done et les bloque.
+  useEffect(() => {
+    if (!depId) return
+    const refreshVagues = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+          .then(({ data }) => { if (data) setVagues(data as any) })
+      }
+    }
+    window.addEventListener('focus', refreshVagues)
+    document.addEventListener('visibilitychange', refreshVagues)
+    // Refetch aussi quand on arrive sur la page (router.push depuis /disponibilites
+    // ne retriggère pas les useEffect depId-based, donc on ajoute un refetch initial
+    // explicite).
+    refreshVagues()
+    return () => {
+      window.removeEventListener('focus', refreshVagues)
+      document.removeEventListener('visibilitychange', refreshVagues)
+    }
+  }, [depId])
+
   useEffect(() => {
     if (!selSin || !selDep) return
     setMsgNotif((prev: string) => prev ? prev : tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
@@ -230,8 +310,20 @@ export default function OperationsPage() {
 
   useEffect(() => {
     if (!selDep) return
-    const v = vagues[0]
-    setMsgMobil(tplMobil(selDep.nom, v?(v.identifiant||`Rotation #${v.numero}`):'[rotation à définir]', v?.date_debut||'[date début]', v?.date_fin||'[date fin]', selDep.lieu))
+    // On ne régénère le template que si l'admin n'a pas déjà édité le message.
+    // Ça préserve les modifications manuelles (ex: adresse exacte, heure de
+    // rassemblement) quand une nouvelle vague est créée ou modifiée.
+    setMsgMobil((prev: string) => {
+      if (prev && prev.trim()) return prev
+      const v = vagues[0]
+      return tplMobil(
+        selDep.nom,
+        v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
+        v?.date_debut || '[date début]',
+        v?.date_fin || '[date fin]',
+        selDep.lieu
+      )
+    })
   }, [depId, vagues.length])
 
   // ── Actions ─────────────────────────────────────────────────────────────────
@@ -242,14 +334,24 @@ export default function OperationsPage() {
       return
     }
     setSavSin(true)
-    const {data,error} = await supabase.from('sinistres')
-      .insert({ nom:fSin.nom.trim(), type_incident:fSin.type_incident, lieu:fSin.lieu, date_debut:fSin.date_debut, statut:'Actif' })
-      .select().single()
+    const payload = { nom:fSin.nom.trim(), type_incident:fSin.type_incident, lieu:fSin.lieu, date_debut:fSin.date_debut }
+    const query = editingSinId
+      ? supabase.from('sinistres').update(payload).eq('id', editingSinId).select().single()
+      : supabase.from('sinistres').insert({ ...payload, statut:'Actif' }).select().single()
+    const {data,error} = await query
     if (error) {
-      console.error('Erreur creation sinistre:', error)
-      alert(`Erreur création sinistre : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      console.error('Erreur sinistre:', error)
+      alert(`Erreur ${editingSinId ? 'modification' : 'création'} sinistre : ${error.message}${error.code ? ` (${error.code})` : ''}`)
     } else if (data) {
-      setSinistres(p=>[data as unknown as Sinistre,...p]); setSinId(data.id); setShowFSin(false); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''})
+      const sinistre = data as unknown as Sinistre
+      if (editingSinId) {
+        setSinistres(p => p.map(s => s.id === editingSinId ? sinistre : s))
+      } else {
+        setSinistres(p => [sinistre, ...p])
+        setSinId(sinistre.id)
+      }
+      setShowFSin(false); setEditingSinId(null)
+      setFSin({nom:'',type_incident:'',lieu:'',date_debut:''})
     }
     setSavSin(false)
   }
@@ -261,48 +363,130 @@ export default function OperationsPage() {
       return
     }
     setSavDem(true)
-    const identifiant = genDemandeId(demandes, fDem.organisme, fDem.date_debut)
     const description = `${fDem.type_mission} - ${fDem.lieu}`
-    const {data,error} = await supabase.from('demandes').insert({
-      sinistre_id:sinId, organisme:fDem.organisme, type_mission:fDem.type_mission,
-      description,
-      lieu:fDem.lieu, nb_personnes_requis:fDem.nb_personnes_requis?parseInt(fDem.nb_personnes_requis):null,
-      date_debut:fDem.date_debut, date_fin_estimee:fDem.date_fin_estimee||null,
-      priorite:fDem.priorite, statut:'Nouvelle', identifiant,
-      date_reception:new Date().toISOString(),
-      contact_nom:fDem.contact_nom||null, contact_telephone:fDem.contact_telephone||null,
-    }).select().single()
+    const payload = {
+      organisme: fDem.organisme, type_mission: fDem.type_mission, description,
+      lieu: fDem.lieu,
+      nb_personnes_requis: fDem.nb_personnes_requis ? parseInt(fDem.nb_personnes_requis) : null,
+      date_debut: fDem.date_debut, date_fin_estimee: fDem.date_fin_estimee || null,
+      priorite: fDem.priorite,
+      contact_nom: fDem.contact_nom || null, contact_telephone: fDem.contact_telephone || null,
+    }
+    const query = editingDemId
+      ? supabase.from('demandes').update(payload).eq('id', editingDemId).select().single()
+      : (() => {
+          const identifiant = genDemandeId(demandes, fDem.organisme, fDem.date_debut)
+          return supabase.from('demandes').insert({
+            ...payload,
+            sinistre_id: sinId, statut: 'Nouvelle', identifiant,
+            date_reception: new Date().toISOString(),
+          }).select().single()
+        })()
+    const {data,error} = await query
     if (error) {
-      console.error('Erreur creation demande:', error)
-      alert(`Erreur création demande : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      console.error('Erreur demande:', error)
+      alert(`Erreur ${editingDemId ? 'modification' : 'création'} demande : ${error.message}${error.code ? ` (${error.code})` : ''}`)
     } else if (data) {
-      setDemandes(p=>[data as unknown as Demande,...p]); setDemIds(p=>[...p,data.id])
-      setShowFDem(false); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
+      const demande = data as unknown as Demande
+      if (editingDemId) {
+        setDemandes(p => p.map(d => d.id === editingDemId ? demande : d))
+      } else {
+        setDemandes(p => [demande, ...p])
+        setDemIds(p => [...p, demande.id])
+      }
+      setShowFDem(false); setEditingDemId(null)
+      setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''})
     }
     setSavDem(false)
   }
 
   const creerDeployment = async () => {
-    if (!fDep.nom.trim() || !demIds.length) return
+    if (!fDep.nom.trim()) return
+    if (!editingDepId && !demIds.length) return
     if (!fDep.lieu || !fDep.date_debut || !fDep.nb_personnes_par_vague) {
       alert('Lieu, date de début et nombre de personnes par vague sont obligatoires.')
       return
     }
     setSavDep(true)
-    const identifiant = genDeployId(deployments)
-    const {data,error} = await supabase.from('deployments').insert({
-      identifiant, nom:fDep.nom.trim(), lieu:fDep.lieu,
-      date_debut:fDep.date_debut, date_fin:fDep.date_fin||null,
-      nb_personnes_par_vague:parseInt(fDep.nb_personnes_par_vague),
-      point_rassemblement:fDep.point_rassemblement||null, notes_logistique:fDep.notes_logistique||null,
-      statut:'Planifié',
-    }).select().single()
-    if (!error && data) {
-      await supabase.from('deployments_demandes').insert(demIds.map(did=>({ deployment_id:data.id, demande_id:did })))
-      setDeployments(p=>[...p,data as unknown as Deployment]); setDepId(data.id)
-      setShowFDep(false); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+    const payload = {
+      nom: fDep.nom.trim(), lieu: fDep.lieu,
+      date_debut: fDep.date_debut, date_fin: fDep.date_fin || null,
+      nb_personnes_par_vague: parseInt(fDep.nb_personnes_par_vague),
+      point_rassemblement: fDep.point_rassemblement || null,
+      notes_logistique: fDep.notes_logistique || null,
+    }
+    if (editingDepId) {
+      const {data, error} = await supabase.from('deployments').update(payload).eq('id', editingDepId).select().single()
+      if (error) {
+        console.error('Erreur modification déploiement:', error)
+        alert(`Erreur modification déploiement : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      } else if (data) {
+        const dep = data as unknown as Deployment
+        setDeployments(p => p.map(d => d.id === editingDepId ? dep : d))
+        setShowFDep(false); setEditingDepId(null)
+        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+      }
+    } else {
+      const identifiant = genDeployId(deployments)
+      const {data, error} = await supabase.from('deployments').insert({
+        ...payload, identifiant, statut: 'Planifié',
+      }).select().single()
+      if (!error && data) {
+        await supabase.from('deployments_demandes').insert(demIds.map(did => ({ deployment_id: data.id, demande_id: did })))
+        setDeployments(p => [...p, data as unknown as Deployment]); setDepId(data.id)
+        setShowFDep(false)
+        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+      } else if (error) {
+        console.error('Erreur creation déploiement:', error)
+        alert(`Erreur création déploiement : ${error.message}${error.code ? ` (${error.code})` : ''}`)
+      }
     }
     setSavDep(false)
+  }
+
+  // ── Helpers pour entrer en mode édition ──────────────────────────────────
+  const editSinistre = (s: Sinistre) => {
+    setEditingSinId(s.id)
+    setFSin({
+      nom: s.nom || '',
+      type_incident: s.type_incident || '',
+      lieu: s.lieu || '',
+      date_debut: s.date_debut || '',
+    })
+    setShowFSin(true)
+  }
+  const editDemande = (d: Demande) => {
+    setEditingDemId(d.id)
+    setFDem({
+      organisme: d.organisme || '',
+      type_mission: d.type_mission || '',
+      lieu: d.lieu || '',
+      nb_personnes_requis: d.nb_personnes_requis ? String(d.nb_personnes_requis) : '',
+      date_debut: d.date_debut || '',
+      date_fin_estimee: d.date_fin_estimee || '',
+      priorite: d.priorite || 'Normale',
+      contact_nom: d.contact_nom || '',
+      contact_telephone: d.contact_telephone || '',
+    })
+    setShowFDem(true)
+  }
+  const editDeployment = (d: Deployment) => {
+    setEditingDepId(d.id)
+    setFDep({
+      nom: d.nom || '',
+      lieu: d.lieu || '',
+      date_debut: d.date_debut || '',
+      date_fin: d.date_fin || '',
+      nb_personnes_par_vague: d.nb_personnes_par_vague ? String(d.nb_personnes_par_vague) : '',
+      point_rassemblement: (d as any).point_rassemblement || '',
+      notes_logistique: (d as any).notes_logistique || '',
+    })
+    setShowFDep(true)
+  }
+  const cancelEdit = (kind: 'sin' | 'dem' | 'dep') => {
+    if (kind === 'sin') { setShowFSin(false); setEditingSinId(null); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
+    if (kind === 'dem') { setShowFDem(false); setEditingDemId(null); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''}) }
+    if (kind === 'dep') { setShowFDep(false); setEditingDepId(null); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''}) }
   }
 
   const rafraichirCiblages = async () => {
@@ -327,12 +511,65 @@ export default function OperationsPage() {
     setSendingNotif(true)
     await supabase.from('ciblages').update({statut:'notifie',updated_at:new Date().toISOString()}).in('id',toNotify)
     try {
-      await fetch(n8nUrl('/webhook/riusc-envoi-ciblage-portail'), {
+      // Passage par notre proxy serveur qui injecte les clés Supabase/Twilio
+      // dans le body avant de forward à n8n (les clés ne quittent pas Vercel).
+      await fetch('/api/admin/operations/n8n-webhook', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ deployment_id:depId, ciblage_ids:toNotify, message_override:msgNotif, type_envoi:'disponibilites' }),
+        body: JSON.stringify({
+          path: 'riusc-envoi-ciblage-portail',
+          payload: { deployment_id:depId, ciblage_ids:toNotify, message_override:msgNotif, type_envoi:'disponibilites' },
+        }),
       })
     } catch(e) { console.error('n8n notif',e) }
     setCiblages(p=>p.map(c=>toNotify.includes(c.id)?{...c,statut:'notifie'}:c))
+    setSendingNotif(false)
+  }
+
+  // Envoi d'un test de notification (ciblage) à l'admin courant uniquement.
+  // Le flag test:true indique à n8n de router vers test_destinataire plutôt
+  // que les vrais ciblages. AUCUNE modification de DB (statut des ciblages
+  // inchangé) pour qu'on puisse tester plusieurs fois sans effet de bord.
+  const sendTestCiblage = async () => {
+    if (!depId) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { alert('Non authentifié'); return }
+    const { data: me } = await supabase
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, email, telephone')
+      .eq('user_id', user.id)
+      .single()
+    if (!me) { alert('Ton profil réserviste est introuvable'); return }
+    if (!me.email && !me.telephone) {
+      alert('Aucun email ni téléphone dans ton profil — impossible de tester')
+      return
+    }
+    setSendingNotif(true)
+    try {
+      const res = await fetch('/api/admin/operations/n8n-webhook', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          path: 'riusc-envoi-ciblage-portail',
+          payload: {
+            test: true,
+            test_destinataire: {
+              benevole_id: me.benevole_id,
+              prenom: me.prenom, nom: me.nom,
+              email: me.email, telephone: me.telephone,
+            },
+            deployment_id: depId,
+            message_override: msgNotif,
+            type_envoi: 'disponibilites',
+          },
+        }),
+      })
+      if (res.ok) {
+        alert(`✅ Test envoyé à ${me.email || ''}${me.email && me.telephone ? ' + ' : ''}${me.telephone || ''}.\n\nVérifie ta boîte courriel et tes SMS dans la prochaine minute.`)
+      } else {
+        alert(`⚠️ n8n a renvoyé un code ${res.status}. Vérifie le workflow.`)
+      }
+    } catch(e: any) {
+      alert('Erreur : ' + (e?.message || 'connexion n8n'))
+    }
     setSendingNotif(false)
   }
 
@@ -368,14 +605,80 @@ export default function OperationsPage() {
 
   const sendMobilisation = async () => {
     if (!depId || !vagues.length) return
+    // Guard anti-double-clic : refuse l'envoi si la mobilisation est déjà marquée en DB.
+    // Protège contre les reloads, les changements d'admin ou les clics accidentels.
+    const dejaMobilise = vagues.some(v => v.statut === 'Mobilisée' || v.statut === 'Confirmée')
+    if (dejaMobilise) {
+      const ok = confirm('⚠️ La mobilisation semble déjà avoir été envoyée pour ce déploiement (vagues marquées "Mobilisée" en DB).\n\nCliquer OK va RE-envoyer les SMS/courriels via n8n. Les réservistes recevront une deuxième notification.\n\nContinuer quand même ?')
+      if (!ok) return
+    }
     setSendingMobil(true)
     try {
-      await fetch(n8nUrl('/webhook/riusc-envoi-mobilisation-portail'), {
+      await fetch('/api/admin/operations/n8n-webhook', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' }),
+        body: JSON.stringify({
+          path: 'riusc-envoi-mobilisation-portail',
+          payload: { deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' },
+        }),
       })
+      // Persister l'état "mobilisée" au niveau des vagues pour que TOUS les admins
+      // voient que la mobilisation a été envoyée. On limite aux vagues encore 'Planifiée'
+      // pour ne pas écraser les statuts ultérieurs (En cours, Terminée...).
+      await supabase.from('vagues')
+        .update({ statut: 'Mobilisée' })
+        .eq('deployment_id', depId)
+        .eq('statut', 'Planifiée')
+      setVagues(prev => prev.map(v => v.statut === 'Planifiée' ? { ...v, statut: 'Mobilisée' } : v))
     } catch(e) { console.error('n8n mobil',e) }
     setMobilSent(true); setSendingMobil(false)
+  }
+
+  // Envoi d'un test de mobilisation à l'admin courant uniquement.
+  // Même logique que sendTestCiblage : flag test:true + test_destinataire,
+  // AUCUNE modification de DB (vagues restent en leur statut actuel).
+  const sendTestMobilisation = async () => {
+    if (!depId || !vagues.length) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { alert('Non authentifié'); return }
+    const { data: me } = await supabase
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, email, telephone')
+      .eq('user_id', user.id)
+      .single()
+    if (!me) { alert('Ton profil réserviste est introuvable'); return }
+    if (!me.email && !me.telephone) {
+      alert('Aucun email ni téléphone dans ton profil — impossible de tester')
+      return
+    }
+    setSendingMobil(true)
+    try {
+      const res = await fetch('/api/admin/operations/n8n-webhook', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          path: 'riusc-envoi-mobilisation-portail',
+          payload: {
+            test: true,
+            test_destinataire: {
+              benevole_id: me.benevole_id,
+              prenom: me.prenom, nom: me.nom,
+              email: me.email, telephone: me.telephone,
+            },
+            deployment_id: depId,
+            vague_ids: vagues.map(v => v.id),
+            message_override: msgMobil,
+            type_envoi: 'mobilisation',
+          },
+        }),
+      })
+      if (res.ok) {
+        alert(`✅ Test envoyé à ${me.email || ''}${me.email && me.telephone ? ' + ' : ''}${me.telephone || ''}.\n\nVérifie ta boîte courriel et tes SMS dans la prochaine minute.`)
+      } else {
+        alert(`⚠️ n8n a renvoyé un code ${res.status}. Vérifie le workflow.`)
+      }
+    } catch(e: any) {
+      alert('Erreur : ' + (e?.message || 'connexion n8n'))
+    }
+    setSendingMobil(false)
   }
 
   // ── Données dérivées ────────────────────────────────────────────────────────
@@ -426,6 +729,39 @@ export default function OperationsPage() {
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:13, fontWeight:700, color:'#1e3a5f' }}>Tableau de bord opérationnel</div>
             <div style={{ fontSize:11, color:'#94a3b8', marginTop:2 }}>Étape {curStep} / 8</div>
+            {/* Partage : copie l'URL avec sin/dems/dep pour que les autres admins
+                ouvrent exactement le même contexte d'opération */}
+            {(sinId || depId) && (
+              <button
+                onClick={async () => {
+                  try {
+                    const p = new URLSearchParams()
+                    if (sinId)         p.set('sin',  sinId)
+                    if (depId)         p.set('dep',  depId)
+                    if (demIds.length) p.set('dems', demIds.join(','))
+                    const url = `${window.location.origin}${window.location.pathname}?${p.toString()}`
+                    await navigator.clipboard.writeText(url)
+                    const btn = document.activeElement as HTMLButtonElement | null
+                    if (btn) {
+                      const orig = btn.innerText
+                      btn.innerText = '✓ Lien copié'
+                      setTimeout(() => { btn.innerText = orig }, 1800)
+                    }
+                  } catch (e) {
+                    alert('Impossible de copier le lien — copiez l\'URL depuis la barre d\'adresse.')
+                  }
+                }}
+                title="Copie l'URL de cette opération pour la partager avec un autre admin"
+                style={{
+                  marginTop:10, width:'100%', padding:'7px 10px', fontSize:11, fontWeight:600,
+                  borderRadius:6, border:'1px solid #c7d2fe', backgroundColor:'#eef2ff',
+                  color:'#4338ca', cursor:'pointer', display:'flex', alignItems:'center',
+                  justifyContent:'center', gap:6
+                }}
+              >
+                🔗 Partager le lien
+              </button>
+            )}
           </div>
           <SidebarStepper
             statuses={statuses}
@@ -445,9 +781,16 @@ export default function OperationsPage() {
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {sinistres.map(s => (
                 <SelCard key={s.id} selected={sinId===s.id} onClick={()=>{ setSinId(s.id); setDemIds([]); setDepId(null) }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                     <span style={{ fontWeight:600, fontSize:13, color:'#1e3a5f' }}>{s.nom}</span>
-                    <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#d1fae5', color:'#065f46', fontWeight:600 }}>{s.statut}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#d1fae5', color:'#065f46', fontWeight:600 }}>{s.statut}</span>
+                      <button onClick={(e) => { e.stopPropagation(); editSinistre(s) }}
+                        title="Modifier ce sinistre"
+                        style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                        ✏️
+                      </button>
+                    </div>
                   </div>
                   <div style={{ fontSize:11, color:'#64748b', marginTop:2, display:'flex', gap:12, flexWrap:'wrap' }}>
                     {s.type_incident && <span>🔥 {s.type_incident}</span>}
@@ -458,7 +801,9 @@ export default function OperationsPage() {
               ))}
               {showFSin ? (
                 <SBox>
-                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>Nouveau sinistre</div>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
+                    {editingSinId ? '✏️ Modifier le sinistre' : 'Nouveau sinistre'}
+                  </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <div style={G2}>
                       <Field label="Nom *"><input style={IS} value={fSin.nom} onChange={e=>setFSin(f=>({...f,nom:e.target.value}))} placeholder="ex : Inondation Saguenay 2025"/></Field>
@@ -474,8 +819,10 @@ export default function OperationsPage() {
                       <Field label="Date de début"><input type="date" style={IS} value={fSin.date_debut} onChange={e=>setFSin(f=>({...f,date_debut:e.target.value}))}/></Field>
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
-                      <Btn onClick={creerSinistre} loading={savSin} disabled={!fSin.nom.trim()} color="#1e3a5f">✓ Créer</Btn>
-                      <Btn onClick={()=>setShowFSin(false)} outline color="#6b7280">Annuler</Btn>
+                      <Btn onClick={creerSinistre} loading={savSin} disabled={!fSin.nom.trim()} color="#1e3a5f">
+                        {editingSinId ? '✓ Mettre à jour' : '✓ Créer'}
+                      </Btn>
+                      <Btn onClick={()=>cancelEdit('sin')} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
                 </SBox>
@@ -510,7 +857,14 @@ export default function OperationsPage() {
                         <span style={{ fontSize:13, color:'#1e3a5f' }}>{d.organisme}</span>
                         {d.type_mission && <span style={{ fontSize:11, color:'#64748b' }}>· {d.type_mission}</span>}
                       </div>
-                      <span style={{ fontSize:11, padding:'2px 7px', borderRadius:8, backgroundColor:'#f3f4f6', color:'#6b7280', flexShrink:0 }}>{d.statut}</span>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+                        <span style={{ fontSize:11, padding:'2px 7px', borderRadius:8, backgroundColor:'#f3f4f6', color:'#6b7280' }}>{d.statut}</span>
+                        <button onClick={(e) => { e.stopPropagation(); editDemande(d) }}
+                          title="Modifier cette demande"
+                          style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                          ✏️
+                        </button>
+                      </div>
                     </div>
                     <div style={{ fontSize:11, color:'#64748b', marginTop:3, paddingLeft:22, display:'flex', gap:10, flexWrap:'wrap' }}>
                       {d.lieu && <span>📍 {d.lieu}</span>}
@@ -523,7 +877,9 @@ export default function OperationsPage() {
               })}
               {showFDem ? (
                 <SBox>
-                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>Nouvelle demande</div>
+                  <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
+                    {editingDemId ? '✏️ Modifier la demande' : 'Nouvelle demande'}
+                  </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <div style={G2}>
                       <Field label="Organisme *">
@@ -552,8 +908,10 @@ export default function OperationsPage() {
                       <Field label="Contact (téléphone)"><input style={IS} value={fDem.contact_telephone} onChange={e=>setFDem(f=>({...f,contact_telephone:e.target.value}))} placeholder="(418) 000-0000"/></Field>
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
-                      <Btn onClick={creerDemande} loading={savDem} disabled={!fDem.organisme} color="#7c3aed">✓ Créer la demande</Btn>
-                      <Btn onClick={()=>setShowFDem(false)} outline color="#6b7280">Annuler</Btn>
+                      <Btn onClick={creerDemande} loading={savDem} disabled={!fDem.organisme} color="#7c3aed">
+                        {editingDemId ? '✓ Mettre à jour' : '✓ Créer la demande'}
+                      </Btn>
+                      <Btn onClick={()=>cancelEdit('dem')} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
                 </SBox>
@@ -570,12 +928,19 @@ export default function OperationsPage() {
               {demIds.length===0 && !depId && <p style={{ fontSize:12, color:'#f59e0b', margin:0 }}>⚠️ Sélectionnez d'abord les demandes à l'étape 2.</p>}
               {deployments.map(d => (
                 <SelCard key={d.id} selected={depId===d.id} onClick={()=>setDepId(d.id)}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                     <div>
                       <span style={{ fontWeight:700, fontSize:12, color:'#7c3aed' }}>{d.identifiant}</span>
                       <span style={{ fontSize:13, color:'#1e3a5f', marginLeft:8 }}>{d.nom}</span>
                     </div>
-                    <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#f3f4f6', color:'#6b7280', fontWeight:600 }}>{d.statut}</span>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#f3f4f6', color:'#6b7280', fontWeight:600 }}>{d.statut}</span>
+                      <button onClick={(e) => { e.stopPropagation(); editDeployment(d) }}
+                        title="Modifier ce déploiement"
+                        style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                        ✏️
+                      </button>
+                    </div>
                   </div>
                   <div style={{ fontSize:11, color:'#64748b', marginTop:3, display:'flex', gap:12, flexWrap:'wrap' }}>
                     {d.lieu && <span>📍 {d.lieu}</span>}
@@ -588,8 +953,8 @@ export default function OperationsPage() {
               {showFDep ? (
                 <SBox>
                   <div style={{ fontWeight:600, fontSize:13, color:'#1e3a5f', marginBottom:12 }}>
-                    Nouveau déploiement
-                    {demIds.length>0 && <span style={{ fontWeight:400, fontSize:11, color:'#64748b', marginLeft:8 }}>— lié à {demIds.length} demande(s)</span>}
+                    {editingDepId ? '✏️ Modifier le déploiement' : 'Nouveau déploiement'}
+                    {!editingDepId && demIds.length>0 && <span style={{ fontWeight:400, fontSize:11, color:'#64748b', marginLeft:8 }}>— lié à {demIds.length} demande(s)</span>}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <Field label="Nom du déploiement *"><input style={IS} value={fDep.nom} onChange={e=>setFDep(f=>({...f,nom:e.target.value}))} placeholder="ex : Déploiement Gatineau — Digues"/></Field>
@@ -607,8 +972,10 @@ export default function OperationsPage() {
                         value={fDep.notes_logistique} onChange={e=>setFDep(f=>({...f,notes_logistique:e.target.value}))} placeholder="Transport, hébergement, équipement..."/>
                     </Field>
                     <div style={{ display:'flex', gap:8 }}>
-                      <Btn onClick={creerDeployment} loading={savDep} disabled={!fDep.nom.trim()||demIds.length===0} color="#7c3aed">✓ Créer le déploiement</Btn>
-                      <Btn onClick={()=>setShowFDep(false)} outline color="#6b7280">Annuler</Btn>
+                      <Btn onClick={creerDeployment} loading={savDep} disabled={!fDep.nom.trim() || (!editingDepId && demIds.length===0)} color="#7c3aed">
+                        {editingDepId ? '✓ Mettre à jour' : '✓ Créer le déploiement'}
+                      </Btn>
+                      <Btn onClick={()=>cancelEdit('dep')} outline color="#6b7280">Annuler</Btn>
                     </div>
                   </div>
                 </SBox>
@@ -656,10 +1023,27 @@ export default function OperationsPage() {
               </div>
               <Field label="Aperçu du message (éditable)">
                 <textarea style={TA} value={msgNotif} onChange={e=>setMsgNotif(e.target.value)}/>
+                <div style={{ display:'flex', gap:8, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selSin || !selDep) return
+                      if (msgNotif.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis les données ?')) return
+                      setMsgNotif(tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
+                    }}
+                    style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>
+                    🔄 Regénérer depuis les données
+                  </button>
+                  <span style={{ fontSize:11, color:'#94a3b8' }}>(utilise ça si tu as édité le sinistre ou le déploiement après)</span>
+                </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
                 <Btn onClick={sendNotifications} disabled={!ciblages.length||ciblages.every(c=>c.statut==='notifie')} loading={sendingNotif} color="#1d4ed8">
                   📨 Envoyer via n8n ({ciblages.filter(c=>c.statut!=='notifie').length})
+                </Btn>
+                {/* Test : envoi SMS+courriel à l'admin courant uniquement, aucune modif DB */}
+                <Btn onClick={sendTestCiblage} disabled={!depId} loading={sendingNotif} outline color="#d97706">
+                  🧪 Envoyer un test à moi
                 </Btn>
                 {ciblages.some(c=>c.statut==='notifie') && (
                   <span style={{ fontSize:12, color:'#10b981', fontWeight:600 }}>✓ {ciblages.filter(c=>c.statut==='notifie').length} déjà notifié(s)</span>
@@ -736,13 +1120,32 @@ export default function OperationsPage() {
               </div>
 
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <Btn onClick={()=>{ if(depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }} disabled={dispos.length===0} color="#1d4ed8">
-                  📊 Voir les disponibilités
+                {/* Bouton principal : mène à la page de sélection des gens pour la rotation.
+                    Toujours cliquable tant qu'il y a des dispos, même si l'étape 6 a déjà
+                    été marquée comme validée (vagues créées) — on veut pouvoir revenir
+                    modifier la sélection à tout moment. */}
+                <Btn
+                  onClick={() => { if (depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }}
+                  disabled={dispos.length === 0}
+                  color="#1d4ed8"
+                >
+                  📊 Choisir les personnes à déployer
                 </Btn>
-                <Btn onClick={()=>setStep6Ok(true)} disabled={dispos.length===0||step6Ok} color="#065f46">
-                  {step6Ok?'✅ Étape validée':`✅ Valider (${nbReponses} réponse(s))`}
-                </Btn>
-                {dispos.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>En attente des réponses des réservistes</span>}
+                {/* Badge discret qui confirme visuellement l'état de l'étape, sans bloquer
+                    l'accès à la page de sélection. */}
+                {step6OkDerived && (
+                  <span style={{
+                    fontSize:12, color:'#065f46', fontWeight:600,
+                    padding:'4px 10px', borderRadius:6, backgroundColor:'#d1fae5',
+                  }}>
+                    ✅ Étape validée
+                  </span>
+                )}
+                {dispos.length === 0 && (
+                  <span style={{ fontSize:12, color:'#f59e0b' }}>
+                    En attente des réponses des réservistes
+                  </span>
+                )}
               </div>
             </div>
           </StepCard>
@@ -751,6 +1154,31 @@ export default function OperationsPage() {
           <StepCard id="step-7" n={7} status={ss(7)} title="Rotation créée" ai
             subtitle={vagues.length>0?`${vagues.length} rotation(s) planifiée(s)`:'IA suggère les affectations optimales'}>
             <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+              {/* Action principale : aller à la page des dispos pour sélectionner les gens */}
+              <div style={{
+                backgroundColor:'#eff6ff', borderRadius:10, border:'1.5px solid #93c5fd',
+                padding:'14px 18px', display:'flex', gap:14, alignItems:'center', flexWrap:'wrap',
+              }}>
+                <div style={{ flex:1, minWidth:220 }}>
+                  <div style={{ fontWeight:700, fontSize:13, color:'#1e3a5f', marginBottom:3 }}>
+                    📊 Voir les disponibilités et sélectionner
+                  </div>
+                  <div style={{ fontSize:11, color:'#475569', lineHeight:1.5 }}>
+                    Ouvre le tableau complet avec la grille des membres, leurs réponses
+                    par date et leurs compétences. C'est là que tu coches précisément
+                    qui va dans la rotation.
+                  </div>
+                </div>
+                <Btn
+                  onClick={() => { if (depId) router.push(`/admin/operations/disponibilites?dep=${depId}`) }}
+                  disabled={!depId}
+                  color="#1d4ed8"
+                >
+                  📊 Ouvrir les disponibilités
+                </Btn>
+              </div>
+
               <div>
                 <Btn onClick={getAISuggestion} loading={loadAI} color="#6d28d9">✦ Demander une suggestion à Claude</Btn>
                 <p style={{ fontSize:11, color:'#94a3b8', margin:'6px 0 0' }}>
@@ -766,14 +1194,28 @@ export default function OperationsPage() {
                   <pre style={{ fontSize:12, color:'#4c1d95', margin:0, whiteSpace:'pre-wrap', lineHeight:1.6, fontFamily:'inherit' }}>{aiSugg}</pre>
                 </div>
               )}
-              {vagues.length>0 && (
-                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px' }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:'#065f46', marginBottom:8 }}>Rotations créées ({vagues.length})</div>
-                  {vagues.map(v=>(
-                    <div key={v.id} style={{ fontSize:12, color:'#065f46', marginBottom:4 }}>
-                      <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>{' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}
-                    </div>
-                  ))}
+              {vagues.length>0 ? (
+                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px', display:'flex', alignItems:'flex-start', gap:10 }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#065f46', marginBottom:8 }}>Rotations créées ({vagues.length})</div>
+                    {vagues.map(v=>(
+                      <div key={v.id} style={{ fontSize:12, color:'#065f46', marginBottom:4 }}>
+                        <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>{' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={rafraichirVagues} title="Recharger la liste depuis la DB"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'white', color:'#065f46', border:'1px solid #a7f3d0', cursor:'pointer', fontWeight:600, flexShrink:0 }}>
+                    🔄 Rafraîchir
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding:'10px 14px', display:'flex', gap:10, alignItems:'center' }}>
+                  <span style={{ fontSize:12, color:'#94a3b8' }}>Aucune rotation créée pour ce déploiement.</span>
+                  <button onClick={rafraichirVagues} title="Recharger depuis la DB au cas où une rotation vient d'être créée"
+                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'white', color:'#475569', border:'1px solid #e5e7eb', cursor:'pointer', fontWeight:600 }}>
+                    🔄 Rafraîchir
+                  </button>
                 </div>
               )}
               <SBox>
@@ -794,7 +1236,7 @@ export default function OperationsPage() {
 
           {/* ─── ÉTAPE 8 : Mobilisation ──────────────────────────────────── */}
           <StepCard id="step-8" n={8} status={ss(8)} title="Mobilisation confirmée"
-            subtitle={mobilSent?'Confirmations envoyées via n8n ✓':'Envoyer les confirmations de mobilisation'}>
+            subtitle={mobilSentDerived?'Confirmations envoyées via n8n ✓':'Envoyer les confirmations de mobilisation'}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {vagues.length>0 && (
                 <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
@@ -810,14 +1252,46 @@ export default function OperationsPage() {
               )}
               <Field label="Aperçu du message de mobilisation (éditable)">
                 <textarea style={TA} value={msgMobil} onChange={e=>setMsgMobil(e.target.value)}/>
+                <div style={{ display:'flex', gap:8, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selDep) return
+                      if (msgMobil.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis les données ?')) return
+                      const v = vagues[0]
+                      setMsgMobil(tplMobil(
+                        selDep.nom,
+                        v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
+                        v?.date_debut || '[date début]',
+                        v?.date_fin || '[date fin]',
+                        selDep.lieu
+                      ))
+                    }}
+                    style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>
+                    🔄 Regénérer depuis les données
+                  </button>
+                  <span style={{ fontSize:11, color:'#94a3b8' }}>(utilise ça si tu as édité le déploiement/sinistre après)</span>
+                </div>
+                <div style={{ fontSize:11, color:'#64748b', marginTop:8, lineHeight:1.5 }}>
+                  💡 Astuce : pour envoyer un texte <strong>SMS différent</strong> du courriel, encadre-le avec :
+                  <code style={{ backgroundColor:'#eef2ff', padding:'1px 5px', borderRadius:4, margin:'0 3px' }}>---SMS---</code>
+                  au début et
+                  <code style={{ backgroundColor:'#eef2ff', padding:'1px 5px', borderRadius:4, margin:'0 3px' }}>---FIN---</code>
+                  à la fin.
+                  Le bloc SMS sera envoyé par texto (max 160&nbsp;car.), retiré du courriel, et le reste ira uniquement par courriel.
+                </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSent} loading={sendingMobil} color="#065f46">
-                  {mobilSent?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
+                <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSentDerived} loading={sendingMobil} color="#065f46">
+                  {mobilSentDerived?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
+                </Btn>
+                {/* Test : envoi SMS+courriel à l'admin courant uniquement, aucune modif DB */}
+                <Btn onClick={sendTestMobilisation} disabled={vagues.length===0} loading={sendingMobil} outline color="#d97706">
+                  🧪 Envoyer un test à moi
                 </Btn>
                 {vagues.length===0 && <span style={{ fontSize:12, color:'#f59e0b' }}>Créez d'abord les rotations à l'étape 7</span>}
               </div>
-              {mobilSent && (
+              {mobilSentDerived && (
                 <div style={{ backgroundColor:'#d1fae5', borderRadius:8, border:'1px solid #6ee7b7', padding:'12px 16px', fontSize:13, color:'#065f46', fontWeight:600 }}>
                   🎉 Opération complète — La mobilisation est confirmée et les notifications ont été envoyées via n8n.
                 </div>

@@ -481,19 +481,33 @@ export default function CampagnesPage() {
       const parent = { ...sorted[0] }
       // Fusionner les réponses entrantes de tous les courriels du thread
       const allInboundReplies = sorted.flatMap(c => c.reponses || [])
-      // Les courriels sortants après le premier deviennent aussi des réponses (type sortant)
-      const outboundReplies: ReponseInline[] = sorted.slice(1).map(c => ({
-        id: c.id,
-        courriel_id: parent.id,
-        from_email: c.from_email,
-        from_name: c.from_name,
-        subject: c.subject,
-        body_text: null,
-        body_html: c.body_html,
-        pieces_jointes: c.pieces_jointes || [],
-        statut: 'sortant',
-        created_at: c.created_at,
-      }))
+      // Les courriels sortants après le premier deviennent aussi des réponses (type sortant).
+      // IMPORTANT: quand l'admin répond via le bouton « Répondre », le serveur insère
+      // à la fois dans `courriels` ET dans `courriel_reponses` (statut=sortant) pour le
+      // suivi de livraison. Sans dédupe, la même réponse apparaît 2× dans le thread.
+      // On filtre donc les courriels dont un `courriel_reponses` sortant existe déjà
+      // (match par proximité temporelle ±10s + même body_html).
+      const outboundReplies: ReponseInline[] = sorted.slice(1)
+        .filter(c => {
+          const cTime = new Date(c.created_at).getTime()
+          return !allInboundReplies.some(r =>
+            r.statut === 'sortant' &&
+            Math.abs(new Date(r.created_at).getTime() - cTime) < 10000 &&
+            r.body_html === c.body_html
+          )
+        })
+        .map(c => ({
+          id: c.id,
+          courriel_id: parent.id,
+          from_email: c.from_email,
+          from_name: c.from_name,
+          subject: c.subject,
+          body_text: null,
+          body_html: c.body_html,
+          pieces_jointes: c.pieces_jointes || [],
+          statut: 'sortant',
+          created_at: c.created_at,
+        }))
       // Combiner toutes les réponses et trier par date
       const allReplies = [...allInboundReplies, ...outboundReplies].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()

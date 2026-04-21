@@ -60,8 +60,8 @@ export default function EditPointageModal({ pointage, onClose, onSaved }: Props)
   }
 
   return (
-    <div onClick={onClose} style={overlayStyle}>
-      <div onClick={e => e.stopPropagation()} style={modalStyle}>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C, marginBottom: 4 }}>
           Modifier la présence
         </h2>

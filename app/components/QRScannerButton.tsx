@@ -27,6 +27,8 @@ export default function QRScannerButton() {
   const [supervisingCount, setSupervisingCount] = useState(0)
   const [ouverts, setOuverts] = useState<Array<{ id: string; token: string | null; contexte_nom: string; contexte_lieu: string | null; shift: string | null; date_shift: string | null; heure_arrivee: string }>>([])
   const [menuOpen, setMenuOpen] = useState(false)
+  const [eligible, setEligible] = useState(false)
+  const [eligibleLoaded, setEligibleLoaded] = useState(false)
   const scannerRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -42,6 +44,8 @@ export default function QRScannerButton() {
           setOnDuty(!!json.on_duty)
           setSupervisingCount(json.supervising_count || 0)
           setOuverts(json.ouverts || [])
+          setEligible(!!json.eligible_today)
+          setEligibleLoaded(true)
         }
       } catch {}
     }
@@ -281,6 +285,12 @@ export default function QRScannerButton() {
     setError(null)
     setUsePhotoMode(false)
   }
+
+  // Si la vérification d'éligibilité a abouti et que l'utilisateur n'a aucune
+  // raison légitime de scanner aujourd'hui, on cache le bouton pour éviter
+  // les scans curieux (utilisateurs qui ne sont ni admin, ni inscrits à un
+  // camp ou déploiement actif aujourd'hui).
+  if (eligibleLoaded && !eligible) return null
 
   return (
     <>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import PortailHeader from '@/app/components/PortailHeader'
 import { logPageVisit } from '@/utils/logEvent'
+import TrajetsTab from './TrajetsTab'
 // n8n import retiré — dossier charge et sauvegarde maintenant directement via Supabase
 
 const AQBRS_ORG_ID = 'bb948f22-a29e-42db-bdd9-aabab8a95abd'
@@ -478,6 +479,17 @@ function DossierPage() {
   const searchParams = useSearchParams()
   const bidParam = searchParams.get('bid')
   const fromParam = searchParams.get('from')
+  // Onglet actif (lu depuis ?tab=trajets, défaut 'dossier')
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTab] = useState<'dossier' | 'trajets'>(tabParam === 'trajets' ? 'trajets' : 'dossier')
+  // Sync URL quand on change d'onglet (sans recharger la page)
+  const switchTab = (t: 'dossier' | 'trajets') => {
+    setActiveTab(t)
+    const url = new URL(window.location.href)
+    if (t === 'dossier') url.searchParams.delete('tab')
+    else url.searchParams.set('tab', t)
+    window.history.replaceState({}, '', url.toString())
+  }
   const [user, setUser] = useState<any>(null)
   const [isViewingOther, setIsViewingOther] = useState(false)
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
@@ -821,7 +833,30 @@ function DossierPage() {
         </div>
       )}
 
-      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
+      {/* Barre d'onglets */}
+      <div style={{ maxWidth: '860px', margin: '20px auto 0', padding: '0 24px' }}>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e5e7eb' }}>
+          <button onClick={() => switchTab('dossier')}
+            style={tabBtnStyle(activeTab === 'dossier')}>
+            📋 Mon dossier
+          </button>
+          <button onClick={() => switchTab('trajets')}
+            style={tabBtnStyle(activeTab === 'trajets')}>
+            🚗 Mes trajets
+          </button>
+        </div>
+      </div>
+
+      {/* Onglet TRAJETS */}
+      {activeTab === 'trajets' && (
+        <main style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 24px 80px' }}>
+          <TrajetsTab />
+        </main>
+      )}
+
+      {/* Onglet DOSSIER (contenu existant) */}
+      {activeTab === 'dossier' && (
+      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 24px 80px' }}>
         <div style={{ marginBottom: '24px' }}>
           {isViewingOther ? (
             <a href="/admin/reservistes" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '14px' }}>← Retour aux réservistes</a>
@@ -1185,9 +1220,10 @@ function DossierPage() {
           />
         </Section>
       </main>
+      )}
 
-      {/* Barre sticky en bas */}
-      {anyChanges && (
+      {/* Barre sticky en bas — uniquement sur l'onglet dossier */}
+      {activeTab === 'dossier' && anyChanges && (
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'white', borderTop: '1px solid #e5e7eb', boxShadow: '0 -4px 12px rgba(0,0,0,0.08)', zIndex: 9999 }}>
           <div style={{ maxWidth: '860px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '14px', color: '#d97706', fontWeight: '500' }}>⚠️ Modifications non sauvegardées</span>
@@ -1201,3 +1237,15 @@ function DossierPage() {
     </div>
   )
 }
+
+// ─── Styles onglets ──────────────────────────────────────────────────────────
+
+const tabBtnStyle = (active: boolean): React.CSSProperties => ({
+  padding: '10px 18px', fontSize: 14, fontWeight: 700,
+  backgroundColor: active ? 'white' : 'transparent',
+  color: active ? '#1e3a5f' : '#6b7280',
+  border: 'none',
+  borderBottom: active ? '3px solid #1e3a5f' : '3px solid transparent',
+  marginBottom: -2, cursor: 'pointer',
+  transition: 'all 0.15s',
+})

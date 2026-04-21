@@ -7,6 +7,8 @@ import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER, DEMO_FORMATIONS } from '@/utils/demoMode';
 import { n8nUrl } from '@/utils/n8n';
+import { getCampsSessionsActifs } from '@/app/_data/camps-sessions';
+import { formatPhone } from '@/utils/phone';
 
 interface Reserviste {
   benevole_id: string;
@@ -387,8 +389,8 @@ function FormationContent() {
       return;
     }
     try {
-      const response = await fetch(n8nUrl('/webhook/sessions-camps'));
-      if (response.ok) { const data = await response.json(); if (data.success && data.sessions) setSessionsDisponibles(data.sessions); }
+      // Source de vérité : liste statique partagée (app/_data/camps-sessions.ts)
+      setSessionsDisponibles(getCampsSessionsActifs());
     } catch (e) { setInscriptionError('Impossible de charger les camps disponibles'); }
     setLoadingSessions(false);
   };
@@ -703,7 +705,7 @@ function FormationContent() {
                   <p style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Vos informations</p>
                   <p style={{ margin: '4px 0', color: '#374151', fontSize: '14px' }}>{reserviste?.prenom} {reserviste?.nom}</p>
                   <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>{reserviste?.email}</p>
-                  {reserviste?.telephone && <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>{reserviste.telephone}</p>}
+                  {reserviste?.telephone && <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>{formatPhone(reserviste.telephone)}</p>}
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '12px', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Sélectionnez un camp de qualification</label>

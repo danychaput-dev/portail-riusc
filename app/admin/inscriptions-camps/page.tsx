@@ -129,6 +129,19 @@ export default function InscriptionsCampsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Sidebar réductible sur desktop (persistant dans localStorage)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  useEffect(() => {
+    const saved = localStorage.getItem('inscriptions-camps-sidebar-collapsed')
+    if (saved === 'true') setSidebarCollapsed(true)
+  }, [])
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed(prev => {
+      localStorage.setItem('inscriptions-camps-sidebar-collapsed', String(!prev))
+      return !prev
+    })
+  }
+
   // ── Détecter si admin (avec support impersonation) ─────────────────────────
   useEffect(() => {
     async function checkRole() {
@@ -277,10 +290,12 @@ export default function InscriptionsCampsPage() {
       if (!data || data.length === 0) { setInscriptions([]); setLoadingInscrits(false); return }
 
       // Étape 2 — données complémentaires des réservistes (que non-sensibles pour partenaire_lect)
+      // Note : on prend TOUJOURS le téléphone depuis `reservistes` (source unique),
+      // pas depuis `inscriptions_camps.telephone` qui est redondant.
       const benevoleIds = data.map((r: any) => r.benevole_id).filter(Boolean)
       const selectReservistes = isPartenaireLect
         ? 'benevole_id, region, groupe'
-        : 'benevole_id, prenom, nom, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales'
+        : 'benevole_id, prenom, nom, telephone, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales'
       const { data: resData } = await supabase
         .from('reservistes')
         .select(selectReservistes)
@@ -297,7 +312,8 @@ export default function InscriptionsCampsPage() {
           presence: row.presence,
           statut_inscription: 'Inscrit',
           courriel: row.courriel,
-          telephone: row.telephone,
+          // Téléphone : TOUJOURS celui de reservistes (source unique de vérité)
+          telephone: (res as any)?.telephone ?? null,
           camp_nom: row.camp_nom,
           camp_dates: row.camp_dates,
           camp_lieu: row.camp_lieu,
@@ -306,14 +322,14 @@ export default function InscriptionsCampsPage() {
           created_at: row.created_at,
           presence_updated_at: row.presence_updated_at ?? null,
           cahier_envoye: row.cahier_envoye ?? false,
-          region: res?.region ?? null,
-          groupe: res?.groupe ?? null,
-          remboursement_bottes_date: res?.remboursement_bottes_date ?? null,
-          allergies_alimentaires: res?.allergies_alimentaires ?? null,
-          allergies_autres: res?.allergies_autres ?? null,
-          conditions_medicales: res?.conditions_medicales ?? null,
-          prenom: res?.prenom ?? null,
-          nom: res?.nom ?? null,
+          region: (res as any)?.region ?? null,
+          groupe: (res as any)?.groupe ?? null,
+          remboursement_bottes_date: (res as any)?.remboursement_bottes_date ?? null,
+          allergies_alimentaires: (res as any)?.allergies_alimentaires ?? null,
+          allergies_autres: (res as any)?.allergies_autres ?? null,
+          conditions_medicales: (res as any)?.conditions_medicales ?? null,
+          prenom: (res as any)?.prenom ?? null,
+          nom: (res as any)?.nom ?? null,
         }
       })
 
@@ -323,17 +339,143 @@ export default function InscriptionsCampsPage() {
     loadInscrits()
   }, [selectedCampId, isPartenaireLect, roleChecked])
 
+  // ── Charger les rappels SMS du camp sélectionné (pour afficher le statut
+  //    de réponse par inscrit) ──
+  // Map indexé par inscription_id, on garde le rappel le plus récent par inscrit.
+  const [rappels, setRappels] = useState<Map<string, {
+    envoye_at: string | null
+    reponse: string | null
+    reponse_confirmee: boolean | null
+    reponse_at: string | null
+  }>>(new Map())
+  const refetchRappels = async () => {
+    if (!selectedCampId) { setRappels(new Map()); return }
+    console.log('[refetchRappels] Fetch rappels pour session_id =', selectedCampId)
+    try {
+      const { data, error } = await supabase
+        .from('rappels_camps')
+        .select('inscription_id, envoye_at, reponse, reponse_confirmee, reponse_at')
+        .eq('session_id', selectedCampId)
+        .order('envoye_at', { ascending: false })
+      console.log('[refetchRappels] Supabase a retourné:', { data, error, nbRows: data?.length ?? 0 })
+      if (error) {
+        console.error('[refetchRappels] ERREUR Supabase:', error.message, error)
+      }
+      if (!data) { setRappels(new Map()); return }
+      // Garder le plus récent par inscription
+      const m = new Map<string, any>()
+      for (const r of data as any[]) {
+        if (!m.has(r.inscription_id)) m.set(r.inscription_id, r)
+      }
+      console.log('[refetchRappels] Map construite avec', m.size, 'entrées uniques')
+      setRappels(m)
+    } catch (e) {
+      console.error('[refetchRappels] EXCEPTION:', e)
+      setRappels(new Map())
+    }
+  }
+  useEffect(() => { refetchRappels() }, [selectedCampId, roleChecked])
+
   // ── Filtres ─────────────────────────────────────────────────────────────────
+  // Filtre sur le statut du rappel SMS (pour repérer ceux à relancer)
+  //   null/'tous'         : pas de filtre
+  //   'sans_rappel'       : pas de rappel envoyé (aucune entrée rappels_camps)
+  //   'envoye_pas_repondu': rappel envoyé mais pas encore de réponse
+  //   'a_repondu'         : a répondu OUI/NON
+  const [filterRappel, setFilterRappel] = useState<'tous' | 'sans_rappel' | 'envoye_pas_repondu' | 'a_repondu'>('tous')
+
+  // Tri du tableau — cliquer sur un header trie par ce champ, recliquer inverse
+  type SortKey = 'prenom_nom' | 'presence' | 'created_at' | 'region' | 'rappel'
+  const [sortKey, setSortKey] = useState<SortKey>('prenom_nom')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const handleSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(k); setSortDir('asc') }
+  }
+  const sortArrow = (k: SortKey) => sortKey === k ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  // Menu contextuel par ligne (stocke l'inscription_id dont le menu est ouvert)
+  const [menuRowId, setMenuRowId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!menuRowId) return
+    const close = () => setMenuRowId(null)
+    // Fermer le menu au clic n'importe où
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [menuRowId])
+
+  // Action emprunt d'identité depuis le menu contextuel
+  const emprunterDepuisMenu = async (ins: Inscription) => {
+    const nom = ins.prenom_nom || `${ins.prenom || ''} ${ins.nom || ''}`.trim()
+    if (!confirm(`Emprunter l'identité de ${nom} ?\n\nVous serez redirigé vers le portail en tant que cette personne.`)) return
+    try {
+      const res = await fetch('/api/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benevole_id: ins.benevole_id }),
+      })
+      const json = await res.json()
+      if (json.success) window.open('/', '_blank')
+      else alert(json.error || 'Erreur lors de l\'emprunt d\'identité')
+    } catch {
+      alert('Erreur réseau')
+    }
+  }
+
   const filtered = useMemo(() => {
-    return inscriptions.filter(i => {
+    const list = inscriptions.filter(i => {
       const matchSearch = !search
         || (i.prenom_nom || '').toLowerCase().includes(search.toLowerCase())
         || (i.courriel || '').toLowerCase().includes(search.toLowerCase())
         || (i.region || '').toLowerCase().includes(search.toLowerCase())
       const matchPresence = filterPresence === 'tous' || i.presence === filterPresence
-      return matchSearch && matchPresence
+      const r = rappels.get(i.id)
+      const matchRappel =
+        filterRappel === 'tous' ? true
+        : filterRappel === 'sans_rappel' ? !r
+        : filterRappel === 'envoye_pas_repondu' ? (r && !r.reponse)
+        : filterRappel === 'a_repondu' ? (r && r.reponse)
+        : true
+      return matchSearch && matchPresence && matchRappel
     })
-  }, [inscriptions, search, filterPresence])
+    // Appliquer le tri
+    const dir = sortDir === 'asc' ? 1 : -1
+    const sorted = [...list].sort((a, b) => {
+      let av: any, bv: any
+      switch (sortKey) {
+        case 'prenom_nom':
+          av = (a.prenom_nom || '').toLowerCase()
+          bv = (b.prenom_nom || '').toLowerCase()
+          return dir * av.localeCompare(bv, 'fr-CA')
+        case 'presence':
+          av = a.presence || ''
+          bv = b.presence || ''
+          return dir * av.localeCompare(bv, 'fr-CA')
+        case 'created_at':
+          av = a.created_at || ''
+          bv = b.created_at || ''
+          return dir * av.localeCompare(bv)
+        case 'region':
+          av = (a.region || '').toLowerCase()
+          bv = (b.region || '').toLowerCase()
+          return dir * av.localeCompare(bv, 'fr-CA')
+        case 'rappel': {
+          // Ordre : a répondu OUI → NON → ambigu → envoyé sans réponse → sans rappel
+          const rank = (ra: typeof a) => {
+            const r = rappels.get(ra.id)
+            if (!r) return 4
+            if (r.reponse_confirmee === true) return 0
+            if (r.reponse_confirmee === false) return 1
+            if (r.reponse) return 2
+            return 3
+          }
+          return dir * (rank(a) - rank(b))
+        }
+        default: return 0
+      }
+    })
+    return sorted
+  }, [inscriptions, search, filterPresence, filterRappel, rappels, sortKey, sortDir])
 
   const selectedCamp = camps.find(c => c.session_id === selectedCampId)
   const upcomingCamps = camps.filter(c => !c.isPast)
@@ -370,13 +512,31 @@ export default function InscriptionsCampsPage() {
     setEmailDest(dests)
   }
 
-  function toggleSelect(id: string) {
+  // Pour Shift+clic : on se rappelle du dernier index coché dans la liste filtrée
+  const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null)
+
+  function toggleSelect(id: string, shiftKey: boolean = false) {
+    const idx = filtered.findIndex(i => i.id === id)
     setSelectedIds(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const willSelect = !next.has(id)
+      if (shiftKey && lastCheckedIndex !== null && idx !== -1 && lastCheckedIndex !== idx) {
+        // Cocher/décocher toutes les lignes entre lastCheckedIndex et idx
+        const [from, to] = [Math.min(lastCheckedIndex, idx), Math.max(lastCheckedIndex, idx)]
+        for (let i = from; i <= to; i++) {
+          const row = filtered[i]
+          if (row) {
+            if (willSelect) next.add(row.id)
+            else next.delete(row.id)
+          }
+        }
+      } else {
+        if (willSelect) next.add(id)
+        else next.delete(id)
+      }
       return next
     })
+    if (idx !== -1) setLastCheckedIndex(idx)
   }
 
   function toggleSelectAll() {
@@ -385,6 +545,7 @@ export default function InscriptionsCampsPage() {
     } else {
       setSelectedIds(new Set(filtered.map(i => i.id)))
     }
+    setLastCheckedIndex(null)
   }
 
   async function bulkUpdatePresence(newPresence: 'confirme' | 'absent' | 'incertain' | 'annule') {
@@ -612,14 +773,21 @@ export default function InscriptionsCampsPage() {
     if (!selectedCampId || !smsMessage) return
     setSendingSms(true)
     try {
+      // Si une sélection est active, on envoie uniquement à ceux-là (pour relancer
+      // les non-répondants). Sinon, comportement par défaut = tous les confirme/incertain.
+      const body: any = { session_id: selectedCampId, message: smsMessage }
+      if (selectedIds.size > 0) {
+        body.inscription_ids = Array.from(selectedIds)
+      }
       const res = await fetch('/api/camp/rappel-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: selectedCampId, message: smsMessage }),
+        body: JSON.stringify(body),
       })
       const json = await res.json()
       if (res.ok) {
         setSmsResult({ nb_envoyes: json.nb_envoyes, nb_sans_telephone: json.nb_sans_telephone })
+        refetchRappels()
       } else {
         alert(json.error || 'Erreur lors de l\'envoi')
       }
@@ -710,16 +878,32 @@ export default function InscriptionsCampsPage() {
         />
       )}
       <aside style={{
-        width: 220,
-        minWidth: 220,
+        width: !isMobile && sidebarCollapsed ? 48 : 220,
+        minWidth: !isMobile && sidebarCollapsed ? 48 : 220,
         background: '#fff',
         borderRight: '1px solid #e5e7eb',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
+        transition: 'width 0.2s ease, min-width 0.2s ease',
         ...(isMobile ? { position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 45, boxShadow: '4px 0 16px rgba(0,0,0,0.15)' } : {}),
       }}>
-        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #e5e7eb' }}>
+        {/* Bouton réduire/ouvrir (desktop uniquement) */}
+        {!isMobile && (
+          <div style={{ padding: '10px 8px', display: 'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end' }}>
+            <button
+              onClick={toggleSidebarCollapsed}
+              title={sidebarCollapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16, padding: '4px 8px', borderRadius: 6 }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              {sidebarCollapsed ? '☰' : '◀'}
+            </button>
+          </div>
+        )}
+        {!(!isMobile && sidebarCollapsed) && (
+        <div style={{ padding: '6px 16px 12px', borderBottom: '1px solid #e5e7eb' }}>
           {isMobile ? (
             <button
               onClick={() => setSidebarOpen(false)}
@@ -740,8 +924,9 @@ export default function InscriptionsCampsPage() {
             {upcomingCamps.length} à venir · {pastCamps.length} passés
           </p>
         </div>
+        )}
 
-        {loading ? (
+        {!(!isMobile && sidebarCollapsed) && (loading ? (
           <div style={{ padding: 20, color: '#9ca3af', fontSize: 13 }}>Chargement...</div>
         ) : (
           <>
@@ -762,7 +947,7 @@ export default function InscriptionsCampsPage() {
               </div>
             )}
           </>
-        )}
+        ))}
       </aside>
       </>
       )}
@@ -825,9 +1010,25 @@ export default function InscriptionsCampsPage() {
                 <option value="annule">Annulé</option>
                 <option value="Jy_etais">J&apos;y étais</option>
               </select>
-              {(search || filterPresence !== 'tous') && (
+              {isAdmin && (
+                <select
+                  value={filterRappel}
+                  onChange={e => setFilterRappel(e.target.value as any)}
+                  title="Filtrer selon le statut de réponse au rappel SMS"
+                  style={{
+                    padding: '7px 10px', borderRadius: 8, border: '1px solid #d1d5db',
+                    fontSize: 13, color: '#374151', background: '#fff', cursor: 'pointer',
+                  }}
+                >
+                  <option value="tous">📱 Tous — rappel SMS</option>
+                  <option value="sans_rappel">📵 Sans rappel envoyé</option>
+                  <option value="envoye_pas_repondu">⏳ Envoyé, pas de réponse</option>
+                  <option value="a_repondu">✅ A répondu</option>
+                </select>
+              )}
+              {(search || filterPresence !== 'tous' || filterRappel !== 'tous') && (
                 <button
-                  onClick={() => { setSearch(''); setFilterPresence('tous') }}
+                  onClick={() => { setSearch(''); setFilterPresence('tous'); setFilterRappel('tous') }}
                   style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, background: '#fff', cursor: 'pointer', color: '#6b7280' }}
                 >
                   Effacer filtres
@@ -836,6 +1037,19 @@ export default function InscriptionsCampsPage() {
               <span style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280', alignSelf: 'center' }}>
                 {filtered.length} participant{filtered.length !== 1 ? 's' : ''}
               </span>
+              {isAdmin && rappels.size > 0 && (
+                <button
+                  onClick={refetchRappels}
+                  title="Rafraîchir les réponses SMS"
+                  style={{
+                    padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e8f0',
+                    fontSize: 13, background: 'white', color: '#6b7280', cursor: 'pointer',
+                    fontWeight: 600, whiteSpace: 'nowrap',
+                  }}
+                >
+                  🔄 Réponses
+                </button>
+              )}
               {isAdmin && !selectedCamp?.isPast && (
                 <button
                   onClick={ouvrirSmsModal}
@@ -845,7 +1059,9 @@ export default function InscriptionsCampsPage() {
                     fontWeight: 600, whiteSpace: 'nowrap',
                   }}
                 >
-                  📱 Envoyer rappel SMS
+                  {selectedIds.size > 0
+                    ? `📱 Envoyer SMS (${selectedIds.size})`
+                    : '📱 Envoyer rappel SMS'}
                 </button>
               )}
               {!isPartenaireLect && (
@@ -978,16 +1194,33 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => (
-                    <th key={i} style={{
-                      padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
-                      fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
-                      letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {h}
-                    </th>
-                  ))}
+                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Rappel SMS'] : []), ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => {
+                    // Colonnes triables (mapping label → sortKey)
+                    const sortable: Record<string, SortKey | undefined> = {
+                      'Nom': 'prenom_nom',
+                      'Présence': 'presence',
+                      'Inscrit le': 'created_at',
+                      'District': 'region',
+                      'Rappel SMS': 'rappel',
+                    }
+                    const sk = sortable[h]
+                    const isSorted = sk && sortKey === sk
+                    return (
+                      <th key={i} style={{
+                        padding: '8px 10px', textAlign: h === 'Cahier' || h === 'Rappel SMS' ? 'center' : 'left', fontSize: 10,
+                        fontWeight: 700, color: isSorted ? '#1e3a5f' : '#6b7280', textTransform: 'uppercase',
+                        letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
+                        whiteSpace: 'nowrap',
+                        cursor: sk ? 'pointer' : 'default',
+                        userSelect: 'none',
+                      }}
+                      onClick={sk ? () => handleSort(sk) : undefined}
+                      title={sk ? 'Cliquer pour trier' : undefined}
+                      >
+                        {h}{sk ? sortArrow(sk) : ''}
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -1004,16 +1237,31 @@ export default function InscriptionsCampsPage() {
                         <input
                           type="checkbox"
                           checked={selectedIds.has(ins.id)}
-                          onChange={() => toggleSelect(ins.id)}
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(ins.id, (e as any).shiftKey) }}
+                          onChange={() => {}}
+                          title="Shift+clic pour sélectionner une plage"
                           style={{ cursor: 'pointer', accentColor: '#1e3a5f' }}
                         />
                       </td>
                     )}
-                    {!isPartenaireLect && (
-                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#111827', whiteSpace: 'nowrap' }}>
-                        {ins.prenom_nom}
-                      </td>
-                    )}
+                    {!isPartenaireLect && (() => {
+                      // Signaler visuellement les inscrits sans téléphone (confirme/incertain)
+                      // → ils ne recevront pas le rappel SMS. Rouge + tooltip.
+                      const eligibleSms = ['confirme', 'incertain'].includes(ins.presence)
+                      const phoneManquant = eligibleSms && !ins.telephone?.trim()
+                      return (
+                        <td
+                          style={{
+                            padding: '8px 10px', fontWeight: 600, whiteSpace: 'nowrap',
+                            color: phoneManquant ? '#dc2626' : '#111827',
+                          }}
+                          title={phoneManquant ? '⚠️ Téléphone manquant — ne recevra pas le rappel SMS' : undefined}
+                        >
+                          {phoneManquant && <span style={{ marginRight: 4 }}>⚠️</span>}
+                          {ins.prenom_nom}
+                        </td>
+                      )
+                    })()}
                     <td style={{ padding: '8px 10px' }}>
                       {isAdmin ? (
                         <div>
@@ -1053,6 +1301,54 @@ export default function InscriptionsCampsPage() {
                       ) : presenceBadge(ins.presence)}
                     </td>
                     {isAdmin && (
+                      <td style={{ padding: '8px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        {(() => {
+                          const r = rappels.get(ins.id)
+                          if (!r) {
+                            return <span style={{ fontSize: 11, color: '#cbd5e1' }}>—</span>
+                          }
+                          const envoye = r.envoye_at ? new Date(r.envoye_at) : null
+                          const reponse = r.reponse_at ? new Date(r.reponse_at) : null
+                          const fmt = (d: Date) => d.toLocaleDateString('fr-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          // Interprétation
+                          if (r.reponse_confirmee === true) {
+                            return (
+                              <div title={`Répondu OUI ("${r.reponse}") le ${reponse ? fmt(reponse) : '—'}`}>
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#dcfce7', color: '#065f46', fontWeight: 700 }}>✅ OUI</span>
+                                {reponse && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{fmt(reponse)}</div>}
+                              </div>
+                            )
+                          }
+                          if (r.reponse_confirmee === false) {
+                            return (
+                              <div title={`Répondu NON ("${r.reponse}") le ${reponse ? fmt(reponse) : '—'}`}>
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 700 }}>❌ NON</span>
+                                {reponse && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{fmt(reponse)}</div>}
+                              </div>
+                            )
+                          }
+                          if (r.reponse) {
+                            // Réponse non-standard, demande lecture humaine
+                            return (
+                              <div title={`Texte reçu : « ${r.reponse} »\nEnvoyé le ${envoye ? fmt(envoye) : '—'}`}>
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 700 }}>❓ Autre</span>
+                                <div style={{ fontSize: 10, color: '#64748b', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  &quot;{r.reponse}&quot;
+                                </div>
+                              </div>
+                            )
+                          }
+                          // Envoyé mais pas de réponse
+                          return (
+                            <div title={`SMS envoyé le ${envoye ? fmt(envoye) : '—'}\nPas encore de réponse.`}>
+                              <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#e0f2fe', color: '#075985', fontWeight: 700 }}>📤 Envoyé</span>
+                              {envoye && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{fmt(envoye)}</div>}
+                            </div>
+                          )
+                        })()}
+                      </td>
+                    )}
+                    {isAdmin && (
                       <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                         <input
                           type="checkbox"
@@ -1071,7 +1367,22 @@ export default function InscriptionsCampsPage() {
                     {!isPartenaireLect && (
                       <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {ins.courriel ? (
-                          <a href={`mailto:${ins.courriel}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{ins.courriel}</a>
+                          <button
+                            onClick={() => {
+                              // Ouvrir notre ModalComposeCourriel avec cette seule personne comme destinataire
+                              const parts = (ins.prenom_nom || '').trim().split(/\s+/)
+                              setEmailDest([{
+                                benevole_id: ins.benevole_id,
+                                email: ins.courriel!,
+                                prenom: ins.prenom || parts[0] || '',
+                                nom: ins.nom || parts.slice(1).join(' ') || '',
+                              }])
+                            }}
+                            title="Écrire un courriel via le portail"
+                            style={{ color: '#2563eb', textDecoration: 'none', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+                          >
+                            {ins.courriel}
+                          </button>
                         ) : <span style={{ color: '#d1d5db' }}>—</span>}
                       </td>
                     )}
@@ -1100,20 +1411,55 @@ export default function InscriptionsCampsPage() {
                       </>
                     )}
                     {isAdmin && (
-                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                      <td style={{ padding: '8px 6px', textAlign: 'center', position: 'relative' }}>
                         <button
-                          onClick={() => router.push(`/admin/reservistes?benevole_id=${ins.benevole_id}`)}
-                          title="Voir le profil"
-                          style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#6b7280', fontSize: 16, padding: '2px 6px',
-                            borderRadius: 4, transition: 'color 0.15s',
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuRowId(menuRowId === ins.id ? null : ins.id)
                           }}
-                          onMouseOver={e => (e.currentTarget.style.color = '#1e3a5f')}
-                          onMouseOut={e => (e.currentTarget.style.color = '#6b7280')}
+                          title="Actions"
+                          style={{
+                            background: menuRowId === ins.id ? '#eff6ff' : 'none',
+                            border: 'none', cursor: 'pointer',
+                            color: '#6b7280', fontSize: 18, padding: '4px 8px',
+                            borderRadius: 4, lineHeight: 1,
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+                          onMouseOut={e => (e.currentTarget.style.backgroundColor = menuRowId === ins.id ? '#eff6ff' : 'transparent')}
                         >
-                          →
+                          ⋮
                         </button>
+                        {menuRowId === ins.id && (
+                          <div
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              position: 'absolute', top: '100%', right: 0, marginTop: 2,
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb', borderRadius: 8,
+                              boxShadow: '0 10px 24px rgba(0,0,0,0.12)',
+                              minWidth: 200, zIndex: 20, overflow: 'hidden',
+                              fontSize: 13, textAlign: 'left',
+                            }}
+                          >
+                            <button onClick={() => { setMenuRowId(null); window.open(`/profil?bid=${ins.benevole_id}`, '_blank') }}
+                              style={menuItemStyle}>
+                              👤 Voir le profil
+                            </button>
+                            <button onClick={() => { setMenuRowId(null); emprunterDepuisMenu(ins) }}
+                              style={menuItemStyle}>
+                              🎭 Emprunt d{"'"}identité
+                            </button>
+                            <button onClick={() => {
+                              setMenuRowId(null)
+                              // Pré-sélectionne uniquement cette inscription puis ouvre la modale de transfert
+                              setSelectedIds(new Set([ins.id]))
+                              setTimeout(() => openTransferModal(), 0)
+                            }}
+                              style={menuItemStyle}>
+                              ⛺ Changer de camp
+                            </button>
+                          </div>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -1216,6 +1562,35 @@ export default function InscriptionsCampsPage() {
               </div>
             ) : (
               <>
+                {/* Bandeau indiquant la cible de l'envoi (selection vs tous) */}
+                {(() => {
+                  const useSelection = selectedIds.size > 0
+                  const eligibles = useSelection
+                    ? inscriptions.filter(i => selectedIds.has(i.id))
+                    : inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence))
+                  const sansTel = eligibles.filter(i => !i.telephone?.trim())
+                  return (
+                    <>
+                      <div style={{ padding: '10px 14px', backgroundColor: useSelection ? '#eff6ff' : '#f0fdf4', border: `1px solid ${useSelection ? '#bfdbfe' : '#bbf7d0'}`, borderRadius: 8, marginBottom: 10, fontSize: 12, color: useSelection ? '#1e40af' : '#065f46', lineHeight: 1.5 }}>
+                        {useSelection
+                          ? <>📌 <strong>{eligibles.length}</strong> personne{eligibles.length > 1 ? 's' : ''} sélectionnée{eligibles.length > 1 ? 's' : ''} seront contactée{eligibles.length > 1 ? 's' : ''} (peu importe le statut).</>
+                          : <>🌐 Tous les <strong>{eligibles.length}</strong> inscrits <em>confirmés</em> et <em>incertains</em> seront contactés. <br/><span style={{ fontSize: 11, color: '#047857', fontStyle: 'italic' }}>Astuce : coche des lignes pour n&apos;envoyer qu&apos;à ces personnes (ex. filtre « ⏳ Envoyé, pas de réponse » + Shift+clic).</span></>
+                        }
+                      </div>
+                      {sansTel.length > 0 && (
+                        <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, marginBottom: 14, fontSize: 12, color: '#991b1b', lineHeight: 1.5 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                            ⚠️ {sansTel.length} personne{sansTel.length > 1 ? 's' : ''} ne recevra{sansTel.length > 1 ? 'ont' : ''} pas le SMS (téléphone manquant) :
+                          </div>
+                          <div>{sansTel.map(i => i.prenom_nom).join(', ')}</div>
+                          <div style={{ marginTop: 6, fontSize: 11, color: '#7f1d1d', fontStyle: 'italic' }}>
+                            Pense à les rejoindre par un autre moyen (courriel, téléphone du contact d&apos;urgence, etc.)
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                     Message
@@ -1252,15 +1627,40 @@ export default function InscriptionsCampsPage() {
                   </button>
                   <button
                     onClick={() => {
-                      const nb = inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence)).length
-                      if (confirm(`⚠️ Vous êtes sur le point d'envoyer un SMS à ${nb} personnes pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}\n\nCette action est irréversible. Continuer?`)) {
+                      // Déterminer la cible selon la sélection
+                      const useSelection = selectedIds.size > 0
+                      const eligibles = useSelection
+                        ? inscriptions.filter(i => selectedIds.has(i.id))
+                        : inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence))
+                      const sansTel = eligibles.filter(i => !i.telephone?.trim())
+                      const avecTel = eligibles.length - sansTel.length
+                      const cibleTxt = useSelection
+                        ? `${avecTel} personne${avecTel > 1 ? 's' : ''} sélectionnée${avecTel > 1 ? 's' : ''}`
+                        : `${avecTel} personne${avecTel > 1 ? 's' : ''} (tous les confirmés/incertains)`
+                      let msg = `⚠️ Vous êtes sur le point d'envoyer un SMS à ${cibleTxt} pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}`
+                      if (sansTel.length > 0) {
+                        msg += `\n\n⚠️ ${sansTel.length} personne${sansTel.length > 1 ? 's' : ''} SANS téléphone (ne recevra${sansTel.length > 1 ? 'ont' : ''} pas le SMS):\n• ${sansTel.map(i => i.prenom_nom).join('\n• ')}`
+                      }
+                      msg += `\n\nCette action est irréversible. Continuer?`
+                      if (confirm(msg)) {
                         envoyerRappelSms()
                       }
                     }}
                     disabled={sendingSms || !smsMessage.trim()}
                     style={{ padding: '9px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0d9488', color: 'white', fontSize: 13, fontWeight: 600, cursor: sendingSms ? 'not-allowed' : 'pointer', opacity: sendingSms ? 0.7 : 1 }}
                   >
-                    {sendingSms ? '⟳ Envoi en cours…' : `📱 Envoyer aux ${inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence)).length} inscrits`}
+                    {sendingSms
+                      ? '⟳ Envoi en cours…'
+                      : (() => {
+                          const useSelection = selectedIds.size > 0
+                          const nb = useSelection
+                            ? inscriptions.filter(i => selectedIds.has(i.id) && i.telephone?.trim()).length
+                            : inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence) && i.telephone?.trim()).length
+                          return useSelection
+                            ? `📱 Envoyer aux ${nb} sélectionné${nb > 1 ? 's' : ''}`
+                            : `📱 Envoyer aux ${nb} inscrits`
+                        })()
+                    }
                   </button>
                 </div>
               </>
@@ -1281,6 +1681,15 @@ export default function InscriptionsCampsPage() {
       )}
     </div>
   )
+}
+
+// ─── Styles partagés ────────────────────────────────────────────────────────
+
+const menuItemStyle: React.CSSProperties = {
+  display: 'block', width: '100%', textAlign: 'left',
+  padding: '10px 14px', background: 'white', border: 'none',
+  borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
+  fontSize: 13, color: '#374151',
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

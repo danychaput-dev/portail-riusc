@@ -13,10 +13,12 @@ import SavedViewsBar, { type VueFiltres } from '@/app/components/SavedViewsBar'
 const C = '#1e3a5f'
 
 const GROUPES_OPTIONS = [
-  { val: 'Approuvé',           label: 'Approuvé',            couleur: '#22c55e', bg: '#f0fdf4' },
-  { val: 'Intérêt',            label: 'Intérêt',             couleur: '#f59e0b', bg: '#fffbeb' },
-  { val: 'Partenaires',        label: 'Partenaires',         couleur: '#4a7b65', bg: '#f0fdf4' },
-  { val: 'Retrait temporaire', label: 'Retrait temporaire',  couleur: '#ef4444', bg: '#fef2f2' },
+  { val: 'Approuvé',             label: 'Approuvé',             couleur: '#22c55e', bg: '#f0fdf4' },
+  { val: 'Intérêt',              label: 'Intérêt',              couleur: '#f59e0b', bg: '#fffbeb' },
+  { val: 'Partenaires',          label: 'Partenaires',          couleur: '#4a7b65', bg: '#f0fdf4' },
+  { val: 'Partenaires RS',       label: 'Partenaires RS',       couleur: '#7c3aed', bg: '#f5f3ff' },
+  { val: 'Retrait temporaire',   label: 'Retrait temporaire',   couleur: '#ef4444', bg: '#fef2f2' },
+  { val: 'Formation incomplète', label: 'Formation incomplète', couleur: '#0891b2', bg: '#ecfeff' },
 ]
 
 function badgeGroupe(groupe: string) {
@@ -290,7 +292,7 @@ function ReservistesPage() {
       // Quand on vient du dashboard, respecter les groupes du URL ; sinon charger tous les groupes
       const groupesACharger = urlFrom === 'dashboard' && urlGroupes
         ? urlGroupes
-        : 'Approuvé,Intérêt,Partenaires,Retrait temporaire'
+        : 'Approuvé,Intérêt,Partenaires,Partenaires RS,Retrait temporaire,Formation incomplète'
       params.set('groupes', groupesACharger)
       // Passer les URL params spéciaux (camp, etc.) qui nécessitent un filtre serveur
       if (urlCampSession) params.set('camp_session', urlCampSession)
@@ -325,7 +327,7 @@ function ReservistesPage() {
       if (document.hidden) return // Ne pas recharger si l'onglet est en arrière-plan
       try {
         const params = new URLSearchParams()
-        params.set('groupes', 'Approuvé,Intérêt,Partenaires,Retrait temporaire')
+        params.set('groupes', 'Approuvé,Intérêt,Partenaires,Partenaires RS,Retrait temporaire,Formation incomplète')
         if (urlCampSession) params.set('camp_session', urlCampSession)
         if (urlCampStatut) params.set('camp_statut', urlCampStatut)
         if (urlOrgPrincipale) params.set('org_principale', urlOrgPrincipale)
@@ -899,7 +901,7 @@ function ReservistesPage() {
                   } else {
                     // Activer le filtre — montrer tous les groupes pour pas manquer des notes
                     setFiltreNotesNonLues(true)
-                    setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires', 'Retrait temporaire'])
+                    setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires', 'Partenaires RS', 'Retrait temporaire', 'Formation incomplète'])
                   }
                 }}
                 style={{
@@ -1197,23 +1199,24 @@ function ReservistesPage() {
                 </span>
               </div>
               <div /> {/* Groupe */}
-              {/* Prêt — 3 checkboxes filtre */}
+              {/* Prêt — 3 checkboxes filtre + bouton certif (alignés avec les boxes 26px du body) */}
               {!isAdjoint && (
-              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '2px', padding: '0 4px 6px' }}>
+              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px', padding: '0 6px 6px', transform: 'translateX(-20px)' }}>
                 {PRET_STEPS.map(step => {
                   const state = filtresReadiness[step.key]
-                  const isActive = state !== null
                   return (
                     <button
                       key={step.key}
                       onClick={() => toggleReadinessFilter(step.key)}
                       title={`${step.label}\n${state === null ? 'Cliquer → montrer ceux qui l\'ont' : state === 'has' ? 'Cliquer → montrer manquants' : 'Cliquer → retirer filtre'}`}
                       style={{
-                        fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                        width: '26px', height: '22px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '10px', fontWeight: '700', padding: 0, borderRadius: '4px',
                         border: `1px solid ${state === 'has' ? '#16a34a' : state === 'missing' ? '#ef4444' : '#d1d5db'}`,
                         backgroundColor: state === 'has' ? '#f0fdf4' : state === 'missing' ? '#fef2f2' : 'white',
                         color: state === 'has' ? '#16a34a' : state === 'missing' ? '#ef4444' : '#94a3b8',
-                        cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                        cursor: 'pointer', transition: 'all 0.15s',
                       }}
                     >
                       {step.key === 'profil' ? 'P' : step.key === 'initiation' ? 'I' : 'C'}
@@ -1224,14 +1227,16 @@ function ReservistesPage() {
                   onClick={() => handleSort('certifs')}
                   title={`Trier par certificats manquants`}
                   style={{
-                    fontSize: '9px', fontWeight: '700', padding: '1px 4px', borderRadius: '4px',
+                    width: '26px', height: '22px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '10px', fontWeight: '700', padding: 0, borderRadius: '4px',
                     border: `1px solid ${sortKey === 'certifs' ? '#d97706' : '#d1d5db'}`,
                     backgroundColor: sortKey === 'certifs' ? '#fffbeb' : 'white',
                     color: sortKey === 'certifs' ? '#d97706' : '#94a3b8',
-                    cursor: 'pointer', lineHeight: '14px', transition: 'all 0.15s',
+                    cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
-                  📎{sortKey === 'certifs' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  📎{sortKey === 'certifs' && (sortDir === 'asc' ? '↑' : '↓')}
                 </button>
               </div>
               )}
@@ -1449,7 +1454,7 @@ function ReservistesPage() {
                   )}
                 </div>
                 {/* Groupe */}
-                <div style={{ padding: '11px 10px' }}>
+                <div style={{ padding: '11px 10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span
                     style={{
                       fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
@@ -1526,17 +1531,20 @@ function ReservistesPage() {
                       </div>
                     )
                   })}
-                  {/* Pastille certificats : vert = tout OK, jaune = en attente d'approbation, rouge = fichier manquant */}
+                  {/* Pastille certificats : toujours occupe l'espace (26px) pour que
+                      l'icône ✏️ de la colonne suivante reste alignée entre les lignes.
+                      Vide (invisible) quand aucun certif manquant ou en attente. */}
                   {(() => {
                     const manquants = r.certifs_manquants
                     const enAttente = r.certifs_en_attente
                     const total = manquants + enAttente
-                    if (total === 0) return null
-                    // Rouge si fichiers manquants, jaune si seulement en attente d'approbation
                     const hasManquants = manquants > 0
                     const lines = []
                     if (manquants > 0) lines.push(`${manquants} certificat${manquants > 1 ? 's' : ''} — fichier manquant`)
                     if (enAttente > 0) lines.push(`${enAttente} certificat${enAttente > 1 ? 's' : ''} — en attente d'approbation`)
+                    if (total === 0) {
+                      return <div style={{ width: '26px', height: '26px' }} aria-hidden="true" />
+                    }
                     return (
                       <div
                         title={lines.join('\n')}
@@ -1553,32 +1561,30 @@ function ReservistesPage() {
                       </div>
                     )
                   })()}
-                  {isDeployable(r) && (
-                    <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
-                  )}
                 </div>
                 )}
-                {/* Antécédents */}
+                {/* Antécédents : 2 zones — badge+date à gauche, crayon toujours à droite
+                    (même position pour toutes les lignes, peu importe la longueur du contenu). */}
                 {!isAdjoint && (
-                <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <div style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', flex: 1, minWidth: 0 }}>
                     <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '20px', backgroundColor: badgeAnt.bg, color: badgeAnt.couleur, fontWeight: '600', whiteSpace: 'nowrap' as const }}>
                       {badgeAnt.label}
                     </span>
-                    {isAdmin && (
-                      <button
-                        onClick={() => ouvrirModalAntecedents(r)}
-                        title="Modifier"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: '#94a3b8', fontSize: '12px', lineHeight: 1 }}
-                      >
-                        ✏️
-                      </button>
+                    {r.antecedents_date_verification && (
+                      <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
+                        {moisAnnee(r.antecedents_date_verification)}
+                      </span>
                     )}
                   </div>
-                  {r.antecedents_date_verification && (
-                    <span style={{ fontSize: '9px', color: '#64748b', whiteSpace: 'nowrap' as const }}>
-                      {moisAnnee(r.antecedents_date_verification)}
-                    </span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => ouvrirModalAntecedents(r)}
+                      title="Modifier"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '1px', color: '#94a3b8', fontSize: '12px', lineHeight: 1, flexShrink: 0 }}
+                    >
+                      ✏️
+                    </button>
                   )}
                 </div>
                 )}

@@ -15,6 +15,14 @@ interface NavItem {
   superadminOnly?: boolean
 }
 
+interface NavSection {
+  id: string
+  titre?: string          // undefined = section principale sans header
+  items: NavItem[]
+  defaultOpen?: boolean
+  superadminOnly?: boolean
+}
+
 interface Props {
   stats?: {
     sinistres_actifs?: number
@@ -26,33 +34,81 @@ interface Props {
   userRole?: string
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { titre: 'Reservistes',          icone: '👥', href: '/admin/reservistes',        statut: 'actif' },
-  { titre: 'Operations',           icone: '🚨', href: '/admin/operations',         statut: 'actif' },
-  { titre: 'Sinistres',            icone: '🌊', href: '/admin/sinistres',          statut: 'actif' },
-  { titre: 'Certificats',          icone: '🗂️', href: '/admin/certificats',        statut: 'actif' },
-  { titre: 'Courriels',            icone: '✉️', href: '/admin/courriels',          statut: 'actif' },
-  { titre: 'Camps',                icone: '🏕️', href: '/admin/inscriptions-camps', statut: 'actif' },
-  { titre: 'Communaute',           icone: '💬', href: '/admin/communaute',         statut: 'actif' },
-  { titre: 'Dashboard',            icone: '📈', href: '/admin/dashboard',          statut: 'actif' },
-  { titre: 'Statistiques',         icone: '📊', href: '/admin/stats',              statut: 'actif' },
-  { titre: 'Utilisateurs',         icone: '🔐', href: '/admin/utilisateurs',       statut: 'actif', superadminOnly: true },
-  { titre: 'Health Check',         icone: '🩺', href: '/admin/health-check',        statut: 'actif', superadminOnly: true },
-  { titre: 'Debug Camp',           icone: '🔬', href: '/api/admin/debug-camp',      statut: 'actif', superadminOnly: true, externe: true },
-  { titre: 'Partenaires',          icone: '🤝', href: '/admin/partenaires',        statut: 'bientot' },
-  { titre: 'Présences',            icone: '📋', href: '/admin/pointage',          statut: 'actif' },
+// Navigation principale : items utilisés quotidiennement (toujours visibles)
+// Plus les sous-groupes Administration / Système pour les items moins fréquents.
+const NAV_SECTIONS: NavSection[] = [
+  {
+    id: 'principal',
+    items: [
+      { titre: 'Reservistes',   icone: '👥', href: '/admin/reservistes',        statut: 'actif' },
+      { titre: 'Operations',    icone: '🚨', href: '/admin/operations',         statut: 'actif' },
+      { titre: 'Sinistres',     icone: '🌊', href: '/admin/sinistres',          statut: 'actif' },
+      { titre: 'Présences',     icone: '📋', href: '/admin/pointage',           statut: 'actif' },
+      { titre: 'Courriels',     icone: '✉️', href: '/admin/courriels',          statut: 'actif' },
+      { titre: 'Camps',         icone: '🏕️', href: '/admin/inscriptions-camps', statut: 'actif' },
+      { titre: 'Communaute',    icone: '💬', href: '/admin/communaute',         statut: 'actif' },
+      { titre: 'Certificats',   icone: '🗂️', href: '/admin/certificats',        statut: 'actif' },
+    ],
+  },
+  {
+    id: 'administration',
+    titre: 'Administration',
+    defaultOpen: false,
+    items: [
+      { titre: 'Dashboard',        icone: '📈', href: '/admin/dashboard',            statut: 'actif' },
+      { titre: 'Statistiques',     icone: '📊', href: '/admin/stats',                statut: 'actif' },
+      { titre: 'Resp. de groupes', icone: '🎖️', href: '/admin/responsables-groupes', statut: 'actif' },
+      { titre: 'Partenaires',      icone: '🤝', href: '/admin/partenaires',          statut: 'bientot' },
+    ],
+  },
+  {
+    id: 'systeme',
+    titre: 'Système',
+    defaultOpen: false,
+    superadminOnly: true,
+    items: [
+      { titre: 'Utilisateurs', icone: '🔐', href: '/admin/utilisateurs',       statut: 'actif', superadminOnly: true },
+      { titre: 'Health Check', icone: '🩺', href: '/admin/health-check',       statut: 'actif', superadminOnly: true },
+      { titre: 'Debug Camp',   icone: '🔬', href: '/api/admin/debug-camp',     statut: 'actif', superadminOnly: true, externe: true },
+    ],
+  },
 ]
 
 export default function AdminSidebar({ stats, userRole }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
 
-  // Persister l'état collapsed
+  // Persister l'état collapsed + sections ouvertes
   useEffect(() => {
     const saved = localStorage.getItem('admin-sidebar-collapsed')
     if (saved === 'true') setCollapsed(true)
+    try {
+      const savedSections = localStorage.getItem('admin-sidebar-sections')
+      if (savedSections) setOpenSections(JSON.parse(savedSections))
+    } catch {}
   }, [])
+
+  const toggleSection = (id: string) => {
+    setOpenSections(prev => {
+      const next = { ...prev, [id]: !prev[id] }
+      try { localStorage.setItem('admin-sidebar-sections', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
+
+  // Ouvrir automatiquement la section qui contient la page active
+  useEffect(() => {
+    for (const section of NAV_SECTIONS) {
+      if (section.id === 'principal') continue
+      const containsActive = section.items.some(it => pathname.startsWith(it.href))
+      if (containsActive && !openSections[section.id]) {
+        setOpenSections(prev => ({ ...prev, [section.id]: true }))
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   const toggle = () => {
     setCollapsed(prev => {
@@ -109,76 +165,112 @@ export default function AdminSidebar({ stats, userRole }: Props) {
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {NAV_ITEMS.filter(item => !item.superadminOnly || userRole === 'superadmin').map(item => {
-          const active = isActive(item.href)
-          const disabled = item.statut === 'bientot'
-          const badgeInfo = getBadge(item)
-          const badge = badgeInfo?.count
-          const badgeColor = badgeInfo?.color || '#dc2626'
+      <nav style={{ flex: 1, padding: '4px 8px', display: 'flex', flexDirection: 'column', gap: '2px', overflowY: 'auto' }}>
+        {NAV_SECTIONS
+          .filter(section => !section.superadminOnly || userRole === 'superadmin')
+          .map(section => {
+            const items = section.items.filter(it => !it.superadminOnly || userRole === 'superadmin')
+            if (items.length === 0) return null
+            const isPrincipal = section.id === 'principal'
+            const isOpen = isPrincipal || !!openSections[section.id]
 
-          return (
-            <button
-              key={item.href}
-              onClick={() => !disabled && (item.externe ? window.open(item.href, '_blank') : router.push(item.href))}
-              disabled={disabled}
-              title={collapsed ? item.titre : undefined}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: collapsed ? '10px 0' : '9px 12px',
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                background: active ? '#eff6ff' : 'transparent',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: disabled ? 'default' : 'pointer',
-                opacity: disabled ? 0.45 : 1,
-                transition: 'background-color 0.12s',
-                width: '100%',
-                textAlign: 'left',
-                position: 'relative',
-              }}
-              onMouseOver={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = '#f9fafb' }}
-              onMouseOut={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
-            >
-              <span style={{ fontSize: '17px', flexShrink: 0, lineHeight: 1 }}>{item.icone}</span>
-              {!collapsed && (
-                <span style={{
-                  fontSize: '13px',
-                  fontWeight: active ? '700' : '500',
-                  color: active ? C : '#374151',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  flex: 1,
-                }}>
-                  {item.titre}
-                </span>
-              )}
-              {badge !== undefined && badge > 0 && (
-                <span style={{
-                  position: collapsed ? 'absolute' : 'relative',
-                  top: collapsed ? '4px' : 'auto',
-                  right: collapsed ? '4px' : 'auto',
-                  backgroundColor: badgeColor,
-                  color: 'white',
-                  borderRadius: '10px',
-                  padding: '1px 6px',
-                  fontSize: '10px',
-                  fontWeight: '700',
-                  lineHeight: '1.4',
-                  flexShrink: 0,
-                }}>
-                  {badge}
-                </span>
-              )}
-              {!collapsed && disabled && (
-                <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>Bientôt</span>
-              )}
-            </button>
-          )
-        })}
+            return (
+              <div key={section.id}>
+                {/* Header de section (sauf pour principal) */}
+                {!isPrincipal && !collapsed && section.titre && (
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center',
+                      gap: 6, padding: '10px 12px 6px',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: 10, fontWeight: 700, color: '#9ca3af',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                      marginTop: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 9, transition: 'transform 0.15s', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                    {section.titre}
+                  </button>
+                )}
+                {/* Séparateur visuel en mode collapsed pour les sections non-principal */}
+                {!isPrincipal && collapsed && (
+                  <div style={{ height: 1, backgroundColor: '#e5e7eb', margin: '8px 8px' }} />
+                )}
+
+                {/* Items de la section */}
+                {isOpen && items.map(item => {
+                  const active = isActive(item.href)
+                  const disabled = item.statut === 'bientot'
+                  const badgeInfo = getBadge(item)
+                  const badge = badgeInfo?.count
+                  const badgeColor = badgeInfo?.color || '#dc2626'
+
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => !disabled && (item.externe ? window.open(item.href, '_blank') : router.push(item.href))}
+                      disabled={disabled}
+                      title={collapsed ? item.titre : undefined}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: collapsed ? '10px 0' : '9px 12px',
+                        justifyContent: collapsed ? 'center' : 'flex-start',
+                        background: active ? '#eff6ff' : 'transparent',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: disabled ? 'default' : 'pointer',
+                        opacity: disabled ? 0.45 : 1,
+                        transition: 'background-color 0.12s',
+                        width: '100%',
+                        textAlign: 'left',
+                        position: 'relative',
+                      }}
+                      onMouseOver={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = '#f9fafb' }}
+                      onMouseOut={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
+                    >
+                      <span style={{ fontSize: '17px', flexShrink: 0, lineHeight: 1 }}>{item.icone}</span>
+                      {!collapsed && (
+                        <span style={{
+                          fontSize: '13px',
+                          fontWeight: active ? '700' : '500',
+                          color: active ? C : '#374151',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          flex: 1,
+                        }}>
+                          {item.titre}
+                        </span>
+                      )}
+                      {badge !== undefined && badge > 0 && (
+                        <span style={{
+                          position: collapsed ? 'absolute' : 'relative',
+                          top: collapsed ? '4px' : 'auto',
+                          right: collapsed ? '4px' : 'auto',
+                          backgroundColor: badgeColor,
+                          color: 'white',
+                          borderRadius: '10px',
+                          padding: '1px 6px',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          lineHeight: '1.4',
+                          flexShrink: 0,
+                        }}>
+                          {badge}
+                        </span>
+                      )}
+                      {!collapsed && disabled && (
+                        <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>Bientôt</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })}
       </nav>
 
       {/* Lien retour portail */}

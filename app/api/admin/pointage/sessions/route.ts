@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
     contexte_nom,
     contexte_dates,
     contexte_lieu,
+    titre,           // libellé libre optionnel (ex: 'Équipe Alpha')
     shift,           // 'jour' | 'nuit' | 'complet' | null
     date_shift,      // 'YYYY-MM-DD' | null
     approuveur_id,   // benevole_id text
@@ -111,6 +112,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Approuveur introuvable' }, { status: 400 })
   }
 
+  // Nettoyer le titre (trim + null si vide)
+  const titreNet = typeof titre === 'string' && titre.trim() ? titre.trim() : null
+
   const { data: inserted, error } = await supabaseAdmin
     .from('pointage_sessions')
     .insert({
@@ -119,19 +123,22 @@ export async function POST(req: NextRequest) {
       contexte_nom,
       contexte_dates: contexte_dates || null,
       contexte_lieu: contexte_lieu || null,
+      titre: titreNet,
       shift: shift || null,
       date_shift: date_shift || null,
       approuveur_id,
       cree_par: user.benevole_id,
     })
-    .select('id, token, type_contexte, session_id, contexte_nom, contexte_dates, contexte_lieu, shift, date_shift, approuveur_id, actif, created_at')
+    .select('id, token, type_contexte, session_id, contexte_nom, contexte_dates, contexte_lieu, titre, shift, date_shift, approuveur_id, actif, created_at')
     .single()
 
   if (error) {
-    // Détecter l'unique constraint (un QR existe déjà pour ce contexte/shift/date)
+    // Détecter l'unique constraint (un QR existe déjà pour ce contexte/shift/date/titre)
     if (error.message.includes('duplicate') || error.code === '23505') {
       return NextResponse.json(
-        { error: 'Un QR actif existe déjà pour ce contexte, shift et date.' },
+        { error: titreNet
+            ? `Un QR avec le titre "${titreNet}" existe déjà pour ce contexte, shift et date.`
+            : 'Un QR sans titre existe déjà pour ce contexte, shift et date. Donne-lui un titre pour en créer un autre (ex: "Équipe Alpha").' },
         { status: 409 }
       )
     }

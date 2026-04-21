@@ -22,12 +22,29 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ on_duty: false })
 
-  const { data: res } = await supabaseAdmin
+  // Récupérer l'acteur connecté (pour savoir s'il est admin et respecter l'emprunt)
+  const { data: acteur } = await supabaseAdmin
     .from('reservistes')
-    .select('benevole_id')
+    .select('benevole_id, role')
     .eq('user_id', user.id)
     .single()
-  if (!res) return NextResponse.json({ on_duty: false })
+  if (!acteur) return NextResponse.json({ on_duty: false })
+
+  const acteurIsAdmin = ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(acteur.role)
+
+  // Si emprunt d'identité par un admin, utiliser le benevole_id et le rôle de la cible
+  const impersonateCookie = cookieStore.get('impersonate')?.value
+  let res: { benevole_id: string; role: string } = acteur
+  if (impersonateCookie && acteurIsAdmin) {
+    const { data: cible } = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id, role')
+      .eq('benevole_id', impersonateCookie)
+      .single()
+    if (cible) res = cible
+  }
+
+  const isAdmin = ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(res.role)
 
   const { data: ouvertsRaw, count } = await supabaseAdmin
     .from('pointages')
@@ -78,10 +95,55 @@ export async function GET() {
     supervisingCount = supCount || 0
   }
 
+  // ── Éligibilité au scan QR ────────────────────────────────────────────────
+  // Un utilisateur peut scanner s'il a une raison légitime aujourd'hui :
+  //   - admin/coord/adjoint (toujours, pour gestion/test)
+  //   - déjà on duty (doit terminer son poste)
+  //   - supervise au moins un QR (admin de session)
+  //   - inscrit à un camp dont le QR est actif
+  //   - ciblé/notifié/mobilisé pour un déploiement dont le QR est actif
+  // Sinon, le bouton est caché côté client pour éviter les scans curieux.
+  let eligible_today = isAdmin || (count || 0) > 0 || supervisingCount > 0
+  if (!eligible_today) {
+    // Récupérer toutes les sessions QR actives en une fois
+    const { data: actives } = await supabaseAdmin
+      .from('pointage_sessions')
+      .select('type_contexte, session_id')
+      .eq('actif', true)
+    if (actives && actives.length > 0) {
+      const sessionsCamp = actives.filter(s => s.type_contexte === 'camp').map(s => s.session_id)
+      const sessionsDep  = actives.filter(s => s.type_contexte === 'deploiement').map(s => s.session_id)
+
+      // Camp : a-t-il une inscription active dans un de ces session_id ?
+      if (sessionsCamp.length > 0) {
+        const { count: cmpCount } = await supabaseAdmin
+          .from('inscriptions_camps')
+          .select('benevole_id', { count: 'exact', head: true })
+          .eq('benevole_id', res.benevole_id)
+          .in('session_id', sessionsCamp)
+        if ((cmpCount || 0) > 0) eligible_today = true
+      }
+
+      // Déploiement : a-t-il un ciblage notifié/mobilisé pour un de ces deployment_id ?
+      if (!eligible_today && sessionsDep.length > 0) {
+        const { count: cibCount } = await supabaseAdmin
+          .from('ciblages')
+          .select('benevole_id', { count: 'exact', head: true })
+          .eq('benevole_id', res.benevole_id)
+          .eq('niveau', 'deploiement')
+          .in('reference_id', sessionsDep)
+          .in('statut', ['cible', 'notifie', 'mobilise'])
+        if ((cibCount || 0) > 0) eligible_today = true
+      }
+    }
+  }
+
   return NextResponse.json({
     on_duty: (count || 0) > 0,
     count: count || 0,
     ouverts,
     supervising_count: supervisingCount,
+    eligible_today,
+    is_admin: isAdmin,
   })
 }
