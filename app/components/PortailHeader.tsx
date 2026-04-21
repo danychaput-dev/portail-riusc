@@ -7,6 +7,7 @@ import Image from 'next/image'
 import ImpersonateBanner from './ImpersonateBanner'
 import ImpersonateModal from './ImpersonateModal'
 import QRScannerButton from './QRScannerButton'
+import TrajetButton from './TrajetButton'
 import { useAuth } from '@/utils/useAuth'
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils/demoMode'
 import { n8nUrl } from '@/utils/n8n'
@@ -383,8 +384,9 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
             </div>
           </a>
 
-          {/* Bouton scanner QR (pointage) */}
+          {/* Boutons trajet (heures secondaires) + scanner QR (heures primaires) */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+            <TrajetButton />
             <QRScannerButton />
           </div>
 
