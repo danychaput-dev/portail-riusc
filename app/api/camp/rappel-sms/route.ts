@@ -40,17 +40,27 @@ export async function POST(req: NextRequest) {
   const admin = await verifierAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-  const { session_id, message } = await req.json()
+  const { session_id, message, inscription_ids } = await req.json()
   if (!session_id || !message) {
     return NextResponse.json({ error: 'session_id et message requis' }, { status: 400 })
   }
 
-  // Chercher les inscrits confirmés pour ce camp
-  const { data: inscriptions, error: errInsc } = await supabaseAdmin
+  // Chercher les inscrits pour ce camp.
+  // Si `inscription_ids` est fourni (sélection côté admin), on envoie uniquement
+  // à ceux-là (peu importe leur presence — l'admin peut vouloir relancer les incertains
+  // ou même des annulés). Sinon, on envoie à tous les confirmé/incertain.
+  let query = supabaseAdmin
     .from('inscriptions_camps')
     .select('id, benevole_id, prenom_nom, telephone, camp_nom, camp_dates, camp_lieu')
     .eq('session_id', session_id)
-    .in('presence', ['confirme', 'incertain'])
+
+  if (Array.isArray(inscription_ids) && inscription_ids.length > 0) {
+    query = query.in('id', inscription_ids)
+  } else {
+    query = query.in('presence', ['confirme', 'incertain'])
+  }
+
+  const { data: inscriptions, error: errInsc } = await query
 
   if (errInsc) return NextResponse.json({ error: errInsc.message }, { status: 500 })
   if (!inscriptions?.length) return NextResponse.json({ error: 'Aucun inscrit trouvé' }, { status: 404 })

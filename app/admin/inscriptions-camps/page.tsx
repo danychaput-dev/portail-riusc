@@ -742,15 +742,20 @@ export default function InscriptionsCampsPage() {
     if (!selectedCampId || !smsMessage) return
     setSendingSms(true)
     try {
+      // Si une sélection est active, on envoie uniquement à ceux-là (pour relancer
+      // les non-répondants). Sinon, comportement par défaut = tous les confirme/incertain.
+      const body: any = { session_id: selectedCampId, message: smsMessage }
+      if (selectedIds.size > 0) {
+        body.inscription_ids = Array.from(selectedIds)
+      }
       const res = await fetch('/api/camp/rappel-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: selectedCampId, message: smsMessage }),
+        body: JSON.stringify(body),
       })
       const json = await res.json()
       if (res.ok) {
         setSmsResult({ nb_envoyes: json.nb_envoyes, nb_sans_telephone: json.nb_sans_telephone })
-        // Rafraîchir la colonne "Rappel SMS" pour voir les envois immédiatement
         refetchRappels()
       } else {
         alert(json.error || 'Erreur lors de l\'envoi')
@@ -1023,7 +1028,9 @@ export default function InscriptionsCampsPage() {
                     fontWeight: 600, whiteSpace: 'nowrap',
                   }}
                 >
-                  📱 Envoyer rappel SMS
+                  {selectedIds.size > 0
+                    ? `📱 Envoyer SMS (${selectedIds.size})`
+                    : '📱 Envoyer rappel SMS'}
                 </button>
               )}
               {!isPartenaireLect && (
@@ -1489,24 +1496,33 @@ export default function InscriptionsCampsPage() {
               </div>
             ) : (
               <>
-                {/* Alerte préventive : liste des inscrits sans téléphone qui NE recevront PAS le SMS */}
+                {/* Bandeau indiquant la cible de l'envoi (selection vs tous) */}
                 {(() => {
-                  const sansTel = inscriptions.filter(i =>
-                    ['confirme', 'incertain'].includes(i.presence) && !i.telephone?.trim()
-                  )
-                  if (sansTel.length === 0) return null
+                  const useSelection = selectedIds.size > 0
+                  const eligibles = useSelection
+                    ? inscriptions.filter(i => selectedIds.has(i.id))
+                    : inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence))
+                  const sansTel = eligibles.filter(i => !i.telephone?.trim())
                   return (
-                    <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, marginBottom: 14, fontSize: 12, color: '#991b1b', lineHeight: 1.5 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                        ⚠️ {sansTel.length} personne{sansTel.length > 1 ? 's' : ''} ne recevra{sansTel.length > 1 ? 'ont' : ''} pas le SMS (téléphone manquant) :
+                    <>
+                      <div style={{ padding: '10px 14px', backgroundColor: useSelection ? '#eff6ff' : '#f0fdf4', border: `1px solid ${useSelection ? '#bfdbfe' : '#bbf7d0'}`, borderRadius: 8, marginBottom: 10, fontSize: 12, color: useSelection ? '#1e40af' : '#065f46', lineHeight: 1.5 }}>
+                        {useSelection
+                          ? <>📌 <strong>{eligibles.length}</strong> personne{eligibles.length > 1 ? 's' : ''} sélectionnée{eligibles.length > 1 ? 's' : ''} seront contactée{eligibles.length > 1 ? 's' : ''} (peu importe le statut).</>
+                          : <>🌐 Tous les <strong>{eligibles.length}</strong> inscrits <em>confirmés</em> et <em>incertains</em> seront contactés. <br/><span style={{ fontSize: 11, color: '#047857', fontStyle: 'italic' }}>Astuce : coche des lignes pour n&apos;envoyer qu&apos;à ces personnes (ex. filtre « ⏳ Envoyé, pas de réponse » + Shift+clic).</span></>
+                        }
                       </div>
-                      <div>
-                        {sansTel.map(i => i.prenom_nom).join(', ')}
-                      </div>
-                      <div style={{ marginTop: 6, fontSize: 11, color: '#7f1d1d', fontStyle: 'italic' }}>
-                        Pense à les rejoindre par un autre moyen (courriel, téléphone du contact d&apos;urgence, etc.)
-                      </div>
-                    </div>
+                      {sansTel.length > 0 && (
+                        <div style={{ padding: '10px 14px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, marginBottom: 14, fontSize: 12, color: '#991b1b', lineHeight: 1.5 }}>
+                          <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                            ⚠️ {sansTel.length} personne{sansTel.length > 1 ? 's' : ''} ne recevra{sansTel.length > 1 ? 'ont' : ''} pas le SMS (téléphone manquant) :
+                          </div>
+                          <div>{sansTel.map(i => i.prenom_nom).join(', ')}</div>
+                          <div style={{ marginTop: 6, fontSize: 11, color: '#7f1d1d', fontStyle: 'italic' }}>
+                            Pense à les rejoindre par un autre moyen (courriel, téléphone du contact d&apos;urgence, etc.)
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )
                 })()}
                 <div style={{ marginBottom: 12 }}>
@@ -1545,10 +1561,17 @@ export default function InscriptionsCampsPage() {
                   </button>
                   <button
                     onClick={() => {
-                      const eligibles = inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence))
+                      // Déterminer la cible selon la sélection
+                      const useSelection = selectedIds.size > 0
+                      const eligibles = useSelection
+                        ? inscriptions.filter(i => selectedIds.has(i.id))
+                        : inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence))
                       const sansTel = eligibles.filter(i => !i.telephone?.trim())
                       const avecTel = eligibles.length - sansTel.length
-                      let msg = `⚠️ Vous êtes sur le point d'envoyer un SMS à ${avecTel} personne${avecTel > 1 ? 's' : ''} pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}`
+                      const cibleTxt = useSelection
+                        ? `${avecTel} personne${avecTel > 1 ? 's' : ''} sélectionnée${avecTel > 1 ? 's' : ''}`
+                        : `${avecTel} personne${avecTel > 1 ? 's' : ''} (tous les confirmés/incertains)`
+                      let msg = `⚠️ Vous êtes sur le point d'envoyer un SMS à ${cibleTxt} pour le camp:\n\n${selectedCamp?.camp_nom}\n${selectedCamp?.camp_dates}`
                       if (sansTel.length > 0) {
                         msg += `\n\n⚠️ ${sansTel.length} personne${sansTel.length > 1 ? 's' : ''} SANS téléphone (ne recevra${sansTel.length > 1 ? 'ont' : ''} pas le SMS):\n• ${sansTel.map(i => i.prenom_nom).join('\n• ')}`
                       }
@@ -1562,7 +1585,15 @@ export default function InscriptionsCampsPage() {
                   >
                     {sendingSms
                       ? '⟳ Envoi en cours…'
-                      : `📱 Envoyer aux ${inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence) && i.telephone?.trim()).length} inscrits`
+                      : (() => {
+                          const useSelection = selectedIds.size > 0
+                          const nb = useSelection
+                            ? inscriptions.filter(i => selectedIds.has(i.id) && i.telephone?.trim()).length
+                            : inscriptions.filter(i => ['confirme', 'incertain'].includes(i.presence) && i.telephone?.trim()).length
+                          return useSelection
+                            ? `📱 Envoyer aux ${nb} sélectionné${nb > 1 ? 's' : ''}`
+                            : `📱 Envoyer aux ${nb} inscrits`
+                        })()
                     }
                   </button>
                 </div>
