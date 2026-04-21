@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { formatPhone } from '@/utils/phone'
 
 const C = '#1e3a5f'
 const MUTED = '#6b7280'
@@ -293,7 +294,7 @@ export default function ResponsablesGroupesPage() {
                           {r.prenom} {r.nom}
                         </span>
                         {r.email && <span style={{ fontSize: 11, color: MUTED }}>✉ {r.email}</span>}
-                        {r.telephone && <span style={{ fontSize: 11, color: MUTED }}>📞 {r.telephone}</span>}
+                        {r.telephone && <span style={{ fontSize: 11, color: MUTED }}>📞 {formatPhone(r.telephone)}</span>}
 
                         <label style={{
                           marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,

@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import { formatPhone } from '@/utils/phone';
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface LogRow {
@@ -1080,7 +1081,7 @@ export default function StatsPage() {
                                   {ok ? '✓ Réussi' : '✗ Échoué'}
                                 </span>
                               </td>
-                              <td style={{ padding: '8px 12px', color: ok ? '#374151' : RED, fontWeight: ok ? 400 : 500 }}>{e.email || e.telephone || '—'}</td>
+                              <td style={{ padding: '8px 12px', color: ok ? '#374151' : RED, fontWeight: ok ? 400 : 500 }}>{e.email || (e.telephone ? formatPhone(e.telephone) : '—')}</td>
                               <td style={{ padding: '8px 12px', color: '#6b7280' }}>{e.auth_method || <span style={{ color: '#d1d5db' }}>code non soumis</span>}</td>
                               <td style={{ padding: '8px 12px', color: '#6b7280' }}>{new Date(e.created_at).toLocaleString('fr-CA', { timeZone: 'America/Montreal' })}</td>
                             </tr>

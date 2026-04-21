@@ -4,6 +4,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react'
 import HistoriqueCourriels from './HistoriqueCourriels'
 import ModalComposeCourriel from './ModalComposeCourriel'
+import { formatPhone } from '@/utils/phone'
 
 const C = '#1e3a5f'
 
@@ -316,7 +317,7 @@ export default function ModalReserviste({ reserviste, currentUserId, isAdmin, on
                 </h2>
                 <div className="modal-res-info" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: '#6b7280' }}>
                   {reserviste.email && <span>{reserviste.email}</span>}
-                  {reserviste.telephone && <span>{reserviste.telephone}</span>}
+                  {reserviste.telephone && <span>{formatPhone(reserviste.telephone)}</span>}
                   {reserviste.region && <span>{reserviste.region}</span>}
                 </div>
               </div>

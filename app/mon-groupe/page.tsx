@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import PortailHeader from '@/app/components/PortailHeader'
+import { formatPhone, normalizePhone } from '@/utils/phone'
 
 const C = '#1e3a5f'
 const MUTED = '#6b7280'
@@ -521,11 +522,11 @@ function DeploiementCard({
                     {m.telephone && (
                       <div style={{ fontSize: 11 }}>
                         <a
-                          href={`tel:${m.telephone.replace(/\s+/g, '')}`}
+                          href={`tel:${normalizePhone(m.telephone)}`}
                           title={`Appeler ${m.prenom} ${m.nom}`}
                           style={{ color: '#1d4ed8', textDecoration: 'none', borderBottom: '1px dotted #93c5fd' }}
                         >
-                          📞 {m.telephone}
+                          📞 {formatPhone(m.telephone)}
                         </a>
                       </div>
                     )}
