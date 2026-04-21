@@ -598,33 +598,15 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
                 {isAdmin && (
                   <>
-                    <a href="/admin/reservistes" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', backgroundColor: 'white', borderBottom: '1px solid #f3f4f6' }}
+                    {/* Raccourci vers l'espace admin (tous les autres items sont dans le sidebar) */}
+                    <a href="/admin/reservistes" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', backgroundColor: 'white', borderBottom: '1px solid #f3f4f6', fontWeight: 600 }}
                       onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'}
                       onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <span style={{ fontSize: '18px' }}>👥</span>
-                      Réservistes
+                      <span style={{ fontSize: '18px' }}>🛡️</span>
+                      Espace admin →
                     </a>
-                    <a href="/admin/stats" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                      <span style={{ fontSize: '18px' }}>📊</span>
-                      Statistiques
-                    </a>
-                    <a href="/admin" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                      <span style={{ fontSize: '18px' }}>⚙️</span>
-                      Administration
-                    </a>
-                    <a href="/admin/certificats" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                      <span style={{ fontSize: '18px' }}>🗂️</span>
-                      Validation certificats
-                    </a>
-                    <a href="/admin/inscriptions-camps" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#f59e0b', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fffbeb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                      <span style={{ fontSize: '18px' }}>🏕️</span>
-                      Inscriptions camps
-                    </a>
+                    {/* Emprunt d'identité — fonction admin-seule, gardée dans le header pour accès rapide */}
                     <button
                       onClick={() => { setShowUserMenu(false); setShowImpersonateModal(true) }}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#d97706', backgroundColor: 'white', border: 'none', width: '100%', textAlign: 'left', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' }}
@@ -634,13 +616,6 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
                       <span style={{ fontSize: '18px' }}>🎭</span>
                       Emprunt d{"'"}identité
                     </button>
-                    {isSuperadmin && (
-                      <a href="/admin/corbeille" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#dc2626', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
-                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
-                        <span style={{ fontSize: '18px' }}>🗑️</span>
-                        Corbeille
-                      </a>
-                    )}
                   </>
                 )}
 
