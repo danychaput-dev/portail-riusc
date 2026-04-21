@@ -1201,7 +1201,7 @@ function ReservistesPage() {
               <div /> {/* Groupe */}
               {/* Prêt — 3 checkboxes filtre + bouton certif (alignés avec les boxes 26px du body) */}
               {!isAdjoint && (
-              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px', padding: '0 6px 6px' }}>
+              <div style={{ ...thSubStyle, justifyContent: 'center', gap: '4px', padding: '0 6px 6px', transform: 'translateX(-20px)' }}>
                 {PRET_STEPS.map(step => {
                   const state = filtresReadiness[step.key]
                   return (
