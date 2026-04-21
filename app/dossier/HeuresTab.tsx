@@ -196,8 +196,16 @@ export default function HeuresTab() {
       </div>
 
       {evenements.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: MUTED, backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
-          Aucune heure enregistrée pour l&apos;instant.
+        <div style={{ padding: 32, textAlign: 'center', backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>📊</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C, marginBottom: 8 }}>
+            Aucune heure cumulée pour le moment
+          </div>
+          <div style={{ fontSize: 13, color: MUTED, maxWidth: 480, margin: '0 auto', lineHeight: 1.5 }}>
+            Tes heures vont s&apos;accumuler ici en fonction des heures entrées via le <strong>système
+            de prise des présences</strong> sur place (code QR) et de tes <strong>trajets</strong>
+            lors des camps et déploiements.
+          </div>
         </div>
       ) : (
         <div style={{ backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'auto' }}>
