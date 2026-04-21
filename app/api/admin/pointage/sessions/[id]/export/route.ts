@@ -31,9 +31,15 @@ async function verifierRole() {
 
 function formatLocalISO(iso: string | null): string {
   if (!iso) return ''
+  // Le serveur Vercel est en UTC → on force le fuseau Montréal pour l'export Excel
   const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Montreal',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+  const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]))
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`
 }
 
 function formatDureeHM(min: number | null): string {

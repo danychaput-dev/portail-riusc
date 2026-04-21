@@ -74,10 +74,11 @@ export async function POST(req: NextRequest) {
   // (confirmation possible via confirm_wrong_date:true pour cas limites comme un quart
   // de nuit qui déborde après minuit)
   if (session.date_shift && action !== 'corriger_arrivee' && action !== 'corriger_depart' && !body.confirm_wrong_date) {
-    const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD local
-    // toISOString est en UTC. Pour être safe avec fuseaux, on compare la date locale :
-    const now = new Date()
-    const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    // IMPORTANT : le serveur Vercel tourne en UTC. `new Date().getDate()` renvoie
+    // le jour UTC. Ex : à 20h Montréal (UTC-4 l'été), il est 00h UTC le lendemain,
+    // donc getDate() renvoyait « demain » → faux wrong_date. On force America/Montreal.
+    // Le locale 'en-CA' retourne YYYY-MM-DD ce qui matche le format de date_shift.
+    const localToday = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Montreal' })
     if (session.date_shift !== localToday) {
       return NextResponse.json({
         error: 'wrong_date',
