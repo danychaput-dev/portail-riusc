@@ -301,7 +301,7 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-              <a href="/dossier?tab=trajets"
+              <a href="/profil?tab=trajets"
                 style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #e5e7eb', borderRadius: 8, textDecoration: 'none', display: 'inline-block' }}>
                 📋 Voir mes trajets
               </a>

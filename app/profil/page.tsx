@@ -12,6 +12,7 @@ import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER } from '@/utils
 import { n8nUrl } from '@/utils/n8n'
 import type { Reserviste, Organisation, Langue, MapboxFeature, DossierData } from '@/types'
 import { Section, TextInput, TextArea, Checkbox, CheckboxGroup } from './components'
+import TrajetsTab from '@/app/dossier/TrajetsTab'
 import {
   MAPBOX_TOKEN, AQBRS_ORG_ID, LANGUES_EPINGLEES,
   GROUPES_SANGUIN, GROUPE_SANGUIN_MAP, GROUPE_SANGUIN_REVERSE,
@@ -37,7 +38,18 @@ function ProfilPage() {
   const searchParams = useSearchParams()
   const bidParam = searchParams.get('bid')
   const fromParam = searchParams.get('from')
+  const tabParam = searchParams.get('tab')
   const supabase = createClient()
+
+  // Onglet actif (lu depuis ?tab=trajets, défaut 'dossier')
+  const [activeTab, setActiveTab] = useState<'dossier' | 'trajets'>(tabParam === 'trajets' ? 'trajets' : 'dossier')
+  const switchTab = (t: 'dossier' | 'trajets') => {
+    setActiveTab(t)
+    const url = new URL(window.location.href)
+    if (t === 'dossier') url.searchParams.delete('tab')
+    else url.searchParams.set('tab', t)
+    window.history.replaceState({}, '', url.toString())
+  }
 
   // Hook d'authentification avec support emprunt
   const { user: authUser, loading: authLoading } = useAuth()
@@ -1345,6 +1357,29 @@ function ProfilPage() {
       )}
 
 
+      {/* Barre d'onglets */}
+      <div style={{ maxWidth: '860px', margin: '20px auto 0', padding: '0 24px' }}>
+        <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e5e7eb' }}>
+          <button onClick={() => switchTab('dossier')}
+            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'dossier' ? 'white' : 'transparent', color: activeTab === 'dossier' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'dossier' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
+            📋 Mon profil
+          </button>
+          <button onClick={() => switchTab('trajets')}
+            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'trajets' ? 'white' : 'transparent', color: activeTab === 'trajets' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'trajets' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
+            🚗 Mes trajets
+          </button>
+        </div>
+      </div>
+
+      {/* Onglet TRAJETS */}
+      {activeTab === 'trajets' && (
+        <main style={{ maxWidth: '860px', margin: '0 auto', padding: '24px 24px 80px' }}>
+          <TrajetsTab />
+        </main>
+      )}
+
+      {/* Onglet PROFIL (contenu existant) */}
+      {activeTab === 'dossier' && (
       <main style={{ maxWidth: '860px', margin: '0 auto', padding: '32px 24px 80px' }}>
         <div style={{ marginBottom: '24px' }}>
           {isViewingOther ? (
@@ -2594,6 +2629,7 @@ function ProfilPage() {
           )}
         </div>
       </main>
+      )}
 
     </div>
   )
