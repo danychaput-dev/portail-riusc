@@ -198,6 +198,8 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
 
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  // Après clôture réussie, on affiche un récap avec la durée finale avant de fermer
+  const [closedTrajet, setClosedTrajet] = useState<Trajet | null>(null)
 
   const submit = async () => {
     setErr(null)
@@ -248,6 +250,12 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
         })
         const json = await res.json()
         if (!res.ok) { setErr(json.error || 'Erreur'); setSubmitting(false); return }
+        // Afficher l'écran de succès avec la durée avant de fermer
+        if (json.trajet) {
+          setClosedTrajet(json.trajet)
+          setSubmitting(false)
+          return
+        }
       }
       onSaved()
     } catch (e: any) {
@@ -264,6 +272,49 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
     }
     return type === 'aller' ? '🚗 Je quitte pour le site' : '🚗 Je quitte le site'
   })()
+
+  // Écran de succès après clôture
+  if (closedTrajet) {
+    const mins = closedTrajet.duree_minutes || 0
+    return (
+      <div style={overlayStyle}>
+        <div style={modalStyle}>
+          <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>
+              {closedTrajet.type === 'aller' ? '🅿️' : '🏠'}
+            </div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#16a34a', marginBottom: 8 }}>
+              Trajet enregistré !
+            </h2>
+            <div style={{ fontSize: 14, color: '#374151', marginBottom: 20 }}>
+              {closedTrajet.type === 'aller' ? 'Tu es arrivé à destination.' : 'Bon retour à la maison.'}
+            </div>
+            <div style={{ padding: 16, backgroundColor: '#f0fdf4', borderRadius: 12, marginBottom: 20 }}>
+              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                ⏱️ Durée du trajet
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: '#16a34a', marginTop: 4 }}>
+                {formatDuree(mins)}
+              </div>
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 6 }}>
+                Ajouté à tes heures secondaires (crédit d'impôt QC)
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              <a href="/dossier/trajets"
+                style={{ padding: '10px 18px', fontSize: 13, fontWeight: 600, backgroundColor: 'white', color: '#1e3a5f', border: '1px solid #e5e7eb', borderRadius: 8, textDecoration: 'none', display: 'inline-block' }}>
+                📋 Voir mes trajets
+              </a>
+              <button onClick={onSaved}
+                style={{ padding: '10px 20px', fontSize: 13, fontWeight: 700, backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={overlayStyle}>
