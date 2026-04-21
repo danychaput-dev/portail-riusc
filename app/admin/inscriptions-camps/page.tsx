@@ -129,6 +129,19 @@ export default function InscriptionsCampsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
+  // Sidebar réductible sur desktop (persistant dans localStorage)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  useEffect(() => {
+    const saved = localStorage.getItem('inscriptions-camps-sidebar-collapsed')
+    if (saved === 'true') setSidebarCollapsed(true)
+  }, [])
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed(prev => {
+      localStorage.setItem('inscriptions-camps-sidebar-collapsed', String(!prev))
+      return !prev
+    })
+  }
+
   // ── Détecter si admin (avec support impersonation) ─────────────────────────
   useEffect(() => {
     async function checkRole() {
@@ -322,6 +335,36 @@ export default function InscriptionsCampsPage() {
     }
     loadInscrits()
   }, [selectedCampId, isPartenaireLect, roleChecked])
+
+  // ── Charger les rappels SMS du camp sélectionné (pour afficher le statut
+  //    de réponse par inscrit) ──
+  // Map indexé par inscription_id, on garde le rappel le plus récent par inscrit.
+  const [rappels, setRappels] = useState<Map<string, {
+    envoye_at: string | null
+    reponse: string | null
+    reponse_confirmee: boolean | null
+    reponse_at: string | null
+  }>>(new Map())
+  const refetchRappels = async () => {
+    if (!selectedCampId) { setRappels(new Map()); return }
+    try {
+      const { data } = await supabase
+        .from('rappels_camps')
+        .select('inscription_id, envoye_at, reponse, reponse_confirmee, reponse_at')
+        .eq('session_id', selectedCampId)
+        .order('envoye_at', { ascending: false })
+      if (!data) { setRappels(new Map()); return }
+      // Garder le plus récent par inscription
+      const m = new Map<string, any>()
+      for (const r of data as any[]) {
+        if (!m.has(r.inscription_id)) m.set(r.inscription_id, r)
+      }
+      setRappels(m)
+    } catch {
+      setRappels(new Map())
+    }
+  }
+  useEffect(() => { refetchRappels() }, [selectedCampId, roleChecked])
 
   // ── Filtres ─────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -620,6 +663,8 @@ export default function InscriptionsCampsPage() {
       const json = await res.json()
       if (res.ok) {
         setSmsResult({ nb_envoyes: json.nb_envoyes, nb_sans_telephone: json.nb_sans_telephone })
+        // Rafraîchir la colonne "Rappel SMS" pour voir les envois immédiatement
+        refetchRappels()
       } else {
         alert(json.error || 'Erreur lors de l\'envoi')
       }
@@ -710,16 +755,32 @@ export default function InscriptionsCampsPage() {
         />
       )}
       <aside style={{
-        width: 220,
-        minWidth: 220,
+        width: !isMobile && sidebarCollapsed ? 48 : 220,
+        minWidth: !isMobile && sidebarCollapsed ? 48 : 220,
         background: '#fff',
         borderRight: '1px solid #e5e7eb',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
+        transition: 'width 0.2s ease, min-width 0.2s ease',
         ...(isMobile ? { position: 'fixed', left: 0, top: 0, bottom: 0, zIndex: 45, boxShadow: '4px 0 16px rgba(0,0,0,0.15)' } : {}),
       }}>
-        <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #e5e7eb' }}>
+        {/* Bouton réduire/ouvrir (desktop uniquement) */}
+        {!isMobile && (
+          <div style={{ padding: '10px 8px', display: 'flex', justifyContent: sidebarCollapsed ? 'center' : 'flex-end' }}>
+            <button
+              onClick={toggleSidebarCollapsed}
+              title={sidebarCollapsed ? 'Ouvrir le menu' : 'Réduire le menu'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16, padding: '4px 8px', borderRadius: 6 }}
+              onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+              onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              {sidebarCollapsed ? '☰' : '◀'}
+            </button>
+          </div>
+        )}
+        {!(!isMobile && sidebarCollapsed) && (
+        <div style={{ padding: '6px 16px 12px', borderBottom: '1px solid #e5e7eb' }}>
           {isMobile ? (
             <button
               onClick={() => setSidebarOpen(false)}
@@ -740,8 +801,9 @@ export default function InscriptionsCampsPage() {
             {upcomingCamps.length} à venir · {pastCamps.length} passés
           </p>
         </div>
+        )}
 
-        {loading ? (
+        {!(!isMobile && sidebarCollapsed) && (loading ? (
           <div style={{ padding: 20, color: '#9ca3af', fontSize: 13 }}>Chargement...</div>
         ) : (
           <>
@@ -762,7 +824,7 @@ export default function InscriptionsCampsPage() {
               </div>
             )}
           </>
-        )}
+        ))}
       </aside>
       </>
       )}
@@ -836,6 +898,19 @@ export default function InscriptionsCampsPage() {
               <span style={{ marginLeft: 'auto', fontSize: 13, color: '#6b7280', alignSelf: 'center' }}>
                 {filtered.length} participant{filtered.length !== 1 ? 's' : ''}
               </span>
+              {isAdmin && rappels.size > 0 && (
+                <button
+                  onClick={refetchRappels}
+                  title="Rafraîchir les réponses SMS"
+                  style={{
+                    padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e8f0',
+                    fontSize: 13, background: 'white', color: '#6b7280', cursor: 'pointer',
+                    fontWeight: 600, whiteSpace: 'nowrap',
+                  }}
+                >
+                  🔄 Réponses
+                </button>
+              )}
               {isAdmin && !selectedCamp?.isPast && (
                 <button
                   onClick={ouvrirSmsModal}
@@ -978,9 +1053,9 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => (
+                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Rappel SMS'] : []), ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => (
                     <th key={i} style={{
-                      padding: '8px 10px', textAlign: h === 'Cahier' ? 'center' : 'left', fontSize: 10,
+                      padding: '8px 10px', textAlign: h === 'Cahier' || h === 'Rappel SMS' ? 'center' : 'left', fontSize: 10,
                       fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
                       letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
                       whiteSpace: 'nowrap',
@@ -1065,6 +1140,54 @@ export default function InscriptionsCampsPage() {
                         </div>
                       ) : presenceBadge(ins.presence)}
                     </td>
+                    {isAdmin && (
+                      <td style={{ padding: '8px 10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        {(() => {
+                          const r = rappels.get(ins.id)
+                          if (!r) {
+                            return <span style={{ fontSize: 11, color: '#cbd5e1' }}>—</span>
+                          }
+                          const envoye = r.envoye_at ? new Date(r.envoye_at) : null
+                          const reponse = r.reponse_at ? new Date(r.reponse_at) : null
+                          const fmt = (d: Date) => d.toLocaleDateString('fr-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                          // Interprétation
+                          if (r.reponse_confirmee === true) {
+                            return (
+                              <div title={`Répondu OUI ("${r.reponse}") le ${reponse ? fmt(reponse) : '—'}`}>
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#dcfce7', color: '#065f46', fontWeight: 700 }}>✅ OUI</span>
+                                {reponse && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{fmt(reponse)}</div>}
+                              </div>
+                            )
+                          }
+                          if (r.reponse_confirmee === false) {
+                            return (
+                              <div title={`Répondu NON ("${r.reponse}") le ${reponse ? fmt(reponse) : '—'}`}>
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#fee2e2', color: '#991b1b', fontWeight: 700 }}>❌ NON</span>
+                                {reponse && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{fmt(reponse)}</div>}
+                              </div>
+                            )
+                          }
+                          if (r.reponse) {
+                            // Réponse non-standard, demande lecture humaine
+                            return (
+                              <div title={`Texte reçu : « ${r.reponse} »\nEnvoyé le ${envoye ? fmt(envoye) : '—'}`}>
+                                <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#fef3c7', color: '#92400e', fontWeight: 700 }}>❓ Autre</span>
+                                <div style={{ fontSize: 10, color: '#64748b', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  &quot;{r.reponse}&quot;
+                                </div>
+                              </div>
+                            )
+                          }
+                          // Envoyé mais pas de réponse
+                          return (
+                            <div title={`SMS envoyé le ${envoye ? fmt(envoye) : '—'}\nPas encore de réponse.`}>
+                              <span style={{ fontSize: 11, padding: '2px 7px', borderRadius: 10, backgroundColor: '#e0f2fe', color: '#075985', fontWeight: 700 }}>📤 Envoyé</span>
+                              {envoye && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{fmt(envoye)}</div>}
+                            </div>
+                          )
+                        })()}
+                      </td>
+                    )}
                     {isAdmin && (
                       <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                         <input
