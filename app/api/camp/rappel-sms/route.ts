@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   // ou même des annulés). Sinon, on envoie à tous les confirmé/incertain.
   let query = supabaseAdmin
     .from('inscriptions_camps')
-    .select('id, benevole_id, prenom_nom, telephone, camp_nom, camp_dates, camp_lieu')
+    .select('id, benevole_id, prenom_nom, camp_nom, camp_dates, camp_lieu')
     .eq('session_id', session_id)
 
   if (Array.isArray(inscription_ids) && inscription_ids.length > 0) {
@@ -65,9 +65,19 @@ export async function POST(req: NextRequest) {
   if (errInsc) return NextResponse.json({ error: errInsc.message }, { status: 500 })
   if (!inscriptions?.length) return NextResponse.json({ error: 'Aucun inscrit trouvé' }, { status: 404 })
 
-  // Filtrer ceux qui ont un téléphone valide
+  // Charger les téléphones depuis reservistes (source unique de vérité)
+  const benevoleIds = inscriptions.map(i => i.benevole_id).filter(Boolean)
+  const { data: reservistesData } = await supabaseAdmin
+    .from('reservistes')
+    .select('benevole_id, telephone')
+    .in('benevole_id', benevoleIds)
+  const telParBenevoleId = new Map<string, string | null>(
+    (reservistesData || []).map((r: any) => [r.benevole_id, r.telephone])
+  )
+
+  // Filtrer ceux qui ont un téléphone valide (dans reservistes)
   const destinataires = inscriptions
-    .map(i => ({ ...i, tel_e164: toE164(i.telephone || '') }))
+    .map(i => ({ ...i, tel_e164: toE164(telParBenevoleId.get(i.benevole_id) || '') }))
     .filter(i => i.tel_e164)
 
   if (!destinataires.length) {

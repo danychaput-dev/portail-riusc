@@ -290,10 +290,12 @@ export default function InscriptionsCampsPage() {
       if (!data || data.length === 0) { setInscriptions([]); setLoadingInscrits(false); return }
 
       // Étape 2 — données complémentaires des réservistes (que non-sensibles pour partenaire_lect)
+      // Note : on prend TOUJOURS le téléphone depuis `reservistes` (source unique),
+      // pas depuis `inscriptions_camps.telephone` qui est redondant.
       const benevoleIds = data.map((r: any) => r.benevole_id).filter(Boolean)
       const selectReservistes = isPartenaireLect
         ? 'benevole_id, region, groupe'
-        : 'benevole_id, prenom, nom, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales'
+        : 'benevole_id, prenom, nom, telephone, region, groupe, remboursement_bottes_date, allergies_alimentaires, allergies_autres, conditions_medicales'
       const { data: resData } = await supabase
         .from('reservistes')
         .select(selectReservistes)
@@ -310,7 +312,8 @@ export default function InscriptionsCampsPage() {
           presence: row.presence,
           statut_inscription: 'Inscrit',
           courriel: row.courriel,
-          telephone: row.telephone,
+          // Téléphone : TOUJOURS celui de reservistes (source unique de vérité)
+          telephone: (res as any)?.telephone ?? null,
           camp_nom: row.camp_nom,
           camp_dates: row.camp_dates,
           camp_lieu: row.camp_lieu,
@@ -319,14 +322,14 @@ export default function InscriptionsCampsPage() {
           created_at: row.created_at,
           presence_updated_at: row.presence_updated_at ?? null,
           cahier_envoye: row.cahier_envoye ?? false,
-          region: res?.region ?? null,
-          groupe: res?.groupe ?? null,
-          remboursement_bottes_date: res?.remboursement_bottes_date ?? null,
-          allergies_alimentaires: res?.allergies_alimentaires ?? null,
-          allergies_autres: res?.allergies_autres ?? null,
-          conditions_medicales: res?.conditions_medicales ?? null,
-          prenom: res?.prenom ?? null,
-          nom: res?.nom ?? null,
+          region: (res as any)?.region ?? null,
+          groupe: (res as any)?.groupe ?? null,
+          remboursement_bottes_date: (res as any)?.remboursement_bottes_date ?? null,
+          allergies_alimentaires: (res as any)?.allergies_alimentaires ?? null,
+          allergies_autres: (res as any)?.allergies_autres ?? null,
+          conditions_medicales: (res as any)?.conditions_medicales ?? null,
+          prenom: (res as any)?.prenom ?? null,
+          nom: (res as any)?.nom ?? null,
         }
       })
 
@@ -390,6 +393,34 @@ export default function InscriptionsCampsPage() {
     else { setSortKey(k); setSortDir('asc') }
   }
   const sortArrow = (k: SortKey) => sortKey === k ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  // Menu contextuel par ligne (stocke l'inscription_id dont le menu est ouvert)
+  const [menuRowId, setMenuRowId] = useState<string | null>(null)
+  useEffect(() => {
+    if (!menuRowId) return
+    const close = () => setMenuRowId(null)
+    // Fermer le menu au clic n'importe où
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [menuRowId])
+
+  // Action emprunt d'identité depuis le menu contextuel
+  const emprunterDepuisMenu = async (ins: Inscription) => {
+    const nom = ins.prenom_nom || `${ins.prenom || ''} ${ins.nom || ''}`.trim()
+    if (!confirm(`Emprunter l'identité de ${nom} ?\n\nVous serez redirigé vers le portail en tant que cette personne.`)) return
+    try {
+      const res = await fetch('/api/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benevole_id: ins.benevole_id }),
+      })
+      const json = await res.json()
+      if (json.success) window.open('/', '_blank')
+      else alert(json.error || 'Erreur lors de l\'emprunt d\'identité')
+    } catch {
+      alert('Erreur réseau')
+    }
+  }
 
   const filtered = useMemo(() => {
     const list = inscriptions.filter(i => {
@@ -1380,20 +1411,55 @@ export default function InscriptionsCampsPage() {
                       </>
                     )}
                     {isAdmin && (
-                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                      <td style={{ padding: '8px 6px', textAlign: 'center', position: 'relative' }}>
                         <button
-                          onClick={() => router.push(`/admin/reservistes?benevole_id=${ins.benevole_id}`)}
-                          title="Voir le profil"
-                          style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#6b7280', fontSize: 16, padding: '2px 6px',
-                            borderRadius: 4, transition: 'color 0.15s',
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setMenuRowId(menuRowId === ins.id ? null : ins.id)
                           }}
-                          onMouseOver={e => (e.currentTarget.style.color = '#1e3a5f')}
-                          onMouseOut={e => (e.currentTarget.style.color = '#6b7280')}
+                          title="Actions"
+                          style={{
+                            background: menuRowId === ins.id ? '#eff6ff' : 'none',
+                            border: 'none', cursor: 'pointer',
+                            color: '#6b7280', fontSize: 18, padding: '4px 8px',
+                            borderRadius: 4, lineHeight: 1,
+                          }}
+                          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f3f4f6')}
+                          onMouseOut={e => (e.currentTarget.style.backgroundColor = menuRowId === ins.id ? '#eff6ff' : 'transparent')}
                         >
-                          →
+                          ⋮
                         </button>
+                        {menuRowId === ins.id && (
+                          <div
+                            onClick={e => e.stopPropagation()}
+                            style={{
+                              position: 'absolute', top: '100%', right: 0, marginTop: 2,
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb', borderRadius: 8,
+                              boxShadow: '0 10px 24px rgba(0,0,0,0.12)',
+                              minWidth: 200, zIndex: 20, overflow: 'hidden',
+                              fontSize: 13, textAlign: 'left',
+                            }}
+                          >
+                            <button onClick={() => { setMenuRowId(null); window.open(`/profil?bid=${ins.benevole_id}`, '_blank') }}
+                              style={menuItemStyle}>
+                              👤 Voir le profil
+                            </button>
+                            <button onClick={() => { setMenuRowId(null); emprunterDepuisMenu(ins) }}
+                              style={menuItemStyle}>
+                              🎭 Emprunt d{"'"}identité
+                            </button>
+                            <button onClick={() => {
+                              setMenuRowId(null)
+                              // Pré-sélectionne uniquement cette inscription puis ouvre la modale de transfert
+                              setSelectedIds(new Set([ins.id]))
+                              setTimeout(() => openTransferModal(), 0)
+                            }}
+                              style={menuItemStyle}>
+                              ⛺ Changer de camp
+                            </button>
+                          </div>
+                        )}
                       </td>
                     )}
                   </tr>
@@ -1615,6 +1681,15 @@ export default function InscriptionsCampsPage() {
       )}
     </div>
   )
+}
+
+// ─── Styles partagés ────────────────────────────────────────────────────────
+
+const menuItemStyle: React.CSSProperties = {
+  display: 'block', width: '100%', textAlign: 'left',
+  padding: '10px 14px', background: 'white', border: 'none',
+  borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
+  fontSize: 13, color: '#374151',
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
