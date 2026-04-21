@@ -1528,17 +1528,20 @@ function ReservistesPage() {
                       </div>
                     )
                   })}
-                  {/* Pastille certificats : vert = tout OK, jaune = en attente d'approbation, rouge = fichier manquant */}
+                  {/* Pastille certificats : toujours occupe l'espace (26px) pour que
+                      l'icône ✏️ de la colonne suivante reste alignée entre les lignes.
+                      Vide (invisible) quand aucun certif manquant ou en attente. */}
                   {(() => {
                     const manquants = r.certifs_manquants
                     const enAttente = r.certifs_en_attente
                     const total = manquants + enAttente
-                    if (total === 0) return null
-                    // Rouge si fichiers manquants, jaune si seulement en attente d'approbation
                     const hasManquants = manquants > 0
                     const lines = []
                     if (manquants > 0) lines.push(`${manquants} certificat${manquants > 1 ? 's' : ''} — fichier manquant`)
                     if (enAttente > 0) lines.push(`${enAttente} certificat${enAttente > 1 ? 's' : ''} — en attente d'approbation`)
+                    if (total === 0) {
+                      return <div style={{ width: '26px', height: '26px' }} aria-hidden="true" />
+                    }
                     return (
                       <div
                         title={lines.join('\n')}
@@ -1555,9 +1558,6 @@ function ReservistesPage() {
                       </div>
                     )
                   })()}
-                  {isDeployable(r) && (
-                    <span style={{ fontSize: '11px', marginLeft: '2px' }} title="Déployable">🟢</span>
-                  )}
                 </div>
                 )}
                 {/* Antécédents */}
