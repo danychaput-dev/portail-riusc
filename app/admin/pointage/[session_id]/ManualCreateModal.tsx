@@ -82,8 +82,8 @@ export default function ManualCreateModal({ sessionId, onClose, onCreated }: Pro
   }
 
   return (
-    <div onClick={onClose} style={overlayStyle}>
-      <div onClick={e => e.stopPropagation()} style={modalStyle}>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C, marginBottom: 18 }}>
           + Créer une présence manuellement
         </h2>

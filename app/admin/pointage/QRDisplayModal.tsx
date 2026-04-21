@@ -91,8 +91,8 @@ export default function QRDisplayModal({ url, dataUrl, session, onClose }: Props
   }
 
   return (
-    <div onClick={onClose} style={overlayStyle}>
-      <div onClick={e => e.stopPropagation()} style={modalStyle}>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C }}>✅ QR généré</h2>

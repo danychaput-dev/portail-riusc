@@ -133,13 +133,17 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
     } else {
       if (!deploymentId) { setErr('Sélectionne un déploiement'); return }
       if (!selectedDep)  { setErr('Déploiement introuvable'); return }
-      const nom = selectedDep.identifiant
-        ? `${selectedDep.identifiant} — ${selectedDep.nom}`
-        : selectedDep.nom
+      // Évite de dupliquer l'identifiant si le nom le contient déjà
+      // (ex: nom = "DEP-002 - Construction digue" et identifiant = "DEP-002")
+      const ident = selectedDep.identifiant?.trim()
+      const nom   = (selectedDep.nom || '').trim()
+      const contexte_nom = (ident && !nom.toUpperCase().includes(ident.toUpperCase()))
+        ? `${ident} — ${nom}`
+        : nom
       payload = {
         type_contexte: 'deploiement',
         session_id: selectedDep.id,
-        contexte_nom: nom,
+        contexte_nom,
         contexte_dates: depDatesText(selectedDep) || null,
         contexte_lieu: selectedDep.lieu || null,
       }
@@ -174,8 +178,8 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
   }
 
   return (
-    <div onClick={onClose} style={overlayStyle}>
-      <div onClick={e => e.stopPropagation()} style={modalStyle}>
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C }}>Nouveau QR de présence</h2>
           <button onClick={onClose} style={closeBtn}>×</button>

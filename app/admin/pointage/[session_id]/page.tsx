@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import EditPointageModal from './EditPointageModal'
 import LogsModal from './LogsModal'
@@ -58,6 +58,11 @@ export default function SessionDetailPage() {
   const [showManualCreate, setShowManualCreate] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
+  // Sélection multi avec support Shift+clic
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null)
+  const [bulkLoading, setBulkLoading] = useState(false)
+
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/admin/pointage/sessions/${sessionId}/pointages`, { cache: 'no-store' })
@@ -99,6 +104,75 @@ export default function SessionDetailPage() {
 
   const handleExport = (includeAnnule: boolean) => {
     window.location.href = `/api/admin/pointage/sessions/${sessionId}/export?include_annule=${includeAnnule}`
+  }
+
+  // Indices des lignes sélectionnables (exclut les annulés)
+  const selectableRows = useMemo(
+    () => pointages.filter(p => p.statut !== 'annule'),
+    [pointages]
+  )
+
+  // Ligne(s) complétée(s) sélectionnée(s) → approuvables en batch
+  const approvablesSelected = useMemo(
+    () => Array.from(selectedIds).filter(id =>
+      pointages.find(p => p.id === id)?.statut === 'complete'
+    ),
+    [selectedIds, pointages]
+  )
+
+  const toggleRow = (idx: number, shiftKey: boolean) => {
+    const row = selectableRows[idx]
+    if (!row) return
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      const isSelecting = !next.has(row.id)
+      if (shiftKey && lastCheckedIndex !== null && lastCheckedIndex !== idx) {
+        const [from, to] = [Math.min(lastCheckedIndex, idx), Math.max(lastCheckedIndex, idx)]
+        for (let i = from; i <= to; i++) {
+          const r = selectableRows[i]
+          if (r) {
+            if (isSelecting) next.add(r.id)
+            else next.delete(r.id)
+          }
+        }
+      } else {
+        if (isSelecting) next.add(row.id)
+        else next.delete(row.id)
+      }
+      return next
+    })
+    setLastCheckedIndex(idx)
+  }
+
+  const toggleSelectAllCompletes = () => {
+    const completes = pointages.filter(p => p.statut === 'complete').map(p => p.id)
+    const allSelected = completes.length > 0 && completes.every(id => selectedIds.has(id))
+    setSelectedIds(allSelected ? new Set() : new Set(completes))
+    setLastCheckedIndex(null)
+  }
+
+  const clearSelection = () => { setSelectedIds(new Set()); setLastCheckedIndex(null) }
+
+  const bulkApprove = async () => {
+    if (approvablesSelected.length === 0) return
+    if (!confirm(`Approuver ${approvablesSelected.length} pointage(s) ?`)) return
+    setBulkLoading(true)
+    const results = await Promise.allSettled(
+      approvablesSelected.map(id =>
+        fetch(`/api/admin/pointage/pointages/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approuver' }),
+        })
+      )
+    )
+    const errors = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok))
+    if (errors.length > 0) {
+      alert(`${errors.length} erreur(s) sur ${approvablesSelected.length}. Les autres ont été approuvés.`)
+    }
+    clearSelection()
+    await load()
+    setBulkLoading(false)
   }
 
   if (loading) {
@@ -176,6 +250,27 @@ export default function SessionDetailPage() {
         </div>
       )}
 
+      {/* Barre d'actions groupées */}
+      {selectedIds.size > 0 && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 5, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', marginBottom: 10, backgroundColor: '#eff6ff', border: `1px solid #bfdbfe`, borderRadius: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 13, color: C, fontWeight: 600 }}>
+            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+          </div>
+          <button onClick={bulkApprove} disabled={bulkLoading || approvablesSelected.length === 0}
+            title={approvablesSelected.length === 0 ? 'Aucun pointage complété dans la sélection' : `Approuver les ${approvablesSelected.length} pointage(s) complété(s) sélectionné(s)`}
+            style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, backgroundColor: (bulkLoading || approvablesSelected.length === 0) ? '#9ca3af' : GREEN, color: 'white', border: 'none', borderRadius: 6, cursor: (bulkLoading || approvablesSelected.length === 0) ? 'not-allowed' : 'pointer' }}>
+            {bulkLoading ? 'Approbation…' : `✓ Approuver (${approvablesSelected.length})`}
+          </button>
+          <button onClick={clearSelection} disabled={bulkLoading}
+            style={{ padding: '6px 12px', fontSize: 12, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer' }}>
+            Effacer la sélection
+          </button>
+          <div style={{ fontSize: 11, color: MUTED, marginLeft: 'auto' }}>
+            💡 <strong>Shift+clic</strong> pour sélectionner une plage
+          </div>
+        </div>
+      )}
+
       {/* Tableau */}
       {pointages.length === 0 ? (
         <div style={{ padding: 60, textAlign: 'center', color: MUTED, backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
@@ -186,6 +281,24 @@ export default function SessionDetailPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc' }}>
+                <th style={{ ...thStyle, width: 34, textAlign: 'center' }}>
+                  <input type="checkbox"
+                    title="Tout sélectionner (seulement les complétés)"
+                    checked={(() => {
+                      const completes = pointages.filter(p => p.statut === 'complete')
+                      return completes.length > 0 && completes.every(p => selectedIds.has(p.id))
+                    })()}
+                    ref={el => {
+                      if (el) {
+                        const completes = pointages.filter(p => p.statut === 'complete')
+                        const selCompletes = completes.filter(p => selectedIds.has(p.id)).length
+                        el.indeterminate = selCompletes > 0 && selCompletes < completes.length
+                      }
+                    }}
+                    onChange={toggleSelectAllCompletes}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </th>
                 <th style={thStyle}>Réserviste</th>
                 <th style={thStyle}>Arrivée</th>
                 <th style={thStyle}>Départ</th>
@@ -196,8 +309,21 @@ export default function SessionDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {pointages.map(p => (
-                <tr key={p.id} style={{ borderTop: `1px solid ${BORDER}`, opacity: p.statut === 'annule' ? 0.5 : 1 }}>
+              {pointages.map(p => {
+                const selectableIdx = selectableRows.findIndex(r => r.id === p.id)
+                const isSelectable = selectableIdx !== -1
+                const isSelected = selectedIds.has(p.id)
+                return (
+                <tr key={p.id} style={{ borderTop: `1px solid ${BORDER}`, opacity: p.statut === 'annule' ? 0.5 : 1, backgroundColor: isSelected ? '#eff6ff' : undefined }}>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    {isSelectable && (
+                      <input type="checkbox" checked={isSelected}
+                        onClick={(e) => { e.stopPropagation(); toggleRow(selectableIdx, (e as any).shiftKey) }}
+                        onChange={() => {}} // empêche React de râler sur le checked sans onChange
+                        style={{ cursor: 'pointer' }}
+                      />
+                    )}
+                  </td>
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 600, color: C }}>{p.reserviste_nom}</div>
                     {p.notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2, fontStyle: 'italic' }}>💬 {p.notes}</div>}
@@ -237,7 +363,8 @@ export default function SessionDetailPage() {
                     )}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
