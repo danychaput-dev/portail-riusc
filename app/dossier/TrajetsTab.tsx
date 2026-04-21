@@ -62,7 +62,9 @@ export default function TrajetsTab() {
   return (
     <div>
       <p style={{ marginTop: 0, fontSize: 13, color: MUTED, marginBottom: 20 }}>
-        Les heures de déplacement comptent comme <strong>heures secondaires</strong> pour le crédit d&apos;impôt QC.
+        {'Les heures de déplacement comptent comme '}
+        <strong>heures secondaires</strong>
+        {' pour le crédit d\'impôt QC.'}
       </p>
 
       {/* Cumul */}
