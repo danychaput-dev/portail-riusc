@@ -54,6 +54,26 @@ function ProfilPage() {
     window.history.replaceState({}, '', url.toString())
   }
 
+  // L'onglet « Mes heures » n'est visible que si le bénévole est éligible
+  // (AQBRS ou Pompiers volontaires) ET a au moins une donnée (pointage ou trajet).
+  // Si la condition n'est pas remplie, l'onglet est caché (mais l'URL ?tab=heures
+  // reste accessible pour les liens directs).
+  const [showHeuresTab, setShowHeuresTab] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/heures-benevoles/me', { cache: 'no-store' })
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        const eligible = !!data?.sommaire?.eligible_credit_impot
+        const hasData = (data?.evenements?.length || 0) > 0
+        if (!cancelled) setShowHeuresTab(eligible && hasData)
+      } catch { /* ignore */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
   // Hook d'authentification avec support emprunt
   const { user: authUser, loading: authLoading } = useAuth()
 
@@ -1371,10 +1391,12 @@ function ProfilPage() {
             style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'trajets' ? 'white' : 'transparent', color: activeTab === 'trajets' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'trajets' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
             🚗 Mes trajets
           </button>
-          <button onClick={() => switchTab('heures')}
-            style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'heures' ? 'white' : 'transparent', color: activeTab === 'heures' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'heures' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
-            📊 Mes heures
-          </button>
+          {showHeuresTab && (
+            <button onClick={() => switchTab('heures')}
+              style={{ padding: '10px 18px', fontSize: 14, fontWeight: 700, backgroundColor: activeTab === 'heures' ? 'white' : 'transparent', color: activeTab === 'heures' ? '#1e3a5f' : '#6b7280', border: 'none', borderBottom: activeTab === 'heures' ? '3px solid #1e3a5f' : '3px solid transparent', marginBottom: -2, cursor: 'pointer', transition: 'all 0.15s' }}>
+              📊 Mes heures
+            </button>
+          )}
         </div>
       </div>
 
