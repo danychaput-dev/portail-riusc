@@ -550,8 +550,8 @@ export default function PortailHeader({ subtitle = 'Portail RIUSC', reservisteOv
 
                 {/* Menu réservé aux responsables de groupe R&S */}
                 {isResponsableGroupe && (
-                  <a href="/mon-groupe" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#7c3aed', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6', fontWeight: 600 }}
-                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#faf5ff'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
+                  <a href="/mon-groupe" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', color: '#374151', textDecoration: 'none', fontSize: '14px', borderBottom: '1px solid #f3f4f6' }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}>
                     <span style={{ fontSize: '18px' }}>🎖️</span>
                     Mon groupe R&amp;S
                   </a>
