@@ -182,14 +182,17 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
   const [covoit, setCovoit] = useState(false)
   const [covoitRole, setCovoitRole] = useState<'conducteur' | 'passager'>('passager')
   const [covoitWith, setCovoitWith] = useState('')
+  // En mode close, permettre optionnellement d'éditer le covoit (exceptionnel, caché par défaut)
+  const [editCovoitInClose, setEditCovoitInClose] = useState(false)
 
-  // En mode close : pré-remplir avec les valeurs actuelles du trajet
+  // En mode close : pré-remplir avec les valeurs actuelles du trajet (utilisé seulement
+  // si l'utilisateur ouvre l'édition de correction covoit)
   useEffect(() => {
     if (trajetOuvert) {
-      setNotes(trajetOuvert.notes || '')
       setCovoit(trajetOuvert.covoiturage)
       setCovoitRole((trajetOuvert.covoiturage_role as any) || 'passager')
       setCovoitWith(trajetOuvert.covoiturage_with || '')
+      setNotes('') // On ne pré-remplit PAS les notes — c'est une note d'arrivée additionnelle
     }
   }, [trajetOuvert])
 
@@ -222,15 +225,26 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
       } else {
         // Fermer le trajet ouvert
         if (!trajetOuvert) return
+        // Notes d'arrivée : on concatène avec les notes de départ si présentes
+        let notesFinal: string | undefined
+        const notesArrivee = notes.trim()
+        if (notesArrivee) {
+          notesFinal = trajetOuvert.notes
+            ? `${trajetOuvert.notes}\n— Arrivée : ${notesArrivee}`
+            : `Arrivée : ${notesArrivee}`
+        }
+        const body: any = {}
+        if (notesFinal) body.notes = notesFinal
+        // Envoyer le covoit SEULEMENT si l'utilisateur a ouvert l'édition de correction
+        if (editCovoitInClose) {
+          body.covoiturage = covoit
+          body.covoiturage_role = covoit ? covoitRole : null
+          body.covoiturage_with = covoit ? covoitWith.trim() : null
+        }
         const res = await fetch(`/api/trajets/${trajetOuvert.id}/fin`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            notes: notes.trim() || undefined,
-            covoiturage: covoit,
-            covoiturage_role: covoit ? covoitRole : null,
-            covoiturage_with: covoit ? covoitWith.trim() : null,
-          }),
+          body: JSON.stringify(body),
         })
         const json = await res.json()
         if (!res.ok) { setErr(json.error || 'Erreur'); setSubmitting(false); return }
@@ -301,39 +315,94 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
             </div>
           )}
 
-          {/* Covoiturage */}
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={covoit} onChange={e => setCovoit(e.target.checked)} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>🧑‍🤝‍🧑 Covoiturage</span>
-            </label>
-            {covoit && (
-              <div style={{ display: 'grid', gap: 8, marginTop: 10, marginLeft: 24 }}>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <label style={{ ...radioCardStyle(covoitRole === 'conducteur'), flex: 1 }}>
-                    <input type="radio" name="covoit_role" checked={covoitRole === 'conducteur'} onChange={() => setCovoitRole('conducteur')} style={{ marginRight: 6 }} />
-                    🚙 Conducteur
-                  </label>
-                  <label style={{ ...radioCardStyle(covoitRole === 'passager'), flex: 1 }}>
-                    <input type="radio" name="covoit_role" checked={covoitRole === 'passager'} onChange={() => setCovoitRole('passager')} style={{ marginRight: 6 }} />
-                    🧍 Passager
-                  </label>
+          {/* Covoiturage — mode START : édition complète */}
+          {mode === 'start' && (
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={covoit} onChange={e => setCovoit(e.target.checked)} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>🧑‍🤝‍🧑 Covoiturage</span>
+              </label>
+              {covoit && (
+                <div style={{ display: 'grid', gap: 8, marginTop: 10, marginLeft: 24 }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <label style={{ ...radioCardStyle(covoitRole === 'conducteur'), flex: 1 }}>
+                      <input type="radio" name="covoit_role" checked={covoitRole === 'conducteur'} onChange={() => setCovoitRole('conducteur')} style={{ marginRight: 6 }} />
+                      🚙 Conducteur
+                    </label>
+                    <label style={{ ...radioCardStyle(covoitRole === 'passager'), flex: 1 }}>
+                      <input type="radio" name="covoit_role" checked={covoitRole === 'passager'} onChange={() => setCovoitRole('passager')} style={{ marginRight: 6 }} />
+                      🧍 Passager
+                    </label>
+                  </div>
+                  <input type="text" value={covoitWith} onChange={e => setCovoitWith(e.target.value)}
+                    placeholder="Avec qui ? (ex: Marc Tremblay, Julie B.)"
+                    style={inputStyle}
+                  />
                 </div>
-                <input type="text" value={covoitWith} onChange={e => setCovoitWith(e.target.value)}
-                  placeholder="Avec qui ? (ex: Marc Tremblay, Julie B.)"
-                  style={inputStyle}
-                />
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
-          {/* Notes */}
+          {/* Covoiturage — mode CLOSE : résumé en lecture seule + option d'édition */}
+          {mode === 'close' && trajetOuvert && !editCovoitInClose && (
+            <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 8, fontSize: 13, color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <span>
+                {trajetOuvert.covoiturage
+                  ? <>🧑‍🤝‍🧑 <strong>Covoiturage</strong> — {trajetOuvert.covoiturage_role === 'conducteur' ? '🚙 Conducteur' : '🧍 Passager'}{trajetOuvert.covoiturage_with ? ` avec ${trajetOuvert.covoiturage_with}` : ''}</>
+                  : <>🧍 Pas de covoiturage</>
+                }
+              </span>
+              <button onClick={() => setEditCovoitInClose(true)} style={{ padding: '4px 10px', fontSize: 11, backgroundColor: 'white', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer' }}>
+                ✏️ Corriger
+              </button>
+            </div>
+          )}
+          {mode === 'close' && editCovoitInClose && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={covoit} onChange={e => setCovoit(e.target.checked)} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>🧑‍🤝‍🧑 Covoiturage (correction)</span>
+                </label>
+                <button onClick={() => setEditCovoitInClose(false)} style={{ fontSize: 11, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Annuler correction</button>
+              </div>
+              {covoit && (
+                <div style={{ display: 'grid', gap: 8, marginTop: 4, marginLeft: 24 }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <label style={{ ...radioCardStyle(covoitRole === 'conducteur'), flex: 1 }}>
+                      <input type="radio" name="covoit_role" checked={covoitRole === 'conducteur'} onChange={() => setCovoitRole('conducteur')} style={{ marginRight: 6 }} />
+                      🚙 Conducteur
+                    </label>
+                    <label style={{ ...radioCardStyle(covoitRole === 'passager'), flex: 1 }}>
+                      <input type="radio" name="covoit_role" checked={covoitRole === 'passager'} onChange={() => setCovoitRole('passager')} style={{ marginRight: 6 }} />
+                      🧍 Passager
+                    </label>
+                  </div>
+                  <input type="text" value={covoitWith} onChange={e => setCovoitWith(e.target.value)}
+                    placeholder="Avec qui ?"
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Notes — le label change selon le contexte */}
           <div>
-            <label style={labelStyle}>Notes (optionnel)</label>
+            <label style={labelStyle}>
+              {mode === 'start' ? 'Notes (optionnel)' : 'Note d\'arrivée (optionnel)'}
+            </label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-              placeholder="Ex: Trafic important, pause souper en route…"
+              placeholder={mode === 'start'
+                ? 'Ex: Trafic important, pause souper en route…'
+                : 'Ex: Arrivé 20min en retard, détour par la pharmacie…'}
               style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
             />
+            {mode === 'close' && trajetOuvert?.notes && (
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+                💡 Note de départ : « {trajetOuvert.notes} »
+              </div>
+            )}
           </div>
 
           {err && (
