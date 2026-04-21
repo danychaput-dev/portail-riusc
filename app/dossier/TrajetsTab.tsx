@@ -89,8 +89,19 @@ export default function TrajetsTab() {
 
       {/* Liste */}
       {trajets.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: MUTED, backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
-          Aucun trajet pour l&apos;instant. Utilise le bouton 🚗 dans la barre du haut quand tu quittes pour un site bénévole.
+        <div style={{ padding: 32, textAlign: 'center', backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🚗</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C, marginBottom: 8 }}>
+            Aucun trajet jusqu&apos;à maintenant
+          </div>
+          <div style={{ fontSize: 13, color: MUTED, maxWidth: 480, margin: '0 auto', lineHeight: 1.5 }}>
+            Lors de ton prochain déploiement ou camp, tu pourras utiliser le bouton
+            {' '}🚗{' '} dans la barre du haut pour <strong>traquer tes temps de déplacement</strong>
+            {' '}entre chez toi et le site de bénévolat.
+          </div>
+          <div style={{ fontSize: 12, color: MUTED, marginTop: 10, fontStyle: 'italic' }}>
+            Ces heures comptent comme secondaires pour le crédit d&apos;impôt QC.
+          </div>
         </div>
       ) : (
         <div style={{ backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'auto' }}>
