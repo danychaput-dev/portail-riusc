@@ -7,6 +7,7 @@ import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { isDemoActive, getDemoGroupe, DEMO_RESERVISTE, DEMO_USER, DEMO_FORMATIONS } from '@/utils/demoMode';
 import { n8nUrl } from '@/utils/n8n';
+import { getCampsSessionsActifs } from '@/app/_data/camps-sessions';
 
 interface Reserviste {
   benevole_id: string;
@@ -387,8 +388,8 @@ function FormationContent() {
       return;
     }
     try {
-      const response = await fetch(n8nUrl('/webhook/sessions-camps'));
-      if (response.ok) { const data = await response.json(); if (data.success && data.sessions) setSessionsDisponibles(data.sessions); }
+      // Source de vérité : liste statique partagée (app/_data/camps-sessions.ts)
+      setSessionsDisponibles(getCampsSessionsActifs());
     } catch (e) { setInscriptionError('Impossible de charger les camps disponibles'); }
     setLoadingSessions(false);
   };

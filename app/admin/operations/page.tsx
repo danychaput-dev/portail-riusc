@@ -511,9 +511,14 @@ export default function OperationsPage() {
     setSendingNotif(true)
     await supabase.from('ciblages').update({statut:'notifie',updated_at:new Date().toISOString()}).in('id',toNotify)
     try {
-      await fetch(n8nUrl('/webhook/riusc-envoi-ciblage-portail'), {
+      // Passage par notre proxy serveur qui injecte les clés Supabase/Twilio
+      // dans le body avant de forward à n8n (les clés ne quittent pas Vercel).
+      await fetch('/api/admin/operations/n8n-webhook', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ deployment_id:depId, ciblage_ids:toNotify, message_override:msgNotif, type_envoi:'disponibilites' }),
+        body: JSON.stringify({
+          path: 'riusc-envoi-ciblage-portail',
+          payload: { deployment_id:depId, ciblage_ids:toNotify, message_override:msgNotif, type_envoi:'disponibilites' },
+        }),
       })
     } catch(e) { console.error('n8n notif',e) }
     setCiblages(p=>p.map(c=>toNotify.includes(c.id)?{...c,statut:'notifie'}:c))
@@ -540,18 +545,21 @@ export default function OperationsPage() {
     }
     setSendingNotif(true)
     try {
-      const res = await fetch(n8nUrl('/webhook/riusc-envoi-ciblage-portail'), {
+      const res = await fetch('/api/admin/operations/n8n-webhook', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          test: true,
-          test_destinataire: {
-            benevole_id: me.benevole_id,
-            prenom: me.prenom, nom: me.nom,
-            email: me.email, telephone: me.telephone,
+          path: 'riusc-envoi-ciblage-portail',
+          payload: {
+            test: true,
+            test_destinataire: {
+              benevole_id: me.benevole_id,
+              prenom: me.prenom, nom: me.nom,
+              email: me.email, telephone: me.telephone,
+            },
+            deployment_id: depId,
+            message_override: msgNotif,
+            type_envoi: 'disponibilites',
           },
-          deployment_id: depId,
-          message_override: msgNotif,
-          type_envoi: 'disponibilites',
         }),
       })
       if (res.ok) {
@@ -606,9 +614,12 @@ export default function OperationsPage() {
     }
     setSendingMobil(true)
     try {
-      await fetch(n8nUrl('/webhook/riusc-envoi-mobilisation-portail'), {
+      await fetch('/api/admin/operations/n8n-webhook', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' }),
+        body: JSON.stringify({
+          path: 'riusc-envoi-mobilisation-portail',
+          payload: { deployment_id:depId, vague_ids:vagues.map(v=>v.id), message_override:msgMobil, type_envoi:'mobilisation' },
+        }),
       })
       // Persister l'état "mobilisée" au niveau des vagues pour que TOUS les admins
       // voient que la mobilisation a été envoyée. On limite aux vagues encore 'Planifiée'
@@ -641,19 +652,22 @@ export default function OperationsPage() {
     }
     setSendingMobil(true)
     try {
-      const res = await fetch(n8nUrl('/webhook/riusc-envoi-mobilisation-portail'), {
+      const res = await fetch('/api/admin/operations/n8n-webhook', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          test: true,
-          test_destinataire: {
-            benevole_id: me.benevole_id,
-            prenom: me.prenom, nom: me.nom,
-            email: me.email, telephone: me.telephone,
+          path: 'riusc-envoi-mobilisation-portail',
+          payload: {
+            test: true,
+            test_destinataire: {
+              benevole_id: me.benevole_id,
+              prenom: me.prenom, nom: me.nom,
+              email: me.email, telephone: me.telephone,
+            },
+            deployment_id: depId,
+            vague_ids: vagues.map(v => v.id),
+            message_override: msgMobil,
+            type_envoi: 'mobilisation',
           },
-          deployment_id: depId,
-          vague_ids: vagues.map(v => v.id),
-          message_override: msgMobil,
-          type_envoi: 'mobilisation',
         }),
       })
       if (res.ok) {

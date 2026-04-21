@@ -11,6 +11,7 @@ import PortailHeader from './components/PortailHeader'
 import { logEvent, logPageVisit } from '@/utils/logEvent'
 import CampInfoBlocs from './components/CampInfoBlocs'
 import { n8nUrl } from '@/utils/n8n'
+import { getCampsSessionsActifs } from './_data/camps-sessions'
 import type {
   Reserviste, DeploiementActif, CampStatus,
   SessionCamp, SelectionStatus, MobilisationVague, CertificatFile,
@@ -699,20 +700,14 @@ export default function HomePage() {
 
     setConsentementPhoto(reserviste?.consent_photos || false)
 
-    // Charger les sessions et capacités
+    // Charger les sessions depuis la liste statique partagée (source de vérité)
+    // et les capacités depuis n8n (optionnel — si le webhook est down, on ignore)
     try {
-      const [sessionsResp, capacityResp] = await Promise.allSettled([
-        fetch(n8nUrl('/webhook/sessions-camps')),
-        fetch(n8nUrl('/webhook/camp-capacity'))
-      ])
-      
-      if (sessionsResp.status === 'fulfilled' && sessionsResp.value.ok) {
-        const data = await sessionsResp.value.json()
-        if (data.success && data.sessions) setSessionsDisponibles(data.sessions)
-      }
-      
-      if (capacityResp.status === 'fulfilled' && capacityResp.value.ok) {
-        const capData = await capacityResp.value.json()
+      setSessionsDisponibles(getCampsSessionsActifs())
+
+      const capacityResp = await fetch(n8nUrl('/webhook/camp-capacity')).catch(() => null)
+      if (capacityResp && capacityResp.ok) {
+        const capData = await capacityResp.json()
         if (capData.success && capData.sessions) setSessionCapacities(capData.sessions)
       }
     } catch (error) {
