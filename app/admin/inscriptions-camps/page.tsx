@@ -381,8 +381,18 @@ export default function InscriptionsCampsPage() {
   //   'a_repondu'         : a répondu OUI/NON
   const [filterRappel, setFilterRappel] = useState<'tous' | 'sans_rappel' | 'envoye_pas_repondu' | 'a_repondu'>('tous')
 
+  // Tri du tableau — cliquer sur un header trie par ce champ, recliquer inverse
+  type SortKey = 'prenom_nom' | 'presence' | 'created_at' | 'region' | 'rappel'
+  const [sortKey, setSortKey] = useState<SortKey>('prenom_nom')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const handleSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(k); setSortDir('asc') }
+  }
+  const sortArrow = (k: SortKey) => sortKey === k ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
   const filtered = useMemo(() => {
-    return inscriptions.filter(i => {
+    const list = inscriptions.filter(i => {
       const matchSearch = !search
         || (i.prenom_nom || '').toLowerCase().includes(search.toLowerCase())
         || (i.courriel || '').toLowerCase().includes(search.toLowerCase())
@@ -397,7 +407,44 @@ export default function InscriptionsCampsPage() {
         : true
       return matchSearch && matchPresence && matchRappel
     })
-  }, [inscriptions, search, filterPresence, filterRappel, rappels])
+    // Appliquer le tri
+    const dir = sortDir === 'asc' ? 1 : -1
+    const sorted = [...list].sort((a, b) => {
+      let av: any, bv: any
+      switch (sortKey) {
+        case 'prenom_nom':
+          av = (a.prenom_nom || '').toLowerCase()
+          bv = (b.prenom_nom || '').toLowerCase()
+          return dir * av.localeCompare(bv, 'fr-CA')
+        case 'presence':
+          av = a.presence || ''
+          bv = b.presence || ''
+          return dir * av.localeCompare(bv, 'fr-CA')
+        case 'created_at':
+          av = a.created_at || ''
+          bv = b.created_at || ''
+          return dir * av.localeCompare(bv)
+        case 'region':
+          av = (a.region || '').toLowerCase()
+          bv = (b.region || '').toLowerCase()
+          return dir * av.localeCompare(bv, 'fr-CA')
+        case 'rappel': {
+          // Ordre : a répondu OUI → NON → ambigu → envoyé sans réponse → sans rappel
+          const rank = (ra: typeof a) => {
+            const r = rappels.get(ra.id)
+            if (!r) return 4
+            if (r.reponse_confirmee === true) return 0
+            if (r.reponse_confirmee === false) return 1
+            if (r.reponse) return 2
+            return 3
+          }
+          return dir * (rank(a) - rank(b))
+        }
+        default: return 0
+      }
+    })
+    return sorted
+  }, [inscriptions, search, filterPresence, filterRappel, rappels, sortKey, sortDir])
 
   const selectedCamp = camps.find(c => c.session_id === selectedCampId)
   const upcomingCamps = camps.filter(c => !c.isPast)
@@ -434,13 +481,31 @@ export default function InscriptionsCampsPage() {
     setEmailDest(dests)
   }
 
-  function toggleSelect(id: string) {
+  // Pour Shift+clic : on se rappelle du dernier index coché dans la liste filtrée
+  const [lastCheckedIndex, setLastCheckedIndex] = useState<number | null>(null)
+
+  function toggleSelect(id: string, shiftKey: boolean = false) {
+    const idx = filtered.findIndex(i => i.id === id)
     setSelectedIds(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      const willSelect = !next.has(id)
+      if (shiftKey && lastCheckedIndex !== null && idx !== -1 && lastCheckedIndex !== idx) {
+        // Cocher/décocher toutes les lignes entre lastCheckedIndex et idx
+        const [from, to] = [Math.min(lastCheckedIndex, idx), Math.max(lastCheckedIndex, idx)]
+        for (let i = from; i <= to; i++) {
+          const row = filtered[i]
+          if (row) {
+            if (willSelect) next.add(row.id)
+            else next.delete(row.id)
+          }
+        }
+      } else {
+        if (willSelect) next.add(id)
+        else next.delete(id)
+      }
       return next
     })
+    if (idx !== -1) setLastCheckedIndex(idx)
   }
 
   function toggleSelectAll() {
@@ -449,6 +514,7 @@ export default function InscriptionsCampsPage() {
     } else {
       setSelectedIds(new Set(filtered.map(i => i.id)))
     }
+    setLastCheckedIndex(null)
   }
 
   async function bulkUpdatePresence(newPresence: 'confirme' | 'absent' | 'incertain' | 'annule') {
@@ -1090,16 +1156,33 @@ export default function InscriptionsCampsPage() {
                       />
                     </th>
                   )}
-                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Rappel SMS'] : []), ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => (
-                    <th key={i} style={{
-                      padding: '8px 10px', textAlign: h === 'Cahier' || h === 'Rappel SMS' ? 'center' : 'left', fontSize: 10,
-                      fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
-                      letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {h}
-                    </th>
-                  ))}
+                  {[...(isPartenaireLect ? [] : ['Nom']), 'Présence', ...(isAdmin ? ['Rappel SMS'] : []), ...(isAdmin ? ['Cahier'] : []), 'Inscrit le', ...(isPartenaireLect ? [] : ['Courriel']), 'District', ...(isPartenaireLect ? [] : ['Bottes', 'All. alimentaire', 'All. autre', 'Condition méd.']), ...(isAdmin ? [''] : [])].map((h, i) => {
+                    // Colonnes triables (mapping label → sortKey)
+                    const sortable: Record<string, SortKey | undefined> = {
+                      'Nom': 'prenom_nom',
+                      'Présence': 'presence',
+                      'Inscrit le': 'created_at',
+                      'District': 'region',
+                      'Rappel SMS': 'rappel',
+                    }
+                    const sk = sortable[h]
+                    const isSorted = sk && sortKey === sk
+                    return (
+                      <th key={i} style={{
+                        padding: '8px 10px', textAlign: h === 'Cahier' || h === 'Rappel SMS' ? 'center' : 'left', fontSize: 10,
+                        fontWeight: 700, color: isSorted ? '#1e3a5f' : '#6b7280', textTransform: 'uppercase',
+                        letterSpacing: '0.04em', borderBottom: '1px solid #e5e7eb',
+                        whiteSpace: 'nowrap',
+                        cursor: sk ? 'pointer' : 'default',
+                        userSelect: 'none',
+                      }}
+                      onClick={sk ? () => handleSort(sk) : undefined}
+                      title={sk ? 'Cliquer pour trier' : undefined}
+                      >
+                        {h}{sk ? sortArrow(sk) : ''}
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -1116,7 +1199,9 @@ export default function InscriptionsCampsPage() {
                         <input
                           type="checkbox"
                           checked={selectedIds.has(ins.id)}
-                          onChange={() => toggleSelect(ins.id)}
+                          onClick={(e) => { e.stopPropagation(); toggleSelect(ins.id, (e as any).shiftKey) }}
+                          onChange={() => {}}
+                          title="Shift+clic pour sélectionner une plage"
                           style={{ cursor: 'pointer', accentColor: '#1e3a5f' }}
                         />
                       </td>
@@ -1244,7 +1329,22 @@ export default function InscriptionsCampsPage() {
                     {!isPartenaireLect && (
                       <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {ins.courriel ? (
-                          <a href={`mailto:${ins.courriel}`} style={{ color: '#2563eb', textDecoration: 'none' }}>{ins.courriel}</a>
+                          <button
+                            onClick={() => {
+                              // Ouvrir notre ModalComposeCourriel avec cette seule personne comme destinataire
+                              const parts = (ins.prenom_nom || '').trim().split(/\s+/)
+                              setEmailDest([{
+                                benevole_id: ins.benevole_id,
+                                email: ins.courriel!,
+                                prenom: ins.prenom || parts[0] || '',
+                                nom: ins.nom || parts.slice(1).join(' ') || '',
+                              }])
+                            }}
+                            title="Écrire un courriel via le portail"
+                            style={{ color: '#2563eb', textDecoration: 'none', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit' }}
+                          >
+                            {ins.courriel}
+                          </button>
                         ) : <span style={{ color: '#d1d5db' }}>—</span>}
                       </td>
                     )}
