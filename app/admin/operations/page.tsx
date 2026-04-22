@@ -183,6 +183,41 @@ export default function OperationsPage() {
   })
   const [savConfig, setSavConfig] = useState(false)
 
+  // Démobilisation d'une vague
+  const [demobilisating, setDemobilisating] = useState<string | null>(null)
+
+  const demobiliserVague = async (vagueId: string, nomVague: string) => {
+    if (!confirm(`Démobiliser « ${nomVague} » ?\n\nÇa passe tous les réservistes assignés à cette vague au statut "terminé" (ils ne verront plus le déploiement dans leurs mobilisations). La vague passe à "Terminée". Action non destructive — tu peux toujours remettre leur ciblage à "mobilise" en SQL si besoin.`)) return
+    setDemobilisating(vagueId)
+    try {
+      const res = await fetch('/api/admin/operations/demobiliser', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vague_id: vagueId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(`Erreur : ${data.error || 'inconnue'}`)
+      } else {
+        alert(`✅ Démobilisation OK\n\n${data.vagues_terminees} vague(s) marquée(s) Terminée\n${data.ciblages_termines} ciblage(s) passés à "termine"\n${data.benevoles_affectes} réserviste(s) affectés`)
+        // Rafraîchir les vagues côté wizard pour voir le nouveau statut
+        if (depId) {
+          const { data: fresh } = await supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+          if (fresh) setVagues(fresh as unknown as Vague[])
+        }
+      }
+    } catch (e: any) {
+      alert('Erreur réseau : ' + (e?.message || 'inconnue'))
+    }
+    setDemobilisating(null)
+  }
+
+  // Helper: une vague est-elle "en retard" de démobilisation (date_fin > 24h passée et pas encore Terminée)?
+  const vagueEstEnRetard = (v: Vague) => {
+    if (!v.date_fin || v.statut === 'Terminée') return false
+    const fin = new Date(v.date_fin).getTime() + 24 * 3600 * 1000
+    return Date.now() > fin
+  }
+
   const openConfigModal = (d: Deployment) => {
     setConfigDepId(d.id)
     setFConfig({
@@ -1400,13 +1435,34 @@ export default function OperationsPage() {
               {vagues.length>0 && (
                 <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
                   <div style={{ fontSize:12, fontWeight:600, color:'#1e3a5f', marginBottom:6 }}>Mobilisation pour {vagues.length} rotation(s)</div>
-                  {vagues.map(v=>(
-                    <div key={v.id} style={{ fontSize:12, color:'#334155', display:'flex', gap:12, padding:'4px 0', borderBottom:'1px solid #f1f5f9' }}>
-                      <span style={{ fontWeight:600, color:'#7c3aed' }}>{v.identifiant||`Rot. #${v.numero}`}</span>
-                      <span>📅 {dateFr(v.date_debut)} → {dateFr(v.date_fin)}</span>
-                      {v.nb_personnes_requis && <span>👥 {v.nb_personnes_requis} pers.</span>}
+                  {vagues.map(v=>{
+                    const enRetard = vagueEstEnRetard(v)
+                    const terminee = v.statut === 'Terminée'
+                    return (
+                      <div key={v.id} style={{ fontSize:12, color:'#334155', display:'flex', alignItems:'center', gap:12, padding:'6px 0', borderBottom:'1px solid #f1f5f9', flexWrap:'wrap' }}>
+                        <span style={{ fontWeight:600, color: terminee ? '#6b7280' : '#7c3aed' }}>{v.identifiant||`Rot. #${v.numero}`}</span>
+                        <span>📅 {dateFr(v.date_debut)} → {dateFr(v.date_fin)}</span>
+                        {v.nb_personnes_requis && <span>👥 {v.nb_personnes_requis} pers.</span>}
+                        {terminee && <span style={{ padding:'1px 6px', borderRadius:4, backgroundColor:'#e5e7eb', color:'#374151', fontSize:10, fontWeight:600 }}>✓ Terminée</span>}
+                        {!terminee && enRetard && <span style={{ padding:'1px 6px', borderRadius:4, backgroundColor:'#fef3c7', color:'#92400e', fontSize:10, fontWeight:600 }}>⚠️ À démobiliser</span>}
+                        {!terminee && (v.statut === 'Mobilisée' || v.statut === 'Confirmée' || enRetard) && (
+                          <button
+                            type="button"
+                            onClick={() => demobiliserVague(v.id, v.identifiant || `Rot. #${v.numero}`)}
+                            disabled={demobilisating === v.id}
+                            title="Passer tous les réservistes de cette vague au statut terminé"
+                            style={{ marginLeft:'auto', padding:'3px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #059669', backgroundColor:'#ecfdf5', color:'#065f46', cursor: demobilisating === v.id ? 'wait' : 'pointer' }}>
+                            {demobilisating === v.id ? '⏳' : '🏁 Démobiliser'}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {vagues.some(vagueEstEnRetard) && (
+                    <div style={{ marginTop:8, padding:'8px 12px', backgroundColor:'#fffbeb', border:'1px solid #fde68a', borderRadius:6, fontSize:12, color:'#92400e' }}>
+                      💡 Une ou plusieurs rotations sont terminées depuis plus de 24h. Clique <strong>🏁 Démobiliser</strong> pour retirer le déploiement de leurs mobilisations actives.
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
               <Field label="Aperçu du message de mobilisation (éditable)">

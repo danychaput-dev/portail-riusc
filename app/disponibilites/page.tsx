@@ -41,7 +41,11 @@ function DisponibilitesContent() {
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'mobilisations' ? 'mobilisations' : 'dispos';
+  const tabParam = searchParams.get('tab');
+  const initialTab: 'dispos' | 'mobilisations' | 'historique' =
+    tabParam === 'mobilisations' ? 'mobilisations' :
+    tabParam === 'historique' ? 'historique' :
+    'dispos';
 
   const [user, setUser] = useState<any>(null);
   const [reserviste, setReserviste] = useState<Reserviste | null>(null);
@@ -50,7 +54,8 @@ function DisponibilitesContent() {
   const [ciblages, setCiblages] = useState<string[]>([]);
   const [ciblageReponses, setCiblageReponses] = useState<CiblageReponse[]>([]);
   const [mobilisations, setMobilisations] = useState<Mobilisation[]>([]);
-  const [tab, setTab] = useState<'dispos' | 'mobilisations'>(initialTab);
+  const [historique, setHistorique] = useState<Mobilisation[]>([]);
+  const [tab, setTab] = useState<'dispos' | 'mobilisations' | 'historique'>(initialTab);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -60,8 +65,8 @@ function DisponibilitesContent() {
   // Sync tab → URL (pour partager les liens et éviter de perdre l'onglet au refresh)
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (tab === 'mobilisations') p.set('tab', 'mobilisations');
-    else p.delete('tab');
+    if (tab === 'dispos') p.delete('tab');
+    else p.set('tab', tab);
     const qs = p.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? '?' + qs : ''}`);
   }, [tab]);
@@ -145,8 +150,8 @@ function DisponibilitesContent() {
       .select('id, reference_id, statut')
       .eq('benevole_id', benevoleId)
       .eq('niveau', 'deploiement')
-      .in('statut', ['mobilise', 'confirme']);
-    if (!ciblagesData?.length) { setMobilisations([]); return; }
+      .in('statut', ['mobilise', 'confirme', 'termine']);
+    if (!ciblagesData?.length) { setMobilisations([]); setHistorique([]); return; }
     const depIds = ciblagesData.map((c: any) => c.reference_id);
     const [{ data: deps }, { data: vagues }] = await Promise.all([
       supabase.from('deployments')
@@ -165,7 +170,7 @@ function DisponibilitesContent() {
         date_debut: v.date_debut, date_fin: v.date_fin,
       });
     }
-    const mobs: Mobilisation[] = (deps || []).map((d: any) => {
+    const toutes: Mobilisation[] = (deps || []).map((d: any) => {
       const ciblage = ciblagesData.find((c: any) => c.reference_id === d.id);
       return {
         ciblage_id: ciblage?.id || '',
@@ -175,7 +180,9 @@ function DisponibilitesContent() {
         vagues: vaguesParDep[d.id] || [],
       };
     });
-    setMobilisations(mobs);
+    // Split actif vs historique selon ciblage.statut
+    setMobilisations(toutes.filter(m => m.statut === 'mobilise' || m.statut === 'confirme'));
+    setHistorique(toutes.filter(m => m.statut === 'termine'));
   }
 
   async function fetchDisponibilites(benevoleId: string) {
@@ -332,7 +339,7 @@ function DisponibilitesContent() {
         </div>
 
         <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '28px', fontWeight: '700' }}>
-          {tab === 'mobilisations' ? 'Mes mobilisations' : 'Mes disponibilités'}
+          {tab === 'mobilisations' ? 'Mes mobilisations' : tab === 'historique' ? 'Mes déploiements terminés' : 'Mes disponibilités'}
         </h2>
 
         {/* ── Onglets ── */}
@@ -366,6 +373,22 @@ function DisponibilitesContent() {
             {mobilisations.length > 0 && (
               <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 10, backgroundColor: '#065f46', color: 'white', fontSize: 11 }}>
                 {mobilisations.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab('historique')}
+            style={{
+              padding: '12px 20px', fontSize: '14px', fontWeight: 600,
+              backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
+              color: tab === 'historique' ? '#6b7280' : '#9ca3af',
+              borderBottom: tab === 'historique' ? '3px solid #6b7280' : '3px solid transparent',
+              marginBottom: '-2px',
+            }}>
+            🏁 Historique
+            {historique.length > 0 && (
+              <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 10, backgroundColor: '#6b7280', color: 'white', fontSize: 11 }}>
+                {historique.length}
               </span>
             )}
           </button>
@@ -424,6 +447,46 @@ function DisponibilitesContent() {
                 <div style={{ marginTop: '16px', padding: '14px 18px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe', fontSize: '13px', color: '#1e40af' }}>
                   <strong>💡 Important:</strong> Si vous êtes dans l&apos;impossibilité de vous présenter, contactez-nous <strong>immédiatement</strong> par courriel à <a href="mailto:riusc@aqbrs.ca" style={{ color: '#1e40af', fontWeight: 600 }}>riusc@aqbrs.ca</a>.
                 </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Onglet Historique ── */}
+        {tab === 'historique' && (
+          <>
+            {historique.length === 0 ? (
+              <div style={{ padding: '32px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗂️</div>
+                <h3 style={{ margin: '0 0 8px 0', color: '#1e3a5f' }}>Aucun déploiement terminé</h3>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>Vos participations passées apparaîtront ici une fois les déploiements complétés.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: '14px 18px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1px solid #bbf7d0', fontSize: '13px', color: '#065f46' }}>
+                  <strong>🙏 Merci pour votre participation</strong> aux déploiements ci-dessous. Votre engagement fait toute la différence.
+                </div>
+                {historique.map(m => (
+                  <div key={m.deployment_id} style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '1px solid #d1d5db', opacity: 0.9 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <span style={{ fontSize: '22px' }}>🏁</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: '16px', color: '#1e3a5f' }}>{m.nom}</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>{m.identifiant} · Déploiement terminé</div>
+                      </div>
+                      <span style={{ padding: '3px 10px', borderRadius: '12px', backgroundColor: '#e5e7eb', color: '#374151', fontSize: '11px', fontWeight: 600 }}>✓ Complété</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#4b5563' }}>
+                      {m.lieu && <div>📍 {m.lieu}</div>}
+                      {m.date_debut && <div>📅 {formatDate(m.date_debut)}{m.date_fin ? ` → ${formatDate(m.date_fin)}` : ''}</div>}
+                    </div>
+                    {m.vagues.length > 0 && (
+                      <div style={{ marginTop: '10px', fontSize: '12px', color: '#6b7280' }}>
+                        Rotations participées: {m.vagues.map(v => v.identifiant || `Rot. #${v.numero}`).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </>
