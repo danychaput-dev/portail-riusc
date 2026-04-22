@@ -132,6 +132,59 @@ export default function PointagePage() {
     }
   }
 
+  // Impression directe du QR sans passer par le modal — ouvre une fenetre
+  // d'apercu d'impression pretes a imprimer.
+  const printQRDirect = async (s: Session) => {
+    if (!s.url || !s.token) return
+    try {
+      const dataUrl = await QRCode.toDataURL(s.url, { width: 512, margin: 2, errorCorrectionLevel: 'M' })
+      const w = window.open('', '_blank', 'width=800,height=900')
+      if (!w) {
+        alert('Ta fenetre d\'impression a ete bloquee par le navigateur. Autorise les popups pour ce site.')
+        return
+      }
+      const esc = (x: string) => String(x ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      }[c]!))
+      const shiftLbl = s.shift === 'jour' ? '☀️ Jour' : s.shift === 'nuit' ? '🌙 Nuit' : s.shift === 'complet' ? '🕐 Complet (24h)' : ''
+      const dateLbl = s.date_shift ? new Date(s.date_shift + 'T00:00:00').toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : ''
+      const titreHtml = s.titre ? `<div class="titre">${esc(s.titre)}</div>` : ''
+      w.document.write(`
+        <!doctype html>
+        <html><head>
+          <title>QR Pointage — ${esc(s.titre || s.contexte_nom)}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; text-align: center; padding: 40px; margin: 0; }
+            h1 { font-size: 22px; margin: 0 0 6px; color: #1e3a5f; font-weight: 600; }
+            .titre { font-size: 34px; font-weight: 800; color: #1e3a5f; margin: 12px 0 16px; letter-spacing: 0.02em; }
+            .sub { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+            img { max-width: 70vw; max-height: 65vh; border: 2px solid #e5e7eb; padding: 12px; background: white; }
+            .sous-qr { margin-top: 14px; font-size: 16px; font-weight: 600; color: #475569; }
+            .footer { margin-top: 20px; font-size: 11px; color: #9ca3af; word-break: break-all; }
+            @media print { .no-print { display: none; } @page { margin: 1cm; } }
+          </style>
+        </head><body>
+          <h1>${esc(s.contexte_nom)}</h1>
+          <div class="sub">
+            ${shiftLbl || 'Tout le camp'}${dateLbl ? ' · ' + esc(dateLbl) : ''}${s.contexte_lieu ? ' · 📍 ' + esc(s.contexte_lieu) : ''}
+          </div>
+          ${titreHtml}
+          <img src="${dataUrl}" alt="QR code" />
+          ${s.titre ? `<div class="sous-qr">${esc(s.titre)}</div>` : ''}
+          <div class="footer">${esc(s.url)}</div>
+          <div class="no-print" style="margin-top:30px">
+            <button onclick="window.print()" style="padding:10px 24px;font-size:14px;cursor:pointer;background:#1e3a5f;color:white;border:none;border-radius:6px">🖨️ Imprimer</button>
+          </div>
+          <script>setTimeout(() => window.print(), 400);</script>
+        </body></html>
+      `)
+      w.document.close()
+    } catch (e) {
+      console.error('Print failed:', e)
+      alert('Erreur d\'impression. Essaie Voir QR + Imprimer dans le modal.')
+    }
+  }
+
   const toggleActif = async (s: Session) => {
     const res = await fetch(`/api/admin/pointage/sessions/${s.pointage_session_id}`, {
       method: 'PATCH',
@@ -255,7 +308,12 @@ export default function PointagePage() {
             </thead>
             <tbody>
               {sorted.map(s => (
-                <tr key={s.pointage_session_id} style={{ borderTop: `1px solid ${BORDER}`, opacity: s.actif ? 1 : 0.55 }}>
+                <tr key={s.pointage_session_id}
+                  onClick={() => { window.location.href = `/admin/pointage/${s.pointage_session_id}` }}
+                  style={{ borderTop: `1px solid ${BORDER}`, opacity: s.actif ? 1 : 0.55, cursor: 'pointer' }}
+                  onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                  onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
                   <td style={tdStyle}>
                     <div style={{ fontWeight: 600, color: C }}>{s.contexte_nom}</div>
                     {s.titre && (
@@ -298,15 +356,14 @@ export default function PointagePage() {
                       {s.actif ? 'Actif' : 'Inactif'}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <a href={`/admin/pointage/${s.pointage_session_id}`}
-                      title="Voir les pointages + actions"
-                      style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-block' }}>
-                      📋 Détails
-                    </a>
+                  <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => viewQR(s)} title="Voir le QR"
-                      style={{ ...btnSecondary, marginLeft: 6 }}>
+                      style={{ ...btnSecondary }}>
                       Voir QR
+                    </button>
+                    <button onClick={() => printQRDirect(s)} title="Imprimer le QR directement"
+                      style={{ ...btnSecondary, marginLeft: 6 }}>
+                      🖨️ Imprimer
                     </button>
                     {s.total_pointages === 0 && !s.archived_at && (
                       <button onClick={() => setEditSession(s)} title="Modifier titre/shift/date (aucun pointage)"
@@ -315,8 +372,8 @@ export default function PointagePage() {
                       </button>
                     )}
                     {!s.archived_at && (
-                      <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver' : 'Réactiver'}
-                        style={{ ...btnSecondary, marginLeft: 6, color: s.actif ? RED : GREEN, borderColor: s.actif ? RED : GREEN }}>
+                      <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver (empeche les nouveaux scans)' : 'Réactiver'}
+                        style={{ ...btnSecondary, marginLeft: 6, color: s.actif ? '#d97706' : GREEN, borderColor: s.actif ? '#d97706' : GREEN }}>
                         {s.actif ? 'Désactiver' : 'Réactiver'}
                       </button>
                     )}
