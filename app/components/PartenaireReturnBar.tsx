@@ -78,6 +78,7 @@ export default function PartenaireReturnBar() {
   if (pathname?.startsWith('/admin/pointage')) contexte = 'Présences · codes QR'
   else if (pathname?.startsWith('/admin/inscriptions-camps')) contexte = 'Inscriptions camps'
   else if (pathname?.startsWith('/dashboard')) contexte = 'Tableau de bord'
+  else if (pathname?.startsWith('/outils/transports')) contexte = 'Estimation transports'
 
   return (
     <div

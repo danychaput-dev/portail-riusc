@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useAuth } from '@/utils/useAuth'
 import PortailHeader from '@/app/components/PortailHeader'
+import PartenaireReturnBar from '@/app/components/PartenaireReturnBar'
 
 export default function OutilTransportsPage() {
   const supabase = createClient()
@@ -54,14 +55,16 @@ export default function OutilTransportsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       <PortailHeader subtitle="Estimation et optimisation des transports" />
+      <PartenaireReturnBar />
       <iframe
         src="/outil-transport.html"
         style={{
           width: '100%',
-          height: 'calc(100vh - 73px)',
+          flex: 1,
           border: 'none',
+          minHeight: 400,
         }}
         title="Calculateur de transport dynamique"
       />
