@@ -66,8 +66,9 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
         // On lit la vue camps_distincts (metadata sans donnees nominatives)
         // pour que les partenaires puissent voir tous les camps meme s'ils
         // n'ont pas d'inscription RLS sur inscriptions_camps.
-        supabase
-          .from('camps_distincts')
+        // Cast `as any` car la vue n'est pas encore dans les types generes
+        // par Supabase (a regen apres le deploiement).
+        (supabase.from as any)('camps_distincts')
           .select('session_id, camp_nom, camp_dates, camp_lieu'),
         // On ne montre que les déploiements actifs/planifiés (pas les Annulé/Terminé)
         supabase
