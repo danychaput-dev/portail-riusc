@@ -238,6 +238,13 @@ export type Database = {
             foreignKeyName: "audit_connexions_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "audit_connexions_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -246,6 +253,13 @@ export type Database = {
             columns: ["benevole_id"]
             isOneToOne: false
             referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "audit_connexions_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
             referencedColumns: ["benevole_id"]
           },
         ]
@@ -319,6 +333,13 @@ export type Database = {
             foreignKeyName: "audit_pages_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "audit_pages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -327,6 +348,13 @@ export type Database = {
             columns: ["benevole_id"]
             isOneToOne: false
             referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "audit_pages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
             referencedColumns: ["benevole_id"]
           },
         ]
@@ -472,6 +500,13 @@ export type Database = {
             foreignKeyName: "certificats_a_trier_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "certificats_a_trier_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -480,6 +515,13 @@ export type Database = {
             columns: ["benevole_id"]
             isOneToOne: false
             referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "certificats_a_trier_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
             referencedColumns: ["benevole_id"]
           },
           {
@@ -537,6 +579,13 @@ export type Database = {
             foreignKeyName: "ciblages_ajoute_par_fkey"
             columns: ["ajoute_par"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "ciblages_ajoute_par_fkey"
+            columns: ["ajoute_par"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -548,6 +597,20 @@ export type Database = {
             referencedColumns: ["benevole_id"]
           },
           {
+            foreignKeyName: "ciblages_ajoute_par_fkey"
+            columns: ["ajoute_par"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "ciblages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
             foreignKeyName: "ciblages_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
@@ -559,6 +622,13 @@ export type Database = {
             columns: ["benevole_id"]
             isOneToOne: false
             referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "ciblages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
             referencedColumns: ["benevole_id"]
           },
         ]
@@ -700,6 +770,13 @@ export type Database = {
             foreignKeyName: "courriel_reponses_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "courriel_reponses_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -708,6 +785,13 @@ export type Database = {
             columns: ["benevole_id"]
             isOneToOne: false
             referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "courriel_reponses_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
             referencedColumns: ["benevole_id"]
           },
           {
@@ -779,6 +863,13 @@ export type Database = {
             foreignKeyName: "courriels_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "courriels_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -787,6 +878,13 @@ export type Database = {
             columns: ["benevole_id"]
             isOneToOne: false
             referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "courriels_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
             referencedColumns: ["benevole_id"]
           },
           {
@@ -949,16 +1047,21 @@ export type Database = {
       }
       deployments: {
         Row: {
+          branding: string
           created_at: string
           date_debut: string
           date_fin: string | null
+          date_limite_reponse: string | null
           demande_id: string | null
           hebergement: string | null
+          heures_limite_reponse: number
           id: string
           identifiant: string
+          jours_proposes: string[] | null
           latitude: number | null
           lieu: string
           longitude: number | null
+          mode_dates: string
           monday_id: string | null
           nb_personnes_par_vague: number
           nom: string
@@ -969,16 +1072,21 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branding?: string
           created_at?: string
           date_debut: string
           date_fin?: string | null
+          date_limite_reponse?: string | null
           demande_id?: string | null
           hebergement?: string | null
+          heures_limite_reponse?: number
           id?: string
           identifiant: string
+          jours_proposes?: string[] | null
           latitude?: number | null
           lieu: string
           longitude?: number | null
+          mode_dates?: string
           monday_id?: string | null
           nb_personnes_par_vague: number
           nom: string
@@ -989,16 +1097,21 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branding?: string
           created_at?: string
           date_debut?: string
           date_fin?: string | null
+          date_limite_reponse?: string | null
           demande_id?: string | null
           hebergement?: string | null
+          heures_limite_reponse?: number
           id?: string
           identifiant?: string
+          jours_proposes?: string[] | null
           latitude?: number | null
           lieu?: string
           longitude?: number | null
+          mode_dates?: string
           monday_id?: string | null
           nb_personnes_par_vague?: number
           nom?: string
@@ -1121,6 +1234,7 @@ export type Database = {
           deployment_id: string
           disponible: boolean
           id: string
+          transport: string | null
         }
         Insert: {
           a_confirmer?: boolean
@@ -1131,6 +1245,7 @@ export type Database = {
           deployment_id: string
           disponible: boolean
           id?: string
+          transport?: string | null
         }
         Update: {
           a_confirmer?: boolean
@@ -1141,6 +1256,7 @@ export type Database = {
           deployment_id?: string
           disponible?: boolean
           id?: string
+          transport?: string | null
         }
         Relationships: [
           {
@@ -1454,6 +1570,70 @@ export type Database = {
           nom?: string
         }
         Relationships: []
+      }
+      groupes_recherche_responsables: {
+        Row: {
+          benevole_id: string
+          created_at: string | null
+          groupe_id: string
+          recoit_cc_courriels: boolean
+        }
+        Insert: {
+          benevole_id: string
+          created_at?: string | null
+          groupe_id: string
+          recoit_cc_courriels?: boolean
+        }
+        Update: {
+          benevole_id?: string
+          created_at?: string | null
+          groupe_id?: string
+          recoit_cc_courriels?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groupes_recherche_responsables_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "groupes_recherche_responsables_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "groupes_recherche_responsables_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "groupes_recherche_responsables_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "groupes_recherche_responsables_groupe_id_fkey"
+            columns: ["groupe_id"]
+            isOneToOne: false
+            referencedRelation: "groupes_recherche"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groupes_recherche_responsables_groupe_id_fkey"
+            columns: ["groupe_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["groupe_id"]
+          },
+        ]
       }
       inscriptions_camps: {
         Row: {
@@ -1862,6 +2042,13 @@ export type Database = {
             foreignKeyName: "notes_reservistes_benevole_id_fkey"
             columns: ["benevole_id"]
             isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "notes_reservistes_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
             referencedRelation: "reservistes"
             referencedColumns: ["benevole_id"]
           },
@@ -1872,28 +2059,413 @@ export type Database = {
             referencedRelation: "reservistes_actifs"
             referencedColumns: ["benevole_id"]
           },
+          {
+            foreignKeyName: "notes_reservistes_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+        ]
+      }
+      operations_wizard_state: {
+        Row: {
+          demande_ids: string[]
+          deployment_id: string | null
+          msg_notif: string | null
+          sinistre_id: string
+          updated_at: string
+          updated_by_email: string | null
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          demande_ids?: string[]
+          deployment_id?: string | null
+          msg_notif?: string | null
+          sinistre_id: string
+          updated_at?: string
+          updated_by_email?: string | null
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          demande_ids?: string[]
+          deployment_id?: string | null
+          msg_notif?: string | null
+          sinistre_id?: string
+          updated_at?: string
+          updated_by_email?: string | null
+          updated_by_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operations_wizard_state_deployment_id_fkey"
+            columns: ["deployment_id"]
+            isOneToOne: false
+            referencedRelation: "deployments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "operations_wizard_state_sinistre_id_fkey"
+            columns: ["sinistre_id"]
+            isOneToOne: true
+            referencedRelation: "sinistres"
+            referencedColumns: ["id"]
+          },
         ]
       }
       organisations: {
         Row: {
           created_at: string | null
           created_by: string | null
+          eligible_credit_impot: boolean
           id: string
           nom: string
         }
         Insert: {
           created_at?: string | null
           created_by?: string | null
+          eligible_credit_impot?: boolean
           id?: string
           nom: string
         }
         Update: {
           created_at?: string | null
           created_by?: string | null
+          eligible_credit_impot?: boolean
           id?: string
           nom?: string
         }
         Relationships: []
+      }
+      pointage_logs: {
+        Row: {
+          action: string
+          benevole_id: string
+          created_at: string | null
+          id: string
+          modifie_par: string | null
+          notes: string | null
+          pointage_id: string
+          valeur_apres: string | null
+          valeur_avant: string | null
+        }
+        Insert: {
+          action: string
+          benevole_id: string
+          created_at?: string | null
+          id?: string
+          modifie_par?: string | null
+          notes?: string | null
+          pointage_id: string
+          valeur_apres?: string | null
+          valeur_avant?: string | null
+        }
+        Update: {
+          action?: string
+          benevole_id?: string
+          created_at?: string | null
+          id?: string
+          modifie_par?: string | null
+          notes?: string | null
+          pointage_id?: string
+          valeur_apres?: string | null
+          valeur_avant?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pointage_logs_modifie_par_fkey"
+            columns: ["modifie_par"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_logs_modifie_par_fkey"
+            columns: ["modifie_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_logs_modifie_par_fkey"
+            columns: ["modifie_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_logs_modifie_par_fkey"
+            columns: ["modifie_par"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_logs_pointage_id_fkey"
+            columns: ["pointage_id"]
+            isOneToOne: false
+            referencedRelation: "pointages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pointage_sessions: {
+        Row: {
+          actif: boolean | null
+          approuveur_id: string | null
+          contexte_dates: string | null
+          contexte_lieu: string | null
+          contexte_nom: string
+          created_at: string | null
+          cree_par: string | null
+          date_shift: string | null
+          id: string
+          session_id: string
+          shift: string | null
+          titre: string | null
+          token: string
+          type_contexte: string
+        }
+        Insert: {
+          actif?: boolean | null
+          approuveur_id?: string | null
+          contexte_dates?: string | null
+          contexte_lieu?: string | null
+          contexte_nom: string
+          created_at?: string | null
+          cree_par?: string | null
+          date_shift?: string | null
+          id?: string
+          session_id: string
+          shift?: string | null
+          titre?: string | null
+          token?: string
+          type_contexte?: string
+        }
+        Update: {
+          actif?: boolean | null
+          approuveur_id?: string | null
+          contexte_dates?: string | null
+          contexte_lieu?: string | null
+          contexte_nom?: string
+          created_at?: string | null
+          cree_par?: string | null
+          date_shift?: string | null
+          id?: string
+          session_id?: string
+          shift?: string | null
+          titre?: string | null
+          token?: string
+          type_contexte?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_cree_par_fkey"
+            columns: ["cree_par"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_cree_par_fkey"
+            columns: ["cree_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_cree_par_fkey"
+            columns: ["cree_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_cree_par_fkey"
+            columns: ["cree_par"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+        ]
+      }
+      pointages: {
+        Row: {
+          approuve_at: string | null
+          approuve_par: string | null
+          approuveur_id: string | null
+          benevole_id: string
+          created_at: string | null
+          duree_minutes: number | null
+          heure_arrivee: string | null
+          heure_depart: string | null
+          id: string
+          notes: string | null
+          pointage_session_id: string
+          source: string
+          statut: string
+          updated_at: string | null
+        }
+        Insert: {
+          approuve_at?: string | null
+          approuve_par?: string | null
+          approuveur_id?: string | null
+          benevole_id: string
+          created_at?: string | null
+          duree_minutes?: number | null
+          heure_arrivee?: string | null
+          heure_depart?: string | null
+          id?: string
+          notes?: string | null
+          pointage_session_id: string
+          source?: string
+          statut?: string
+          updated_at?: string | null
+        }
+        Update: {
+          approuve_at?: string | null
+          approuve_par?: string | null
+          approuveur_id?: string | null
+          benevole_id?: string
+          created_at?: string | null
+          duree_minutes?: number | null
+          heure_arrivee?: string | null
+          heure_depart?: string | null
+          id?: string
+          notes?: string | null
+          pointage_session_id?: string
+          source?: string
+          statut?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pointages_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointages_pointage_session_id_fkey"
+            columns: ["pointage_session_id"]
+            isOneToOne: false
+            referencedRelation: "pointage_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pointages_pointage_session_id_fkey"
+            columns: ["pointage_session_id"]
+            isOneToOne: false
+            referencedRelation: "pointages_resume"
+            referencedColumns: ["pointage_session_id"]
+          },
+        ]
       }
       rappels_camps: {
         Row: {
@@ -2118,6 +2690,8 @@ export type Database = {
           deleted_at: string | null
           deleted_by_user_id: string | null
           deleted_reason: string | null
+          dispo_veille: boolean | null
+          dispo_veille_note: string | null
           disponible_covoiturage: string[] | null
           email: string
           equipe_canine: string[] | null
@@ -2191,6 +2765,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_by_user_id?: string | null
           deleted_reason?: string | null
+          dispo_veille?: boolean | null
+          dispo_veille_note?: string | null
           disponible_covoiturage?: string[] | null
           email: string
           equipe_canine?: string[] | null
@@ -2264,6 +2840,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_by_user_id?: string | null
           deleted_reason?: string | null
+          dispo_veille?: boolean | null
+          dispo_veille_note?: string | null
           disponible_covoiturage?: string[] | null
           email?: string
           equipe_canine?: string[] | null
@@ -2517,6 +3095,130 @@ export type Database = {
         }
         Relationships: []
       }
+      trajets: {
+        Row: {
+          approuve_at: string | null
+          approuve_par: string | null
+          benevole_id: string
+          camp_session_id: string | null
+          covoiturage: boolean
+          covoiturage_role: string | null
+          covoiturage_with: string | null
+          created_at: string
+          deployment_id: string | null
+          duree_minutes: number | null
+          heure_debut: string
+          heure_fin: string | null
+          id: string
+          notes: string | null
+          statut: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          approuve_at?: string | null
+          approuve_par?: string | null
+          benevole_id: string
+          camp_session_id?: string | null
+          covoiturage?: boolean
+          covoiturage_role?: string | null
+          covoiturage_with?: string | null
+          created_at?: string
+          deployment_id?: string | null
+          duree_minutes?: number | null
+          heure_debut?: string
+          heure_fin?: string | null
+          id?: string
+          notes?: string | null
+          statut?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          approuve_at?: string | null
+          approuve_par?: string | null
+          benevole_id?: string
+          camp_session_id?: string | null
+          covoiturage?: boolean
+          covoiturage_role?: string | null
+          covoiturage_with?: string | null
+          created_at?: string
+          deployment_id?: string | null
+          duree_minutes?: number | null
+          heure_debut?: string
+          heure_fin?: string | null
+          id?: string
+          notes?: string | null
+          statut?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trajets_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_approuve_par_fkey"
+            columns: ["approuve_par"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_benevole_id_fkey"
+            columns: ["benevole_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "trajets_deployment_id_fkey"
+            columns: ["deployment_id"]
+            isOneToOne: false
+            referencedRelation: "deployments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vagues: {
         Row: {
           created_at: string
@@ -2600,6 +3302,60 @@ export type Database = {
           position?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_fallback_log: {
+        Row: {
+          body: string | null
+          email_alert_sent: boolean | null
+          from_phone: string | null
+          id: string
+          message_sid: string | null
+          notes: string | null
+          primary_retry_error: string | null
+          primary_retry_ok: boolean | null
+          processed: boolean | null
+          processed_at: string | null
+          processed_by: string | null
+          raw_payload: Json | null
+          received_at: string
+          to_phone: string | null
+          webhook_path: string
+        }
+        Insert: {
+          body?: string | null
+          email_alert_sent?: boolean | null
+          from_phone?: string | null
+          id?: string
+          message_sid?: string | null
+          notes?: string | null
+          primary_retry_error?: string | null
+          primary_retry_ok?: boolean | null
+          processed?: boolean | null
+          processed_at?: string | null
+          processed_by?: string | null
+          raw_payload?: Json | null
+          received_at?: string
+          to_phone?: string | null
+          webhook_path: string
+        }
+        Update: {
+          body?: string | null
+          email_alert_sent?: boolean | null
+          from_phone?: string | null
+          id?: string
+          message_sid?: string | null
+          notes?: string | null
+          primary_retry_error?: string | null
+          primary_retry_ok?: boolean | null
+          processed?: boolean | null
+          processed_at?: string | null
+          processed_by?: string | null
+          raw_payload?: Json | null
+          received_at?: string
+          to_phone?: string | null
+          webhook_path?: string
         }
         Relationships: []
       }
@@ -2689,6 +3445,24 @@ export type Database = {
         }
         Relationships: []
       }
+      heures_benevoles_par_benevole: {
+        Row: {
+          benevole_id: string | null
+          eligible_credit_impot: boolean | null
+          heures_primaires_approuve: number | null
+          heures_primaires_total: number | null
+          heures_secondaires_approuve: number | null
+          heures_secondaires_total: number | null
+          minutes_primaires_approuve: number | null
+          minutes_primaires_total: number | null
+          minutes_secondaires_approuve: number | null
+          minutes_secondaires_total: number | null
+          nom: string | null
+          prenom: string | null
+          qualifie_credit_impot: boolean | null
+        }
+        Relationships: []
+      }
       inscriptions_camps_partenaire: {
         Row: {
           benevole_id: string | null
@@ -2725,6 +3499,56 @@ export type Database = {
         }
         Relationships: []
       }
+      pointages_resume: {
+        Row: {
+          actif: boolean | null
+          approuveur_id: string | null
+          contexte_lieu: string | null
+          contexte_nom: string | null
+          date_shift: string | null
+          duree_moyenne_minutes: number | null
+          nb_approuves: number | null
+          nb_complets: number | null
+          nb_contestes: number | null
+          nb_en_cours: number | null
+          pointage_session_id: string | null
+          session_id: string | null
+          shift: string | null
+          titre: string | null
+          total_pointages: number | null
+          type_contexte: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "heures_benevoles_par_benevole"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "reservistes_actifs"
+            referencedColumns: ["benevole_id"]
+          },
+          {
+            foreignKeyName: "pointage_sessions_approuveur_id_fkey"
+            columns: ["approuveur_id"]
+            isOneToOne: false
+            referencedRelation: "v_responsables_groupes_detail"
+            referencedColumns: ["benevole_id"]
+          },
+        ]
+      }
       reservistes_actifs: {
         Row: {
           adresse: string | null
@@ -2760,6 +3584,8 @@ export type Database = {
           deleted_at: string | null
           deleted_by_user_id: string | null
           deleted_reason: string | null
+          dispo_veille: boolean | null
+          dispo_veille_note: string | null
           disponible_covoiturage: string[] | null
           email: string | null
           equipe_canine: string[] | null
@@ -2833,6 +3659,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_by_user_id?: string | null
           deleted_reason?: string | null
+          dispo_veille?: boolean | null
+          dispo_veille_note?: string | null
           disponible_covoiturage?: string[] | null
           email?: string | null
           equipe_canine?: string[] | null
@@ -2906,6 +3734,8 @@ export type Database = {
           deleted_at?: string | null
           deleted_by_user_id?: string | null
           deleted_reason?: string | null
+          dispo_veille?: boolean | null
+          dispo_veille_note?: string | null
           disponible_covoiturage?: string[] | null
           email?: string | null
           equipe_canine?: string[] | null
@@ -3024,6 +3854,62 @@ export type Database = {
           is_synced?: never
           presence?: Database["public"]["Enums"]["presence_status"] | null
           session_id?: string | null
+        }
+        Relationships: []
+      }
+      v_responsables_groupes_detail: {
+        Row: {
+          benevole_id: string | null
+          designe_le: string | null
+          email: string | null
+          groupe_actif: boolean | null
+          groupe_district: number | null
+          groupe_id: string | null
+          groupe_nom: string | null
+          nom: string | null
+          prenom: string | null
+          recoit_cc_courriels: boolean | null
+          role: string | null
+          telephone: string | null
+        }
+        Relationships: []
+      }
+      v_webhook_fallback_pending: {
+        Row: {
+          body: string | null
+          date_jour: string | null
+          email_alert_sent: boolean | null
+          from_phone: string | null
+          id: string | null
+          message_sid: string | null
+          primary_retry_error: string | null
+          primary_retry_ok: boolean | null
+          received_at: string | null
+          webhook_path: string | null
+        }
+        Insert: {
+          body?: string | null
+          date_jour?: never
+          email_alert_sent?: boolean | null
+          from_phone?: string | null
+          id?: string | null
+          message_sid?: string | null
+          primary_retry_error?: string | null
+          primary_retry_ok?: boolean | null
+          received_at?: string | null
+          webhook_path?: string | null
+        }
+        Update: {
+          body?: string | null
+          date_jour?: never
+          email_alert_sent?: boolean | null
+          from_phone?: string | null
+          id?: string | null
+          message_sid?: string | null
+          primary_retry_error?: string | null
+          primary_retry_ok?: boolean | null
+          received_at?: string | null
+          webhook_path?: string | null
         }
         Relationships: []
       }

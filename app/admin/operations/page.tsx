@@ -13,6 +13,7 @@ import { dateFr, genDemandeId, genDeployId, tplNotif, tplMobil } from './helpers
 import { Btn, Field, SBox, SelCard, IS, LS, G2, TA, ADD_BTN } from './ui'
 import { SidebarStepper } from './components/SidebarStepper'
 import { StepCard } from './components/StepCard'
+import { fetchWizardState, saveWizardState, deleteWizardState } from './wizardState'
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 
@@ -22,39 +23,25 @@ export default function OperationsPage() {
   const isMounted = useRef(false)
   const LS_KEY    = 'riusc_ops_context'
 
-  // ── Lire le contexte sauvegardé (URL prime sur localStorage) ─────────────
-  const readSavedContext = useCallback(() => {
+  // ── Lire les params URL uniquement (la persistance DB est gerree plus bas) ──
+  const readUrlContext = useCallback(() => {
     if (typeof window === 'undefined') return null
     const params = new URLSearchParams(window.location.search)
-    const urlSin  = params.get('sin')
-    const urlDep  = params.get('dep')
-    const urlDems = params.get('dems')
-    if (urlSin || urlDep || urlDems) {
-      // URL prime pour les params présents ; pour les params ABSENTS (ex: retour
-      // de /disponibilites qui ne garde que ?dep=...), on tombe en fallback
-      // localStorage pour ne pas perdre le contexte sinistre/demandes.
-      let demIds = urlDems ? urlDems.split(',').filter(Boolean) : []
-      let sinId  = urlSin || null
-      let depId  = urlDep || null
-      if (!sinId || !demIds.length || !depId) {
-        try {
-          const raw = localStorage.getItem(LS_KEY)
-          if (raw) {
-            const saved = JSON.parse(raw)
-            if (!sinId  && saved?.sinId)  sinId  = saved.sinId
-            if (!depId  && saved?.depId)  depId  = saved.depId
-            if (!demIds.length && saved?.demIds) demIds = saved.demIds
-          }
-        } catch {}
-      }
-      return { sinId, depId, demIds }
-    }
-    try {
-      const raw = localStorage.getItem(LS_KEY)
-      if (raw) return JSON.parse(raw) as { sinId: string|null; depId: string|null; demIds: string[] }
-    } catch {}
-    return null
+    const sinId = params.get('sin')
+    const depId = params.get('dep')
+    const dems = params.get('dems')
+    const demIds = dems ? dems.split(',').filter(Boolean) : []
+    if (!sinId && !depId && !demIds.length) return null
+    return { sinId, depId, demIds }
   }, [])
+
+  // Ref pour gerer la race: si l'admin change de sinistre pendant un fetch,
+  // on ne veut pas appliquer l'ancien state par-dessus le nouveau.
+  const pendingSinIdRef = useRef<string | null>(null)
+  // Ref pour eviter les re-saves inutiles quand on restaure depuis la DB
+  const restoredSinIdRef = useRef<string | null>(null)
+  // Indique si un etat DB existe pour le sinistre courant (pour afficher le bouton reset)
+  const [hasSavedState, setHasSavedState] = useState(false)
 
   // données
   const [sinistres,   setSinistres]   = useState<Sinistre[]>([])
@@ -70,20 +57,19 @@ export default function OperationsPage() {
   const [demIds, setDemIds] = useState<string[]>([])
   const [depId,  setDepId]  = useState<string|null>(null)
 
-  // ── Restauration du contexte au montage (client uniquement) ──────────────
+  // ── Restauration du contexte au montage (URL uniquement) ─────────────────
   useEffect(() => {
-    const ctx = readSavedContext()
+    const ctx = readUrlContext()
     if (ctx) {
       if (ctx.sinId)         setSinId(ctx.sinId)
       if (ctx.demIds.length) setDemIds(ctx.demIds)
       if (ctx.depId)         setDepId(ctx.depId)
     }
-    // Lire le flag step4 + ciblages sauvegardés depuis ciblage
+    // Lire le flag step4 + ciblages sauvegardes (cache UI ephemere, reste en localStorage)
     try {
       const s4dep = localStorage.getItem('riusc_ops_step4_done')
       if (s4dep && ctx?.depId && s4dep === ctx.depId) {
         setStep4Override(true)
-        // Restaurer les ciblages sauvegardés directement sans fetch
         const rawCiblages = localStorage.getItem('riusc_ops_ciblages_cache')
         if (rawCiblages) {
           const cached = JSON.parse(rawCiblages)
@@ -96,23 +82,46 @@ export default function OperationsPage() {
     setTimeout(() => { isMounted.current = true }, 0)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Quand le sinistre change: fetch son etat DB et l'appliquer ────────────
+  useEffect(() => {
+    if (!sinId) {
+      setHasSavedState(false)
+      restoredSinIdRef.current = null
+      return
+    }
+    // Si on vient deja de restaurer ce sinistre, on ne refetch pas
+    if (restoredSinIdRef.current === sinId) return
+    pendingSinIdRef.current = sinId
+    const currentSin = sinId
+    fetchWizardState(sinId).then((row) => {
+      // Race check: l'utilisateur a peut-etre change de sinistre pendant le fetch
+      if (pendingSinIdRef.current !== currentSin) return
+      if (row) {
+        // Appliquer les valeurs persistees SAUF si l'URL nous a deja donne un override
+        const urlCtx = readUrlContext()
+        const hasUrlDems = !!(urlCtx?.demIds?.length)
+        const hasUrlDep = !!urlCtx?.depId
+        if (!hasUrlDems && row.demande_ids?.length) setDemIds(row.demande_ids)
+        if (!hasUrlDep && row.deployment_id) setDepId(row.deployment_id)
+        if (row.msg_notif) setMsgNotif(row.msg_notif)
+        setHasSavedState(true)
+      } else {
+        setHasSavedState(false)
+      }
+      restoredSinIdRef.current = currentSin
+    })
+  }, [sinId, readUrlContext])
+
   const selSin = sinistres.find(s=>s.id===sinId)
   const selDep = deployments.find(d=>d.id===depId)
 
   // formulaires
-  const [msgNotif,      setMsgNotif]      = useState(() => {
-    if (typeof window === 'undefined') return ''
-    try {
-      const raw = localStorage.getItem('riusc_ops_context')
-      if (raw) return JSON.parse(raw)?.msgNotif || ''
-    } catch {}
-    return ''
-  })
+  // msgNotif est restaure via la DB quand le sinistre est selectionne (effet plus haut)
+  const [msgNotif, setMsgNotif] = useState('')
 
-  // ── Sync URL + localStorage à chaque changement de sélection ─────────────
+  // ── Sync URL a chaque changement de selection ────────────────────────────
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ sinId, depId, demIds, msgNotif })) } catch {}
     const p = new URLSearchParams()
     if (sinId)         p.set('sin',  sinId)
     if (depId)         p.set('dep',  depId)
@@ -120,13 +129,40 @@ export default function OperationsPage() {
     const qs = p.toString()
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? '?'+qs : ''}`)
   }, [sinId, depId, demIds.join(','), msgNotif])
+
+  // ── Upsert dans DB a chaque changement (debounce 500ms) ──────────────────
+  useEffect(() => {
+    if (!sinId) return
+    // On attend que la restauration soit finie pour le sinistre courant
+    if (restoredSinIdRef.current !== sinId) return
+    const timer = setTimeout(() => {
+      saveWizardState(sinId, {
+        demande_ids: demIds,
+        deployment_id: depId,
+        msg_notif: msgNotif || null,
+      }).then(r => { if (r.ok) setHasSavedState(true) })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [sinId, depId, demIds.join(','), msgNotif])
+
+  // ── Handler: nouvelle configuration (reset DB + state local) ─────────────
+  const resetConfiguration = useCallback(async () => {
+    if (!sinId) return
+    if (!confirm('Effacer la configuration sauvegardee pour ce sinistre (demandes + deploiement) et repartir a zero ?')) return
+    await deleteWizardState(sinId)
+    setDemIds([])
+    setDepId(null)
+    setMsgNotif('')
+    setHasSavedState(false)
+    restoredSinIdRef.current = sinId // eviter de refetch juste apres
+  }, [sinId])
   const [showFSin, setShowFSin] = useState(false)
   const [showFDem, setShowFDem] = useState(false)
   const [showFDep, setShowFDep] = useState(false)
 
   const [fSin, setFSin] = useState({ nom:'', type_incident:'', lieu:'', date_debut:'' })
   const [fDem, setFDem] = useState({ organisme:'', type_mission:'', lieu:'', nb_personnes_requis:'', date_debut:'', date_fin_estimee:'', priorite:'Normale', contact_nom:'', contact_telephone:'' })
-  const [fDep, setFDep] = useState({ nom:'', lieu:'', date_debut:'', date_fin:'', nb_personnes_par_vague:'', point_rassemblement:'', notes_logistique:'' })
+  const [fDep, setFDep] = useState({ nom:'', lieu:'', date_debut:'', date_fin:'', nb_personnes_par_vague:'', point_rassemblement:'', notes_logistique:'', mode_dates:'plage_continue' as 'plage_continue' | 'jours_individuels', jours_proposes:[] as string[], branding:'RIUSC' as 'RIUSC' | 'AQBRS', heures_limite_reponse:'8' })
 
   const [savSin, setSavSin] = useState(false)
   const [savDem, setSavDem] = useState(false)
@@ -408,12 +444,24 @@ export default function OperationsPage() {
       return
     }
     setSavDep(true)
-    const payload = {
+    const payload: any = {
       nom: fDep.nom.trim(), lieu: fDep.lieu,
       date_debut: fDep.date_debut, date_fin: fDep.date_fin || null,
       nb_personnes_par_vague: parseInt(fDep.nb_personnes_par_vague),
       point_rassemblement: fDep.point_rassemblement || null,
       notes_logistique: fDep.notes_logistique || null,
+      mode_dates: fDep.mode_dates,
+      jours_proposes: fDep.mode_dates === 'jours_individuels'
+        ? (fDep.jours_proposes.filter(d => d && d.trim()).length > 0 ? fDep.jours_proposes.filter(d => d && d.trim()) : null)
+        : null,
+      branding: fDep.branding,
+      heures_limite_reponse: parseInt(fDep.heures_limite_reponse) || 8,
+    }
+    // Validation: si jours_individuels, au moins 1 jour doit etre propose
+    if (fDep.mode_dates === 'jours_individuels' && (!payload.jours_proposes || payload.jours_proposes.length === 0)) {
+      alert('En mode "jours individuels", ajoute au moins une date dans la liste.')
+      setSavDep(false)
+      return
     }
     if (editingDepId) {
       const {data, error} = await supabase.from('deployments').update(payload).eq('id', editingDepId).select().single()
@@ -480,6 +528,10 @@ export default function OperationsPage() {
       nb_personnes_par_vague: d.nb_personnes_par_vague ? String(d.nb_personnes_par_vague) : '',
       point_rassemblement: (d as any).point_rassemblement || '',
       notes_logistique: (d as any).notes_logistique || '',
+      mode_dates: (d.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
+      jours_proposes: Array.isArray(d.jours_proposes) ? d.jours_proposes : [],
+      branding: (d.branding || 'RIUSC') as 'RIUSC' | 'AQBRS',
+      heures_limite_reponse: d.heures_limite_reponse ? String(d.heures_limite_reponse) : '8',
     })
     setShowFDep(true)
   }
@@ -779,8 +831,21 @@ export default function OperationsPage() {
           <StepCard id="step-1" n={1} status={ss(1)} title="Sinistre"
             subtitle={selSin ? `${selSin.nom}${selSin.lieu ? ' · '+selSin.lieu : ''}` : 'Sélectionner ou créer un sinistre'}>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {selSin && hasSavedState && (
+                <div style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', backgroundColor:'#fef3c7', borderRadius:8, border:'1px solid #fde68a', fontSize:12 }}>
+                  <span style={{ color:'#92400e' }}>💾 Configuration sauvegardée pour ce sinistre restaurée.</span>
+                  <button type="button" onClick={resetConfiguration}
+                    style={{ marginLeft:'auto', padding:'4px 10px', fontSize:11, border:'1px solid #f59e0b', borderRadius:6, background:'#fff', color:'#92400e', cursor:'pointer', fontWeight:600 }}>
+                    🔄 Nouvelle configuration
+                  </button>
+                </div>
+              )}
               {sinistres.map(s => (
-                <SelCard key={s.id} selected={sinId===s.id} onClick={()=>{ setSinId(s.id); setDemIds([]); setDepId(null) }}>
+                <SelCard key={s.id} selected={sinId===s.id} onClick={()=>{
+                  // Change de sinistre: on reset les selections locales, l'effet DB restaurera si un etat existe
+                  if (sinId !== s.id) { setDemIds([]); setDepId(null); setMsgNotif('') }
+                  setSinId(s.id)
+                }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
                     <span style={{ fontWeight:600, fontSize:13, color:'#1e3a5f' }}>{s.nom}</span>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -947,6 +1012,9 @@ export default function OperationsPage() {
                     {d.date_debut && <span>📅 {dateFr(d.date_debut)}{d.date_fin?` → ${dateFr(d.date_fin)}`:''}</span>}
                     {d.nb_personnes_par_vague && <span>👥 {d.nb_personnes_par_vague}/rotation</span>}
                     {d.point_rassemblement && <span>📌 {d.point_rassemblement}</span>}
+                    {d.branding && <span style={{ padding:'1px 6px', borderRadius:4, backgroundColor: d.branding === 'AQBRS' ? '#ede9fe' : '#dbeafe', color: d.branding === 'AQBRS' ? '#6d28d9' : '#1d4ed8', fontWeight:600 }}>{d.branding}</span>}
+                    {d.mode_dates === 'jours_individuels' && <span style={{ color:'#7c3aed' }}>📆 jours individuels{d.jours_proposes?.length ? ` (${d.jours_proposes.length})` : ''}</span>}
+                    {d.heures_limite_reponse && <span>⏱️ {d.heures_limite_reponse}h pour répondre</span>}
                   </div>
                 </SelCard>
               ))}
@@ -966,6 +1034,89 @@ export default function OperationsPage() {
                       <Field label="Date de début"><input type="date" style={IS} value={fDep.date_debut} onChange={e=>setFDep(f=>({...f,date_debut:e.target.value}))}/></Field>
                       <Field label="Date de fin"><input type="date" style={IS} value={fDep.date_fin} onChange={e=>setFDep(f=>({...f,date_fin:e.target.value}))}/></Field>
                     </div>
+
+                    {/* ─── Configuration flexible (Phase 1 - 2026-04-22) ─── */}
+                    <div style={{ backgroundColor:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:12, marginTop:4 }}>
+                      <div style={{ fontWeight:600, fontSize:12, color:'#1e3a5f', marginBottom:10 }}>⚙️ Configuration du cycle</div>
+
+                      {/* Mode dates */}
+                      <Field label="Mode de dates">
+                        <div style={{ display:'flex', gap:12, fontSize:13 }}>
+                          <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+                            <input type="radio" name="mode_dates" value="plage_continue"
+                              checked={fDep.mode_dates === 'plage_continue'}
+                              onChange={() => setFDep(f => ({ ...f, mode_dates: 'plage_continue' }))} />
+                            Plage continue <span style={{ color:'#94a3b8', fontSize:11 }}>(tout ou rien)</span>
+                          </label>
+                          <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+                            <input type="radio" name="mode_dates" value="jours_individuels"
+                              checked={fDep.mode_dates === 'jours_individuels'}
+                              onChange={() => setFDep(f => ({ ...f, mode_dates: 'jours_individuels' }))} />
+                            Jours individuels <span style={{ color:'#94a3b8', fontSize:11 }}>(cases à cocher)</span>
+                          </label>
+                        </div>
+                      </Field>
+
+                      {/* Jours proposes (visible si jours_individuels) */}
+                      {fDep.mode_dates === 'jours_individuels' && (
+                        <Field label="Jours proposés aux réservistes">
+                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                            {(fDep.jours_proposes.length > 0 ? fDep.jours_proposes : ['']).map((jour, idx) => (
+                              <div key={idx} style={{ display:'flex', gap:6, alignItems:'center' }}>
+                                <input type="date" style={{ ...IS, flex:1 }} value={jour}
+                                  onChange={e => setFDep(f => {
+                                    const arr = [...(f.jours_proposes.length > 0 ? f.jours_proposes : [''])]
+                                    arr[idx] = e.target.value
+                                    return { ...f, jours_proposes: arr }
+                                  })} />
+                                <button type="button" onClick={() => setFDep(f => ({
+                                  ...f,
+                                  jours_proposes: f.jours_proposes.filter((_, i) => i !== idx),
+                                }))} style={{ padding:'4px 10px', fontSize:12, border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', cursor:'pointer', color:'#ef4444' }}>✕</button>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => setFDep(f => ({
+                              ...f,
+                              jours_proposes: [...(f.jours_proposes.length > 0 ? f.jours_proposes : ['']), ''],
+                            }))} style={{ alignSelf:'flex-start', padding:'4px 10px', fontSize:12, border:'1px dashed #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', color:'#475569' }}>+ Ajouter un jour</button>
+                            <div style={{ fontSize:11, color:'#94a3b8' }}>Exemple : 19/04 et 21/04 sans le 20/04 (non contigu).</div>
+                          </div>
+                        </Field>
+                      )}
+
+                      {/* Branding */}
+                      <div style={{ marginTop:10 }}>
+                        <Field label="Branding des communications">
+                          <div style={{ display:'flex', gap:12, fontSize:13 }}>
+                            <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+                              <input type="radio" name="branding" value="RIUSC"
+                                checked={fDep.branding === 'RIUSC'}
+                                onChange={() => setFDep(f => ({ ...f, branding: 'RIUSC' }))} />
+                              RIUSC
+                            </label>
+                            <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
+                              <input type="radio" name="branding" value="AQBRS"
+                                checked={fDep.branding === 'AQBRS'}
+                                onChange={() => setFDep(f => ({ ...f, branding: 'AQBRS' }))} />
+                              AQBRS
+                            </label>
+                          </div>
+                        </Field>
+                      </div>
+
+                      {/* Heures limite de reponse */}
+                      <div style={{ marginTop:10 }}>
+                        <Field label="Heures limite pour soumettre les dispos">
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <input type="number" min="1" max="168" style={{ ...IS, width:80 }}
+                              value={fDep.heures_limite_reponse}
+                              onChange={e => setFDep(f => ({ ...f, heures_limite_reponse: e.target.value }))} />
+                            <span style={{ fontSize:12, color:'#64748b' }}>heures après l'envoi de la notification (défaut : 8h)</span>
+                          </div>
+                        </Field>
+                      </div>
+                    </div>
+
                     <Field label="Point de rassemblement"><input style={IS} value={fDep.point_rassemblement} onChange={e=>setFDep(f=>({...f,point_rassemblement:e.target.value}))} placeholder="Adresse de départ"/></Field>
                     <Field label="Notes logistique">
                       <textarea style={{ ...IS, minHeight:60, resize:'vertical', lineHeight:1.5, fontFamily:'inherit', height:'auto' }}
