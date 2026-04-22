@@ -4,6 +4,7 @@ import React, { useEffect, useState, lazy, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
+import PartenaireReturnBar from '@/app/components/PartenaireReturnBar'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
@@ -285,6 +286,7 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
     <div style={{ minHeight: embedded ? 'auto' : '100vh', backgroundColor: BG }}>
 
       {!embedded && <PortailHeader subtitle="Tableau de bord" />}
+      {!embedded && <PartenaireReturnBar />}
 
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: isMobile ? '16px 12px' : '32px 24px' }}>
         {loading && <div style={{ padding: 80, textAlign: 'center', color: MUTED, fontSize: 16 }}>Chargement des données…</div>}

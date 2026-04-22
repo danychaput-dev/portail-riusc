@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import PortailHeader from '@/app/components/PortailHeader'
 import AdminSidebar from '@/app/components/AdminSidebar'
+import PartenaireReturnBar from '@/app/components/PartenaireReturnBar'
 
 interface SidebarStats {
   sinistres_actifs: number
@@ -185,47 +186,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  const isPartenaire = userRole === 'partenaire' || userRole === 'partenaire_lect'
-
   return (
     <div style={{ height: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
       <PortailHeader />
-      {isPartenaire && (
-        <div
-          style={{
-            backgroundColor: '#eff6ff',
-            borderBottom: '1px solid #bfdbfe',
-            padding: '10px 20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            flexShrink: 0,
-          }}
-        >
-          <a
-            href="/partenaire"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '6px 12px',
-              backgroundColor: 'white',
-              border: '1px solid #bfdbfe',
-              borderRadius: 6,
-              color: '#1e3a5f',
-              fontSize: 13,
-              fontWeight: 600,
-              textDecoration: 'none',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-            }}
-          >
-            ← Retour au portail partenaire
-          </a>
-          <span style={{ fontSize: 12, color: '#6b7280' }}>
-            {pathname.startsWith('/admin/pointage') ? 'Présences · codes QR' : pathname.startsWith('/admin/inscriptions-camps') ? 'Inscriptions camps' : ''}
-          </span>
-        </div>
-      )}
+      <PartenaireReturnBar />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         {userRole !== 'adjoint' && userRole !== 'partenaire' && userRole !== 'partenaire_lect' && <AdminSidebar stats={stats} userRole={userRole} />}
         <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>

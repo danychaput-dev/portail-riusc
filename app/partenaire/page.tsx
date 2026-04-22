@@ -255,24 +255,6 @@ export default function PartenairePage() {
             </div>
           </a>
 
-          <a
-            href="/outils/transports"
-            style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '14px 20px', backgroundColor: 'white', borderRadius: '10px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0',
-              textDecoration: 'none', color: C, fontWeight: '600', fontSize: '14px',
-              transition: 'box-shadow 0.15s',
-            }}
-            onMouseOver={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
-            onMouseOut={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
-          >
-            <span style={{ fontSize: '22px' }}>🚌</span>
-            <div>
-              <div>Estimation transports</div>
-              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: '400' }}>Calculateur de couts et rotations</div>
-            </div>
-          </a>
         </div>
 
         {/* Bloc Demandes/Deploiements/Soumettre masque temporairement */}
