@@ -69,6 +69,11 @@ export default function PointagePage() {
   const [qrModal, setQrModal] = useState<{ url: string; dataUrl: string; session: Session } | null>(null)
   const [editSession, setEditSession] = useState<Session | null>(null)
   const [onglet, setOnglet] = useState<OngletPointage>('actives')
+  const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Le bouton Supprimer est reserve aux admin/superadmin (coord et partenaire
+  // doivent utiliser Archiver). On se fie au role retourne par l'API GET.
+  const canHardDelete = userRole === 'superadmin' || userRole === 'admin'
 
   // Chargement initial
   const loadSessions = async () => {
@@ -78,6 +83,7 @@ export default function PointagePage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Erreur de chargement')
       setSessions(json.sessions || [])
+      setUserRole(json.user_role || null)
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -318,10 +324,12 @@ export default function PointagePage() {
                       style={{ ...btnSecondary, marginLeft: 6 }}>
                       {s.archived_at ? '↩ Désarchiver' : '🗄️ Archiver'}
                     </button>
-                    <button onClick={() => deleteSession(s)} title="Supprimer definitivement (admin/superadmin uniquement)"
-                      style={{ ...btnSecondary, marginLeft: 6, color: RED, borderColor: RED }}>
-                      🗑️ Supprimer
-                    </button>
+                    {canHardDelete && (
+                      <button onClick={() => deleteSession(s)} title="Supprimer definitivement (admin/superadmin uniquement)"
+                        style={{ ...btnSecondary, marginLeft: 6, color: RED, borderColor: RED }}>
+                        🗑️ Supprimer
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

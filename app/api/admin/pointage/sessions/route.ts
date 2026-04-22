@@ -68,7 +68,9 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ sessions: enriched })
+  // On retourne aussi le role de l'utilisateur pour que le front puisse
+  // masquer certaines actions (ex: bouton Supprimer reserve admin/superadmin).
+  return NextResponse.json({ sessions: enriched, user_role: user.role })
 }
 
 export async function POST(req: NextRequest) {
