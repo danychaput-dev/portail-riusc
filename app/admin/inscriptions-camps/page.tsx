@@ -182,12 +182,16 @@ export default function InscriptionsCampsPage() {
         // Excel. Pas d'acces aux actions d'edition (cahier, presence, suppression).
         setIsPartenaireChef(false)
         setRetourHref('/partenaire')
+        // Pre-filtre sur "J'y serai" par defaut : SOPFEU/Croix-Rouge se soucient
+        // principalement des confirmes pour logistique (repas, equipes, QR).
+        setFilterPresence('confirme')
       } else if (role === 'partenaire_lect') {
         // Loi 25: partenaire_lect voit uniquement les donnees non-nominales
         // (compteurs, presence, district, dates). Aucun nom, courriel, telephone,
         // allergie, condition medicale.
         setIsPartenaireChef(true)
         setRetourHref('/partenaire')
+        setFilterPresence('confirme')
       } else {
         // Reservistes et autres roles: pas d'acces a cette page.
         router.replace('/')
