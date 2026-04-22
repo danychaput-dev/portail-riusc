@@ -94,7 +94,7 @@ function buildSubject(c: Changement): string {
   const av = c.presence_avant || '(vide)'
   const ap = c.presence_apres || '(vide)'
   const camp = c.camp_nom || 'Camp'
-  return `[AQBRS] ${nom} : ${av} -> ${ap} · ${camp}`
+  return `[RIUSC] ${nom} : ${av} -> ${ap} · ${camp}`
 }
 
 function buildHtml(c: Changement): string {
@@ -129,7 +129,7 @@ function buildHtml(c: Changement): string {
 <p style="margin:20px 0 0 0;color:#6b7280;font-size:13px;line-height:1.6;">Utiliser cette info pour ajuster les equipes et le nombre de repas. Voir la liste complete via le portail : <a href="https://portail.riusc.ca/admin/inscriptions-camps" style="color:#2563eb;">portail.riusc.ca/admin/inscriptions-camps</a></p>
 </td></tr>
 <tr><td style="background-color:#f8fafc;padding:16px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-<p style="margin:0;color:#9ca3af;font-size:11px;">Alerte automatique · fenetre 48h avant le camp · AQBRS</p>
+<p style="margin:0;color:#9ca3af;font-size:11px;">Alerte automatique · fenetre 48h avant le camp · RIUSC</p>
 </td></tr>
 </table>
 </td></tr>
@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
 
   // 2. Config expediteur
   const fromDomain = process.env.RESEND_FROM_DOMAIN || 'aqbrs.ca'
-  const from = `AQBRS Alerte camp <alerte@${fromDomain}>`
+  const from = `RIUSC Alerte camp <alerte@${fromDomain}>`
   const replyTo = `riusc@${fromDomain}`
 
   // 3. Envoyer un courriel par changement (parallelise par 5)
