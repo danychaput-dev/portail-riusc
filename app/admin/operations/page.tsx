@@ -186,6 +186,50 @@ export default function OperationsPage() {
   // Démobilisation d'une vague
   const [demobilisating, setDemobilisating] = useState<string | null>(null)
 
+  // Rotation: expansion + personnes assignées
+  const [expandedVagues, setExpandedVagues] = useState<Set<string>>(new Set())
+  const [assignParVague, setAssignParVague] = useState<Record<string, { benevole_id: string; prenom: string; nom: string; telephone: string | null; statut_ciblage?: string }[]>>({})
+
+  const toggleVagueExpansion = async (vagueId: string) => {
+    setExpandedVagues(prev => {
+      const next = new Set(prev)
+      if (next.has(vagueId)) next.delete(vagueId)
+      else next.add(vagueId)
+      return next
+    })
+    // Lazy load si pas déjà chargé
+    if (!assignParVague[vagueId]) {
+      const { data: assigns } = await supabase
+        .from('assignations')
+        .select('benevole_id')
+        .eq('vague_id', vagueId)
+      const benevoleIds = (assigns || []).map(a => a.benevole_id).filter(Boolean) as string[]
+      if (!benevoleIds.length) { setAssignParVague(p => ({ ...p, [vagueId]: [] })); return }
+      const { data: res } = await supabase
+        .from('reservistes')
+        .select('benevole_id, prenom, nom, telephone')
+        .in('benevole_id', benevoleIds)
+      // Charger aussi le statut ciblage pour afficher badge
+      const { data: ciblagesData } = await supabase
+        .from('ciblages')
+        .select('benevole_id, statut')
+        .eq('reference_id', depId as string)
+        .eq('niveau', 'deploiement')
+        .in('benevole_id', benevoleIds)
+      const statutMap = Object.fromEntries((ciblagesData || []).map((c: any) => [c.benevole_id, c.statut]))
+      setAssignParVague(p => ({
+        ...p,
+        [vagueId]: (res || []).map((r: any) => ({
+          benevole_id: r.benevole_id,
+          prenom: r.prenom,
+          nom: r.nom,
+          telephone: r.telephone,
+          statut_ciblage: statutMap[r.benevole_id],
+        })),
+      }))
+    }
+  }
+
   // Démobilisation BULK d'un déploiement entier (ignore les vagues, tous les ciblages mobilise/confirme → termine)
   const demobiliserDeploiement = async () => {
     if (!depId || !selDep) return
@@ -1413,19 +1457,68 @@ export default function OperationsPage() {
                 </div>
               )}
               {vagues.length>0 ? (
-                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px', display:'flex', alignItems:'flex-start', gap:10 }}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'#065f46', marginBottom:8 }}>Rotations créées ({vagues.length})</div>
-                    {vagues.map(v=>(
-                      <div key={v.id} style={{ fontSize:12, color:'#065f46', marginBottom:4 }}>
-                        <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>{' '}— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}
-                      </div>
-                    ))}
+                <div style={{ backgroundColor:'#f0fdf4', borderRadius:8, border:'1px solid #bbf7d0', padding:'10px 14px' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:'#065f46' }}>Rotations créées ({vagues.length})</div>
+                    <button onClick={rafraichirVagues} title="Recharger la liste depuis la DB"
+                      style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'white', color:'#065f46', border:'1px solid #a7f3d0', cursor:'pointer', fontWeight:600, flexShrink:0 }}>
+                      🔄 Rafraîchir
+                    </button>
                   </div>
-                  <button onClick={rafraichirVagues} title="Recharger la liste depuis la DB"
-                    style={{ fontSize:11, padding:'3px 10px', borderRadius:6, backgroundColor:'white', color:'#065f46', border:'1px solid #a7f3d0', cursor:'pointer', fontWeight:600, flexShrink:0 }}>
-                    🔄 Rafraîchir
-                  </button>
+                  {vagues.map(v=>{
+                    const expanded = expandedVagues.has(v.id)
+                    const personnes = assignParVague[v.id]
+                    return (
+                      <div key={v.id} style={{ borderBottom:'1px solid #d1fae5', padding:'4px 0' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleVagueExpansion(v.id)}
+                          style={{
+                            display:'flex', alignItems:'center', gap:8, width:'100%',
+                            padding:'6px 4px', backgroundColor:'transparent', border:'none',
+                            cursor:'pointer', textAlign:'left', fontSize:12, color:'#065f46',
+                          }}>
+                          <span style={{ fontSize:10, color:'#10b981', display:'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition:'transform 0.15s' }}>▶</span>
+                          <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>
+                          <span>— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}</span>
+                          {v.statut === 'Terminée' && <span style={{ marginLeft:'auto', padding:'1px 6px', borderRadius:4, backgroundColor:'#e5e7eb', color:'#374151', fontSize:10, fontWeight:600 }}>✓ Terminée</span>}
+                        </button>
+                        {expanded && (
+                          <div style={{ marginLeft:22, marginBottom:8, padding:'8px 12px', backgroundColor:'#ffffff', borderRadius:6, border:'1px solid #d1fae5' }}>
+                            {!personnes ? (
+                              <div style={{ fontSize:11, color:'#94a3b8', fontStyle:'italic' }}>⏳ Chargement...</div>
+                            ) : personnes.length === 0 ? (
+                              <div style={{ fontSize:11, color:'#94a3b8' }}>Aucune personne assignée à cette rotation.</div>
+                            ) : (
+                              <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                                <div style={{ fontSize:11, fontWeight:700, color:'#065f46', marginBottom:4 }}>
+                                  👥 {personnes.length} personne(s) assignée(s)
+                                </div>
+                                {personnes.map(p => (
+                                  <div key={p.benevole_id} style={{ display:'flex', alignItems:'center', gap:8, padding:'4px 6px', borderBottom:'1px solid #f0fdf4', fontSize:12 }}>
+                                    <span style={{ fontWeight:600, color:'#065f46' }}>{p.prenom} {p.nom}</span>
+                                    {p.telephone && <span style={{ color:'#6b7280', fontSize:11 }}>📞 {p.telephone}</span>}
+                                    {p.statut_ciblage && (
+                                      <span style={{
+                                        marginLeft:'auto', fontSize:10, padding:'1px 6px', borderRadius:4, fontWeight:600,
+                                        backgroundColor: p.statut_ciblage === 'mobilise' ? '#dcfce7' : p.statut_ciblage === 'confirme' ? '#bbf7d0' : p.statut_ciblage === 'termine' ? '#e5e7eb' : '#dbeafe',
+                                        color: p.statut_ciblage === 'mobilise' ? '#166534' : p.statut_ciblage === 'confirme' ? '#15803d' : p.statut_ciblage === 'termine' ? '#374151' : '#1d4ed8',
+                                      }}>
+                                        {p.statut_ciblage === 'mobilise' ? '🚀 mobilisé' :
+                                         p.statut_ciblage === 'confirme' ? '✅ confirmé' :
+                                         p.statut_ciblage === 'termine' ? '🏁 terminé' :
+                                         '✓ ' + p.statut_ciblage}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               ) : (
                 <div style={{ padding:'10px 14px', display:'flex', gap:10, alignItems:'center' }}>
