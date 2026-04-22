@@ -99,7 +99,6 @@ export default function PointagePage() {
     const archivees = sessions.filter(s => !!s.archived_at)
     const cible = onglet === 'archives' ? archivees : actives
     const sorted = [...cible].sort((a, b) => {
-      if (a.actif !== b.actif) return a.actif ? -1 : 1
       const da = a.date_shift || a.created_at || ''
       const db = b.date_shift || b.created_at || ''
       return db.localeCompare(da)
@@ -183,20 +182,6 @@ export default function PointagePage() {
       console.error('Print failed:', e)
       alert('Erreur d\'impression. Essaie Voir QR + Imprimer dans le modal.')
     }
-  }
-
-  const toggleActif = async (s: Session) => {
-    const res = await fetch(`/api/admin/pointage/sessions/${s.pointage_session_id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actif: !s.actif }),
-    })
-    if (!res.ok) {
-      const json = await res.json().catch(() => ({}))
-      alert('Erreur : ' + (json.error || 'statut ' + res.status))
-      return
-    }
-    await loadSessions()
   }
 
   const toggleArchive = async (s: Session) => {
@@ -302,7 +287,6 @@ export default function PointagePage() {
                 <th style={thStyle}>Shift / Date</th>
                 <th style={thStyle}>Approuveur</th>
                 <th style={{ ...thStyle, textAlign: 'center' }}>Pointages</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>Statut</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -310,7 +294,7 @@ export default function PointagePage() {
               {sorted.map(s => (
                 <tr key={s.pointage_session_id}
                   onClick={() => { window.location.href = `/admin/pointage/${s.pointage_session_id}` }}
-                  style={{ borderTop: `1px solid ${BORDER}`, opacity: s.actif ? 1 : 0.55, cursor: 'pointer' }}
+                  style={{ borderTop: `1px solid ${BORDER}`, cursor: 'pointer' }}
                   onMouseOver={e => (e.currentTarget.style.backgroundColor = '#f8fafc')}
                   onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
@@ -347,15 +331,6 @@ export default function PointagePage() {
                       </div>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <span style={{
-                      padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700,
-                      backgroundColor: s.actif ? '#d1fae5' : '#f1f5f9',
-                      color: s.actif ? GREEN : MUTED,
-                    }}>
-                      {s.actif ? 'Actif' : 'Inactif'}
-                    </span>
-                  </td>
                   <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }} onClick={e => e.stopPropagation()}>
                     <button onClick={() => viewQR(s)} title="Voir le QR"
                       style={{ ...btnSecondary }}>
@@ -369,12 +344,6 @@ export default function PointagePage() {
                       <button onClick={() => setEditSession(s)} title="Modifier titre/shift/date (aucun pointage)"
                         style={{ ...btnSecondary, marginLeft: 6 }}>
                         ✏️ Éditer
-                      </button>
-                    )}
-                    {!s.archived_at && (
-                      <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver (empeche les nouveaux scans)' : 'Réactiver'}
-                        style={{ ...btnSecondary, marginLeft: 6, color: s.actif ? '#d97706' : GREEN, borderColor: s.actif ? '#d97706' : GREEN }}>
-                        {s.actif ? 'Désactiver' : 'Réactiver'}
                       </button>
                     )}
                     <button onClick={() => toggleArchive(s)} title={s.archived_at ? 'Desarchiver' : 'Archiver (reversible)'}
