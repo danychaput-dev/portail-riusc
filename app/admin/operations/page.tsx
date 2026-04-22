@@ -173,6 +173,51 @@ export default function OperationsPage() {
   const [editingDemId, setEditingDemId] = useState<string | null>(null)
   const [editingDepId, setEditingDepId] = useState<string | null>(null)
 
+  // Modal de config dédiée du déploiement (branding, mode dates, heures, jours proposés)
+  const [configDepId, setConfigDepId] = useState<string | null>(null)
+  const [fConfig, setFConfig] = useState({
+    mode_dates: 'plage_continue' as 'plage_continue' | 'jours_individuels',
+    jours_proposes: [] as string[],
+    branding: 'RIUSC' as 'RIUSC' | 'AQBRS',
+    heures_limite_reponse: '8',
+  })
+  const [savConfig, setSavConfig] = useState(false)
+
+  const openConfigModal = (d: Deployment) => {
+    setConfigDepId(d.id)
+    setFConfig({
+      mode_dates: (d.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
+      jours_proposes: Array.isArray(d.jours_proposes) ? d.jours_proposes : [],
+      branding: (d.branding || 'RIUSC') as 'RIUSC' | 'AQBRS',
+      heures_limite_reponse: d.heures_limite_reponse ? String(d.heures_limite_reponse) : '8',
+    })
+  }
+
+  const saveConfig = async () => {
+    if (!configDepId) return
+    const jours = fConfig.jours_proposes.filter(d => d && d.trim())
+    if (fConfig.mode_dates === 'jours_individuels' && jours.length === 0) {
+      alert('En mode "jours individuels", ajoute au moins une date dans la liste.')
+      return
+    }
+    setSavConfig(true)
+    const payload = {
+      mode_dates: fConfig.mode_dates,
+      jours_proposes: fConfig.mode_dates === 'jours_individuels' ? jours : null,
+      branding: fConfig.branding,
+      heures_limite_reponse: parseInt(fConfig.heures_limite_reponse) || 8,
+    }
+    const { data, error } = await supabase.from('deployments').update(payload).eq('id', configDepId).select().single()
+    if (error) {
+      console.error('Erreur sauvegarde config:', error)
+      alert(`Erreur sauvegarde config : ${error.message}`)
+    } else if (data) {
+      setDeployments(p => p.map(d => d.id === configDepId ? (data as unknown as Deployment) : d))
+      setConfigDepId(null)
+    }
+    setSavConfig(false)
+  }
+
   // wizard
   const [step4Override, setStep4Override] = useState(false)
   const [step6Ok,       setStep6Ok]       = useState(false)
@@ -339,28 +384,39 @@ export default function OperationsPage() {
     }
   }, [depId])
 
+  // Auto-remplir le message notification si vide, en utilisant la config complete
+  // (branding, mode, heures limite). Ne reecrase pas un texte deja edite.
   useEffect(() => {
     if (!selSin || !selDep) return
-    setMsgNotif((prev: string) => prev ? prev : tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
-  }, [selSin?.id, selDep?.id])
+    if (sinId && restoredSinIdRef.current !== sinId) return // attendre restauration DB
+    setMsgNotif((prev: string) => prev && prev.trim() ? prev : tplNotif({
+      sinNom: selSin.nom,
+      depNom: selDep.nom,
+      dateDebut: selDep.date_debut,
+      dateFin: selDep.date_fin,
+      branding: (selDep.branding || 'RIUSC') as 'RIUSC' | 'AQBRS',
+      heuresLimite: selDep.heures_limite_reponse ?? 8,
+      modeDates: (selDep.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
+      joursProposes: selDep.jours_proposes,
+    }))
+  }, [selSin?.id, selDep?.id, selDep?.branding, selDep?.mode_dates, selDep?.heures_limite_reponse, sinId])
 
+  // Auto-remplir le message mobilisation si vide, en utilisant la config complete.
   useEffect(() => {
     if (!selDep) return
-    // On ne régénère le template que si l'admin n'a pas déjà édité le message.
-    // Ça préserve les modifications manuelles (ex: adresse exacte, heure de
-    // rassemblement) quand une nouvelle vague est créée ou modifiée.
     setMsgMobil((prev: string) => {
       if (prev && prev.trim()) return prev
       const v = vagues[0]
-      return tplMobil(
-        selDep.nom,
-        v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
-        v?.date_debut || '[date début]',
-        v?.date_fin || '[date fin]',
-        selDep.lieu
-      )
+      return tplMobil({
+        depNom: selDep.nom,
+        vagNom: v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
+        debut: v?.date_debut || '[date début]',
+        fin: v?.date_fin || '[date fin]',
+        lieu: selDep.lieu,
+        branding: (selDep.branding || 'RIUSC') as 'RIUSC' | 'AQBRS',
+      })
     })
-  }, [depId, vagues.length])
+  }, [depId, vagues.length, selDep?.branding])
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
@@ -444,24 +500,14 @@ export default function OperationsPage() {
       return
     }
     setSavDep(true)
+    // Payload CRUD seulement; la config (branding, mode_dates, heures) est geree
+    // via le bouton ⚙️ sur la card. Les defauts SQL s'appliquent a la creation.
     const payload: any = {
       nom: fDep.nom.trim(), lieu: fDep.lieu,
       date_debut: fDep.date_debut, date_fin: fDep.date_fin || null,
       nb_personnes_par_vague: parseInt(fDep.nb_personnes_par_vague),
       point_rassemblement: fDep.point_rassemblement || null,
       notes_logistique: fDep.notes_logistique || null,
-      mode_dates: fDep.mode_dates,
-      jours_proposes: fDep.mode_dates === 'jours_individuels'
-        ? (fDep.jours_proposes.filter(d => d && d.trim()).length > 0 ? fDep.jours_proposes.filter(d => d && d.trim()) : null)
-        : null,
-      branding: fDep.branding,
-      heures_limite_reponse: parseInt(fDep.heures_limite_reponse) || 8,
-    }
-    // Validation: si jours_individuels, au moins 1 jour doit etre propose
-    if (fDep.mode_dates === 'jours_individuels' && (!payload.jours_proposes || payload.jours_proposes.length === 0)) {
-      alert('En mode "jours individuels", ajoute au moins une date dans la liste.')
-      setSavDep(false)
-      return
     }
     if (editingDepId) {
       const {data, error} = await supabase.from('deployments').update(payload).eq('id', editingDepId).select().single()
@@ -1000,6 +1046,11 @@ export default function OperationsPage() {
                     </div>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                       <span style={{ fontSize:11, padding:'2px 8px', borderRadius:10, backgroundColor:'#f3f4f6', color:'#6b7280', fontWeight:600 }}>{d.statut}</span>
+                      <button onClick={(e) => { e.stopPropagation(); openConfigModal(d) }}
+                        title="Configurer (branding, mode dates, heures limite)"
+                        style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
+                        ⚙️
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); editDeployment(d) }}
                         title="Modifier ce déploiement"
                         style={{ background:'none', border:'1px solid #e5e7eb', borderRadius:6, padding:'2px 6px', cursor:'pointer', fontSize:12, color:'#64748b' }}>
@@ -1037,87 +1088,13 @@ export default function OperationsPage() {
                       <Field label="Date de fin"><input type="date" style={IS} value={fDep.date_fin} onChange={e=>setFDep(f=>({...f,date_fin:e.target.value}))}/></Field>
                     </div>
 
-                    {/* ─── Configuration flexible (Phase 1 - 2026-04-22) ─── */}
-                    <div style={{ backgroundColor:'#f9fafb', border:'1px solid #e5e7eb', borderRadius:8, padding:12, marginTop:4 }}>
-                      <div style={{ fontWeight:600, fontSize:12, color:'#1e3a5f', marginBottom:10 }}>⚙️ Configuration du cycle</div>
-
-                      {/* Mode dates */}
-                      <Field label="Mode de dates">
-                        <div style={{ display:'flex', gap:12, fontSize:13 }}>
-                          <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
-                            <input type="radio" name="mode_dates" value="plage_continue"
-                              checked={fDep.mode_dates === 'plage_continue'}
-                              onChange={() => setFDep(f => ({ ...f, mode_dates: 'plage_continue' }))} />
-                            Plage continue <span style={{ color:'#94a3b8', fontSize:11 }}>(tout ou rien)</span>
-                          </label>
-                          <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
-                            <input type="radio" name="mode_dates" value="jours_individuels"
-                              checked={fDep.mode_dates === 'jours_individuels'}
-                              onChange={() => setFDep(f => ({ ...f, mode_dates: 'jours_individuels' }))} />
-                            Jours individuels <span style={{ color:'#94a3b8', fontSize:11 }}>(cases à cocher)</span>
-                          </label>
-                        </div>
-                      </Field>
-
-                      {/* Jours proposes (visible si jours_individuels) */}
-                      {fDep.mode_dates === 'jours_individuels' && (
-                        <Field label="Jours proposés aux réservistes">
-                          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                            {(fDep.jours_proposes.length > 0 ? fDep.jours_proposes : ['']).map((jour, idx) => (
-                              <div key={idx} style={{ display:'flex', gap:6, alignItems:'center' }}>
-                                <input type="date" style={{ ...IS, flex:1 }} value={jour}
-                                  onChange={e => setFDep(f => {
-                                    const arr = [...(f.jours_proposes.length > 0 ? f.jours_proposes : [''])]
-                                    arr[idx] = e.target.value
-                                    return { ...f, jours_proposes: arr }
-                                  })} />
-                                <button type="button" onClick={() => setFDep(f => ({
-                                  ...f,
-                                  jours_proposes: f.jours_proposes.filter((_, i) => i !== idx),
-                                }))} style={{ padding:'4px 10px', fontSize:12, border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', cursor:'pointer', color:'#ef4444' }}>✕</button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => setFDep(f => ({
-                              ...f,
-                              jours_proposes: [...(f.jours_proposes.length > 0 ? f.jours_proposes : ['']), ''],
-                            }))} style={{ alignSelf:'flex-start', padding:'4px 10px', fontSize:12, border:'1px dashed #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', color:'#475569' }}>+ Ajouter un jour</button>
-                            <div style={{ fontSize:11, color:'#94a3b8' }}>Exemple : 19/04 et 21/04 sans le 20/04 (non contigu).</div>
-                          </div>
-                        </Field>
-                      )}
-
-                      {/* Branding */}
-                      <div style={{ marginTop:10 }}>
-                        <Field label="Branding des communications">
-                          <div style={{ display:'flex', gap:12, fontSize:13 }}>
-                            <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
-                              <input type="radio" name="branding" value="RIUSC"
-                                checked={fDep.branding === 'RIUSC'}
-                                onChange={() => setFDep(f => ({ ...f, branding: 'RIUSC' }))} />
-                              RIUSC
-                            </label>
-                            <label style={{ display:'flex', alignItems:'center', gap:6, cursor:'pointer' }}>
-                              <input type="radio" name="branding" value="AQBRS"
-                                checked={fDep.branding === 'AQBRS'}
-                                onChange={() => setFDep(f => ({ ...f, branding: 'AQBRS' }))} />
-                              AQBRS
-                            </label>
-                          </div>
-                        </Field>
+                    {/* Note: la config cycle (branding, mode dates, heures limite) est geree via le bouton ⚙️ de la card,
+                        pas ici, pour eviter la confusion entre CRUD du deploiement et configuration operationnelle. */}
+                    {editingDepId && (
+                      <div style={{ backgroundColor:'#fffbeb', border:'1px solid #fde68a', borderRadius:6, padding:'8px 10px', fontSize:12, color:'#92400e' }}>
+                        💡 Pour ajuster le branding, le mode de dates ou le délai de réponse, utilise le bouton <strong>⚙️</strong> sur la card du déploiement.
                       </div>
-
-                      {/* Heures limite de reponse */}
-                      <div style={{ marginTop:10 }}>
-                        <Field label="Heures limite pour soumettre les dispos">
-                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <input type="number" min="1" max="168" style={{ ...IS, width:80 }}
-                              value={fDep.heures_limite_reponse}
-                              onChange={e => setFDep(f => ({ ...f, heures_limite_reponse: e.target.value }))} />
-                            <span style={{ fontSize:12, color:'#64748b' }}>heures après l'envoi de la notification (défaut : 8h)</span>
-                          </div>
-                        </Field>
-                      </div>
-                    </div>
+                    )}
 
                     <Field label="Point de rassemblement"><input style={IS} value={fDep.point_rassemblement} onChange={e=>setFDep(f=>({...f,point_rassemblement:e.target.value}))} placeholder="Adresse de départ"/></Field>
                     <Field label="Notes logistique">
@@ -1201,13 +1178,22 @@ export default function OperationsPage() {
                     type="button"
                     onClick={() => {
                       if (!selSin || !selDep) return
-                      if (msgNotif.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis les données ?')) return
-                      setMsgNotif(tplNotif(selSin.nom, selDep.nom, selDep.date_debut))
+                      if (msgNotif.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis la config ?')) return
+                      setMsgNotif(tplNotif({
+                        sinNom: selSin.nom,
+                        depNom: selDep.nom,
+                        dateDebut: selDep.date_debut,
+                        dateFin: selDep.date_fin,
+                        branding: (selDep.branding || 'RIUSC') as 'RIUSC' | 'AQBRS',
+                        heuresLimite: selDep.heures_limite_reponse ?? 8,
+                        modeDates: (selDep.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
+                        joursProposes: selDep.jours_proposes,
+                      }))
                     }}
                     style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>
-                    🔄 Regénérer depuis les données
+                    🔄 Regénérer depuis la config
                   </button>
-                  <span style={{ fontSize:11, color:'#94a3b8' }}>(utilise ça si tu as édité le sinistre ou le déploiement après)</span>
+                  <span style={{ fontSize:11, color:'#94a3b8' }}>(utilise ça après avoir changé la config ⚙️, le branding ou les dates)</span>
                 </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
@@ -1430,15 +1416,16 @@ export default function OperationsPage() {
                     type="button"
                     onClick={() => {
                       if (!selDep) return
-                      if (msgMobil.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis les données ?')) return
+                      if (msgMobil.trim() && !confirm('Écraser le texte actuel avec le template regénéré depuis la config ?')) return
                       const v = vagues[0]
-                      setMsgMobil(tplMobil(
-                        selDep.nom,
-                        v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
-                        v?.date_debut || '[date début]',
-                        v?.date_fin || '[date fin]',
-                        selDep.lieu
-                      ))
+                      setMsgMobil(tplMobil({
+                        depNom: selDep.nom,
+                        vagNom: v ? (v.identifiant || `Rotation #${v.numero}`) : '[rotation à définir]',
+                        debut: v?.date_debut || '[date début]',
+                        fin: v?.date_fin || '[date fin]',
+                        lieu: selDep.lieu,
+                        branding: (selDep.branding || 'RIUSC') as 'RIUSC' | 'AQBRS',
+                      }))
                     }}
                     style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>
                     🔄 Regénérer depuis les données
@@ -1474,6 +1461,126 @@ export default function OperationsPage() {
 
         </div>{/* fin contenu principal */}
       </div>{/* fin flex deux colonnes */}
+
+      {/* ─── Modal de configuration du déploiement ───────────────────────── */}
+      {configDepId && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          onClick={() => { if (!savConfig) setConfigDepId(null) }}
+          style={{
+            position:'fixed', inset:0, backgroundColor:'rgba(15,23,42,0.55)',
+            display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:16,
+          }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{
+            backgroundColor:'#fff', borderRadius:12, padding:24, width:'100%', maxWidth:540,
+            boxShadow:'0 20px 50px -10px rgba(0,0,0,0.3)', maxHeight:'90vh', overflowY:'auto',
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+              <span style={{ fontSize:20 }}>⚙️</span>
+              <div>
+                <div style={{ fontWeight:700, fontSize:15, color:'#1e3a5f' }}>Configuration du déploiement</div>
+                {(() => {
+                  const d = deployments.find(x => x.id === configDepId)
+                  return d ? <div style={{ fontSize:12, color:'#64748b' }}>{d.identifiant} · {d.nom}</div> : null
+                })()}
+              </div>
+            </div>
+
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {/* Branding */}
+              <Field label="Branding des communications">
+                <div style={{ display:'flex', gap:10 }}>
+                  {(['RIUSC', 'AQBRS'] as const).map(b => (
+                    <label key={b} style={{
+                      display:'flex', alignItems:'center', gap:10, cursor:'pointer',
+                      padding:'10px 14px', borderRadius:8, flex:1,
+                      border: fConfig.branding === b ? '2px solid #1e3a5f' : '1.5px solid #e5e7eb',
+                      backgroundColor: fConfig.branding === b ? '#eff6ff' : '#fff',
+                    }}>
+                      <input type="radio" name="config_branding" value={b}
+                        checked={fConfig.branding === b}
+                        onChange={() => setFConfig(f => ({ ...f, branding: b }))} />
+                      <img src={`/logo-${b.toLowerCase()}.png`} alt={`Logo ${b}`} style={{ height:32, width:'auto' }} />
+                      <span style={{ fontWeight:600, fontSize:13, color:'#1e3a5f' }}>{b}</span>
+                    </label>
+                  ))}
+                </div>
+              </Field>
+
+              {/* Mode dates */}
+              <Field label="Mode de dates pour les réservistes">
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'8px 12px', borderRadius:6, border: fConfig.mode_dates === 'plage_continue' ? '1.5px solid #059669' : '1px solid #e5e7eb', backgroundColor: fConfig.mode_dates === 'plage_continue' ? '#ecfdf5' : '#fff' }}>
+                    <input type="radio" name="config_mode" value="plage_continue"
+                      checked={fConfig.mode_dates === 'plage_continue'}
+                      onChange={() => setFConfig(f => ({ ...f, mode_dates: 'plage_continue' }))} />
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:13 }}>📅 Plage continue</div>
+                      <div style={{ fontSize:11, color:'#64748b' }}>Tout ou rien: le réserviste accepte toutes les dates du déploiement ou refuse.</div>
+                    </div>
+                  </label>
+                  <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'8px 12px', borderRadius:6, border: fConfig.mode_dates === 'jours_individuels' ? '1.5px solid #7c3aed' : '1px solid #e5e7eb', backgroundColor: fConfig.mode_dates === 'jours_individuels' ? '#faf5ff' : '#fff' }}>
+                    <input type="radio" name="config_mode" value="jours_individuels"
+                      checked={fConfig.mode_dates === 'jours_individuels'}
+                      onChange={() => setFConfig(f => ({ ...f, mode_dates: 'jours_individuels' }))} />
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:13 }}>📆 Jours individuels</div>
+                      <div style={{ fontSize:11, color:'#64748b' }}>Le réserviste coche les jours qui lui conviennent (ex: 19 et 21 sans le 20).</div>
+                    </div>
+                  </label>
+                </div>
+              </Field>
+
+              {/* Jours proposes (si jours_individuels) */}
+              {fConfig.mode_dates === 'jours_individuels' && (
+                <Field label="Jours proposés aux réservistes">
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {(fConfig.jours_proposes.length > 0 ? fConfig.jours_proposes : ['']).map((jour, idx) => (
+                      <div key={idx} style={{ display:'flex', gap:6, alignItems:'center' }}>
+                        <input type="date" style={{ ...IS, flex:1 }} value={jour}
+                          onChange={e => setFConfig(f => {
+                            const base = f.jours_proposes.length > 0 ? f.jours_proposes : ['']
+                            const arr = [...base]
+                            arr[idx] = e.target.value
+                            return { ...f, jours_proposes: arr }
+                          })} />
+                        <button type="button" onClick={() => setFConfig(f => ({
+                          ...f,
+                          jours_proposes: f.jours_proposes.filter((_, i) => i !== idx),
+                        }))} style={{ padding:'4px 10px', fontSize:12, border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', cursor:'pointer', color:'#ef4444' }}>✕</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setFConfig(f => ({
+                      ...f,
+                      jours_proposes: [...(f.jours_proposes.length > 0 ? f.jours_proposes : ['']), ''],
+                    }))} style={{ alignSelf:'flex-start', padding:'4px 10px', fontSize:12, border:'1px dashed #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', color:'#475569' }}>+ Ajouter un jour</button>
+                  </div>
+                </Field>
+              )}
+
+              {/* Heures limite */}
+              <Field label="Délai de réponse (heures)">
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <input type="number" min="1" max="168" style={{ ...IS, width:80 }}
+                    value={fConfig.heures_limite_reponse}
+                    onChange={e => setFConfig(f => ({ ...f, heures_limite_reponse: e.target.value }))} />
+                  <span style={{ fontSize:12, color:'#64748b' }}>
+                    heures après l'envoi de la notification. Défaut : 8h. La date limite exacte sera calculée au moment de l'envoi (étape 5).
+                  </span>
+                </div>
+              </Field>
+            </div>
+
+            {/* Boutons */}
+            <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end', borderTop:'1px solid #e5e7eb', paddingTop:16 }}>
+              <Btn onClick={() => setConfigDepId(null)} outline color="#6b7280" disabled={savConfig}>Annuler</Btn>
+              <Btn onClick={saveConfig} loading={savConfig} color="#1e3a5f">💾 Enregistrer la config</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
