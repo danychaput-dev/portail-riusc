@@ -105,22 +105,25 @@ export async function GET() {
   // Sinon, le bouton est caché côté client pour éviter les scans curieux.
   let eligible_today = isAdmin || (count || 0) > 0 || supervisingCount > 0
   if (!eligible_today) {
-    // Récupérer toutes les sessions QR actives en une fois
+    // Récupérer toutes les sessions QR actives (non archivees) en une fois
     const { data: actives } = await supabaseAdmin
       .from('pointage_sessions')
-      .select('type_contexte, session_id')
+      .select('type_contexte, session_id, archived_at')
       .eq('actif', true)
+      .is('archived_at', null)
     if (actives && actives.length > 0) {
       const sessionsCamp = actives.filter(s => s.type_contexte === 'camp').map(s => s.session_id)
       const sessionsDep  = actives.filter(s => s.type_contexte === 'deploiement').map(s => s.session_id)
 
-      // Camp : a-t-il une inscription active dans un de ces session_id ?
+      // Camp : a-t-il une inscription NON-ANNULEE dans un de ces session_id ?
+      // (cohere avec TrajetButton : inscription 'annule' ne compte pas)
       if (sessionsCamp.length > 0) {
         const { count: cmpCount } = await supabaseAdmin
           .from('inscriptions_camps')
           .select('benevole_id', { count: 'exact', head: true })
           .eq('benevole_id', res.benevole_id)
           .in('session_id', sessionsCamp)
+          .neq('presence', 'annule')
         if ((cmpCount || 0) > 0) eligible_today = true
       }
 
