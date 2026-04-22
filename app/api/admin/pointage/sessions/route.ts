@@ -102,15 +102,17 @@ export async function POST(req: NextRequest) {
   // La colonne est conservée pour évolution future mais tous les admin/superadmin/
   // partenaire peuvent approuver n'importe quelle session. Si approuveur_id est
   // fourni, on valide qu'il existe; sinon on laisse NULL.
+  let approuveur: { benevole_id: string; prenom: string; nom: string } | null = null
   if (approuveur_id) {
-    const { data: approuveur } = await supabaseAdmin
+    const { data: appr } = await supabaseAdmin
       .from('reservistes')
       .select('benevole_id, prenom, nom, role')
       .eq('benevole_id', approuveur_id)
       .single()
-    if (!approuveur) {
+    if (!appr) {
       return NextResponse.json({ error: 'Approuveur introuvable' }, { status: 400 })
     }
+    approuveur = { benevole_id: appr.benevole_id, prenom: appr.prenom, nom: appr.nom }
   }
 
   // Nettoyer le titre (trim + null si vide)
@@ -149,6 +151,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     session: inserted,
     url: `${BASE_URL}/punch/${inserted.token}`,
-    approuveur: { benevole_id: approuveur.benevole_id, prenom: approuveur.prenom, nom: approuveur.nom },
+    approuveur,
   })
 }
