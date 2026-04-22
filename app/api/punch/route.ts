@@ -137,11 +137,14 @@ export async function POST(req: NextRequest) {
   // 1. Charger la session
   const { data: session, error: sessErr } = await supabaseAdmin
     .from('pointage_sessions')
-    .select('id, actif, approuveur_id, type_contexte, contexte_nom, shift, date_shift')
+    .select('id, actif, approuveur_id, type_contexte, contexte_nom, shift, date_shift, archived_at')
     .eq('token', token)
     .single()
   if (sessErr || !session) {
     return NextResponse.json({ error: 'QR invalide ou introuvable' }, { status: 404 })
+  }
+  if (session.archived_at) {
+    return NextResponse.json({ error: 'Ce QR a été archivé et ne peut plus être utilisé.' }, { status: 403 })
   }
   if (!session.actif) {
     return NextResponse.json({ error: 'Ce QR a été désactivé' }, { status: 403 })
@@ -459,11 +462,14 @@ export async function GET(req: NextRequest) {
 
   const { data: session } = await supabaseAdmin
     .from('pointage_sessions')
-    .select('id, actif, type_contexte, contexte_nom, contexte_dates, contexte_lieu, shift, date_shift')
+    .select('id, actif, type_contexte, contexte_nom, contexte_dates, contexte_lieu, shift, date_shift, archived_at')
     .eq('token', token)
     .single()
 
   if (!session) return NextResponse.json({ error: 'QR invalide' }, { status: 404 })
+  if ((session as any).archived_at) {
+    return NextResponse.json({ error: 'Ce QR a été archivé et ne peut plus être utilisé.' }, { status: 403 })
+  }
 
   const { data: lastPointage } = await supabaseAdmin
     .from('pointages')

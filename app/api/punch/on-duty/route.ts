@@ -76,11 +76,13 @@ export async function GET() {
 
   // Supervision : combien de personnes sont actuellement actives sur les QR
   // que j'ai créés OU dont je suis l'approuveur désigné ?
+  // (on exclut les sessions archivees : elles ne sont plus superviser)
   const { data: mesSessions } = await supabaseAdmin
     .from('pointage_sessions')
     .select('id')
     .or(`cree_par.eq.${res.benevole_id},approuveur_id.eq.${res.benevole_id}`)
     .eq('actif', true)
+    .is('archived_at', null)
 
   let supervisingCount = 0
   if (mesSessions && mesSessions.length > 0) {
