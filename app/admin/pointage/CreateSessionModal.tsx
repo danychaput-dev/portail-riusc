@@ -116,7 +116,8 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
     e.preventDefault()
     setErr(null)
 
-    if (!approuveurId) { setErr('Sélectionne un approuveur'); return }
+    // Note: approuveurId n'est plus requis — tous les admin/superadmin/partenaire
+    // peuvent approuver n'importe quelle session (restriction assouplie 2026-04-22)
 
     // Construire le payload selon le type de contexte
     let payload: Record<string, any>
@@ -159,7 +160,7 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
           titre: titre.trim() || null,
           shift: shift || null,
           date_shift: dateShift || null,
-          approuveur_id: approuveurId,
+          approuveur_id: approuveurId || null, // optionnel, pour évolution future
         }),
       })
       const json = await res.json()
@@ -313,26 +314,11 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
                 </div>
               </div>
 
-              {/* Approuveur */}
-              <div>
-                <label style={labelStyle}>Approuveur *</label>
-                <select
-                  value={approuveurId}
-                  onChange={e => setApprouveurId(e.target.value)}
-                  style={inputStyle}
-                  required
-                >
-                  <option value="">— Choisir un approuveur —</option>
-                  {approuveurs.map(a => (
-                    <option key={a.benevole_id} value={a.benevole_id}>
-                      {a.prenom} {a.nom} · {a.role}
-                    </option>
-                  ))}
-                </select>
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>
-                  La personne qui pourra valider/contester les pointages. Admin, coordonnateur ou partenaire.
-                </div>
-              </div>
+              {/* Approuveur : retiré 2026-04-22.
+                  Tous les admin, superadmin et partenaire peuvent approuver n'importe
+                  quelle session. La colonne pointage_sessions.approuveur_id est
+                  conservée en DB pour évolution future (si on veut re-désigner une
+                  personne par QR). Pour l'instant, l'UI ne demande plus de choix. */}
 
               {err && (
                 <div style={{ padding: 10, borderRadius: 6, backgroundColor: '#fef2f2', color: RED, fontSize: 13 }}>

@@ -57,21 +57,22 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     .eq('id', pointage.pointage_session_id)
     .single()
 
-  // Permissions :
-  // - superadmin / admin : tout
+  // Permissions (simplifié 2026-04-22) :
+  // - superadmin / admin / partenaire : peuvent tout (edit, approuver, contester, annuler)
+  //   NOTE: la notion d'approuveur désigné par session (pointage_sessions.approuveur_id)
+  //   est conservée en DB pour évolution future, mais actuellement TOUS les admins et
+  //   partenaires peuvent approuver n'importe quelle session.
   // - coordonnateur : peut corriger (edit) mais pas approuver/contester
-  // - partenaire (approuveur désigné) : peut tout SUR SA SESSION
   // - partenaire_lect : lecture seule (refus)
-  const isAdminLike = user.role === 'superadmin' || user.role === 'admin'
-  const isDesignatedApprouveur = session?.approuveur_id === user.benevole_id
+  const isAdminLike = user.role === 'superadmin' || user.role === 'admin' || user.role === 'partenaire'
   if (user.role === 'partenaire_lect') {
     return NextResponse.json({ error: 'Lecture seule' }, { status: 403 })
   }
-  if (user.role === 'partenaire' && !isDesignatedApprouveur) {
-    return NextResponse.json({ error: 'Tu n\'es pas l\'approuveur désigné pour cette session.' }, { status: 403 })
-  }
   if (user.role === 'coordonnateur' && (action === 'approuver' || action === 'contester')) {
-    return NextResponse.json({ error: 'Approbation réservée à l\'approuveur désigné ou à un admin.' }, { status: 403 })
+    return NextResponse.json({ error: 'Approbation réservée à un admin, superadmin ou partenaire.' }, { status: 403 })
+  }
+  if (!isAdminLike && user.role !== 'coordonnateur') {
+    return NextResponse.json({ error: 'Ton rôle ne permet pas de modifier les pointages.' }, { status: 403 })
   }
 
   // Traitement selon action

@@ -98,18 +98,19 @@ export async function POST(req: NextRequest) {
   if (shift && !['jour', 'nuit', 'complet'].includes(shift)) {
     return NextResponse.json({ error: 'shift invalide' }, { status: 400 })
   }
-  if (!approuveur_id) {
-    return NextResponse.json({ error: 'approuveur_id requis' }, { status: 400 })
-  }
-
-  // Vérifier que l'approuveur existe
-  const { data: approuveur } = await supabaseAdmin
-    .from('reservistes')
-    .select('benevole_id, prenom, nom, role')
-    .eq('benevole_id', approuveur_id)
-    .single()
-  if (!approuveur) {
-    return NextResponse.json({ error: 'Approuveur introuvable' }, { status: 400 })
+  // approuveur_id est maintenant OPTIONNEL (2026-04-22).
+  // La colonne est conservée pour évolution future mais tous les admin/superadmin/
+  // partenaire peuvent approuver n'importe quelle session. Si approuveur_id est
+  // fourni, on valide qu'il existe; sinon on laisse NULL.
+  if (approuveur_id) {
+    const { data: approuveur } = await supabaseAdmin
+      .from('reservistes')
+      .select('benevole_id, prenom, nom, role')
+      .eq('benevole_id', approuveur_id)
+      .single()
+    if (!approuveur) {
+      return NextResponse.json({ error: 'Approuveur introuvable' }, { status: 400 })
+    }
   }
 
   // Nettoyer le titre (trim + null si vide)
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
       titre: titreNet,
       shift: shift || null,
       date_shift: date_shift || null,
-      approuveur_id,
+      approuveur_id: approuveur_id || null,
       cree_par: user.benevole_id,
     })
     .select('id, token, type_contexte, session_id, contexte_nom, contexte_dates, contexte_lieu, titre, shift, date_shift, approuveur_id, actif, created_at')
