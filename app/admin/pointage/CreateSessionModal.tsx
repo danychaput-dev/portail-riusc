@@ -63,11 +63,12 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
     ;(async () => {
       setLoadingData(true)
       const [campsRes, depsRes, appsRes] = await Promise.all([
+        // On lit la vue camps_distincts (metadata sans donnees nominatives)
+        // pour que les partenaires puissent voir tous les camps meme s'ils
+        // n'ont pas d'inscription RLS sur inscriptions_camps.
         supabase
-          .from('inscriptions_camps')
-          .select('session_id, camp_nom, camp_dates, camp_lieu')
-          .not('session_id', 'is', null)
-          .range(0, 4999),
+          .from('camps_distincts')
+          .select('session_id, camp_nom, camp_dates, camp_lieu'),
         // On ne montre que les déploiements actifs/planifiés (pas les Annulé/Terminé)
         supabase
           .from('deployments')
