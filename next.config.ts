@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 
 const securityHeaders = [
-  // Empêche le chargement dans un iframe (clickjacking)
-  { key: 'X-Frame-Options', value: 'DENY' },
+  // Empêche le chargement dans un iframe par un DOMAINE EXTERNE (clickjacking).
+  // SAMEORIGIN permet aux pages du portail de s'embed mutuellement (ex: page
+  // /outils/transports qui affiche /outil-transport.html dans un iframe, ou
+  // les pages LMS). DENY cassait ces fonctionnalites internes.
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   // Empêche le sniffing MIME type
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   // Active la protection XSS du navigateur
@@ -25,7 +28,9 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com https://*.tawk.to",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.mapbox.com https://*.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com https://n8n.aqbrs.ca https://*.tawk.to wss://*.tawk.to",
       "frame-src 'self' https://*.tawk.to",
-      "frame-ancestors 'none'",
+      // 'self' pour autoriser les iframes internes (outil-transport.html, LMS)
+      // tout en bloquant l'embedding depuis un domaine externe.
+      "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",
     ].join('; '),
