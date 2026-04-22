@@ -96,6 +96,53 @@ export async function GET(req: NextRequest) {
     // on laisse le UI décider, mais on renvoie quand même tous les camps inscrits non-annulés.
     const campsInscrits = inscCamps || []
 
+    // 3) Extension : camps/deploiements ou l'utilisateur a CREE ou APPROUVE un QR
+    //    actif non-archive. Cas d'usage : chefs d'equipe, partenaires SOPFEU/Croix-
+    //    Rouge qui supervisent un camp mais ne sont pas inscrits comme participants.
+    //    Ils vont physiquement au camp, donc ont droit de declarer un trajet.
+    const { data: qrSupervises } = await supabaseAdmin
+      .from('pointage_sessions')
+      .select('type_contexte, session_id, contexte_nom, contexte_lieu, contexte_dates')
+      .or(`cree_par.eq.${benevole_id},approuveur_id.eq.${benevole_id}`)
+      .eq('actif', true)
+      .is('archived_at', null)
+
+    if (qrSupervises && qrSupervises.length > 0) {
+      // Camps : ajouter ceux qui ne sont pas deja dans campsInscrits
+      const campsExistants = new Set(campsInscrits.map((c: any) => c.session_id))
+      for (const qr of qrSupervises) {
+        if (qr.type_contexte !== 'camp') continue
+        if (campsExistants.has(qr.session_id)) continue
+        campsInscrits.push({
+          session_id: qr.session_id,
+          camp_nom: qr.contexte_nom,
+          camp_dates: qr.contexte_dates || null,
+          camp_lieu: qr.contexte_lieu || null,
+          presence: 'superviseur',  // marqueur pour distinguer d'une inscription
+        } as any)
+        campsExistants.add(qr.session_id)
+      }
+
+      // Deploiements : ajouter ceux qui ne sont pas deja dans deploiementsActifs
+      const depsExistants = new Set(deploiementsActifs.map((d: any) => d.id))
+      const depIdsQR = qrSupervises
+        .filter(qr => qr.type_contexte === 'deploiement' && !depsExistants.has(qr.session_id))
+        .map(qr => qr.session_id)
+      if (depIdsQR.length > 0) {
+        const { data: depsFromQR } = await supabaseAdmin
+          .from('deployments')
+          .select('id, nom, lieu, date_debut, date_fin, statut')
+          .in('id', depIdsQR)
+          .or(`date_fin.is.null,date_fin.gte.${todayISO}`)
+        for (const d of (depsFromQR || [])) {
+          if (!depsExistants.has(d.id)) {
+            deploiementsActifs.push(d)
+            depsExistants.add(d.id)
+          }
+        }
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       benevole_id,
