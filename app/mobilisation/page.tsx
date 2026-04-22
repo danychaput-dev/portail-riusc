@@ -165,11 +165,11 @@ export default function MobilisationPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '12px 0', fontSize: '14px' }}>
-                  {m.lieu && <div>📍 <strong>Lieu:</strong> {m.lieu}</div>}
-                  {m.point_rassemblement && <div>📌 <strong>Rassemblement:</strong> {m.point_rassemblement}</div>}
-                  {m.date_debut && <div>📅 <strong>Début:</strong> {formatDate(m.date_debut)}</div>}
-                  {m.date_fin && <div>📅 <strong>Fin:</strong> {formatDate(m.date_fin)}</div>}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '12px 0', fontSize: '14px', color: '#1f2937' }}>
+                  {m.lieu && <div><span style={{ color: '#6b7280' }}>📍</span> <strong style={{ color: '#111827' }}>Lieu:</strong> <span style={{ color: '#111827' }}>{m.lieu}</span></div>}
+                  {m.point_rassemblement && <div><span style={{ color: '#6b7280' }}>📌</span> <strong style={{ color: '#111827' }}>Rassemblement:</strong> <span style={{ color: '#111827' }}>{m.point_rassemblement}</span></div>}
+                  {m.date_debut && <div><span style={{ color: '#6b7280' }}>📅</span> <strong style={{ color: '#111827' }}>Début:</strong> <span style={{ color: '#111827' }}>{formatDate(m.date_debut)}</span></div>}
+                  {m.date_fin && <div><span style={{ color: '#6b7280' }}>📅</span> <strong style={{ color: '#111827' }}>Fin:</strong> <span style={{ color: '#111827' }}>{formatDate(m.date_fin)}</span></div>}
                 </div>
 
                 {m.vagues.length > 0 && (
@@ -199,7 +199,7 @@ export default function MobilisationPage() {
         )}
 
         <div style={{ marginTop: '32px', padding: '16px 20px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe', fontSize: '13px', color: '#1e40af' }}>
-          <strong>💡 Important:</strong> Si vous êtes dans l&apos;impossibilité de vous présenter, contactez-nous <strong>immédiatement</strong> à riusc@aqbrs.ca ou par SMS au 438-807-3137.
+          <strong>💡 Important:</strong> Si vous êtes dans l&apos;impossibilité de vous présenter, contactez-nous <strong>immédiatement</strong> par courriel à <a href="mailto:riusc@aqbrs.ca" style={{ color: '#1e40af', fontWeight: 600 }}>riusc@aqbrs.ca</a>.
         </div>
       </main>
 
