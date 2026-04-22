@@ -6,6 +6,7 @@ import { useEffect, useState, useMemo } from 'react'
 import QRCode from 'qrcode'
 import CreateSessionModal from './CreateSessionModal'
 import QRDisplayModal from './QRDisplayModal'
+import EditSessionModal from './EditSessionModal'
 
 const C = '#1e3a5f'
 const GREEN = '#16a34a'
@@ -66,6 +67,7 @@ export default function PointagePage() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [qrModal, setQrModal] = useState<{ url: string; dataUrl: string; session: Session } | null>(null)
+  const [editSession, setEditSession] = useState<Session | null>(null)
   const [onglet, setOnglet] = useState<OngletPointage>('actives')
 
   // Chargement initial
@@ -300,6 +302,12 @@ export default function PointagePage() {
                       style={{ ...btnSecondary, marginLeft: 6 }}>
                       Voir QR
                     </button>
+                    {s.total_pointages === 0 && !s.archived_at && (
+                      <button onClick={() => setEditSession(s)} title="Modifier titre/shift/date (aucun pointage)"
+                        style={{ ...btnSecondary, marginLeft: 6 }}>
+                        ✏️ Éditer
+                      </button>
+                    )}
                     {!s.archived_at && (
                       <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver' : 'Réactiver'}
                         style={{ ...btnSecondary, marginLeft: 6, color: s.actif ? RED : GREEN, borderColor: s.actif ? RED : GREEN }}>
@@ -335,6 +343,17 @@ export default function PointagePage() {
           dataUrl={qrModal.dataUrl}
           session={qrModal.session}
           onClose={() => setQrModal(null)}
+        />
+      )}
+
+      {editSession && (
+        <EditSessionModal
+          session={editSession}
+          onClose={() => setEditSession(null)}
+          onSaved={async () => {
+            setEditSession(null)
+            await loadSessions()
+          }}
         />
       )}
     </div>

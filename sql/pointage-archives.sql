@@ -8,6 +8,7 @@
 --
 -- 1. Ajout archived_at TIMESTAMPTZ + archived_by TEXT sur pointage_sessions
 -- 2. Recreer la vue pointages_resume pour exposer ces colonnes
+--    (DROP + CREATE car CREATE OR REPLACE ne peut pas reordonner)
 -- =====================================================================
 
 BEGIN;
@@ -26,14 +27,20 @@ CREATE INDEX IF NOT EXISTS idx_pointage_sessions_archived_at
   ON public.pointage_sessions(archived_at)
   WHERE archived_at IS NOT NULL;
 
--- Recreer la vue pour exposer les colonnes d'archivage
-CREATE OR REPLACE VIEW public.pointages_resume AS
+-- Recreer la vue pour exposer les colonnes d'archivage.
+-- CREATE OR REPLACE ne permet pas d'ajouter une colonne au milieu ni de
+-- changer le type. Le titre a ete ajoute via une precedente migration,
+-- on reproduit ici la definition COMPLETE + ajoute archived_at / by a la fin.
+DROP VIEW IF EXISTS public.pointages_resume;
+
+CREATE VIEW public.pointages_resume AS
 SELECT
   ps.id                    AS pointage_session_id,
   ps.type_contexte,
   ps.session_id,
   ps.contexte_nom,
   ps.contexte_lieu,
+  ps.titre,
   ps.shift,
   ps.date_shift,
   ps.actif,
@@ -51,13 +58,13 @@ LEFT JOIN public.pointages p ON p.pointage_session_id = ps.id
 GROUP BY ps.id;
 
 COMMENT ON VIEW public.pointages_resume IS
-  'Resume agrege des pointages par session QR — pour le dashboard admin. Inclut archived_at/archived_by depuis 2026-04-22.';
+  'Resume agrege des pointages par session QR — pour le dashboard admin. Inclut titre (migration titre) + archived_at/by (migration archives 2026-04-22).';
 
 COMMIT;
 
 -- Verif
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns
-WHERE table_schema='public' AND table_name='pointage_sessions' AND column_name IN ('archived_at','archived_by');
+WHERE table_schema='public' AND table_name='pointage_sessions' AND column_name IN ('archived_at','archived_by','titre');
 
 SELECT * FROM pointages_resume LIMIT 1;

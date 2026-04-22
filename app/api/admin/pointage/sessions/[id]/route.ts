@@ -45,8 +45,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
   const body = await req.json()
   const updates: Record<string, any> = {}
+
+  // --- Champs toujours modifiables ---
   if (typeof body.actif === 'boolean') updates.actif = body.actif
-  if (typeof body.approuveur_id === 'string') updates.approuveur_id = body.approuveur_id
+  if (typeof body.approuveur_id === 'string' || body.approuveur_id === null) {
+    updates.approuveur_id = body.approuveur_id || null
+  }
 
   // Archivage : body.archived = true/false
   if (typeof body.archived === 'boolean') {
@@ -59,6 +63,38 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     }
   }
 
+  // --- Champs metadonnees — editables SEULEMENT si aucun pointage n'existe ---
+  // (titre, shift, date_shift). On empeche de changer le contexte apres coup.
+  const wantsMetaEdit = body.titre !== undefined
+    || body.shift !== undefined
+    || body.date_shift !== undefined
+
+  if (wantsMetaEdit) {
+    // Verifier qu'aucun pointage n'existe sur cette session
+    const { count } = await supabaseAdmin
+      .from('pointages')
+      .select('id', { count: 'exact', head: true })
+      .eq('pointage_session_id', id)
+    if ((count || 0) > 0) {
+      return NextResponse.json({
+        error: 'Modification impossible : des pointages existent deja sur cette session. Archive-la et cree un nouveau QR a la place.',
+      }, { status: 409 })
+    }
+    if (body.titre !== undefined) {
+      const t = typeof body.titre === 'string' && body.titre.trim() ? body.titre.trim() : null
+      updates.titre = t
+    }
+    if (body.shift !== undefined) {
+      if (body.shift && !['jour', 'nuit', 'complet'].includes(body.shift)) {
+        return NextResponse.json({ error: 'shift invalide' }, { status: 400 })
+      }
+      updates.shift = body.shift || null
+    }
+    if (body.date_shift !== undefined) {
+      updates.date_shift = body.date_shift || null
+    }
+  }
+
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Rien à mettre à jour' }, { status: 400 })
   }
@@ -67,10 +103,19 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     .from('pointage_sessions')
     .update(updates)
     .eq('id', id)
-    .select('id, actif, approuveur_id, archived_at, archived_by')
+    .select('id, actif, approuveur_id, archived_at, archived_by, titre, shift, date_shift')
     .single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    // Collision unique (un autre QR a deja ce meme contexte/shift/date/titre)
+    if (error.message.includes('duplicate') || error.code === '23505') {
+      return NextResponse.json(
+        { error: 'Un autre QR existe deja pour ce contexte, shift, date et titre. Change le titre.' },
+        { status: 409 }
+      )
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
   return NextResponse.json({ ok: true, session: data })
 }
 
