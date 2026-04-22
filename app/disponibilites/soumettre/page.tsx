@@ -2,10 +2,10 @@
 
 /**
  * ─────────────────────────────────────────────────────────────────
- * VERSION TEMPORAIRE (2026-04-18) — Sélection par jour (checkboxes)
- * Dates fixes : 19, 20, 21 avril 2026 (déploiement Laval digue)
- * L'ancienne version avec plage continue est dans page-plage-old.tsx
- * À remplacer par une page dynamique lisant les dates du déploiement
+ * Page soumettre — dynamique (2026-04-22)
+ * Lit deployments.mode_dates + jours_proposes + date_debut/fin pour
+ * générer les jours à proposer. Applique le branding RIUSC ou AQBRS.
+ * Affiche le countdown jusqu'à date_limite_reponse (désactive après).
  * ─────────────────────────────────────────────────────────────────
  */
 
@@ -16,6 +16,8 @@ import Image from 'next/image'
 import { logPageVisit } from '@/utils/logEvent'
 import { isDemoActive, DEMO_RESERVISTE, DEMO_DEPLOIEMENTS } from '@/utils/demoMode'
 import { n8nUrl } from '@/utils/n8n'
+import { brandingConfig, type Branding } from '@/utils/branding'
+import { formatDateLimite } from '@/utils/formatDateLimite'
 
 interface DeploiementInfo {
   deploiement_id: string;
@@ -27,6 +29,10 @@ interface DeploiementInfo {
   date_fin?: string | null;
   organisme?: string | null;
   date_limite_reponse?: string | null;
+  mode_dates?: 'plage_continue' | 'jours_individuels';
+  jours_proposes?: string[] | null;
+  branding?: Branding;
+  heures_limite_reponse?: number;
 }
 
 interface Reserviste {
@@ -39,12 +45,34 @@ interface Reserviste {
 
 type ReponseType = 'disponible' | 'non_disponible' | 'a_confirmer';
 
-// Dates hardcodées pour cette version temporaire
-const DATES_FIXES = [
-  { iso: '2026-04-19', label: 'Dimanche 19 avril 2026' },
-  { iso: '2026-04-20', label: 'Lundi 20 avril 2026' },
-  { iso: '2026-04-21', label: 'Mardi 21 avril 2026' },
+// Formate une date ISO (YYYY-MM-DD) en "Samedi 19 avril 2026"
+const JOURS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+const MOIS_FR = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
 ]
+function labelJour(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  return `${JOURS_FR[date.getDay()]} ${d} ${MOIS_FR[m - 1]} ${y}`
+}
+
+// Génère toutes les dates entre debut et fin inclusivement (YYYY-MM-DD)
+function genererPlage(debut: string, fin: string): string[] {
+  const dates: string[] = []
+  const [ya, ma, da] = debut.split('-').map(Number)
+  const [yb, mb, db] = fin.split('-').map(Number)
+  const cur = new Date(ya, ma - 1, da)
+  const end = new Date(yb, mb - 1, db)
+  while (cur.getTime() <= end.getTime()) {
+    const yyyy = cur.getFullYear()
+    const mm = String(cur.getMonth() + 1).padStart(2, '0')
+    const dd = String(cur.getDate()).padStart(2, '0')
+    dates.push(`${yyyy}-${mm}-${dd}`)
+    cur.setDate(cur.getDate() + 1)
+  }
+  return dates
+}
 
 function SoumettreContent() {
   const [loading, setLoading] = useState(true)
@@ -85,14 +113,51 @@ function SoumettreContent() {
   // Bouton "Envoyer" — cible du scroll automatique quand le formulaire devient valide.
   const submitButtonRef = useRef<HTMLButtonElement>(null)
 
+  // Liste des jours proposés au réserviste, calculée depuis la config du déploiement.
+  // - mode_dates = 'jours_individuels' : utilise jours_proposes tel quel
+  // - mode_dates = 'plage_continue'    : génère tous les jours entre date_debut et date_fin
+  const joursDisponibles = useMemo<{ iso: string; label: string }[]>(() => {
+    if (!deploiement) return []
+    if (deploiement.mode_dates === 'jours_individuels' && deploiement.jours_proposes?.length) {
+      return deploiement.jours_proposes
+        .filter(d => d && d.trim())
+        .sort()
+        .map(iso => ({ iso, label: labelJour(iso) }))
+    }
+    // Plage continue : date_debut → date_fin inclusivement
+    if (deploiement.date_debut) {
+      const fin = deploiement.date_fin || deploiement.date_debut
+      return genererPlage(deploiement.date_debut, fin).map(iso => ({ iso, label: labelJour(iso) }))
+    }
+    return []
+  }, [deploiement])
+
+  // Pré-cocher tous les jours en mode plage_continue (tout ou rien)
+  useEffect(() => {
+    if (!deploiement) return
+    if (deploiement.mode_dates === 'plage_continue' && joursDisponibles.length && datesCochees.size === 0 && reponse && reponse !== 'non_disponible') {
+      setDatesCochees(new Set(joursDisponibles.map(j => j.iso)))
+    }
+  }, [deploiement, joursDisponibles, reponse])
+
+  // Formulaire verrouillé si date_limite_reponse dépassée
+  const estExpire = useMemo(() => {
+    if (!deploiement?.date_limite_reponse) return false
+    return new Date(deploiement.date_limite_reponse).getTime() < Date.now()
+  }, [deploiement])
+
+  // Configuration de branding (logo + nom portail)
+  const branding = useMemo(() => brandingConfig(deploiement?.branding), [deploiement?.branding])
+
   // Validité du formulaire (sans tenir compte de l'état submitting).
   // Pour 'non_disponible', le bouton est toujours dispo donc on n'a pas besoin de scroller.
   const isReadyToSubmit = useMemo(() => {
+    if (estExpire) return false
     if (!reponse || reponse === 'non_disponible') return false
     if (datesCochees.size === 0 || !transport) return false
     if (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee)) return false
     return true
-  }, [reponse, datesCochees, transport, engagementAccepte, aptitudeAcceptee])
+  }, [reponse, datesCochees, transport, engagementAccepte, aptitudeAcceptee, estExpire])
 
   // Détecte la transition invalide → valide pour scroller UNE SEULE FOIS vers le bouton.
   // Si l'utilisateur décoche puis recoche, ça re-déclenche un scroll, ce qui est attendu.
@@ -156,7 +221,7 @@ function SoumettreContent() {
 
       const { data: depRaw } = await supabase
         .from('deployments')
-        .select('id, identifiant, nom, lieu, date_debut, date_fin, statut, notes_logistique')
+        .select('id, identifiant, nom, lieu, date_debut, date_fin, statut, notes_logistique, mode_dates, jours_proposes, branding, heures_limite_reponse, date_limite_reponse')
         .eq('id', deploiementId)
         .single()
 
@@ -169,7 +234,11 @@ function SoumettreContent() {
         date_debut: depRaw.date_debut,
         date_fin: depRaw.date_fin,
         organisme: undefined,
-        date_limite_reponse: undefined,
+        date_limite_reponse: depRaw.date_limite_reponse,
+        mode_dates: (depRaw.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
+        jours_proposes: depRaw.jours_proposes,
+        branding: (depRaw.branding || 'RIUSC') as Branding,
+        heures_limite_reponse: depRaw.heures_limite_reponse ?? 8,
       } : null
 
       if (dep) {
@@ -285,7 +354,7 @@ function SoumettreContent() {
     const contact = reserviste?.telephone ? 'SMS' : 'courriel'
 
     const datesChoisies = Array.from(datesCochees).sort()
-      .map(d => DATES_FIXES.find(x => x.iso === d)?.label || d)
+      .map(d => joursDisponibles.find(x => x.iso === d)?.label || labelJour(d))
       .join(', ')
 
     const messages: Record<ReponseType, MsgConfig> = {
@@ -318,9 +387,9 @@ function SoumettreContent() {
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', flexDirection: 'column' }}>
         <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
           <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
+            <Image src={branding.logoPath} alt={`Logo ${branding.nomCourt}`} width={48} height={48} style={{ borderRadius: '8px' }} />
             <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>{branding.nomPortail}</h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Soumission de disponibilité</p>
             </div>
           </div>
@@ -374,9 +443,9 @@ function SoumettreContent() {
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 24px', height: '72px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '16px', textDecoration: 'none' }}>
-            <Image src="/logo.png" alt="Logo RIUSC" width={48} height={48} style={{ borderRadius: '8px' }} />
+            <Image src={branding.logoPath} alt={`Logo ${branding.nomCourt}`} width={48} height={48} style={{ borderRadius: '8px' }} />
             <div>
-              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>Portail RIUSC</h1>
+              <h1 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#1e3a5f' }}>{branding.nomPortail}</h1>
               <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Soumission de disponibilité</p>
             </div>
           </a>
@@ -405,8 +474,8 @@ function SoumettreContent() {
                 <div>📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` au ${formatDate(deploiement.date_fin)}` : ''}</div>
               )}
               {deploiement.date_limite_reponse && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' }}>
-                  🕐 Répondre avant le {formatDate(deploiement.date_limite_reponse)}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: estExpire ? 'rgba(220,38,38,0.3)' : 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' }}>
+                  🕐 {estExpire ? 'Délai expiré' : 'Répondre ' + formatDateLimite(new Date(deploiement.date_limite_reponse))}
                 </div>
               )}
             </div>
@@ -436,9 +505,15 @@ function SoumettreContent() {
                 <div style={{ display: 'flex', gap: '14px' }}>
                   <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '1px' }}>✅</span>
                   <div>
-                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>Cochez les jours où vous êtes disponible</p>
+                    <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>
+                      {deploiement?.mode_dates === 'jours_individuels'
+                        ? 'Cochez les jours où vous êtes disponible'
+                        : 'Confirmez votre disponibilité pour la plage complète'}
+                    </p>
                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.6' }}>
-                      Vous pouvez cocher <strong>un, deux ou trois jours</strong>. Par exemple : disponible dimanche et mardi, pas disponible lundi.
+                      {deploiement?.mode_dates === 'jours_individuels'
+                        ? 'Vous pouvez cocher un seul jour ou plusieurs selon votre disponibilité.'
+                        : 'Cette opération demande un engagement sur toute la plage de dates proposée (tout ou rien).'}
                     </p>
                   </div>
                 </div>
@@ -475,6 +550,13 @@ function SoumettreContent() {
         {error && (
           <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
             {error}
+          </div>
+        )}
+
+        {estExpire && (
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '14px 18px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', lineHeight: 1.6 }}>
+            ⛔ <strong>Le délai pour soumettre vos disponibilités est expiré.</strong><br/>
+            Si vous souhaitez tout de même vous rendre disponible, contactez-nous à <a href="mailto:riusc@aqbrs.ca" style={{ color: '#991b1b', textDecoration: 'underline' }}>riusc@aqbrs.ca</a>.
           </div>
         )}
 
@@ -575,36 +657,64 @@ function SoumettreContent() {
               </div>
             )}
 
-            {/* Checkboxes dates */}
+            {/* Jours disponibles — UI varie selon mode_dates */}
             <div style={{ marginBottom: '28px' }}>
-              <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
-                Êtes-vous disponible ces journées ?
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {DATES_FIXES.map(({ iso, label }) => {
-                  const checked = datesCochees.has(iso)
-                  return (
-                    <label key={iso} style={{
-                      display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px',
-                      border: checked ? '2px solid #059669' : '1px solid #e5e7eb',
-                      borderRadius: '10px', cursor: 'pointer',
-                      backgroundColor: checked ? '#ecfdf5' : 'white',
-                      transition: 'all 0.2s'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleDate(iso)}
-                        style={{ accentColor: '#059669', width: '22px', height: '22px', flexShrink: 0 }}
-                      />
-                      <span style={{ fontSize: '15px', color: '#111827', fontWeight: checked ? '600' : '500' }}>
-                        {label}
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
-              <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280' }}>Cochez au moins une date.</p>
+              {deploiement?.mode_dates === 'plage_continue' ? (
+                <>
+                  <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
+                    Plage du déploiement
+                  </h3>
+                  <div style={{
+                    backgroundColor: '#ecfdf5', border: '2px solid #059669', borderRadius: '10px',
+                    padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px'
+                  }}>
+                    <span style={{ fontSize: '28px', flexShrink: 0 }}>📅</span>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#065f46', marginBottom: '4px' }}>
+                        {joursDisponibles.length === 1
+                          ? joursDisponibles[0].label
+                          : joursDisponibles.length > 0
+                            ? `${joursDisponibles[0].label} → ${joursDisponibles[joursDisponibles.length - 1].label}`
+                            : 'Aucune date définie'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#4b5563' }}>
+                        En choisissant "{reponse === 'disponible' ? 'Je suis disponible' : 'Je dois confirmer'}", vous vous engagez pour <strong>toute la plage</strong> ({joursDisponibles.length} jour{joursDisponibles.length > 1 ? 's' : ''}).
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '16px', fontWeight: '600' }}>
+                    Êtes-vous disponible ces journées ?
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {joursDisponibles.map(({ iso, label }) => {
+                      const checked = datesCochees.has(iso)
+                      return (
+                        <label key={iso} style={{
+                          display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px',
+                          border: checked ? '2px solid #059669' : '1px solid #e5e7eb',
+                          borderRadius: '10px', cursor: 'pointer',
+                          backgroundColor: checked ? '#ecfdf5' : 'white',
+                          transition: 'all 0.2s'
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleDate(iso)}
+                            style={{ accentColor: '#059669', width: '22px', height: '22px', flexShrink: 0 }}
+                          />
+                          <span style={{ fontSize: '15px', color: '#111827', fontWeight: checked ? '600' : '500' }}>
+                            {label}
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '13px', color: '#6b7280' }}>Cochez au moins une date.</p>
+                </>
+              )}
             </div>
 
             {/* Transport */}
