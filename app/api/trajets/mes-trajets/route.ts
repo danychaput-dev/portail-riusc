@@ -74,11 +74,14 @@ export async function GET(req: NextRequest) {
 
     let deploiementsActifs: any[] = []
     if (depIds.length > 0) {
+      // Un déploiement est "actif" si :
+      //   - sa date_fin n'est pas encore passée (>= aujourd'hui)
+      //   - OU sa date_fin est NULL (durée indéterminée, considéré en cours)
       const { data: deps } = await supabaseAdmin
         .from('deployments')
         .select('id, nom, lieu, date_debut, date_fin, statut')
         .in('id', depIds)
-        .gte('date_fin', todayISO)
+        .or(`date_fin.is.null,date_fin.gte.${todayISO}`)
       deploiementsActifs = deps || []
     }
 
