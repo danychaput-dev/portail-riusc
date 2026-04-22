@@ -32,17 +32,23 @@ export async function GET(req: NextRequest) {
 
     const impersonateCookie = cookieStore.get('impersonate')?.value
     let benevole_id: string | null = null
+    let effectiveRole: string | null = null
     if (impersonateCookie) {
       const { data: acteur } = await supabaseAdmin
         .from('reservistes').select('role').eq('user_id', user.id).single()
       if (acteur && ['superadmin', 'admin', 'coordonnateur'].includes(acteur.role)) {
         benevole_id = impersonateCookie
+        // En emprunt, recuperer le role de la cible pour la logique QR supervisor
+        const { data: cible } = await supabaseAdmin
+          .from('reservistes').select('role').eq('benevole_id', impersonateCookie).single()
+        effectiveRole = cible?.role || null
       }
     }
     if (!benevole_id) {
       const { data: me } = await supabaseAdmin
-        .from('reservistes').select('benevole_id').eq('user_id', user.id).single()
+        .from('reservistes').select('benevole_id, role').eq('user_id', user.id).single()
       benevole_id = me?.benevole_id || null
+      effectiveRole = me?.role || null
     }
     if (!benevole_id) return NextResponse.json({ error: 'Bénévole non trouvé' }, { status: 404 })
 
@@ -96,16 +102,26 @@ export async function GET(req: NextRequest) {
     // on laisse le UI décider, mais on renvoie quand même tous les camps inscrits non-annulés.
     const campsInscrits = inscCamps || []
 
-    // 3) Extension : camps/deploiements ou l'utilisateur a CREE ou APPROUVE un QR
-    //    actif non-archive. Cas d'usage : chefs d'equipe, partenaires SOPFEU/Croix-
-    //    Rouge qui supervisent un camp mais ne sont pas inscrits comme participants.
-    //    Ils vont physiquement au camp, donc ont droit de declarer un trajet.
-    const { data: qrSupervises } = await supabaseAdmin
+    // 3) Extension : camps/deploiements associes a un QR actif non-archive.
+    //    Logique :
+    //    - Pour les roles admin-like (superadmin/admin/coord/partenaire/partenaire_lect):
+    //      TOUS les QR actifs comptent comme contexte trajet (ils supervisent
+    //      l'ensemble et vont sur place).
+    //    - Pour les reservistes / autres : uniquement les QR qu'ils ont crees
+    //      ou dont ils sont approuveurs designe.
+    //    Cas d'usage : SOPFEU/Croix-Rouge qui gerent un camp sans etre inscrits,
+    //    admin qui fait une demo, chef d'equipe qui cree son QR.
+    const isAdminLike = !!effectiveRole && ['superadmin', 'admin', 'coordonnateur', 'partenaire', 'partenaire_lect'].includes(effectiveRole)
+
+    let qrQuery = supabaseAdmin
       .from('pointage_sessions')
       .select('type_contexte, session_id, contexte_nom, contexte_lieu, contexte_dates')
-      .or(`cree_par.eq.${benevole_id},approuveur_id.eq.${benevole_id}`)
       .eq('actif', true)
       .is('archived_at', null)
+    if (!isAdminLike) {
+      qrQuery = qrQuery.or(`cree_par.eq.${benevole_id},approuveur_id.eq.${benevole_id}`)
+    }
+    const { data: qrSupervises } = await qrQuery
 
     if (qrSupervises && qrSupervises.length > 0) {
       // Camps : ajouter ceux qui ne sont pas deja dans campsInscrits
