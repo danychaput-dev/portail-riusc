@@ -189,6 +189,25 @@ export default function OperationsPage() {
   // Rotation: expansion + personnes assignées
   const [expandedVagues, setExpandedVagues] = useState<Set<string>>(new Set())
   const [assignParVague, setAssignParVague] = useState<Record<string, { benevole_id: string; prenom: string; nom: string; telephone: string | null; statut_ciblage?: string }[]>>({})
+  // Compteur d'assignations par vague (chargé une fois au mount des vagues pour affichage rapide)
+  const [countsParVague, setCountsParVague] = useState<Record<string, number>>({})
+
+  // Pré-charger les counts d'assignations pour toutes les vagues dès qu'elles sont chargées
+  useEffect(() => {
+    if (!vagues.length) { setCountsParVague({}); return }
+    const vagueIds = vagues.map(v => v.id)
+    supabase.from('assignations')
+      .select('vague_id')
+      .in('vague_id', vagueIds)
+      .then(({ data }) => {
+        const counts: Record<string, number> = {}
+        for (const id of vagueIds) counts[id] = 0
+        for (const row of (data || [])) {
+          counts[row.vague_id] = (counts[row.vague_id] || 0) + 1
+        }
+        setCountsParVague(counts)
+      })
+  }, [vagues.map(v => v.id).join(',')])
 
   const toggleVagueExpansion = async (vagueId: string) => {
     setExpandedVagues(prev => {
@@ -1508,7 +1527,18 @@ export default function OperationsPage() {
                           }}>
                           <span style={{ fontSize:10, color:'#10b981', display:'inline-block', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition:'transform 0.15s' }}>▶</span>
                           <strong>{v.identifiant||`Rot. #${v.numero}`}</strong>
-                          <span>— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}{v.nb_personnes_requis?` · ${v.nb_personnes_requis} pers.`:''}</span>
+                          <span>— {dateFr(v.date_debut)} → {dateFr(v.date_fin)}</span>
+                          {v.nb_personnes_requis != null && (() => {
+                            const assignes = assignParVague[v.id]?.length
+                            if (assignes === undefined) {
+                              return <span>· {v.nb_personnes_requis} requis</span>
+                            }
+                            return (
+                              <span style={{ color: assignes < v.nb_personnes_requis! ? '#b45309' : '#065f46' }}>
+                                · {assignes} / {v.nb_personnes_requis} assigné(s)
+                              </span>
+                            )
+                          })()}
                           {v.statut === 'Terminée' && <span style={{ marginLeft:'auto', padding:'1px 6px', borderRadius:4, backgroundColor:'#e5e7eb', color:'#374151', fontSize:10, fontWeight:600 }}>✓ Terminée</span>}
                         </button>
                         {expanded && (
