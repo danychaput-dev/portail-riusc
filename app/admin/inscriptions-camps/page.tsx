@@ -113,6 +113,10 @@ export default function InscriptionsCampsPage() {
   const [loadingInscrits, setLoadingInscrits] = useState(false)
   const [search, setSearch] = useState('')
   const [filterPresence, setFilterPresence] = useState<string>('tous')
+  // Filtre par defaut lors du changement de camp. 'tous' pour admin/coord,
+  // 'confirme' pour partenaire (SOPFEU/Croix-Rouge se soucient surtout des
+  // confirmes pour la logistique). Fixe dans checkRole().
+  const [defaultPresenceFilter, setDefaultPresenceFilter] = useState<string>('tous')
 
   // Responsive — sidebar cachable sur mobile
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -184,7 +188,10 @@ export default function InscriptionsCampsPage() {
         setRetourHref('/partenaire')
         // Pre-filtre sur "J'y serai" par defaut : SOPFEU/Croix-Rouge se soucient
         // principalement des confirmes pour logistique (repas, equipes, QR).
+        // On change AUSSI le defaultPresenceFilter pour que le reset automatique
+        // lors du changement de camp utilise 'confirme' au lieu de 'tous'.
         setFilterPresence('confirme')
+        setDefaultPresenceFilter('confirme')
       } else if (role === 'partenaire_lect') {
         // Loi 25: partenaire_lect voit uniquement les donnees non-nominales
         // (compteurs, presence, district, dates). Aucun nom, courriel, telephone,
@@ -192,6 +199,7 @@ export default function InscriptionsCampsPage() {
         setIsPartenaireChef(true)
         setRetourHref('/partenaire')
         setFilterPresence('confirme')
+        setDefaultPresenceFilter('confirme')
       } else {
         // Reservistes et autres roles: pas d'acces a cette page.
         router.replace('/')
@@ -275,7 +283,10 @@ export default function InscriptionsCampsPage() {
     async function loadInscrits() {
       setLoadingInscrits(true)
       setSearch('')
-      setFilterPresence('tous')
+      // Reset du filtre avec la valeur par defaut du role (partenaire = confirme,
+      // admin/coord = tous). Corrige le bug ou le partenaire perdait son filtre
+      // pre-coche J'y serai a chaque selection de camp.
+      setFilterPresence(defaultPresenceFilter)
       setSelectedIds(new Set())
 
       // Étape 1 — inscriptions du camp (Loi 25: partenaire_lect ne voit pas les infos nominales)
