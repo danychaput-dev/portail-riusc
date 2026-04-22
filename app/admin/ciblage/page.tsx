@@ -564,6 +564,22 @@ export default function CiblagePage() {
     }
   }
 
+  // Démobiliser une seule personne (statut mobilise/confirme → termine)
+  const demobiliserPersonne = async (cible: Cible) => {
+    if (!confirm(`Démobiliser ${cible.reservistes.prenom} ${cible.reservistes.nom} ?\n\nLe déploiement passera de ses mobilisations actives vers son historique.`)) return
+    const res = await fetch('/api/admin/operations/demobiliser', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deployment_id: referenceId, benevole_id: cible.benevole_id })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      alert(`Erreur : ${data.error || 'inconnue'}`)
+      return
+    }
+    // Mettre à jour l'état local
+    setCibles(p => p.map(c => c.id === cible.id ? { ...c, statut: 'termine' } : c))
+  }
+
   const demanderAI = async () => {
     if (loadingAI) return
     setLoadingAI(true)
@@ -1099,7 +1115,10 @@ export default function CiblagePage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: '500', fontSize: '13px' }}>{cible.reservistes.prenom} {cible.reservistes.nom}</span>
                           {cible.ajoute_par_ia && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#f0fdf4', color: '#16a34a', fontWeight: '700' }}>IA</span>}
-                          {cible.statut === 'notifie' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: '700' }}>✓</span>}
+                          {cible.statut === 'notifie' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#dbeafe', color: '#1d4ed8', fontWeight: '700' }}>✓ notifié</span>}
+                          {cible.statut === 'mobilise' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#dcfce7', color: '#166534', fontWeight: '700' }}>🚀 mobilisé</span>}
+                          {cible.statut === 'confirme' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#bbf7d0', color: '#15803d', fontWeight: '700' }}>✅ confirmé</span>}
+                          {cible.statut === 'termine' && <span style={{ fontSize: '10px', padding: '1px 5px', borderRadius: '8px', backgroundColor: '#e5e7eb', color: '#374151', fontWeight: '700' }}>🏁 terminé</span>}
                         </div>
                         <div style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           <span>{cible.reservistes.ville}{cible.reservistes.ville && cible.reservistes.region ? ', ' : ''}{cible.reservistes.region}</span>
@@ -1111,9 +1130,20 @@ export default function CiblagePage() {
                           })()}
                         </div>
                       </div>
-                      {cible.statut !== 'notifie' && (
-                        <button onClick={() => retirer(cible)} style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #fca5a5', backgroundColor: 'white', color: '#ef4444', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>×</button>
-                      )}
+                      <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                        {(cible.statut === 'mobilise' || cible.statut === 'confirme') && (
+                          <button
+                            onClick={() => demobiliserPersonne(cible)}
+                            title="Démobiliser (déploiement passe à son historique)"
+                            style={{ padding: '3px 8px', fontSize: '11px', fontWeight: 600, borderRadius: '6px', border: '1px solid #a7f3d0', backgroundColor: '#ecfdf5', color: '#065f46', cursor: 'pointer' }}>
+                            🏁
+                          </button>
+                        )}
+                        {(cible.statut === 'cible' || cible.statut === 'termine') && (
+                          <button onClick={() => retirer(cible)} title="Retirer du ciblage"
+                            style={{ width: '24px', height: '24px', borderRadius: '50%', border: '1px solid #fca5a5', backgroundColor: 'white', color: '#ef4444', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                        )}
+                      </div>
                     </div>
                     {(() => {
                       const candidat = pool.find(p => p.benevole_id === cible.benevole_id)

@@ -38,53 +38,62 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const body = await req.json()
-  const { vague_id, deployment_id, all_vagues } = body
+  const { vague_id, deployment_id, all_vagues, all_deployment, benevole_id } = body
 
-  if (!vague_id && !(deployment_id && all_vagues)) {
-    return NextResponse.json({ error: 'vague_id ou (deployment_id + all_vagues) requis' }, { status: 400 })
+  const nothingSpecified = !vague_id && !(deployment_id && (all_vagues || all_deployment)) && !(deployment_id && benevole_id)
+  if (nothingSpecified) {
+    return NextResponse.json({ error: 'Paramètres requis: vague_id, OU (deployment_id + all_vagues|all_deployment), OU (deployment_id + benevole_id)' }, { status: 400 })
   }
 
-  // 1. Récupérer les vagues concernées
-  let vagueIds: string[] = []
   let deploymentId: string | null = null
+  let vagueIds: string[] = []
+  let benevoleIds: string[] = []
+
   if (vague_id) {
-    const { data: v } = await supabaseAdmin
-      .from('vagues')
-      .select('id, deployment_id')
-      .eq('id', vague_id)
-      .single()
+    // Cas 1: démobiliser une vague spécifique
+    const { data: v } = await supabaseAdmin.from('vagues').select('id, deployment_id').eq('id', vague_id).single()
     if (!v) return NextResponse.json({ error: 'Vague introuvable' }, { status: 404 })
     vagueIds = [v.id]
     deploymentId = v.deployment_id
-  } else if (deployment_id && all_vagues) {
-    const { data: vs } = await supabaseAdmin
-      .from('vagues')
-      .select('id')
-      .eq('deployment_id', deployment_id)
-    vagueIds = (vs || []).map(v => v.id)
+    const { data: assignations } = await supabaseAdmin
+      .from('assignations').select('benevole_id').in('vague_id', vagueIds)
+    benevoleIds = [...new Set((assignations || []).map(a => a.benevole_id).filter(Boolean))] as string[]
+  } else if (deployment_id && all_deployment) {
+    // Cas 2: démobiliser TOUT le déploiement (ignore les vagues, prend tous les ciblages mobilise/confirme)
     deploymentId = deployment_id
+    const { data: allCiblages } = await supabaseAdmin
+      .from('ciblages').select('benevole_id')
+      .eq('reference_id', deployment_id).eq('niveau', 'deploiement')
+      .in('statut', ['mobilise', 'confirme'])
+    benevoleIds = [...new Set((allCiblages || []).map(c => c.benevole_id).filter(Boolean))] as string[]
+    const { data: vs } = await supabaseAdmin.from('vagues').select('id').eq('deployment_id', deployment_id)
+    vagueIds = (vs || []).map(v => v.id)
+  } else if (deployment_id && all_vagues) {
+    // Cas 3: démobiliser toutes les vagues (via assignations)
+    deploymentId = deployment_id
+    const { data: vs } = await supabaseAdmin.from('vagues').select('id').eq('deployment_id', deployment_id)
+    vagueIds = (vs || []).map(v => v.id)
+    if (vagueIds.length) {
+      const { data: assignations } = await supabaseAdmin
+        .from('assignations').select('benevole_id').in('vague_id', vagueIds)
+      benevoleIds = [...new Set((assignations || []).map(a => a.benevole_id).filter(Boolean))] as string[]
+    }
+  } else if (deployment_id && benevole_id) {
+    // Cas 4: démobiliser UNE seule personne d'un déploiement
+    deploymentId = deployment_id
+    benevoleIds = [benevole_id]
+    // Pas de vagues à marquer Terminée pour un démo individuel
   }
-
-  if (!vagueIds.length) return NextResponse.json({ error: 'Aucune vague trouvée' }, { status: 404 })
-
-  // 2. Trouver les réservistes assignés à ces vagues
-  const { data: assignations } = await supabaseAdmin
-    .from('assignations')
-    .select('benevole_id, vague_id')
-    .in('vague_id', vagueIds)
-
-  const benevoleIds = [...new Set((assignations || []).map(a => a.benevole_id).filter(Boolean))]
 
   let ciblagesUpdated = 0
   if (benevoleIds.length && deploymentId) {
-    // 3. UPDATE ciblages de ces benevoles pour ce déploiement
     const { data, error } = await supabaseAdmin
       .from('ciblages')
       .update({ statut: 'termine', updated_at: new Date().toISOString() })
       .eq('reference_id', deploymentId)
       .eq('niveau', 'deploiement')
       .in('benevole_id', benevoleIds)
-      .in('statut', ['mobilise', 'confirme']) // ne touche pas les 'cible', 'notifie', 'retire'
+      .in('statut', ['mobilise', 'confirme'])
       .select('id')
     if (error) {
       console.error('Erreur demobiliser ciblages:', error)

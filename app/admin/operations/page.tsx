@@ -186,6 +186,30 @@ export default function OperationsPage() {
   // Démobilisation d'une vague
   const [demobilisating, setDemobilisating] = useState<string | null>(null)
 
+  // Démobilisation BULK d'un déploiement entier (ignore les vagues, tous les ciblages mobilise/confirme → termine)
+  const demobiliserDeploiement = async () => {
+    if (!depId || !selDep) return
+    if (!confirm(`Démobiliser TOUT le déploiement « ${selDep.nom} » ?\n\nÇa passe TOUS les réservistes encore en statut "mobilise" ou "confirme" au statut "terminé", peu importe les vagues.\n\nUtile quand: mode jours individuels (pas de vagues alignées) OU fin complète de l'opération.\n\nAction non destructive — les ciblages deviennent "termine".`)) return
+    setDemobilisating('ALL')
+    try {
+      const res = await fetch('/api/admin/operations/demobiliser', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deployment_id: depId, all_deployment: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(`Erreur : ${data.error || 'inconnue'}`)
+      } else {
+        alert(`✅ Démobilisation bulk OK\n\n${data.ciblages_termines} ciblage(s) passés à "termine"\n${data.vagues_terminees ?? 0} vague(s) marquée(s) Terminée`)
+        const { data: fresh } = await supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+        if (fresh) setVagues(fresh as unknown as Vague[])
+      }
+    } catch (e: any) {
+      alert('Erreur réseau : ' + (e?.message || 'inconnue'))
+    }
+    setDemobilisating(null)
+  }
+
   const demobiliserVague = async (vagueId: string, nomVague: string) => {
     if (!confirm(`Démobiliser « ${nomVague} » ?\n\nÇa passe tous les réservistes assignés à cette vague au statut "terminé" (ils ne verront plus le déploiement dans leurs mobilisations). La vague passe à "Terminée". Action non destructive — tu peux toujours remettre leur ciblage à "mobilise" en SQL si besoin.`)) return
     setDemobilisating(vagueId)
@@ -1434,7 +1458,17 @@ export default function OperationsPage() {
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {vagues.length>0 && (
                 <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
-                  <div style={{ fontSize:12, fontWeight:600, color:'#1e3a5f', marginBottom:6 }}>Mobilisation pour {vagues.length} rotation(s)</div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6, flexWrap:'wrap', gap:8 }}>
+                    <div style={{ fontSize:12, fontWeight:600, color:'#1e3a5f' }}>Mobilisation pour {vagues.length} rotation(s)</div>
+                    <button
+                      type="button"
+                      onClick={demobiliserDeploiement}
+                      disabled={demobilisating === 'ALL'}
+                      title="Passe TOUS les réservistes encore mobilise/confirme au statut terminé, peu importe les vagues (utile en mode jours individuels)"
+                      style={{ padding:'4px 12px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #7c3aed', backgroundColor:'#faf5ff', color:'#6d28d9', cursor: demobilisating === 'ALL' ? 'wait' : 'pointer' }}>
+                      {demobilisating === 'ALL' ? '⏳' : '🏁 Démobiliser toute l\'opération'}
+                    </button>
+                  </div>
                   {vagues.map(v=>{
                     const enRetard = vagueEstEnRetard(v)
                     const terminee = v.statut === 'Terminée'
