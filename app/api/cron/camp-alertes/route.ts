@@ -192,7 +192,7 @@ export async function GET(req: NextRequest) {
         html,
       })
       if (r.error) {
-        throw new Error(typeof r.error === 'string' ? r.error : (r.error.message || 'Resend error'))
+        throw new Error(r.error.message || r.error.name || 'Resend error')
       }
       return c.log_id
     }))
