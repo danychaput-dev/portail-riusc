@@ -37,10 +37,21 @@ async function getCurrentUser() {
   if (!user) return null
   const { data: res } = await supabaseAdmin
     .from('reservistes')
-    .select('benevole_id, prenom, nom')
+    .select('benevole_id, prenom, nom, role')
     .eq('user_id', user.id)
     .single()
   return res
+}
+
+// Rôles autorisés à utiliser le mode "prêter son cell"
+// (pointer pour un collègue via son courriel).
+// Un simple 'reserviste' ne peut pas — évite abus type falsification d'heures
+// entre collègues. Admin/coord/partenaire ont une responsabilité de supervision.
+const ROLES_AUTORISES_PRET = ['superadmin', 'admin', 'partenaire']
+
+function peutPreter(role: string | null | undefined): boolean {
+  if (!role) return false
+  return ROLES_AUTORISES_PRET.includes(role)
 }
 
 // Mode "appareil partagé": identifier un réserviste par email (sans auth session).
@@ -70,9 +81,12 @@ async function identifierReserviste(emailFallback?: string | null) {
   const sessionUser = await getCurrentUser()
 
   if (emailFallback && emailFallback.trim()) {
-    // Mode "prêter son cell": requiert absolument une session authentifiée
+    // Mode "prêter son cell": requiert session ET rôle autorisé
     if (!sessionUser) {
       return { error: 'session_requise' as const }
+    }
+    if (!peutPreter(sessionUser.role)) {
+      return { error: 'role_non_autorise' as const }
     }
     const res = await getReservisteByEmail(emailFallback)
     if (res) return { reserviste: res, via: 'email' as const, sessionUser }
@@ -99,6 +113,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: 'Pour pointer pour un collègue, tu dois être connecté sur cet appareil. Demande au propriétaire du cell de se connecter au portail, puis réessaie.',
         session_required: true,
+      }, { status: 403 })
+    }
+    if (ident.error === 'role_non_autorise') {
+      return NextResponse.json({
+        error: 'Ton rôle ne permet pas de pointer pour un collègue. Seuls les admins, superadmins et partenaires peuvent prêter leur cellulaire.',
+        role_forbidden: true,
       }, { status: 403 })
     }
     if (ident.error === 'email_introuvable') {
@@ -423,11 +443,19 @@ export async function GET(req: NextRequest) {
         session_required: true,
       }, { status: 403 })
     }
+    if (ident.error === 'role_non_autorise') {
+      return NextResponse.json({
+        error: 'Ton rôle ne permet pas de pointer pour un collègue.',
+        role_forbidden: true,
+      }, { status: 403 })
+    }
     if (ident.error === 'email_introuvable') {
       return NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
     }
   }
   const user = ident.reserviste!
+  // Flag renvoyé au front pour savoir s'il faut afficher le bouton "Prêter mon cell"
+  const peutPreterCell = ident.via === 'session' && peutPreter(ident.sessionUser?.role)
 
   const { data: session } = await supabaseAdmin
     .from('pointage_sessions')
@@ -469,6 +497,7 @@ export async function GET(req: NextRequest) {
     reserviste: { prenom: user.prenom, nom: user.nom },
     session,
     pointage: lastPointage,
+    peut_preter_cell: peutPreterCell,
     autres_ouverts: (autresOuverts || []).map((a: any) => ({
       id: a.id,
       pointage_session_id: a.pointage_session_id,

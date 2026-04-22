@@ -69,6 +69,9 @@ export default function PunchPage() {
   const [emailInput, setEmailInput] = useState('')
   const [email, setEmail] = useState('')
   const [needsConfirm, setNeedsConfirm] = useState(false)
+  // Le back nous dit si le rôle de l'utilisateur connecté permet de prêter son cell
+  // (seuls admin, superadmin, partenaire peuvent pointer pour un collègue)
+  const [peutPreterCell, setPeutPreterCell] = useState(false)
 
   // Charger l'état
   const load = async (emailParam?: string) => {
@@ -119,6 +122,7 @@ export default function PunchPage() {
       setPointage(json.pointage)
       setReserviste(json.reserviste)
       setAutresOuverts(json.autres_ouverts || [])
+      setPeutPreterCell(json.peut_preter_cell === true)
     } catch (e: any) {
       setErr(e.message || 'Erreur réseau')
     } finally {
@@ -362,8 +366,10 @@ export default function PunchPage() {
               Revenir à moi
             </button>
           </div>
-        ) : (
-          // Option "prêter le cell" : visible seulement quand on est connecté à son propre compte
+        ) : peutPreterCell ? (
+          // Option "prêter le cell" : visible seulement pour admin, superadmin et partenaire.
+          // Les simples reservistes ne voient pas ce bouton (évite falsification d'heures
+          // entre collègues - seuls les rôles de supervision peuvent prêter).
           <div style={{ padding: '8px 12px', backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: 8, marginBottom: 14, fontSize: 12, color: MUTED, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span>Quelqu'un sans cell veut pointer? Prête-lui le tien.</span>
             <button
@@ -373,7 +379,7 @@ export default function PunchPage() {
               🔄 Prêter mon cell
             </button>
           </div>
-        )}
+        ) : null}
 
         {successMsg && (
           <div style={{ padding: 12, borderRadius: 8, backgroundColor: '#d1fae5', color: GREEN, fontWeight: 600, marginBottom: 16, textAlign: 'center' }}>
