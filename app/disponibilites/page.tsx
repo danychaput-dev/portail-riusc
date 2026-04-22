@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
@@ -30,6 +30,14 @@ interface Mobilisation {
 }
 
 export default function DisponibilitesPage() {
+  return (
+    <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px', color: '#1e3a5f' }}>Chargement...</div>}>
+      <DisponibilitesContent />
+    </Suspense>
+  );
+}
+
+function DisponibilitesContent() {
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
