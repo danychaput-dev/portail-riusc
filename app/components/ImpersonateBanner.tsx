@@ -3,6 +3,18 @@
 import { useEffect, useState } from 'react'
 
 /**
+ * Flag pour activer/desactiver le mode read-only lors de l'emprunt d'identite.
+ *
+ * - `true` : tous les champs sont verrouilles, Ctrl+clic pour debloquer.
+ * - `false` : mode emprunt simple, sans verrou (utile pour captures video
+ *   de formation). L'indicateur visuel dans le header reste actif.
+ *
+ * Desactive 2026-04-22 : le verrou gene les demos video. A reactiver plus
+ * tard si on veut proteger contre les clics accidentels en production.
+ */
+const READONLY_MODE_ENABLED = false
+
+/**
  * ImpersonateBanner - Ne rend rien visuellement.
  * Injecte le mode read-only (CSS + Ctrl+click) quand un emprunt est actif.
  * L'indicateur visuel est gere par le header (couleur jaune + menu "Retour").
@@ -25,6 +37,7 @@ export default function ImpersonateBanner({ position = 'top' }: { position?: 'to
 
   useEffect(() => {
     if (!isImpersonating) return
+    if (!READONLY_MODE_ENABLED) return
 
     document.body.classList.add('impersonate-readonly')
 
