@@ -116,8 +116,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         router.push('/')
         return
       }
-      // Partenaire: seule la page inscriptions-camps est autorisee
-      if (isPartenaireRole && !pathname.startsWith('/admin/inscriptions-camps')) {
+      // Partenaire: pages autorisees = /admin/inscriptions-camps et /admin/pointage
+      // (SOPFEU + Croix-Rouge gerent les presences, donc pointage QR ouvert aux partenaires)
+      if (isPartenaireRole
+          && !pathname.startsWith('/admin/inscriptions-camps')
+          && !pathname.startsWith('/admin/pointage')) {
         router.push('/')
         return
       }

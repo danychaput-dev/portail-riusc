@@ -44,6 +44,11 @@ interface Deploiement {
   nb_personnes_par_vague: number
 }
 
+// Flag temporaire : cacher le bloc Demandes/Deploiements/Soumettre le temps
+// de fixer les bugs du cycle de demandes partenaires (2026-04-22).
+// Remettre a `true` pour reactiver les onglets.
+const SHOW_DEMANDES_BLOC = false
+
 const STATUT_DEMANDE_COLORS: Record<string, { bg: string; color: string }> = {
   'Nouvelle':      { bg: '#eff6ff', color: '#2563eb' },
   'En traitement': { bg: '#fffbeb', color: '#d97706' },
@@ -232,6 +237,25 @@ export default function PartenairePage() {
           </a>
 
           <a
+            href="/admin/pointage"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '14px 20px', backgroundColor: 'white', borderRadius: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0',
+              textDecoration: 'none', color: C, fontWeight: '600', fontSize: '14px',
+              transition: 'box-shadow 0.15s',
+            }}
+            onMouseOver={e => (e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)')}
+            onMouseOut={e => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)')}
+          >
+            <span style={{ fontSize: '22px' }}>✅</span>
+            <div>
+              <div>Présences</div>
+              <div style={{ fontSize: '12px', color: '#6b7280', fontWeight: '400' }}>Codes QR de pointage et feuilles de temps</div>
+            </div>
+          </a>
+
+          <a
             href="/outils/transports"
             style={{
               display: 'flex', alignItems: 'center', gap: '10px',
@@ -251,7 +275,8 @@ export default function PartenairePage() {
           </a>
         </div>
 
-        {/* Onglets */}
+        {/* Bloc Demandes/Deploiements/Soumettre masque temporairement */}
+        {SHOW_DEMANDES_BLOC && (<>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '0' }}>
           {([
             { key: 'demandes',      label: `📋 Mes demandes (${demandes.length})` },
@@ -402,6 +427,7 @@ export default function PartenairePage() {
             </div>
           </div>
         )}
+        </>)}
 
         {/* Footer */}
         <div style={{ marginTop: '24px' }}>
