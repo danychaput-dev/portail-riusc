@@ -82,12 +82,17 @@ export default function PunchPage() {
       const res = await fetch(url)
       const json = await res.json().catch(() => ({}))
       if (res.status === 401) {
-        // Pas de session ET pas d'email fourni → demander l'email au lieu de rediriger vers login
-        if (json.email_required) {
-          setNeedsEmail(true)
-          setLoading(false)
-          return
-        }
+        // Pas de session → redirect vers login. Le mode email n'est JAMAIS accessible
+        // sans session (protection contre l'abus: on ne veut pas que n'importe qui
+        // puisse créer des punches pour des collègues via leur courriel).
+        router.push(`/login?redirect=${encodeURIComponent(`/punch/${token}`)}`)
+        return
+      }
+      if (res.status === 403 && json.session_required) {
+        // Session expirée pendant le mode prêt → retour au form email mais avec warning
+        setErr(json.error || 'Session requise pour prêter le cellulaire.')
+        setEmail('')
+        setLoading(false)
         router.push(`/login?redirect=${encodeURIComponent(`/punch/${token}`)}`)
         return
       }

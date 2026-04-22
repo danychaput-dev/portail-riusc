@@ -59,18 +59,28 @@ async function getReservisteByEmail(email: string) {
 }
 
 // Résout le réserviste.
-// PRIORITÉ à l'email si fourni (mode "prêter son cell"): le chef d'équipe connecté
-// prête son téléphone à un membre qui scanne → on doit pointer pour la bonne personne,
-// pas pour le chef. Si email absent, on utilise la session.
+// SÉCURITÉ: le mode email ("prêter son cell") exige une session active.
+//   - Sans session + sans email → 401
+//   - Sans session + avec email → 403 (refuse, porte potentielle à falsification d'heures)
+//   - Avec session + avec email → utilise l'email (mode prêt, la session du prêteur autorise)
+//   - Avec session + sans email → utilise la session (punch pour soi-même)
+//
+// Retourne { reserviste, via, sessionUser } pour tracer qui a prêté le cell dans l'audit.
 async function identifierReserviste(emailFallback?: string | null) {
+  const sessionUser = await getCurrentUser()
+
   if (emailFallback && emailFallback.trim()) {
+    // Mode "prêter son cell": requiert absolument une session authentifiée
+    if (!sessionUser) {
+      return { error: 'session_requise' as const }
+    }
     const res = await getReservisteByEmail(emailFallback)
-    if (res) return { reserviste: res, via: 'email' as const }
-    return null // email explicite fourni mais introuvable -> erreur
+    if (res) return { reserviste: res, via: 'email' as const, sessionUser }
+    return { error: 'email_introuvable' as const }
   }
-  const user = await getCurrentUser()
-  if (user) return { reserviste: user, via: 'session' as const }
-  return null
+
+  if (sessionUser) return { reserviste: sessionUser, via: 'session' as const, sessionUser }
+  return { error: 'non_authentifie' as const }
 }
 
 export async function POST(req: NextRequest) {
@@ -81,13 +91,23 @@ export async function POST(req: NextRequest) {
   const emailFallback: string | undefined = body.email
 
   const ident = await identifierReserviste(emailFallback)
-  if (!ident) {
-    return emailFallback
-      ? NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
-      : NextResponse.json({ error: 'Non authentifié ou courriel requis', email_required: true }, { status: 401 })
+  if ('error' in ident) {
+    if (ident.error === 'non_authentifie') {
+      return NextResponse.json({ error: 'Non authentifié', auth_required: true }, { status: 401 })
+    }
+    if (ident.error === 'session_requise') {
+      return NextResponse.json({
+        error: 'Pour pointer pour un collègue, tu dois être connecté sur cet appareil. Demande au propriétaire du cell de se connecter au portail, puis réessaie.',
+        session_required: true,
+      }, { status: 403 })
+    }
+    if (ident.error === 'email_introuvable') {
+      return NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
+    }
   }
-  const user = ident.reserviste
+  const user = ident.reserviste!
   const identifieVia = ident.via
+  const preteurBenevoleId = ident.sessionUser?.benevole_id ?? null // audit : qui a prêté le cell
 
   if (!token) return NextResponse.json({ error: 'token requis' }, { status: 400 })
   if (!VALID_ACTIONS.includes(action)) {
@@ -393,12 +413,21 @@ export async function GET(req: NextRequest) {
 
   const emailFallback = searchParams.get('email')
   const ident = await identifierReserviste(emailFallback)
-  if (!ident) {
-    return emailFallback
-      ? NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
-      : NextResponse.json({ error: 'Non authentifié ou courriel requis', email_required: true }, { status: 401 })
+  if ('error' in ident) {
+    if (ident.error === 'non_authentifie') {
+      return NextResponse.json({ error: 'Non authentifié', auth_required: true }, { status: 401 })
+    }
+    if (ident.error === 'session_requise') {
+      return NextResponse.json({
+        error: 'Connecte-toi au portail pour pouvoir prêter ton cellulaire à un collègue.',
+        session_required: true,
+      }, { status: 403 })
+    }
+    if (ident.error === 'email_introuvable') {
+      return NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
+    }
   }
-  const user = ident.reserviste
+  const user = ident.reserviste!
 
   const { data: session } = await supabaseAdmin
     .from('pointage_sessions')
