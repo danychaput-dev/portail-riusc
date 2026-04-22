@@ -472,7 +472,7 @@ export default function OperationsPage() {
         const dep = data as unknown as Deployment
         setDeployments(p => p.map(d => d.id === editingDepId ? dep : d))
         setShowFDep(false); setEditingDepId(null)
-        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:'',mode_dates:'plage_continue' as 'plage_continue' | 'jours_individuels',jours_proposes:[] as string[],branding:'RIUSC' as 'RIUSC' | 'AQBRS',heures_limite_reponse:'8'})
       }
     } else {
       const identifiant = genDeployId(deployments)
@@ -483,7 +483,7 @@ export default function OperationsPage() {
         await supabase.from('deployments_demandes').insert(demIds.map(did => ({ deployment_id: data.id, demande_id: did })))
         setDeployments(p => [...p, data as unknown as Deployment]); setDepId(data.id)
         setShowFDep(false)
-        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''})
+        setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:'',mode_dates:'plage_continue' as 'plage_continue' | 'jours_individuels',jours_proposes:[] as string[],branding:'RIUSC' as 'RIUSC' | 'AQBRS',heures_limite_reponse:'8'})
       } else if (error) {
         console.error('Erreur creation déploiement:', error)
         alert(`Erreur création déploiement : ${error.message}${error.code ? ` (${error.code})` : ''}`)
@@ -538,7 +538,7 @@ export default function OperationsPage() {
   const cancelEdit = (kind: 'sin' | 'dem' | 'dep') => {
     if (kind === 'sin') { setShowFSin(false); setEditingSinId(null); setFSin({nom:'',type_incident:'',lieu:'',date_debut:''}) }
     if (kind === 'dem') { setShowFDem(false); setEditingDemId(null); setFDem({organisme:'',type_mission:'',lieu:'',nb_personnes_requis:'',date_debut:'',date_fin_estimee:'',priorite:'Normale',contact_nom:'',contact_telephone:''}) }
-    if (kind === 'dep') { setShowFDep(false); setEditingDepId(null); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:''}) }
+    if (kind === 'dep') { setShowFDep(false); setEditingDepId(null); setFDep({nom:'',lieu:'',date_debut:'',date_fin:'',nb_personnes_par_vague:'',point_rassemblement:'',notes_logistique:'',mode_dates:'plage_continue' as 'plage_continue' | 'jours_individuels',jours_proposes:[] as string[],branding:'RIUSC' as 'RIUSC' | 'AQBRS',heures_limite_reponse:'8'}) }
   }
 
   const rafraichirCiblages = async () => {
@@ -1012,9 +1012,11 @@ export default function OperationsPage() {
                     {d.date_debut && <span>📅 {dateFr(d.date_debut)}{d.date_fin?` → ${dateFr(d.date_fin)}`:''}</span>}
                     {d.nb_personnes_par_vague && <span>👥 {d.nb_personnes_par_vague}/rotation</span>}
                     {d.point_rassemblement && <span>📌 {d.point_rassemblement}</span>}
-                    {d.branding && <span style={{ padding:'1px 6px', borderRadius:4, backgroundColor: d.branding === 'AQBRS' ? '#ede9fe' : '#dbeafe', color: d.branding === 'AQBRS' ? '#6d28d9' : '#1d4ed8', fontWeight:600 }}>{d.branding}</span>}
-                    {d.mode_dates === 'jours_individuels' && <span style={{ color:'#7c3aed' }}>📆 jours individuels{d.jours_proposes?.length ? ` (${d.jours_proposes.length})` : ''}</span>}
-                    {d.heures_limite_reponse && <span>⏱️ {d.heures_limite_reponse}h pour répondre</span>}
+                    <span style={{ padding:'1px 6px', borderRadius:4, backgroundColor: (d.branding || 'RIUSC') === 'AQBRS' ? '#ede9fe' : '#dbeafe', color: (d.branding || 'RIUSC') === 'AQBRS' ? '#6d28d9' : '#1d4ed8', fontWeight:600 }}>{d.branding || 'RIUSC'}</span>
+                    {d.mode_dates === 'jours_individuels'
+                      ? <span style={{ color:'#7c3aed' }}>📆 jours individuels{d.jours_proposes?.length ? ` (${d.jours_proposes.length})` : ''}</span>
+                      : <span style={{ color:'#059669' }}>📅 plage continue</span>}
+                    <span>⏱️ {d.heures_limite_reponse ?? 8}h pour répondre</span>
                   </div>
                 </SelCard>
               ))}
@@ -1168,6 +1170,26 @@ export default function OperationsPage() {
           <StepCard id="step-5" n={5} status={ss(5)} title="Notification des disponibilités"
             subtitle={ciblages.some(c=>c.statut==='notifie') ? `${ciblages.filter(c=>c.statut==='notifie').length}/${ciblages.length} notifié(s) — envoyé via n8n` : ciblages.length > 0 ? `${ciblages.length} réserviste(s) à notifier` : 'Chargement des ciblages…'}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {selDep && (() => {
+                const branding = selDep.branding || 'RIUSC'
+                const heures = selDep.heures_limite_reponse ?? 8
+                const mode = selDep.mode_dates === 'jours_individuels' ? 'jours_individuels' : 'plage_continue'
+                const limitePreview = new Date(Date.now() + heures * 3600 * 1000).toLocaleString('fr-CA', {
+                  timeZone: 'America/Montreal', hour: '2-digit', minute: '2-digit',
+                  day: 'numeric', month: 'long',
+                })
+                return (
+                  <div style={{ backgroundColor:'#f0f9ff', borderRadius:8, border:'1px solid #bae6fd', padding:'10px 14px', fontSize:12, color:'#075985' }}>
+                    <div style={{ fontWeight:700, marginBottom:4, color:'#0369a1' }}>⚙️ Configuration qui sera appliquée</div>
+                    <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
+                      <span><strong>Branding :</strong> <span style={{ padding:'1px 6px', borderRadius:4, backgroundColor: branding === 'AQBRS' ? '#ede9fe' : '#dbeafe', color: branding === 'AQBRS' ? '#6d28d9' : '#1d4ed8', fontWeight:600 }}>{branding}</span></span>
+                      <span><strong>Mode :</strong> {mode === 'jours_individuels' ? `📆 jours individuels (${selDep.jours_proposes?.length ?? 0})` : '📅 plage continue'}</span>
+                      <span><strong>Délai :</strong> {heures}h</span>
+                      <span><strong>Date limite si envoyé maintenant :</strong> {limitePreview}</span>
+                    </div>
+                  </div>
+                )
+              })()}
               <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px', fontSize:12, color:'#64748b' }}>
                 <strong style={{ color:'#1e3a5f' }}>📨 {ciblages.filter(c=>c.statut!=='notifie').length} destinataire(s)</strong>
                 {' '}— Envoi via n8n (SMS Twilio + courriel SMTP).

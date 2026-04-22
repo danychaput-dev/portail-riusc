@@ -38,6 +38,12 @@ export interface Deployment {
   statut: string
   point_rassemblement?: string
   notes_logistique?: string
+  // Configuration flexible (ajoutee 2026-04-22)
+  mode_dates?: 'plage_continue' | 'jours_individuels'
+  jours_proposes?: string[] | null
+  branding?: 'RIUSC' | 'AQBRS'
+  heures_limite_reponse?: number
+  date_limite_reponse?: string | null
 }
 
 export interface Ciblage {
