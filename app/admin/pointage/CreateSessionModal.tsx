@@ -89,6 +89,10 @@ export default function CreateSessionModal({ onClose, onCreated }: Props) {
         seen.add(c.session_id)
         return true
       }) as CampOption[]
+      // Tri naturel (ex: "Cohorte 10" apres "Cohorte 9", pas avant)
+      uniqueCamps.sort((a, b) =>
+        (a.camp_nom || '').localeCompare(b.camp_nom || '', 'fr', { numeric: true, sensitivity: 'base' })
+      )
       setCamps(uniqueCamps)
       setDeployments((depsRes.data || []) as DeploymentOption[])
       setApprouveurs((appsRes.data || []) as Approuveur[])
