@@ -43,14 +43,51 @@ async function getCurrentUser() {
   return res
 }
 
-export async function POST(req: NextRequest) {
-  const user = await getCurrentUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+// Mode "appareil partagé": identifier un réserviste par email (sans auth session).
+// Utilisé en terrain quand la personne n'a pas son cell et scanne depuis un
+// device partagé (tablette du coordonnateur). Trust mode: email seul suffit,
+// la vérification visuelle se fait par le coord sur place.
+async function getReservisteByEmail(email: string) {
+  if (!email || !email.trim()) return null
+  const { data } = await supabaseAdmin
+    .from('reservistes')
+    .select('benevole_id, prenom, nom, email')
+    .ilike('email', email.trim())
+    .is('deleted_at', null)
+    .maybeSingle()
+  return data || null
+}
 
+// Résout le réserviste.
+// PRIORITÉ à l'email si fourni (mode "prêter son cell"): le chef d'équipe connecté
+// prête son téléphone à un membre qui scanne → on doit pointer pour la bonne personne,
+// pas pour le chef. Si email absent, on utilise la session.
+async function identifierReserviste(emailFallback?: string | null) {
+  if (emailFallback && emailFallback.trim()) {
+    const res = await getReservisteByEmail(emailFallback)
+    if (res) return { reserviste: res, via: 'email' as const }
+    return null // email explicite fourni mais introuvable -> erreur
+  }
+  const user = await getCurrentUser()
+  if (user) return { reserviste: user, via: 'session' as const }
+  return null
+}
+
+export async function POST(req: NextRequest) {
   const body = await req.json()
   const token: string = body.token
   const action: Action = body.action
   const customTime: string | undefined = body.heure  // ISO string, optionnel pour corrections
+  const emailFallback: string | undefined = body.email
+
+  const ident = await identifierReserviste(emailFallback)
+  if (!ident) {
+    return emailFallback
+      ? NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
+      : NextResponse.json({ error: 'Non authentifié ou courriel requis', email_required: true }, { status: 401 })
+  }
+  const user = ident.reserviste
+  const identifieVia = ident.via
 
   if (!token) return NextResponse.json({ error: 'token requis' }, { status: 400 })
   if (!VALID_ACTIONS.includes(action)) {
@@ -350,12 +387,18 @@ export async function POST(req: NextRequest) {
 // GET — Retourne l'état actuel (session + dernier pointage de l'utilisateur) pour un token donné.
 // Utilisé par la page /punch/[token] pour afficher les bons boutons.
 export async function GET(req: NextRequest) {
-  const user = await getCurrentUser()
-  if (!user) return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
-
   const { searchParams } = new URL(req.url)
   const token = searchParams.get('token')
   if (!token) return NextResponse.json({ error: 'token requis' }, { status: 400 })
+
+  const emailFallback = searchParams.get('email')
+  const ident = await identifierReserviste(emailFallback)
+  if (!ident) {
+    return emailFallback
+      ? NextResponse.json({ error: 'Courriel introuvable ou compte supprimé' }, { status: 404 })
+      : NextResponse.json({ error: 'Non authentifié ou courriel requis', email_required: true }, { status: 401 })
+  }
+  const user = ident.reserviste
 
   const { data: session } = await supabaseAdmin
     .from('pointage_sessions')

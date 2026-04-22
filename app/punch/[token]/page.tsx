@@ -60,23 +60,56 @@ export default function PunchPage() {
   const [confirmShort, setConfirmShort] = useState<null | { minutes: number; heureArrivee: string }>(null)
   const [confirmWrongDate, setConfirmWrongDate] = useState<null | { qrDate: string; today: string; actionType: string }>(null)
 
+  // Mode "appareil partagé" ou "prêter son cell":
+  //   - needsEmail: afficher le formulaire d'entrée de courriel
+  //   - emailInput: ce qui est tapé dans le form
+  //   - email: courriel validé utilisé pour toutes les requêtes API suivantes
+  //   - needsConfirm: après lookup, afficher l'écran "C'est bien X Y?" avant d'activer le punch
+  const [needsEmail, setNeedsEmail] = useState(false)
+  const [emailInput, setEmailInput] = useState('')
+  const [email, setEmail] = useState('')
+  const [needsConfirm, setNeedsConfirm] = useState(false)
+
   // Charger l'état
-  const load = async () => {
+  const load = async (emailParam?: string) => {
     setLoading(true)
     setErr(null)
     try {
-      const res = await fetch(`/api/punch?token=${encodeURIComponent(token)}`)
+      const usedEmail = emailParam !== undefined ? emailParam : email
+      const url = usedEmail
+        ? `/api/punch?token=${encodeURIComponent(token)}&email=${encodeURIComponent(usedEmail)}`
+        : `/api/punch?token=${encodeURIComponent(token)}`
+      const res = await fetch(url)
+      const json = await res.json().catch(() => ({}))
       if (res.status === 401) {
-        // Non connecté → redirect login avec retour
+        // Pas de session ET pas d'email fourni → demander l'email au lieu de rediriger vers login
+        if (json.email_required) {
+          setNeedsEmail(true)
+          setLoading(false)
+          return
+        }
         router.push(`/login?redirect=${encodeURIComponent(`/punch/${token}`)}`)
         return
       }
-      const json = await res.json()
+      if (res.status === 404 && usedEmail) {
+        // Email introuvable dans reservistes
+        setErr(json.error || 'Ce courriel ne correspond à aucun réserviste. Vérifie l\'orthographe.')
+        setEmail('')
+        setNeedsEmail(true)
+        setLoading(false)
+        return
+      }
       if (!res.ok) {
         setErr(json.error || 'Erreur de chargement')
         setLoading(false)
         return
       }
+      // Si on arrive ici avec un email validé, on le persiste et on demande confirmation visuelle
+      if (usedEmail && usedEmail !== email) {
+        setEmail(usedEmail)
+        setNeedsConfirm(true) // écran "C'est bien X Y?" avant de révéler les boutons punch
+      }
+      setNeedsEmail(false)
       setSession(json.session)
       setPointage(json.pointage)
       setReserviste(json.reserviste)
@@ -105,7 +138,7 @@ export default function PunchPage() {
       const res = await fetch('/api/punch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: actionType, heure: customHeure, ...extras }),
+        body: JSON.stringify({ token, action: actionType, heure: customHeure, email: email || undefined, ...extras }),
       })
       const json = await res.json()
       if (!res.ok) {
@@ -167,6 +200,86 @@ export default function PunchPage() {
     return <LoadingView />
   }
 
+  // Mode appareil partagé : personne pas connectée → demander l'email du réserviste
+  // OU mode "prêter son cell" : user connecté mais veut pointer pour quelqu'un d'autre
+  if (needsEmail) {
+    const submit = (e: React.FormEvent) => {
+      e.preventDefault()
+      const v = emailInput.trim().toLowerCase()
+      if (!v || !v.includes('@')) { setErr('Courriel invalide'); return }
+      setErr(null)
+      load(v)
+    }
+    const isLendMode = !!reserviste // déjà connecté → mode "prêter mon cell"
+    return (
+      <main style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>{isLendMode ? '🔄' : '📱'}</div>
+            <h1 style={{ margin: 0, color: C, fontSize: 20 }}>
+              {isLendMode ? 'Prêter mon cellulaire' : 'Pointage via courriel'}
+            </h1>
+            <p style={{ margin: '8px 0 0', color: MUTED, fontSize: 13, lineHeight: 1.5 }}>
+              {isLendMode
+                ? 'Entre le courriel du collègue qui va pointer depuis ton cellulaire.'
+                : "Tu n'as pas ton cellulaire? Entre ton courriel pour pointer depuis cet appareil."}
+            </p>
+          </div>
+          {err && (
+            <div style={{ padding: 12, borderRadius: 8, backgroundColor: '#fef2f2', color: RED, marginBottom: 16, fontSize: 13 }}>
+              {err}
+            </div>
+          )}
+          <form onSubmit={submit}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: C, marginBottom: 6 }}>
+              {isLendMode ? 'Courriel du collègue' : 'Ton courriel'}
+            </label>
+            <input
+              type="email"
+              value={emailInput}
+              onChange={e => setEmailInput(e.target.value)}
+              placeholder="ton.courriel@exemple.ca"
+              autoComplete="email"
+              autoFocus
+              style={{
+                width: '100%', padding: '14px 16px', fontSize: 16,
+                border: `2px solid ${BORDER}`, borderRadius: 10, marginBottom: 14,
+                boxSizing: 'border-box', color: '#1e293b',
+              }}
+            />
+            <button type="submit" disabled={!emailInput.trim()} style={{
+              ...bigBtn, backgroundColor: !emailInput.trim() ? '#cbd5e1' : C,
+              cursor: !emailInput.trim() ? 'not-allowed' : 'pointer',
+            }}>
+              Continuer →
+            </button>
+          </form>
+          <div style={{ marginTop: 20, padding: 12, borderRadius: 8, backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', fontSize: 12, color: '#1e40af', lineHeight: 1.5 }}>
+            {isLendMode ? (
+              <>💡 <strong>Prêt du cellulaire:</strong> ton compte reste connecté en arrière-plan. Le punch sera enregistré pour le collègue, pas pour toi. Tu pourras revenir à ton propre punch après.</>
+            ) : (
+              <>💡 <strong>Appareil partagé:</strong> n'importe qui peut utiliser cet appareil pour pointer. Le coordonnateur sur place vérifie visuellement l'identité.</>
+            )}
+          </div>
+          <div style={{ marginTop: 14, textAlign: 'center' }}>
+            {isLendMode ? (
+              <button
+                type="button"
+                onClick={() => { setNeedsEmail(false); setEmailInput(''); setErr(null) }}
+                style={{ background: 'none', border: 'none', fontSize: 12, color: MUTED, textDecoration: 'underline', cursor: 'pointer' }}>
+                Annuler · retourner à mon punch
+              </button>
+            ) : (
+              <a href={`/login?redirect=${encodeURIComponent(`/punch/${token}`)}`} style={{ fontSize: 12, color: MUTED, textDecoration: 'underline' }}>
+                Se connecter avec son compte
+              </a>
+            )}
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   if (err && !session) {
     return <ErrorView err={err} onBack={() => router.push('/')} />
   }
@@ -177,10 +290,85 @@ export default function PunchPage() {
 
   if (!session || !reserviste) return null
 
+  // Écran de confirmation avant de pointer pour quelqu'un d'autre via email
+  if (needsConfirm && email) {
+    return (
+      <main style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>👋</div>
+            <h1 style={{ margin: 0, color: C, fontSize: 22 }}>Confirmation d'identité</h1>
+          </div>
+          <div style={{ padding: 20, backgroundColor: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 12, marginBottom: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, color: '#1e40af', marginBottom: 8, fontWeight: 600 }}>Êtes-vous bien:</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C, marginBottom: 4 }}>
+              {reserviste.prenom} {reserviste.nom}
+            </div>
+            <div style={{ fontSize: 12, color: MUTED }}>{email}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => {
+                // Non, pas la bonne personne → retour au formulaire email
+                setEmail('')
+                setEmailInput('')
+                setNeedsConfirm(false)
+                setReserviste(null)
+                setNeedsEmail(true)
+              }}
+              style={{ flex: 1, ...bigBtn, backgroundColor: 'white', color: MUTED, border: `1px solid ${BORDER}` }}>
+              Non, ce n'est pas moi
+            </button>
+            <button
+              onClick={() => {
+                // Oui, c'est bien moi → activer le mode punch
+                setNeedsConfirm(false)
+              }}
+              style={{ flex: 2, ...bigBtn, backgroundColor: GREEN }}>
+              ✓ Oui, c'est moi
+            </button>
+          </div>
+          <div style={{ marginTop: 16, padding: 10, backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 11, color: '#92400e', textAlign: 'center' }}>
+            💡 En confirmant, tu pointeras pour <strong>{reserviste.prenom} {reserviste.nom}</strong>, pas pour le propriétaire de ce cellulaire.
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main style={containerStyle}>
       <div style={cardStyle}>
         <Header reserviste={reserviste} session={session} />
+        {email ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 14px', backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, marginBottom: 14, fontSize: 12, color: '#92400e' }}>
+            <span>
+              📱 <strong>Mode prêt · </strong> tu pointes pour <strong>{reserviste.prenom} {reserviste.nom}</strong> ({email})
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                // Revenir au mode session (mes propres heures). Clear email et recharge.
+                setEmail('')
+                setEmailInput('')
+                load('')
+              }}
+              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid #f59e0b', borderRadius: 6, backgroundColor: 'white', color: '#92400e', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Revenir à moi
+            </button>
+          </div>
+        ) : (
+          // Option "prêter le cell" : visible seulement quand on est connecté à son propre compte
+          <div style={{ padding: '8px 12px', backgroundColor: '#f1f5f9', border: '1px dashed #cbd5e1', borderRadius: 8, marginBottom: 14, fontSize: 12, color: MUTED, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span>Quelqu'un sans cell veut pointer? Prête-lui le tien.</span>
+            <button
+              type="button"
+              onClick={() => setNeedsEmail(true)}
+              style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, border: '1px solid #94a3b8', borderRadius: 6, backgroundColor: 'white', color: '#334155', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              🔄 Prêter mon cell
+            </button>
+          </div>
+        )}
 
         {successMsg && (
           <div style={{ padding: 12, borderRadius: 8, backgroundColor: '#d1fae5', color: GREEN, fontWeight: 600, marginBottom: 16, textAlign: 'center' }}>
