@@ -1,0 +1,175 @@
+{
+  "name": "RIUSC - Alerte changements camp 48h",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## RIUSC - Alerte changements camp 48h\n\n**Trigger:** Schedule every 5 min\n\n**Flow:**\n1. GET /api/admin/camp/changements-en-attente (avec X-Api-Key)\n2. Split out par changement\n3. Build HTML email\n4. Envoyer via Resend (ou SMTP) à:\n   - lgoulet@sopfeu.qc.ca\n   - esther.lapointe@aqbrs.ca\n   - dany.chaput@aqbrs.ca\n5. POST /api/admin/camp/changements-en-attente { log_ids: [...] }\n   pour marquer comme traités\n\n**Fenêtre d'alerte:**\nLa vue v_camp_changements_en_attente retourne uniquement les changements\npour les camps dont camp_date_debut est dans [now - 1 jour, now + 48h].\nDonc le cron alerte à partir de J-2 jusqu'à J+1.\n\n**Auth:**\nL'API demande header X-Api-Key = ALERTE_CAMP_API_KEY (env Vercel).\nStocker cette clé dans les Credentials n8n (Header Auth).\n\n**Config requise:**\n- Credentials n8n 'Portail Alerte Camp' avec Header X-Api-Key\n- Credentials SMTP ou Resend pour envoi courriel",
+        "height": 500,
+        "width": 440
+      },
+      "id": "doc-1",
+      "name": "Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 5 }
+          ]
+        }
+      },
+      "id": "schedule-1",
+      "name": "1. Schedule (every 5 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [720, 304]
+    },
+    {
+      "parameters": {
+        "url": "https://portail.riusc.ca/api/admin/camp/changements-en-attente",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "http-get-1",
+      "name": "2. GET changements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [944, 304],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_HEADER_AUTH",
+          "name": "Portail Alerte Camp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-count",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-has-changes",
+      "name": "3. Si changements > 0",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1168, 304]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "changements",
+        "options": {}
+      },
+      "id": "split-out",
+      "name": "4. Split par changement",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [1392, 240]
+    },
+    {
+      "parameters": {
+        "fromEmail": "riusc@aqbrs.ca",
+        "toEmail": "lgoulet@sopfeu.qc.ca, esther.lapointe@aqbrs.ca, dany.chaput@aqbrs.ca",
+        "subject": "=[AQBRS] {{ $json.prenom_nom }} : {{ $json.presence_avant || '—' }} → {{ $json.presence_apres || '—' }} · {{ $json.camp_nom || 'Camp' }}",
+        "html": "=<!DOCTYPE html>\n<html lang=\"fr\">\n<head><meta charset=\"UTF-8\"></head>\n<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f4f7;padding:24px 16px;\">\n<tr><td align=\"center\">\n<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);\">\n<tr><td style=\"background:linear-gradient(135deg,#92400e 0%,#b45309 100%);padding:24px 32px;\">\n<h1 style=\"margin:0;color:#ffffff;font-size:20px;font-weight:700;\">⚠️ Changement d'inscription camp</h1>\n<p style=\"margin:4px 0 0 0;color:rgba(255,255,255,0.85);font-size:13px;\">À {{ Math.round($json.heures_avant_camp) }}h du début du camp</p>\n</td></tr>\n<tr><td style=\"padding:24px 32px;\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\n<tr><td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\"><strong style=\"color:#374151;\">Réserviste :</strong> <span style=\"color:#111827;\">{{ $json.prenom_nom }}</span></td></tr>\n<tr><td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\"><strong style=\"color:#374151;\">Courriel :</strong> <a href=\"mailto:{{ $json.reserviste_courriel }}\" style=\"color:#2563eb;\">{{ $json.reserviste_courriel }}</a></td></tr>\n<tr><td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\"><strong style=\"color:#374151;\">Changement :</strong> <code style=\"background:#f3f4f6;padding:2px 8px;border-radius:4px;\">{{ $json.presence_avant || '(vide)' }}</code> → <code style=\"background:#fef3c7;padding:2px 8px;border-radius:4px;\">{{ $json.presence_apres || '(vide)' }}</code></td></tr>\n<tr><td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\"><strong style=\"color:#374151;\">Camp :</strong> <span style=\"color:#111827;\">{{ $json.camp_nom || 'Non spécifié' }}</span></td></tr>\n<tr><td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\"><strong style=\"color:#374151;\">Date début :</strong> <span style=\"color:#111827;\">{{ $json.camp_date_debut }}</span></td></tr>\n<tr><td style=\"padding:8px 0;border-bottom:1px solid #e5e7eb;\"><strong style=\"color:#374151;\">Lieu :</strong> <span style=\"color:#111827;\">{{ $json.camp_lieu || '—' }}</span></td></tr>\n<tr><td style=\"padding:8px 0;\"><strong style=\"color:#374151;\">Heure du changement :</strong> <span style=\"color:#111827;\">{{ $json.changement_at }}</span></td></tr>\n</table>\n<p style=\"margin:20px 0 0 0;color:#6b7280;font-size:13px;line-height:1.6;\">💡 Utiliser cette info pour ajuster les équipes et le nombre de repas. Voir la liste complète via le portail : <a href=\"https://portail.riusc.ca/admin/inscriptions-camps\" style=\"color:#2563eb;\">portail.riusc.ca/admin/inscriptions-camps</a></p>\n</td></tr>\n<tr><td style=\"background-color:#f8fafc;padding:16px 32px;text-align:center;border-top:1px solid #e5e7eb;\">\n<p style=\"margin:0;color:#9ca3af;font-size:11px;\">Alerte automatique · fenêtre 48h avant le camp · AQBRS</p>\n</td></tr>\n</table>\n</td></tr>\n</table>\n</body></html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "email-send",
+      "name": "5. Envoyer courriel",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1616, 240],
+      "credentials": {
+        "smtp": {
+          "id": "GPgBFn8u3hqi0e9T",
+          "name": "SMTP account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Collecter tous les log_id des changements reussis\nconst items = $input.all();\nconst logIds = items.map(i => i.json.log_id).filter(Boolean);\nreturn [{ json: { log_ids: logIds } }];"
+      },
+      "id": "collect-ids",
+      "name": "6. Collecter log_ids",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1840, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://portail.riusc.ca/api/admin/camp/changements-en-attente",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ log_ids: $json.log_ids }) }}",
+        "options": {}
+      },
+      "id": "http-post-mark",
+      "name": "7. Marquer comme alertes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2064, 240],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REMPLACER_PAR_ID_CREDENTIAL_HEADER_AUTH",
+          "name": "Portail Alerte Camp"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Schedule (every 5 min)": {
+      "main": [[{ "node": "2. GET changements", "type": "main", "index": 0 }]]
+    },
+    "2. GET changements": {
+      "main": [[{ "node": "3. Si changements > 0", "type": "main", "index": 0 }]]
+    },
+    "3. Si changements > 0": {
+      "main": [
+        [{ "node": "4. Split par changement", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "4. Split par changement": {
+      "main": [[{ "node": "5. Envoyer courriel", "type": "main", "index": 0 }]]
+    },
+    "5. Envoyer courriel": {
+      "main": [[{ "node": "6. Collecter log_ids", "type": "main", "index": 0 }]]
+    },
+    "6. Collecter log_ids": {
+      "main": [[{ "node": "7. Marquer comme alertes", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "alerte-camp-48h-v1",
+  "meta": {
+    "instanceId": "b415b70ea7fd552adeb2d0506e5b84ef024d64396646901413a4e2e3947d4f93"
+  },
+  "id": "alerte-camp-48h",
+  "tags": []
+}
