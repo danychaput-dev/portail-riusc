@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
   const body = await req.json()
-  const { vague_id, deployment_id, all_vagues, all_deployment, benevole_id } = body
+  const { vague_id, deployment_id, all_vagues, all_deployment, close_deployment, benevole_id } = body
 
-  const nothingSpecified = !vague_id && !(deployment_id && (all_vagues || all_deployment)) && !(deployment_id && benevole_id)
+  const nothingSpecified = !vague_id && !(deployment_id && (all_vagues || all_deployment || close_deployment)) && !(deployment_id && benevole_id)
   if (nothingSpecified) {
-    return NextResponse.json({ error: 'Paramètres requis: vague_id, OU (deployment_id + all_vagues|all_deployment), OU (deployment_id + benevole_id)' }, { status: 400 })
+    return NextResponse.json({ error: 'Paramètres requis: vague_id, OU (deployment_id + all_vagues|all_deployment|close_deployment), OU (deployment_id + benevole_id)' }, { status: 400 })
   }
 
   let deploymentId: string | null = null
@@ -68,6 +68,16 @@ export async function POST(req: NextRequest) {
     benevoleIds = [...new Set((allCiblages || []).map(c => c.benevole_id).filter(Boolean))] as string[]
     const { data: vs } = await supabaseAdmin.from('vagues').select('id').eq('deployment_id', deployment_id)
     vagueIds = (vs || []).map(v => v.id)
+  } else if (deployment_id && close_deployment) {
+    // Cas 5: CLÔTURE COMPLÈTE du déploiement — inclut notifie en plus
+    deploymentId = deployment_id
+    const { data: allCiblages } = await supabaseAdmin
+      .from('ciblages').select('benevole_id')
+      .eq('reference_id', deployment_id).eq('niveau', 'deploiement')
+      .in('statut', ['notifie', 'mobilise', 'confirme'])
+    benevoleIds = [...new Set((allCiblages || []).map(c => c.benevole_id).filter(Boolean))] as string[]
+    const { data: vs } = await supabaseAdmin.from('vagues').select('id').eq('deployment_id', deployment_id)
+    vagueIds = (vs || []).map(v => v.id)
   } else if (deployment_id && all_vagues) {
     // Cas 3: démobiliser toutes les vagues (via assignations)
     deploymentId = deployment_id
@@ -85,6 +95,11 @@ export async function POST(req: NextRequest) {
     // Pas de vagues à marquer Terminée pour un démo individuel
   }
 
+  // En mode close_deployment, on accepte aussi notifie → termine (clôture complète)
+  const statutsACibler = close_deployment
+    ? ['notifie', 'mobilise', 'confirme']
+    : ['mobilise', 'confirme']
+
   let ciblagesUpdated = 0
   if (benevoleIds.length && deploymentId) {
     const { data, error } = await supabaseAdmin
@@ -93,13 +108,23 @@ export async function POST(req: NextRequest) {
       .eq('reference_id', deploymentId)
       .eq('niveau', 'deploiement')
       .in('benevole_id', benevoleIds)
-      .in('statut', ['mobilise', 'confirme'])
+      .in('statut', statutsACibler)
       .select('id')
     if (error) {
       console.error('Erreur demobiliser ciblages:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     ciblagesUpdated = data?.length ?? 0
+  }
+
+  // En mode close_deployment, marquer le déploiement comme 'Complété'
+  let deploymentClosed = false
+  if (close_deployment && deploymentId) {
+    const { error: errDep } = await supabaseAdmin
+      .from('deployments')
+      .update({ statut: 'Complété' })
+      .eq('id', deploymentId)
+    if (!errDep) deploymentClosed = true
   }
 
   // 4. Marquer les vagues comme 'Terminée'
@@ -120,5 +145,6 @@ export async function POST(req: NextRequest) {
     vagues_terminees: vaguesUpd?.length ?? 0,
     ciblages_termines: ciblagesUpdated,
     benevoles_affectes: benevoleIds.length,
+    deployment_closed: deploymentClosed,
   })
 }

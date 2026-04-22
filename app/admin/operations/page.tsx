@@ -230,6 +230,34 @@ export default function OperationsPage() {
     }
   }
 
+  // Clôture COMPLÈTE du déploiement: inclut notifie en plus de mobilise/confirme
+  // Marque aussi le déploiement comme 'Complété'. Utile en fin d'opération.
+  const cloturerDeploiement = async () => {
+    if (!depId || !selDep) return
+    if (!confirm(`Clôturer le déploiement « ${selDep.nom} » au complet ?\n\nCette action:\n- Passe TOUS les ciblages (notifie + mobilisé + confirmé) au statut "terminé"\n- Marque le déploiement comme "Complété"\n- Marque toutes les vagues comme "Terminée"\n\nÀ utiliser quand l'opération est vraiment finie et qu'aucune sollicitation ne doit rester active.`)) return
+    setDemobilisating('CLOSE')
+    try {
+      const res = await fetch('/api/admin/operations/demobiliser', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deployment_id: depId, close_deployment: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(`Erreur : ${data.error || 'inconnue'}`)
+      } else {
+        alert(`🔒 Clôture OK\n\n${data.ciblages_termines} ciblage(s) passés à "termine" (incluant notifie)\n${data.vagues_terminees ?? 0} vague(s) marquée(s) Terminée\nDéploiement marqué Complété: ${data.deployment_closed ? 'oui' : 'non'}`)
+        const { data: fresh } = await supabase.from('vagues').select('*').eq('deployment_id', depId).order('numero')
+        if (fresh) setVagues(fresh as unknown as Vague[])
+        // Refetch aussi le déploiement pour voir le nouveau statut
+        const { data: depFresh } = await supabase.from('deployments').select('*').eq('id', depId).single()
+        if (depFresh) setDeployments(p => p.map(d => d.id === depId ? (depFresh as unknown as Deployment) : d))
+      }
+    } catch (e: any) {
+      alert('Erreur réseau : ' + (e?.message || 'inconnue'))
+    }
+    setDemobilisating(null)
+  }
+
   // Démobilisation BULK d'un déploiement entier (ignore les vagues, tous les ciblages mobilise/confirme → termine)
   const demobiliserDeploiement = async () => {
     if (!depId || !selDep) return
@@ -1553,14 +1581,24 @@ export default function OperationsPage() {
                 <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6, flexWrap:'wrap', gap:8 }}>
                     <div style={{ fontSize:12, fontWeight:600, color:'#1e3a5f' }}>Mobilisation pour {vagues.length} rotation(s)</div>
-                    <button
-                      type="button"
-                      onClick={demobiliserDeploiement}
-                      disabled={demobilisating === 'ALL'}
-                      title="Passe TOUS les réservistes encore mobilise/confirme au statut terminé, peu importe les vagues (utile en mode jours individuels)"
-                      style={{ padding:'4px 12px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #7c3aed', backgroundColor:'#faf5ff', color:'#6d28d9', cursor: demobilisating === 'ALL' ? 'wait' : 'pointer' }}>
-                      {demobilisating === 'ALL' ? '⏳' : '🏁 Démobiliser toute l\'opération'}
-                    </button>
+                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={demobiliserDeploiement}
+                        disabled={demobilisating !== null}
+                        title="Passe les réservistes mobilise/confirme → terminé (laisse les notifie actifs)"
+                        style={{ padding:'4px 12px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #7c3aed', backgroundColor:'#faf5ff', color:'#6d28d9', cursor: demobilisating !== null ? 'wait' : 'pointer' }}>
+                        {demobilisating === 'ALL' ? '⏳' : '🏁 Démobiliser'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cloturerDeploiement}
+                        disabled={demobilisating !== null}
+                        title="Clôture COMPLÈTE: inclut aussi les notifie non-répondants + marque le déploiement Complété"
+                        style={{ padding:'4px 12px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #dc2626', backgroundColor:'#fef2f2', color:'#991b1b', cursor: demobilisating !== null ? 'wait' : 'pointer' }}>
+                        {demobilisating === 'CLOSE' ? '⏳' : '🔒 Clôturer l\'opération'}
+                      </button>
+                    </div>
                   </div>
                   {vagues.map(v=>{
                     const enRetard = vagueEstEnRetard(v)
