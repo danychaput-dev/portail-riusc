@@ -460,7 +460,7 @@ function DisponibilitesInner() {
         <td style={{ padding:'5px 8px', borderBottom:'1px solid #f1f5f9', fontSize:10, verticalAlign:'top', whiteSpace:'nowrap' }}>
           {(() => {
             const t = myDispos.find(d => d.transport)?.transport
-            if (!t) return <span style={{ color:'#cbd5e1' }}>—</span>
+            if (!t) return <span style={{ color:'#cbd5e1' }}>·</span>
             const cfg: Record<string, { icon: string; label: string; bg: string; color: string }> = {
               autonome:               { icon:'🚗', label:'Autonome',         bg:'#f0fdf4', color:'#065f46' },
               covoiturage_offre:      { icon:'🤝', label:'Offre covoit.',    bg:'#eff6ff', color:'#1d4ed8' },
@@ -500,7 +500,7 @@ function DisponibilitesInner() {
             borderTop:'2px solid ' + cfg.border, borderBottom:'1px solid ' + cfg.border,
           }}>
             <span style={{ fontSize:11, fontWeight:700, color:'#475569' }}>{cfg.label}</span>
-            <span style={{ marginLeft:8, fontSize:11, color:'#64748b' }}>— {ids.length} pers.</span>
+            <span style={{ marginLeft:8, fontSize:11, color:'#64748b' }}>· {ids.length} pers.</span>
             <button onClick={() => setSelected(prev => { const next = new Set(prev); ids.forEach(id => next.add(id)); return next })}
               style={{ marginLeft:12, fontSize:10, padding:'2px 8px', borderRadius:6, backgroundColor:C, color:'white', border:'none', cursor:'pointer', fontWeight:600 }}>
               Sélectionner ce groupe
@@ -529,7 +529,7 @@ function DisponibilitesInner() {
           </button>
           <div>
             <h1 style={{ margin:0, fontSize:18, fontWeight:700, color:C }}>
-              📊 Disponibilités — {dep?.nom || '…'}
+              📊 Disponibilités · {dep?.nom || '…'}
             </h1>
             {dep && (
               <div style={{ fontSize:12, color:'#64748b', marginTop:2 }}>
@@ -563,7 +563,7 @@ function DisponibilitesInner() {
               <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>
                 Fenêtre de rotation
               </label>
-              <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
                 <input type="date" value={rotStart} min={dep?.date_debut} max={dep?.date_fin}
                   onChange={e => setRotStart(e.target.value)}
                   style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #d1d5db', fontSize:13, color:'#1e293b' }}/>
@@ -571,9 +571,14 @@ function DisponibilitesInner() {
                 <input type="date" value={rotEnd} min={rotStart || dep?.date_debut} max={dep?.date_fin}
                   onChange={e => setRotEnd(e.target.value)}
                   style={{ padding:'6px 10px', borderRadius:6, border:'1px solid #d1d5db', fontSize:13, color:'#1e293b' }}/>
+                {joursDeficit.length > 0 && (
+                  <span style={{ padding:'4px 10px', borderRadius:6, backgroundColor:'#fef3c7', border:'1px solid #fde68a', fontSize:11, color:'#92400e', fontWeight:600 }}>
+                    ⚠️ {joursDeficit.length} jour{joursDeficit.length > 1 ? 's' : ''} déficit
+                  </span>
+                )}
               </div>
               <div style={{ fontSize:11, color:'#94a3b8', marginTop:4 }}>
-                💡 La rotation suivante devrait commencer 1 jour avant la fin de celle-ci (chevauchement opérationnel)
+                💡 Clique un jour ci-dessous pour définir la fenêtre. Shift+clic pour étendre la plage.
               </div>
             </div>
 
@@ -596,13 +601,7 @@ function DisponibilitesInner() {
               ))}
             </div>
 
-            {joursDeficit.length > 0 && (
-              <div style={{ padding:'8px 14px', borderRadius:8, backgroundColor:'#fef3c7', border:'1px solid #fde68a', fontSize:12, color:'#92400e', fontWeight:600 }}>
-                ⚠️ {joursDeficit.length} jour{joursDeficit.length > 1 ? 's' : ''} avec déficit — voir stats par jour ci-dessous
-              </div>
-            )}
-
-            {/* Stats par jour : nb dispo + à confirmer pour chaque date de la fenêtre */}
+            {/* Stats par jour : nb dispo + à confirmer pour chaque date de la fenêtre — cliquable */}
             {allDates.length > 0 && (
               <div style={{ width:'100%', marginTop:4 }}>
                 <div style={{ fontSize:11, fontWeight:700, color:'#64748b', marginBottom:6, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>
@@ -616,13 +615,33 @@ function DisponibilitesInner() {
                     const manque    = nbRequis > 0 ? Math.max(0, nbRequis - total) : 0
                     const inRot     = rotDates.includes(d)
                     const labelDate = new Date(d + 'T00:00:00').toLocaleDateString('fr-CA', { weekday:'short', day:'numeric', month:'short' })
+                    const onClickDay = (ev: React.MouseEvent) => {
+                      if (ev.shiftKey && rotStart) {
+                        // Shift+clic: étendre la plage depuis rotStart jusqu'à d (ou inverser si d < rotStart)
+                        if (d < rotStart) { setRotEnd(rotStart); setRotStart(d) }
+                        else { setRotEnd(d) }
+                      } else {
+                        // Clic simple: single-day window
+                        setRotStart(d); setRotEnd(d)
+                      }
+                    }
                     return (
-                      <div key={d} style={{
-                        textAlign:'center', padding:'8px 14px', borderRadius:10,
-                        backgroundColor: inRot ? '#eff6ff' : '#f8fafc',
-                        border: inRot ? '2px solid #3b82f6' : '1px solid #e5e7eb',
-                        minWidth:100,
-                      }}>
+                      <div key={d}
+                        onClick={onClickDay}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickDay(e as any) } }}
+                        title="Clic: fenêtre d'1 jour  ·  Shift+clic: étendre la plage"
+                        style={{
+                          textAlign:'center', padding:'8px 14px', borderRadius:10,
+                          backgroundColor: inRot ? '#eff6ff' : '#f8fafc',
+                          border: inRot ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                          minWidth:100, cursor:'pointer', userSelect:'none',
+                          transition:'transform 0.1s, box-shadow 0.1s',
+                        }}
+                        onMouseOver={e => { (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(59,130,246,0.15)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)' }}
+                        onMouseOut={e => { (e.currentTarget as HTMLElement).style.boxShadow = 'none'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)' }}
+                      >
                         <div style={{ fontSize:10, color:'#64748b', fontWeight:600, textTransform:'uppercase' as const }}>
                           {labelDate}
                         </div>

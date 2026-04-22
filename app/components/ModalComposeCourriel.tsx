@@ -138,6 +138,50 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
   const [sendProgress, setSendProgress] = useState<{ sent: number; failed: number; total: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<{ envoyes: number; echoues: number } | null>(null)
+
+  // Canal: courriel / sms / les deux. SMS va uniquement au destinataire visé
+  // (jamais aux CC ou responsables). Courriel garde son flow habituel.
+  const [canalCourriel, setCanalCourriel] = useState(true)
+  const [canalSms, setCanalSms] = useState(false)
+  const [smsBody, setSmsBody] = useState('')
+  const [smsResult, setSmsResult] = useState<{ sent: number; failed: number } | null>(null)
+  // Quand SMS est activé ET qu'un envoi courriel vient de réussir, déclencher le SMS
+  const smsPendingRef = useRef(false)
+
+  // Helper hoisted: envoie le SMS aux destinataires (jamais CC ni responsables)
+  const envoyerSmsBulk = async (): Promise<{ sent: number; failed: number }> => {
+    try {
+      const res = await fetch('/api/admin/operations/envoyer-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destinataires: (isForward ? forwardDests : destinataires).map(d => ({ benevole_id: d.benevole_id, prenom: d.prenom, nom: d.nom })),
+          message: smsBody,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.error('Erreur SMS bulk:', err)
+        return { sent: 0, failed: (isForward ? forwardDests : destinataires).length }
+      }
+      const json = await res.json()
+      return { sent: json.sent ?? 0, failed: json.failed ?? 0 }
+    } catch (e) {
+      console.error('Exception SMS bulk:', e)
+      return { sent: 0, failed: (isForward ? forwardDests : destinataires).length }
+    }
+  }
+
+  // Dès qu'un envoi courriel réussit et que SMS est en attente, on envoie les SMS
+  useEffect(() => {
+    if (!success) return
+    if (!smsPendingRef.current) return
+    smsPendingRef.current = false
+    envoyerSmsBulk().then(r => {
+      setSmsResult(r)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [success])
   const [config, setConfig] = useState<AdminEmailConfig | null>(null)
   const [panel, setPanel] = useState<Panel>('compose')
   const [configSaving, setConfigSaving] = useState(false)
@@ -297,8 +341,51 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
 
   const envoyer = async () => {
     if (isForward && effectiveDests.length === 0) { setError('Ajoutez au moins un destinataire pour le transfert'); return }
-    if (!subject.trim()) { setError('L\'objet est requis'); return }
-    if (!bodyHtml.trim()) { setError('Le contenu est requis'); return }
+    if (!canalCourriel && !canalSms) { setError('Choisissez au moins un canal (Courriel ou SMS)'); return }
+    if (canalCourriel && !subject.trim()) { setError('L\'objet du courriel est requis'); return }
+    if (canalCourriel && !bodyHtml.trim()) { setError('Le contenu du courriel est requis'); return }
+    if (canalSms && !smsBody.trim()) { setError('Le contenu du SMS est requis'); return }
+    if (canalSms && smsBody.length > 480) { setError('SMS trop long (max 480 car.)'); return }
+
+    // Helper pour envoyer le SMS. Appelé après le courriel (ou seul si canalCourriel=false)
+    const envoyerSms = async (): Promise<{ sent: number; failed: number }> => {
+      try {
+        const res = await fetch('/api/admin/operations/envoyer-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            destinataires: effectiveDests.map(d => ({ benevole_id: d.benevole_id, prenom: d.prenom, nom: d.nom })),
+            message: smsBody,
+          }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          setError(`SMS: ${err.error || 'échec'}`)
+          return { sent: 0, failed: effectiveDests.length }
+        }
+        const json = await res.json()
+        const result = { sent: json.sent ?? 0, failed: json.failed ?? 0 }
+        setSmsResult(result)
+        return result
+      } catch (e: any) {
+        setError(`SMS: ${e?.message || 'erreur réseau'}`)
+        return { sent: 0, failed: effectiveDests.length }
+      }
+    }
+
+    // Si l'utilisateur n'a coché que SMS, on n'envoie pas de courriel
+    if (!canalCourriel && canalSms) {
+      setSending(true)
+      setError(null)
+      const smsRes = await envoyerSms()
+      setSending(false)
+      setSuccess({ envoyes: smsRes.sent, echoues: smsRes.failed })
+      onSent?.({ envoyes: smsRes.sent, echoues: smsRes.failed })
+      return
+    }
+
+    // Si l'utilisateur a coché SMS en plus du courriel, marquer pour envoi après
+    if (canalCourriel && canalSms) smsPendingRef.current = true
 
     // Vérifier si des pièces jointes ont été perdues lors du chargement du brouillon
     if (brouillonId && attachments.length === 0) {
@@ -1047,21 +1134,53 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
                 <div style={{ fontSize: '12px', color: '#6b7280' }}>De : <strong>{config.from_name || 'RIUSC'}</strong> &lt;{config.from_email || 'noreply@aqbrs.ca'}&gt;</div>
               )}
 
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Objet</label>
-                <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Objet du courriel" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} autoFocus />
+              {/* Choix canal : courriel, SMS, ou les 2 */}
+              <div style={{ display: 'flex', gap: '8px', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#1e3a5f' }}>Envoyer par :</span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', backgroundColor: canalCourriel ? '#eff6ff' : 'transparent', border: canalCourriel ? '1px solid #93c5fd' : '1px solid transparent' }}>
+                  <input type="checkbox" checked={canalCourriel} onChange={e => setCanalCourriel(e.target.checked)} />
+                  <span style={{ fontSize: '13px' }}>📧 Courriel <span style={{ fontSize: '10px', color: '#64748b' }}>(+ CC + responsables)</span></span>
+                </label>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', backgroundColor: canalSms ? '#f0fdf4' : 'transparent', border: canalSms ? '1px solid #86efac' : '1px solid transparent' }}>
+                  <input type="checkbox" checked={canalSms} onChange={e => setCanalSms(e.target.checked)} />
+                  <span style={{ fontSize: '13px' }}>📱 SMS <span style={{ fontSize: '10px', color: '#64748b' }}>(destinataire seulement)</span></span>
+                </label>
               </div>
 
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Message</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button type="button" onClick={insererLien} title="Insérer un lien (sélectionnez du texte puis cliquez)" style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>🔗 Lien</button>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Variables : {'{{ prenom }}'} {'{{ nom }}'}</span>
+              {canalCourriel && (
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>Objet</label>
+                  <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Objet du courriel" style={{ width: '100%', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' }} autoFocus />
+                </div>
+              )}
+
+              {canalCourriel && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Message (courriel)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button type="button" onClick={insererLien} title="Insérer un lien (sélectionnez du texte puis cliquez)" style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#64748b', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>🔗 Lien</button>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Variables : {'{{ prenom }}'} {'{{ nom }}'}</span>
+                    </div>
+                  </div>
+                  <textarea ref={bodyRef} value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} placeholder="Bonjour {{ prenom }},&#10;&#10;Votre message ici..." rows={8} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }} />
+                </div>
+              )}
+
+              {canalSms && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>Message SMS</label>
+                    <span style={{ fontSize: '11px', color: smsBody.length > 480 ? '#dc2626' : '#94a3b8', fontWeight: smsBody.length > 480 ? 700 : 500 }}>
+                      {smsBody.length} / 480 caractères · {Math.ceil(smsBody.length / 160) || 1} segment(s)
+                    </span>
+                  </div>
+                  <textarea value={smsBody} onChange={e => setSmsBody(e.target.value)} placeholder="Bonjour {{ prenom }}, ..." rows={4} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }} />
+                  <div style={{ marginTop: 4, fontSize: 10, color: '#94a3b8' }}>
+                    💡 Les variables {'{{ prenom }}'} et {'{{ nom }}'} sont aussi supportées en SMS. SMS envoyé uniquement aux destinataires visés (pas aux CC ni responsables).
                   </div>
                 </div>
-                <textarea ref={bodyRef} value={bodyHtml} onChange={e => setBodyHtml(e.target.value)} placeholder="Bonjour {{ prenom }},&#10;&#10;Votre message ici..." rows={8} style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', resize: 'vertical', lineHeight: '1.5' }} />
-              </div>
+              )}
 
               {/* Pièces jointes */}
               <div>
@@ -1099,12 +1218,31 @@ export default function ModalComposeCourriel({ destinataires, onClose, onSent, i
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
               <h3 style={{ margin: '0 0 8px', fontSize: '17px', fontWeight: '700', color: C }}>
-                Courriel{success.envoyes > 1 ? 's' : ''} envoyé{success.envoyes > 1 ? 's' : ''}
+                {canalSms && !canalCourriel ? (
+                  <>SMS envoyé{success.envoyes > 1 ? 's' : ''}</>
+                ) : canalSms && canalCourriel ? (
+                  <>Envois terminés</>
+                ) : (
+                  <>Courriel{success.envoyes > 1 ? 's' : ''} envoyé{success.envoyes > 1 ? 's' : ''}</>
+                )}
               </h3>
-              <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-                {success.envoyes} envoi{success.envoyes > 1 ? 's' : ''} réussi{success.envoyes > 1 ? 's' : ''}
-                {success.echoues > 0 && <span style={{ color: '#dc2626' }}>, {success.echoues} échoué{success.echoues > 1 ? 's' : ''}</span>}
-              </p>
+              {canalCourriel && (
+                <p style={{ margin: '0 0 8px', fontSize: '14px', color: '#6b7280' }}>
+                  📧 {success.envoyes} courriel{success.envoyes > 1 ? 's' : ''} réussi{success.envoyes > 1 ? 's' : ''}
+                  {success.echoues > 0 && <span style={{ color: '#dc2626' }}>, {success.echoues} échoué{success.echoues > 1 ? 's' : ''}</span>}
+                </p>
+              )}
+              {canalSms && smsResult && (
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                  📱 {smsResult.sent} SMS réussi{smsResult.sent > 1 ? 's' : ''}
+                  {smsResult.failed > 0 && <span style={{ color: '#dc2626' }}>, {smsResult.failed} échoué{smsResult.failed > 1 ? 's' : ''}</span>}
+                </p>
+              )}
+              {canalSms && !smsResult && canalCourriel && (
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                  📱 SMS en cours d&apos;envoi...
+                </p>
+              )}
             </div>
           )}
         </div>
