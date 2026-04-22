@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PortailHeader from '@/app/components/PortailHeader';
 import ImpersonateBanner from '@/app/components/ImpersonateBanner';
 import { logPageVisit } from '@/utils/logEvent';
@@ -10,9 +10,30 @@ import { isDemoActive, DEMO_RESERVISTE, DEMO_USER, DEMO_DEPLOIEMENTS, DEMO_DISPO
 import type { Reserviste, Disponibilite, DeploiementActif, CiblageReponse } from '@/types';
 import { StatusBadge } from '@/app/components/ui';
 
+interface Mobilisation {
+  ciblage_id: string;
+  deployment_id: string;
+  identifiant: string;
+  nom: string;
+  lieu: string | null;
+  date_debut: string | null;
+  date_fin: string | null;
+  point_rassemblement: string | null;
+  statut: string;
+  vagues: {
+    id: string;
+    identifiant: string | null;
+    numero: number;
+    date_debut: string;
+    date_fin: string;
+  }[];
+}
+
 export default function DisponibilitesPage() {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'mobilisations' ? 'mobilisations' : 'dispos';
 
   const [user, setUser] = useState<any>(null);
   const [reserviste, setReserviste] = useState<Reserviste | null>(null);
@@ -20,11 +41,22 @@ export default function DisponibilitesPage() {
   const [deploiementsActifs, setDeploiementsActifs] = useState<DeploiementActif[]>([]);
   const [ciblages, setCiblages] = useState<string[]>([]);
   const [ciblageReponses, setCiblageReponses] = useState<CiblageReponse[]>([]);
+  const [mobilisations, setMobilisations] = useState<Mobilisation[]>([]);
+  const [tab, setTab] = useState<'dispos' | 'mobilisations'>(initialTab);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [demoToast, setDemoToast] = useState<string | null>(null);
+
+  // Sync tab → URL (pour partager les liens et éviter de perdre l'onglet au refresh)
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (tab === 'mobilisations') p.set('tab', 'mobilisations');
+    else p.delete('tab');
+    const qs = p.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? '?' + qs : ''}`);
+  }, [tab]);
 
   const showDemoToast = (msg: string) => {
     setDemoToast(msg);
@@ -36,6 +68,7 @@ export default function DisponibilitesPage() {
     await fetchDisponibilites(benevoleId);
     await fetchDeploiementsActifs(benevoleId);
     await fetchCiblageReponses(benevoleId);
+    await fetchMobilisations(benevoleId);
     setLastRefresh(new Date());
     setRefreshing(false);
   }, []);
@@ -93,9 +126,48 @@ export default function DisponibilitesPage() {
       await fetchDisponibilites(reservisteData.benevole_id);
       await fetchDeploiementsActifs(reservisteData.benevole_id);
       await fetchCiblageReponses(reservisteData.benevole_id);
+      await fetchMobilisations(reservisteData.benevole_id);
     }
     logPageVisit('/disponibilites/soumettre');
     setLoading(false);
+  }
+
+  async function fetchMobilisations(benevoleId: string) {
+    const { data: ciblagesData } = await supabase.from('ciblages')
+      .select('id, reference_id, statut')
+      .eq('benevole_id', benevoleId)
+      .eq('niveau', 'deploiement')
+      .in('statut', ['mobilise', 'confirme']);
+    if (!ciblagesData?.length) { setMobilisations([]); return; }
+    const depIds = ciblagesData.map((c: any) => c.reference_id);
+    const [{ data: deps }, { data: vagues }] = await Promise.all([
+      supabase.from('deployments')
+        .select('id, identifiant, nom, lieu, date_debut, date_fin, statut, point_rassemblement')
+        .in('id', depIds),
+      supabase.from('vagues')
+        .select('id, deployment_id, identifiant, numero, date_debut, date_fin')
+        .in('deployment_id', depIds)
+        .order('numero'),
+    ]);
+    const vaguesParDep: Record<string, Mobilisation['vagues']> = {};
+    for (const v of vagues || []) {
+      if (!vaguesParDep[v.deployment_id]) vaguesParDep[v.deployment_id] = [];
+      vaguesParDep[v.deployment_id].push({
+        id: v.id, identifiant: v.identifiant, numero: v.numero,
+        date_debut: v.date_debut, date_fin: v.date_fin,
+      });
+    }
+    const mobs: Mobilisation[] = (deps || []).map((d: any) => {
+      const ciblage = ciblagesData.find((c: any) => c.reference_id === d.id);
+      return {
+        ciblage_id: ciblage?.id || '',
+        deployment_id: d.id, identifiant: d.identifiant, nom: d.nom,
+        lieu: d.lieu, date_debut: d.date_debut, date_fin: d.date_fin,
+        point_rassemblement: d.point_rassemblement, statut: ciblage?.statut || 'mobilise',
+        vagues: vaguesParDep[d.id] || [],
+      };
+    });
+    setMobilisations(mobs);
   }
 
   async function fetchDisponibilites(benevoleId: string) {
@@ -251,7 +323,106 @@ export default function DisponibilitesPage() {
           </div>
         </div>
 
-        <h2 style={{ color: '#1e3a5f', margin: '0 0 32px 0', fontSize: '28px', fontWeight: '700' }}>Mes disponibilités</h2>
+        <h2 style={{ color: '#1e3a5f', margin: '0 0 16px 0', fontSize: '28px', fontWeight: '700' }}>
+          {tab === 'mobilisations' ? 'Mes mobilisations' : 'Mes disponibilités'}
+        </h2>
+
+        {/* ── Onglets ── */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: '2px solid #e5e7eb' }}>
+          <button
+            onClick={() => setTab('dispos')}
+            style={{
+              padding: '12px 20px', fontSize: '14px', fontWeight: 600,
+              backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
+              color: tab === 'dispos' ? '#1e3a5f' : '#9ca3af',
+              borderBottom: tab === 'dispos' ? '3px solid #1e3a5f' : '3px solid transparent',
+              marginBottom: '-2px',
+            }}>
+            📋 Disponibilités
+            {deploiementsActifs.length > 0 && (
+              <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 10, backgroundColor: '#1e3a5f', color: 'white', fontSize: 11 }}>
+                {deploiementsActifs.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setTab('mobilisations')}
+            style={{
+              padding: '12px 20px', fontSize: '14px', fontWeight: 600,
+              backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
+              color: tab === 'mobilisations' ? '#065f46' : '#9ca3af',
+              borderBottom: tab === 'mobilisations' ? '3px solid #065f46' : '3px solid transparent',
+              marginBottom: '-2px',
+            }}>
+            🚀 Mobilisations
+            {mobilisations.length > 0 && (
+              <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 10, backgroundColor: '#065f46', color: 'white', fontSize: 11 }}>
+                {mobilisations.length}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* ── Onglet Mobilisations ── */}
+        {tab === 'mobilisations' && (
+          <>
+            {mobilisations.length === 0 ? (
+              <div style={{ padding: '32px', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', textAlign: 'center' }}>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>📭</div>
+                <h3 style={{ margin: '0 0 8px 0', color: '#1e3a5f' }}>Aucune mobilisation active</h3>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                  Vous n&apos;avez pas de déploiement actif pour le moment.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {mobilisations.map(m => (
+                  <div key={m.deployment_id} style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: '2px solid #059669' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                      <span style={{ fontSize: '24px' }}>✅</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '18px', color: '#1e3a5f' }}>{m.nom}</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280' }}>{m.identifiant} · Mobilisation {m.statut === 'confirme' ? 'confirmée par vous' : 'confirmée par l\'admin'}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '12px 0', fontSize: '14px', color: '#111827' }}>
+                      {m.lieu && <div><span style={{ color: '#6b7280' }}>📍</span> <strong style={{ color: '#111827' }}>Lieu:</strong> <span style={{ color: '#111827' }}>{m.lieu}</span></div>}
+                      {m.point_rassemblement && <div><span style={{ color: '#6b7280' }}>📌</span> <strong style={{ color: '#111827' }}>Rassemblement:</strong> <span style={{ color: '#111827' }}>{m.point_rassemblement}</span></div>}
+                      {m.date_debut && <div><span style={{ color: '#6b7280' }}>📅</span> <strong style={{ color: '#111827' }}>Début:</strong> <span style={{ color: '#111827' }}>{formatDate(m.date_debut)}</span></div>}
+                      {m.date_fin && <div><span style={{ color: '#6b7280' }}>📅</span> <strong style={{ color: '#111827' }}>Fin:</strong> <span style={{ color: '#111827' }}>{formatDate(m.date_fin)}</span></div>}
+                    </div>
+                    {m.vagues.length > 0 && (
+                      <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '12px 14px', marginTop: '10px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#065f46', marginBottom: '6px' }}>🔄 Rotations planifiées</div>
+                        {m.vagues.map(v => (
+                          <div key={v.id} style={{ fontSize: '13px', color: '#065f46', padding: '4px 0' }}>
+                            <strong>{v.identifiant || `Rotation #${v.numero}`}</strong> : {formatDate(v.date_debut)} → {formatDate(v.date_fin)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
+                      <a href={`/deploiement/taches?deployment=${m.deployment_id}`}
+                        style={{ padding: '10px 16px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>
+                        📋 Voir les tâches
+                      </a>
+                      <a href={`mailto:riusc@aqbrs.ca?subject=Empêchement pour ${m.identifiant}`}
+                        style={{ padding: '10px 16px', backgroundColor: 'white', color: '#b91c1c', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: 600, border: '1px solid #fca5a5' }}>
+                        ⚠️ Signaler un empêchement
+                      </a>
+                    </div>
+                  </div>
+                ))}
+                <div style={{ marginTop: '16px', padding: '14px 18px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe', fontSize: '13px', color: '#1e40af' }}>
+                  <strong>💡 Important:</strong> Si vous êtes dans l&apos;impossibilité de vous présenter, contactez-nous <strong>immédiatement</strong> par courriel à <a href="mailto:riusc@aqbrs.ca" style={{ color: '#1e40af', fontWeight: 600 }}>riusc@aqbrs.ca</a>.
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Onglet Disponibilités ── */}
+        {tab === 'dispos' && (<>
 
         {/* ── Déploiements actifs — groupés par sinistre ── */}
         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', marginBottom: '24px' }}>
@@ -422,6 +593,8 @@ export default function DisponibilitesPage() {
         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '12px', color: '#9ca3af' }}>
           🔄 Actualisation automatique toutes les 30 secondes
         </div>
+
+        </>)}{/* fin onglet Disponibilités */}
       </main>
 
       {demoToast && (
