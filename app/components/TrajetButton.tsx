@@ -14,7 +14,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-interface Trajet {
+export interface Trajet {
   id: string
   type: 'aller' | 'retour'
   deployment_id: string | null
@@ -30,7 +30,7 @@ interface Trajet {
   created_at: string
 }
 
-interface Deploiement {
+export interface Deploiement {
   id: string
   nom: string
   lieu: string
@@ -38,7 +38,7 @@ interface Deploiement {
   date_fin: string | null
 }
 
-interface Camp {
+export interface Camp {
   session_id: string
   camp_nom: string | null
   camp_dates: string | null
@@ -126,16 +126,20 @@ export default function TrajetButton() {
 // Modale
 // ═══════════════════════════════════════════════════════════════════════════
 
-interface TrajetModalProps {
+export interface TrajetModalProps {
   trajetOuvert: Trajet | null
   trajets: Trajet[]
   deploiements: Deploiement[]
   camps: Camp[]
   onClose: () => void
   onSaved: () => void
+  /** Cle de contexte pre-selectionnee (ex: 'dep:uuid', 'camp:session_id').
+   *  Utilisee par la page /trajet?dep=xxx pour ouvrir directement la modal
+   *  sur le bon contexte. */
+  initialContexteKey?: string
 }
 
-function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSaved }: TrajetModalProps) {
+export function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSaved, initialContexteKey }: TrajetModalProps) {
   const mode: 'start' | 'close' = trajetOuvert ? 'close' : 'start'
 
   // Pour mode start : choix du contexte + type
@@ -149,7 +153,13 @@ function TrajetModal({ trajetOuvert, trajets, deploiements, camps, onClose, onSa
       deployment_id: null as string | null, camp_session_id: c.session_id,
     })),
   ]
-  const [selectedContexteKey, setSelectedContexteKey] = useState<string>(contextes[0]?.key || '')
+  const [selectedContexteKey, setSelectedContexteKey] = useState<string>(
+    // Priorite a la cle initiale (via query param) si elle existe ET qu'elle
+    // correspond a un contexte dispo. Sinon premier de la liste.
+    (initialContexteKey && contextes.some(c => c.key === initialContexteKey))
+      ? initialContexteKey
+      : (contextes[0]?.key || '')
+  )
 
   // Déterminer le type par défaut : si trajets existent déjà pour ce contexte,
   // et qu'il y a un aller sans retour aujourd'hui → default = 'retour'
