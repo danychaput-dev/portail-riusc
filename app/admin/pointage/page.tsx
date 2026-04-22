@@ -28,6 +28,8 @@ interface Session {
   actif: boolean
   approuveur_id: string | null
   approuveur_nom: string | null
+  archived_at: string | null
+  archived_by: string | null
   total_pointages: number
   nb_en_cours: number
   nb_complets: number
@@ -55,6 +57,8 @@ interface Approuveur {
 
 // ─── Page ────────────────────────────────────────────────────────────────
 
+type OngletPointage = 'actives' | 'archives'
+
 export default function PointagePage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,6 +66,7 @@ export default function PointagePage() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [qrModal, setQrModal] = useState<{ url: string; dataUrl: string; session: Session } | null>(null)
+  const [onglet, setOnglet] = useState<OngletPointage>('actives')
 
   // Chargement initial
   const loadSessions = async () => {
@@ -80,15 +85,19 @@ export default function PointagePage() {
 
   useEffect(() => { loadSessions() }, [])
 
-  // Trier : actifs d'abord, puis par date_shift desc
-  const sorted = useMemo(() => {
-    return [...sessions].sort((a, b) => {
+  // Filtrer par onglet + trier
+  const { actives, archivees, sorted } = useMemo(() => {
+    const actives = sessions.filter(s => !s.archived_at)
+    const archivees = sessions.filter(s => !!s.archived_at)
+    const cible = onglet === 'archives' ? archivees : actives
+    const sorted = [...cible].sort((a, b) => {
       if (a.actif !== b.actif) return a.actif ? -1 : 1
       const da = a.date_shift || a.created_at || ''
       const db = b.date_shift || b.created_at || ''
       return db.localeCompare(da)
     })
-  }, [sessions])
+    return { actives, archivees, sorted }
+  }, [sessions, onglet])
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -129,6 +138,43 @@ export default function PointagePage() {
     await loadSessions()
   }
 
+  const toggleArchive = async (s: Session) => {
+    const archiver = !s.archived_at
+    if (archiver && s.total_pointages > 0) {
+      const ok = confirm(`Archiver "${s.contexte_nom}" ? (${s.total_pointages} pointage${s.total_pointages > 1 ? 's' : ''} conserve${s.total_pointages > 1 ? 's' : ''}. Reversible.)`)
+      if (!ok) return
+    }
+    const res = await fetch(`/api/admin/pointage/sessions/${s.pointage_session_id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ archived: archiver }),
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      alert('Erreur : ' + (json.error || 'statut ' + res.status))
+      return
+    }
+    await loadSessions()
+  }
+
+  const deleteSession = async (s: Session) => {
+    const msg = s.total_pointages > 0
+      ? `SUPPRIMER DEFINITIVEMENT "${s.contexte_nom}" et ses ${s.total_pointages} pointage(s) ?\n\nCette action est IRREVERSIBLE. Les logs d'audit seront aussi supprimes.\n\nAstuce: "Archiver" permet de cacher sans supprimer.`
+      : `Supprimer definitivement "${s.contexte_nom}" ?\n\n(Aucun pointage associe, suppression simple.)`
+    if (!confirm(msg)) return
+    const res = await fetch(`/api/admin/pointage/sessions/${s.pointage_session_id}`, {
+      method: 'DELETE',
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert('Erreur : ' + (json.error || 'statut ' + res.status))
+      return
+    }
+    const d = json.deleted
+    if (d) alert(`Supprime : session + ${d.nb_pointages} pointage(s) + ${d.nb_logs} log(s).`)
+    await loadSessions()
+  }
+
   // ─── Rendu ─────────────────────────────────────────────────────────────
 
   return (
@@ -158,11 +204,33 @@ export default function PointagePage() {
         </div>
       )}
 
+      {/* Onglets */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: `2px solid ${BORDER}` }}>
+        {([
+          { key: 'actives',  label: `Actives (${actives.length})` },
+          { key: 'archives', label: `🗄️ Archives (${archivees.length})` },
+        ] as const).map(o => (
+          <button key={o.key} onClick={() => setOnglet(o.key)}
+            style={{
+              padding: '10px 18px', fontSize: 13, fontWeight: 600,
+              border: 'none', cursor: 'pointer', borderRadius: '8px 8px 0 0',
+              backgroundColor: onglet === o.key ? 'white' : 'transparent',
+              color: onglet === o.key ? C : '#94a3b8',
+              borderBottom: onglet === o.key ? `2px solid ${C}` : '2px solid transparent',
+              marginBottom: '-2px',
+            }}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div style={{ padding: 60, textAlign: 'center', color: MUTED, fontSize: 14 }}>Chargement…</div>
       ) : sorted.length === 0 ? (
         <div style={{ padding: 60, textAlign: 'center', color: MUTED, fontSize: 14, backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}` }}>
-          Aucun QR de présence créé. Clique sur « + Nouveau QR » pour en créer un.
+          {onglet === 'archives'
+            ? 'Aucune session archivee.'
+            : 'Aucun QR de présence créé. Clique sur « + Nouveau QR » pour en créer un.'}
         </div>
       ) : (
         <div style={{ backgroundColor: 'white', borderRadius: 12, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
@@ -222,7 +290,7 @@ export default function PointagePage() {
                       {s.actif ? 'Actif' : 'Inactif'}
                     </span>
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
+                  <td style={{ ...tdStyle, textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <a href={`/admin/pointage/${s.pointage_session_id}`}
                       title="Voir les pointages + actions"
                       style={{ ...btnSecondary, textDecoration: 'none', display: 'inline-block' }}>
@@ -232,9 +300,19 @@ export default function PointagePage() {
                       style={{ ...btnSecondary, marginLeft: 6 }}>
                       Voir QR
                     </button>
-                    <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver' : 'Réactiver'}
-                      style={{ ...btnSecondary, marginLeft: 6, color: s.actif ? RED : GREEN, borderColor: s.actif ? RED : GREEN }}>
-                      {s.actif ? 'Désactiver' : 'Réactiver'}
+                    {!s.archived_at && (
+                      <button onClick={() => toggleActif(s)} title={s.actif ? 'Désactiver' : 'Réactiver'}
+                        style={{ ...btnSecondary, marginLeft: 6, color: s.actif ? RED : GREEN, borderColor: s.actif ? RED : GREEN }}>
+                        {s.actif ? 'Désactiver' : 'Réactiver'}
+                      </button>
+                    )}
+                    <button onClick={() => toggleArchive(s)} title={s.archived_at ? 'Desarchiver' : 'Archiver (reversible)'}
+                      style={{ ...btnSecondary, marginLeft: 6 }}>
+                      {s.archived_at ? '↩ Désarchiver' : '🗄️ Archiver'}
+                    </button>
+                    <button onClick={() => deleteSession(s)} title="Supprimer definitivement (admin/superadmin uniquement)"
+                      style={{ ...btnSecondary, marginLeft: 6, color: RED, borderColor: RED }}>
+                      🗑️ Supprimer
                     </button>
                   </td>
                 </tr>
