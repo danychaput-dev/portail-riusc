@@ -74,6 +74,7 @@ export default function CompetencesPage() {
   const [showNiveauPanel, setShowNiveauPanel] = useState(false)
   const [editingNiveau, setEditingNiveau] = useState<string | null>(null) // benevole_id en édition
   const [savingNiveau, setSavingNiveau] = useState<string | null>(null)
+  const [limitRender, setLimitRender] = useState<number>(100) // limite de rendu pour eviter le lag
 
   // Double scrollbar (top + bottom)
   const topScrollRef = useRef<HTMLDivElement>(null)
@@ -470,6 +471,21 @@ export default function CompetencesPage() {
         </div>
       </div>
 
+      {/* Info performance: rendu limité + bouton pour tout charger */}
+      {rowsAffichees.length > limitRender && (
+        <div className="mb-3 text-sm bg-yellow-50 border border-yellow-200 rounded px-3 py-2 text-yellow-900 flex justify-between items-center flex-wrap gap-2">
+          <span>
+            Affichage des <strong>{limitRender} premiers</strong> sur {rowsAffichees.length} résultats pour garder la page fluide. Affine tes filtres pour réduire la liste, ou clique pour tout charger (peut causer un ralentissement temporaire).
+          </span>
+          <button
+            onClick={() => setLimitRender(99999)}
+            className="px-3 py-1 bg-yellow-200 hover:bg-yellow-300 rounded text-xs font-medium whitespace-nowrap"
+          >
+            Charger les {rowsAffichees.length - limitRender} autres
+          </button>
+        </div>
+      )}
+
       {/* Bandeau filtre actif */}
       {hasActiveFilter && (
         <div className="mb-3 text-sm bg-blue-50 border border-blue-200 rounded px-3 py-2 text-blue-900">
@@ -540,7 +556,7 @@ export default function CompetencesPage() {
             </tr>
           </thead>
           <tbody>
-            {rowsAffichees.map((r, i) => (
+            {rowsAffichees.slice(0, limitRender).map((r, i) => (
               <tr key={r.benevole_id} className={i % 2 ? 'bg-gray-50' : 'bg-white'}>
                 <td className="sticky left-0 bg-inherit z-10 border-b border-r border-gray-200 px-2 py-1 font-medium whitespace-nowrap">{r.nom}</td>
                 <td className="sticky left-0 bg-inherit z-10 border-b border-r border-gray-200 px-2 py-1 whitespace-nowrap" style={{ left: 120 }}>{r.prenom}</td>
