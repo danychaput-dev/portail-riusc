@@ -30,13 +30,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const impersonateCookie = cookieStore.get('impersonate')?.value
+    // Cookie impersonate est un JSON stringifie — voir /api/impersonate/route.ts
+    const impersonateRaw = cookieStore.get('impersonate')?.value
+    let impersonatedBenevoleId: string | null = null
+    if (impersonateRaw) {
+      try {
+        const parsed = JSON.parse(impersonateRaw)
+        impersonatedBenevoleId = parsed.benevole_id || null
+      } catch {
+        impersonatedBenevoleId = impersonateRaw
+      }
+    }
     let benevole_id: string | null = null
-    if (impersonateCookie) {
+    if (impersonatedBenevoleId) {
       const { data: acteur } = await supabaseAdmin
         .from('reservistes').select('role').eq('user_id', user.id).single()
       if (acteur && ['superadmin', 'admin', 'coordonnateur'].includes(acteur.role)) {
-        benevole_id = impersonateCookie
+        benevole_id = impersonatedBenevoleId
       }
     }
     if (!benevole_id) {

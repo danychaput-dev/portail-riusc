@@ -33,13 +33,23 @@ export async function GET() {
   const acteurIsAdmin = ['superadmin', 'admin', 'coordonnateur', 'adjoint'].includes(acteur.role)
 
   // Si emprunt d'identité par un admin, utiliser le benevole_id et le rôle de la cible
-  const impersonateCookie = cookieStore.get('impersonate')?.value
+  // Cookie impersonate est un JSON stringifie — voir /api/impersonate/route.ts
+  const impersonateRaw = cookieStore.get('impersonate')?.value
+  let impersonatedBenevoleId: string | null = null
+  if (impersonateRaw) {
+    try {
+      const parsed = JSON.parse(impersonateRaw)
+      impersonatedBenevoleId = parsed.benevole_id || null
+    } catch {
+      impersonatedBenevoleId = impersonateRaw
+    }
+  }
   let res: { benevole_id: string; role: string } = acteur
-  if (impersonateCookie && acteurIsAdmin) {
+  if (impersonatedBenevoleId && acteurIsAdmin) {
     const { data: cible } = await supabaseAdmin
       .from('reservistes')
       .select('benevole_id, role')
-      .eq('benevole_id', impersonateCookie)
+      .eq('benevole_id', impersonatedBenevoleId)
       .single()
     if (cible) res = cible
   }

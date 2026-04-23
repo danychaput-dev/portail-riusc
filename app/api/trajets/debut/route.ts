@@ -39,14 +39,23 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     // Résoudre benevole_id (via impersonation si admin)
-    const impersonateCookie = cookieStore.get('impersonate')?.value
+    // Le cookie impersonate est un JSON stringifie — voir /api/impersonate/route.ts
+    const impersonateRaw = cookieStore.get('impersonate')?.value
+    let impersonatedBenevoleId: string | null = null
+    if (impersonateRaw) {
+      try {
+        const parsed = JSON.parse(impersonateRaw)
+        impersonatedBenevoleId = parsed.benevole_id || null
+      } catch {
+        impersonatedBenevoleId = impersonateRaw
+      }
+    }
     let benevole_id: string | null = null
-    if (impersonateCookie) {
-      // Vérifier que l'acteur est admin
+    if (impersonatedBenevoleId) {
       const { data: acteur } = await supabaseAdmin
         .from('reservistes').select('role').eq('user_id', user.id).single()
       if (acteur && ['superadmin', 'admin', 'coordonnateur'].includes(acteur.role)) {
-        benevole_id = impersonateCookie
+        benevole_id = impersonatedBenevoleId
       }
     }
     if (!benevole_id) {

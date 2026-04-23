@@ -30,17 +30,31 @@ export async function GET(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const impersonateCookie = cookieStore.get('impersonate')?.value
+    // Le cookie impersonate est un JSON stringifie (voir /api/impersonate/route.ts)
+    // de forme {benevole_id, prenom, nom, email, impersonatedBy, timestamp}.
+    // On parse pour extraire le benevole_id cible.
+    const impersonateRaw = cookieStore.get('impersonate')?.value
+    let impersonatedBenevoleId: string | null = null
+    if (impersonateRaw) {
+      try {
+        const parsed = JSON.parse(impersonateRaw)
+        impersonatedBenevoleId = parsed.benevole_id || null
+      } catch {
+        // Fallback : cookie stocke en string directe (rare, pour retro-compat)
+        impersonatedBenevoleId = impersonateRaw
+      }
+    }
+
     let benevole_id: string | null = null
     let effectiveRole: string | null = null
-    if (impersonateCookie) {
+    if (impersonatedBenevoleId) {
       const { data: acteur } = await supabaseAdmin
         .from('reservistes').select('role').eq('user_id', user.id).single()
       if (acteur && ['superadmin', 'admin', 'coordonnateur'].includes(acteur.role)) {
-        benevole_id = impersonateCookie
+        benevole_id = impersonatedBenevoleId
         // En emprunt, recuperer le role de la cible pour la logique QR supervisor
         const { data: cible } = await supabaseAdmin
-          .from('reservistes').select('role').eq('benevole_id', impersonateCookie).single()
+          .from('reservistes').select('role').eq('benevole_id', impersonatedBenevoleId).single()
         effectiveRole = cible?.role || null
       }
     }
