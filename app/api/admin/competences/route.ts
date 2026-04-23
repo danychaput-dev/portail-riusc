@@ -48,23 +48,34 @@ export async function GET(req: NextRequest) {
   const format = searchParams.get('format')
 
   // ─── Fetch réservistes actifs avec colonnes compétences ──────────────────
-  const { data: reservistes, error } = await supabaseAdmin
-    .from('reservistes_actifs')
-    .select(`
-      benevole_id, prenom, nom, email, groupe_recherche, niveau_ressource,
-      antecedents_statut, camp_qualif_complete,
-      certificat_premiers_soins, competences_securite, communication,
-      permis_conduire, navire_marin, vehicule_tout_terrain, cartographie_sig,
-      certification_csi, competence_rs, competences_sauvetage, satp_drone,
-      equipe_canine
-    `)
-    .not('nom', 'is', null)
-    .neq('nom', '')
-    .order('nom')
-    .range(0, 4999)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!reservistes) return NextResponse.json({ error: 'Aucune donnée' }, { status: 500 })
+  // Pagination par batchs de 1000 (limite PostgREST). On exclut les partenaires
+  // (pas pertinents pour une analyse de compétences de déploiement) et on
+  // inclut Approuvé + Intérêt.
+  const SELECT_COLS = `
+    benevole_id, prenom, nom, email, groupe, groupe_recherche, statut,
+    niveau_ressource, antecedents_statut, camp_qualif_complete,
+    certificat_premiers_soins, competences_securite, communication,
+    permis_conduire, navire_marin, vehicule_tout_terrain, cartographie_sig,
+    certification_csi, competence_rs, competences_sauvetage, satp_drone,
+    equipe_canine
+  `
+  const BATCH = 1000
+  let reservistes: any[] = []
+  for (let offset = 0; offset < 10000; offset += BATCH) {
+    const { data: batch, error: batchErr } = await supabaseAdmin
+      .from('reservistes_actifs')
+      .select(SELECT_COLS)
+      .in('groupe', ['Approuvé', 'Intérêt'])
+      .not('nom', 'is', null)
+      .neq('nom', '')
+      .order('nom')
+      .range(offset, offset + BATCH - 1)
+    if (batchErr) return NextResponse.json({ error: batchErr.message }, { status: 500 })
+    if (!batch || batch.length === 0) break
+    reservistes = reservistes.concat(batch)
+    if (batch.length < BATCH) break
+  }
+  if (reservistes.length === 0) return NextResponse.json({ error: 'Aucune donnée' }, { status: 500 })
 
   // ─── Jointure langues via reserviste_langues ──────────────────────────────
   const benevoleIds = reservistes.map(r => r.benevole_id)
@@ -113,7 +124,9 @@ export async function GET(req: NextRequest) {
       prenom: r.prenom || '',
       nom: r.nom || '',
       email: r.email || '',
+      groupe: r.groupe || '',
       groupe_recherche: r.groupe_recherche || '',
+      statut: r.statut || '',
       niveau_ressource: r.niveau_ressource || 0,
       antecedents_statut: r.antecedents_statut || '',
       camp_qualif_complete: !!r.camp_qualif_complete,

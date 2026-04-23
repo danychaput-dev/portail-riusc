@@ -184,20 +184,43 @@ export function getFamilleRuns(): Array<{ famille: FamilleCompetence; start: num
   return runs
 }
 
-/** Couleur Tailwind par famille (utilisé dans la page). */
+/** Liste ordonnée des 12 familles (pour itération côté UI). */
+export const FAMILLES: FamilleCompetence[] = [
+  'Premiers soins', 'Sécurité', 'Communication', 'Permis', 'Langues',
+  'Véhicules', 'Cartographie', 'SCI/ICS', 'R&S SARVAC', 'Sauvetage',
+  'Drone', 'K9',
+]
+
+/** Couleur Tailwind (très subtile) par famille — juste un liseré gauche. */
+export const FAMILLE_ACCENT: Record<FamilleCompetence, string> = {
+  'Premiers soins': 'border-l-green-500',
+  'Sécurité':       'border-l-yellow-500',
+  'Communication':  'border-l-orange-500',
+  'Permis':         'border-l-purple-500',
+  'Langues':        'border-l-sky-500',
+  'Véhicules':      'border-l-red-500',
+  'Cartographie':   'border-l-emerald-500',
+  'SCI/ICS':        'border-l-amber-500',
+  'R&S SARVAC':     'border-l-pink-500',
+  'Sauvetage':      'border-l-violet-500',
+  'Drone':          'border-l-rose-500',
+  'K9':             'border-l-slate-500',
+}
+
+/** @deprecated Utiliser FAMILLE_ACCENT ou laisser neutre. Gardé pour l'export XLSX. */
 export const FAMILLE_COLORS: Record<FamilleCompetence, string> = {
-  'Premiers soins': 'bg-green-100 text-green-900',
-  'Sécurité':       'bg-yellow-100 text-yellow-900',
-  'Communication':  'bg-orange-100 text-orange-900',
-  'Permis':         'bg-purple-100 text-purple-900',
-  'Langues':        'bg-sky-100 text-sky-900',
-  'Véhicules':      'bg-red-100 text-red-900',
-  'Cartographie':   'bg-emerald-100 text-emerald-900',
-  'SCI/ICS':        'bg-amber-100 text-amber-900',
-  'R&S SARVAC':     'bg-pink-100 text-pink-900',
-  'Sauvetage':      'bg-violet-100 text-violet-900',
-  'Drone':          'bg-rose-100 text-rose-900',
-  'K9':             'bg-slate-200 text-slate-900',
+  'Premiers soins': 'bg-slate-100 text-slate-900',
+  'Sécurité':       'bg-slate-100 text-slate-900',
+  'Communication':  'bg-slate-100 text-slate-900',
+  'Permis':         'bg-slate-100 text-slate-900',
+  'Langues':        'bg-slate-100 text-slate-900',
+  'Véhicules':      'bg-slate-100 text-slate-900',
+  'Cartographie':   'bg-slate-100 text-slate-900',
+  'SCI/ICS':        'bg-slate-100 text-slate-900',
+  'R&S SARVAC':     'bg-slate-100 text-slate-900',
+  'Sauvetage':      'bg-slate-100 text-slate-900',
+  'Drone':          'bg-slate-100 text-slate-900',
+  'K9':             'bg-slate-100 text-slate-900',
 }
 
 /** Couleur hex par famille (pour l'export XLSX). */
