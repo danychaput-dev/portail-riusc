@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
   // (pas pertinents pour une analyse de compétences de déploiement) et on
   // inclut Approuvé + Intérêt.
   const SELECT_COLS = `
-    benevole_id, prenom, nom, email, groupe, groupe_recherche, statut,
+    benevole_id, prenom, nom, email, groupe, groupe_recherche, statut, profession,
     niveau_ressource, antecedents_statut, camp_qualif_complete,
     certificat_premiers_soins, competences_securite, communication,
     permis_conduire, navire_marin, vehicule_tout_terrain, cartographie_sig,
@@ -127,6 +127,7 @@ export async function GET(req: NextRequest) {
       groupe: r.groupe || '',
       groupe_recherche: r.groupe_recherche || '',
       statut: r.statut || '',
+      profession: r.profession || '',
       niveau_ressource: r.niveau_ressource || 0,
       antecedents_statut: r.antecedents_statut || '',
       camp_qualif_complete: !!r.camp_qualif_complete,
@@ -147,7 +148,7 @@ export async function GET(req: NextRequest) {
     // Onglet Compétences détaillées
     const detailData: any[] = []
     // Ligne famille (row 1): on insère des marqueurs qu'on merge après
-    const identityHeaders = ['Bénévole', 'Prénom', 'Nom', 'Courriel', 'Groupe R&S', 'Niveau', 'Antécédents', 'Camp']
+    const identityHeaders = ['Bénévole', 'Prénom', 'Nom', 'Courriel', 'Statut', 'Profession', 'Groupe R&S', 'Niveau', 'Antécédents', 'Camp']
     // Row 1: familles (une cellule par colonne, qui sera mergée par runs)
     const row1: any[] = identityHeaders.map(() => '')
     for (const c of COMPETENCES) row1.push(c.famille)
@@ -158,7 +159,8 @@ export async function GET(req: NextRequest) {
     // Rows 3+: données
     for (const r of rows) {
       const base = [
-        r.benevole_id, r.prenom, r.nom, r.email, r.groupe_recherche,
+        r.benevole_id, r.prenom, r.nom, r.email,
+        r.groupe, r.profession, r.groupe_recherche,
         r.niveau_ressource || '',
         r.antecedents_statut,
         r.camp_qualif_complete ? 'Oui' : 'Non',
@@ -187,9 +189,10 @@ export async function GET(req: NextRequest) {
         currentFamille = nextFamille || currentFamille
       }
     }
-    // Largeurs
+    // Largeurs (Bénévole, Prénom, Nom, Courriel, Statut, Profession, Groupe R&S, Niveau, Antécédents, Camp, ...compétences)
     const detailCols = [
-      { wch: 13 }, { wch: 14 }, { wch: 18 }, { wch: 26 }, { wch: 28 },
+      { wch: 13 }, { wch: 14 }, { wch: 18 }, { wch: 26 },
+      { wch: 10 }, { wch: 22 }, { wch: 28 },
       { wch: 8 }, { wch: 12 }, { wch: 6 },
       ...labels.map(() => ({ wch: 10 })),
     ]

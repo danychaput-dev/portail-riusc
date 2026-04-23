@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   COMPETENCES,
   FAMILLES,
@@ -18,6 +18,7 @@ interface ReservisteRow {
   groupe: string
   groupe_recherche: string
   statut: string
+  profession: string
   niveau_ressource: number
   antecedents_statut: string
   camp_qualif_complete: boolean
@@ -42,6 +43,12 @@ export default function CompetencesPage() {
   const [expandedFamille, setExpandedFamille] = useState<FamilleCompetence | null>(null)
   const [competenceFilter, setCompetenceFilter] = useState<string | null>(null)
   const [familleFilter, setFamilleFilter] = useState<FamilleCompetence | null>(null)
+  const [synthVisible, setSynthVisible] = useState(true)
+
+  // Double scrollbar (top + bottom) pour le tableau
+  const topScrollRef = useRef<HTMLDivElement>(null)
+  const mainScrollRef = useRef<HTMLDivElement>(null)
+  const [tableWidth, setTableWidth] = useState(0)
 
   useEffect(() => {
     fetch('/api/admin/competences')
@@ -95,11 +102,35 @@ export default function CompetencesPage() {
         (r.nom || '').toLowerCase().includes(q) ||
         (r.prenom || '').toLowerCase().includes(q) ||
         (r.email || '').toLowerCase().includes(q) ||
+        (r.profession || '').toLowerCase().includes(q) ||
         (r.groupe_recherche || '').toLowerCase().includes(q)
       )
     }
     return list
   }, [statusFiltered, recherche, competenceFilter, familleFilter])
+
+  // Mesurer la largeur du tableau (pour le scrollbar du haut)
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      setTableWidth(mainScrollRef.current.scrollWidth)
+    }
+  }, [rowsAffichees.length, synthVisible])
+
+  // Sync scroll entre haut et bas
+  const handleTopScroll = () => {
+    if (topScrollRef.current && mainScrollRef.current) {
+      if (mainScrollRef.current.scrollLeft !== topScrollRef.current.scrollLeft) {
+        mainScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft
+      }
+    }
+  }
+  const handleMainScroll = () => {
+    if (topScrollRef.current && mainScrollRef.current) {
+      if (topScrollRef.current.scrollLeft !== mainScrollRef.current.scrollLeft) {
+        topScrollRef.current.scrollLeft = mainScrollRef.current.scrollLeft
+      }
+    }
+  }
 
   async function handleExport() {
     setExporting(true)
@@ -127,12 +158,16 @@ export default function CompetencesPage() {
   const labels = getCompetenceLabels()
   const familleRuns = getFamilleRuns()
 
-  // Actions sur la synthèse hiérarchique
+  // Map : pour chaque index de label, retourne la classe border accent si c'est la première colonne d'une famille, sinon ''
+  const borderStartByIndex: Record<number, string> = {}
+  for (const run of familleRuns) {
+    borderStartByIndex[run.start] = FAMILLE_ACCENT[run.famille as FamilleCompetence]
+  }
+
   const toggleFamille = (f: FamilleCompetence) => {
     setExpandedFamille(prev => (prev === f ? null : f))
   }
   const clickFamille = (f: FamilleCompetence, e: React.MouseEvent) => {
-    // Shift/Ctrl+clic = filtre directement sur la famille; sinon expand/collapse
     if (e.shiftKey || e.ctrlKey || e.metaKey) {
       setFamilleFilter(prev => (prev === f ? null : f))
       setCompetenceFilter(null)
@@ -149,6 +184,8 @@ export default function CompetencesPage() {
     setFamilleFilter(null)
     setRecherche('')
   }
+
+  const hasActiveFilter = competenceFilter || familleFilter
 
   return (
     <div className="p-4 md:p-6 max-w-full">
@@ -179,66 +216,76 @@ export default function CompetencesPage() {
             </button>
           )
         })}
+        <div className="flex-1" />
+        <button
+          onClick={() => setSynthVisible(v => !v)}
+          className="px-3 py-1 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-sm"
+          title={synthVisible ? 'Masquer pour voir plus de réservistes' : 'Afficher la synthèse'}
+        >
+          {synthVisible ? '▲ Masquer la synthèse' : '▼ Afficher la synthèse'}
+        </button>
       </div>
 
-      {/* Synthèse par famille (hiérarchique, neutre) */}
-      <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
-        <h2 className="text-sm font-semibold mb-3 text-gray-700 uppercase tracking-wide">
-          Synthèse par famille — {statusFiltered.length} réservistes {statusFilter !== 'tous' ? statusFilter.toLowerCase() + 's' : ''}
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-          {FAMILLES.map(famille => {
-            const total = totauxByFamille[famille]
-            const pct = statusFiltered.length > 0 ? Math.round((total / statusFiltered.length) * 100) : 0
-            const isExpanded = expandedFamille === famille
-            const isActiveFilter = familleFilter === famille
-            const subs = COMPETENCES.filter(c => c.famille === famille)
-            return (
-              <div
-                key={famille}
-                className={`border-l-4 ${FAMILLE_ACCENT[famille]} bg-gray-50 rounded-r ${isActiveFilter ? 'ring-2 ring-gray-900' : ''}`}
-              >
-                <button
-                  onClick={e => clickFamille(famille, e)}
-                  className="w-full px-3 py-2 flex justify-between items-center hover:bg-gray-100 text-left transition"
-                  title="Clic: ouvrir/fermer · Shift+Clic: filtrer le tableau"
+      {/* Synthèse par famille (hiérarchique, neutre) — collapsible */}
+      {synthVisible && (
+        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+          <h2 className="text-sm font-semibold mb-3 text-gray-700 uppercase tracking-wide">
+            Synthèse par famille — {statusFiltered.length} réservistes {statusFilter !== 'tous' ? statusFilter.toLowerCase() + 's' : ''}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {FAMILLES.map(famille => {
+              const total = totauxByFamille[famille]
+              const pct = statusFiltered.length > 0 ? Math.round((total / statusFiltered.length) * 100) : 0
+              const isExpanded = expandedFamille === famille
+              const isActiveFilter = familleFilter === famille
+              const subs = COMPETENCES.filter(c => c.famille === famille)
+              return (
+                <div
+                  key={famille}
+                  className={`border-l-4 ${FAMILLE_ACCENT[famille]} bg-gray-50 rounded-r ${isActiveFilter ? 'ring-2 ring-gray-900' : ''}`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">{isExpanded ? '▼' : '▶'}</span>
-                    <span className="font-medium text-gray-800">{famille}</span>
-                  </span>
-                  <span className="font-semibold tabular-nums text-gray-900">
-                    {total} <span className="font-normal text-gray-500 text-xs">({pct}%)</span>
-                  </span>
-                </button>
-                {isExpanded && (
-                  <div className="px-3 pb-2 pt-1 border-t border-gray-200">
-                    {subs.map(sub => {
-                      const n = totauxByStatus[sub.label]
-                      const p = statusFiltered.length > 0 ? Math.round((n / statusFiltered.length) * 100) : 0
-                      const isActive = competenceFilter === sub.label
-                      return (
-                        <button
-                          key={sub.label}
-                          onClick={() => clickCompetence(sub.label)}
-                          className={`w-full flex justify-between items-center px-2 py-1 rounded text-sm hover:bg-gray-200 transition ${
-                            isActive ? 'bg-gray-900 text-white hover:bg-gray-800' : 'text-gray-700'
-                          }`}
-                        >
-                          <span>{sub.label}</span>
-                          <span className="tabular-nums">
-                            {n} <span className={`text-xs ${isActive ? 'text-gray-300' : 'text-gray-500'}`}>({p}%)</span>
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
+                  <button
+                    onClick={e => clickFamille(famille, e)}
+                    className="w-full px-3 py-2 flex justify-between items-center hover:bg-gray-100 text-left transition"
+                    title="Clic: ouvrir/fermer · Shift+Clic: filtrer le tableau"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+                      <span className="font-medium text-gray-800">{famille}</span>
+                    </span>
+                    <span className="font-semibold tabular-nums text-gray-900">
+                      {total} <span className="font-normal text-gray-500 text-xs">({pct}%)</span>
+                    </span>
+                  </button>
+                  {isExpanded && (
+                    <div className="px-3 pb-2 pt-1 border-t border-gray-200">
+                      {subs.map(sub => {
+                        const n = totauxByStatus[sub.label]
+                        const p = statusFiltered.length > 0 ? Math.round((n / statusFiltered.length) * 100) : 0
+                        const isActive = competenceFilter === sub.label
+                        return (
+                          <button
+                            key={sub.label}
+                            onClick={() => clickCompetence(sub.label)}
+                            className={`w-full flex justify-between items-center px-2 py-1 rounded text-sm hover:bg-gray-200 transition ${
+                              isActive ? 'bg-gray-900 text-white hover:bg-gray-800' : 'text-gray-700'
+                            }`}
+                          >
+                            <span>{sub.label}</span>
+                            <span className="tabular-nums">
+                              {n} <span className={`text-xs ${isActive ? 'text-gray-300' : 'text-gray-500'}`}>({p}%)</span>
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Barre d'actions */}
       <div className="mb-3 flex flex-wrap gap-2 items-center">
@@ -249,7 +296,7 @@ export default function CompetencesPage() {
           onChange={e => setRecherche(e.target.value)}
           className="flex-1 min-w-[260px] px-3 py-2 border border-gray-300 rounded-md text-sm"
         />
-        {(competenceFilter || familleFilter || recherche) && (
+        {(hasActiveFilter || recherche) && (
           <button
             onClick={resetFilters}
             className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm border border-gray-300"
@@ -273,19 +320,34 @@ export default function CompetencesPage() {
       </div>
 
       {/* Bandeau filtre actif */}
-      {(competenceFilter || familleFilter) && (
+      {hasActiveFilter && (
         <div className="mb-3 text-sm bg-blue-50 border border-blue-200 rounded px-3 py-2 text-blue-900">
           Filtre actif: {competenceFilter ? <strong>{competenceFilter}</strong> : <strong>{familleFilter}</strong>}
           <span className="text-blue-700 ml-2">— clique sur "Effacer filtres" pour voir tout le monde.</span>
         </div>
       )}
 
+      {/* Scrollbar horizontal du haut (synchronisé avec le tableau) */}
+      <div
+        ref={topScrollRef}
+        onScroll={handleTopScroll}
+        className="overflow-x-auto border-x border-t border-gray-200 rounded-t-lg bg-white"
+        style={{ height: 14 }}
+      >
+        <div style={{ width: tableWidth, height: 1 }} />
+      </div>
+
       {/* Tableau */}
-      <div className="overflow-auto border border-gray-200 rounded-lg bg-white" style={{ maxHeight: '70vh' }}>
+      <div
+        ref={mainScrollRef}
+        onScroll={handleMainScroll}
+        className="overflow-auto border-x border-b border-gray-200 rounded-b-lg bg-white"
+        style={{ maxHeight: '72vh' }}
+      >
         <table className="text-xs border-collapse">
           <thead className="sticky top-0 bg-white z-20">
             <tr>
-              <th className="sticky left-0 bg-white z-30 border-b border-r border-gray-300" colSpan={6} style={{ minWidth: 540 }}></th>
+              <th className="sticky left-0 bg-white z-30 border-b border-r border-gray-300" colSpan={6} style={{ minWidth: 660 }}></th>
               {familleRuns.map(run => {
                 const colSpan = run.end - run.start + 1
                 return (
@@ -302,20 +364,23 @@ export default function CompetencesPage() {
             <tr className="bg-gray-50">
               <th className="sticky left-0 bg-gray-50 z-30 border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[120px]">Nom</th>
               <th className="sticky left-0 bg-gray-50 z-20 border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[110px]" style={{ left: 120 }}>Prénom</th>
-              <th className="border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[100px]">Statut</th>
-              <th className="border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[180px]">Groupe R&S</th>
+              <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium min-w-[100px]">Statut</th>
+              <th className="border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[180px]">Profession</th>
               <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium" title="Niveau de déployabilité (1-4)">Niv</th>
               <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium" title="Antécédents criminels">Antéc</th>
-              {labels.map(label => (
-                <th
-                  key={label}
-                  className="border-b border-r border-gray-300 px-1 py-2 text-center font-medium align-bottom"
-                  style={{ minWidth: 24, writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 140 }}
-                  title={label}
-                >
-                  {label}
-                </th>
-              ))}
+              {labels.map((label, idx) => {
+                const borderClass = borderStartByIndex[idx] ? `border-l-4 ${borderStartByIndex[idx]}` : ''
+                return (
+                  <th
+                    key={label}
+                    className={`border-b border-r border-gray-300 px-1 py-2 text-center font-medium align-bottom ${borderClass}`}
+                    style={{ minWidth: 24, writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 140 }}
+                    title={label}
+                  >
+                    {label}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -323,7 +388,7 @@ export default function CompetencesPage() {
               <tr key={r.benevole_id} className={i % 2 ? 'bg-gray-50' : 'bg-white'}>
                 <td className="sticky left-0 bg-inherit z-10 border-b border-r border-gray-200 px-2 py-1 font-medium whitespace-nowrap">{r.nom}</td>
                 <td className="sticky left-0 bg-inherit z-10 border-b border-r border-gray-200 px-2 py-1 whitespace-nowrap" style={{ left: 120 }}>{r.prenom}</td>
-                <td className="border-b border-r border-gray-200 px-2 py-1 whitespace-nowrap">
+                <td className="border-b border-r border-gray-200 px-2 py-1 text-center whitespace-nowrap">
                   <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${
                     r.groupe === 'Approuvé' ? 'bg-green-50 text-green-800 border border-green-200' :
                     r.groupe === 'Intérêt' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
@@ -332,7 +397,7 @@ export default function CompetencesPage() {
                     {r.groupe || '—'}
                   </span>
                 </td>
-                <td className="border-b border-r border-gray-200 px-2 py-1 whitespace-nowrap truncate max-w-[200px]" title={r.groupe_recherche}>{r.groupe_recherche || <span className="text-gray-400">—</span>}</td>
+                <td className="border-b border-r border-gray-200 px-2 py-1 whitespace-nowrap truncate max-w-[200px]" title={r.profession}>{r.profession || <span className="text-gray-400">—</span>}</td>
                 <td className="border-b border-r border-gray-200 px-2 py-1 text-center tabular-nums">{r.niveau_ressource || <span className="text-gray-400">—</span>}</td>
                 <td className="border-b border-r border-gray-200 px-2 py-1 text-center">
                   {r.antecedents_statut === 'verifie' ? (
@@ -345,14 +410,17 @@ export default function CompetencesPage() {
                     <span className="text-gray-400">—</span>
                   )}
                 </td>
-                {labels.map(label => (
-                  <td
-                    key={label}
-                    className={`border-b border-r border-gray-200 px-1 py-1 text-center ${r.competences[label] ? 'bg-gray-200 font-semibold' : ''}`}
-                  >
-                    {r.competences[label] ? '✓' : ''}
-                  </td>
-                ))}
+                {labels.map((label, idx) => {
+                  const borderClass = borderStartByIndex[idx] ? `border-l-4 ${borderStartByIndex[idx]}` : ''
+                  return (
+                    <td
+                      key={label}
+                      className={`border-b border-r border-gray-200 px-1 py-1 text-center ${borderClass} ${r.competences[label] ? 'bg-gray-200 font-semibold' : ''}`}
+                    >
+                      {r.competences[label] ? '✓' : ''}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>
