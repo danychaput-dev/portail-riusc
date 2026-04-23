@@ -570,16 +570,6 @@ export default function InscriptionsCampsPage() {
 
     setBulkUpdating(true)
     const now = new Date().toISOString()
-
-    // Get admin name for logs
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: adminRes } = await supabase
-      .from('reservistes')
-      .select('prenom, nom')
-      .eq('user_id', user?.id || '')
-      .single()
-    const modifiePar = adminRes ? `${adminRes.prenom} ${adminRes.nom}` : 'Admin'
-
     const ids = Array.from(selectedIds)
     // Batch update (avec .select() pour detecter les blocages RLS silencieux)
     const { data: updated, error } = await supabase
@@ -602,23 +592,9 @@ export default function InscriptionsCampsPage() {
       return
     }
 
-    // Log each change
-    const logs = ids.map(id => {
-      const ins = inscriptions.find(i => i.id === id)
-      return {
-        inscription_id: id,
-        benevole_id: ins?.benevole_id || '',
-        session_id: selectedCampId,
-        prenom_nom: ins?.prenom_nom || '',
-        presence_avant: ins?.presence || '',
-        presence_apres: newPresence,
-        modifie_par: modifiePar,
-      }
-    }).filter(l => l.benevole_id)
-
-    if (logs.length > 0) {
-      await supabase.from('inscriptions_camps_logs').insert(logs)
-    }
+    // Le logging dans inscriptions_camps_logs est maintenant fait automatiquement
+    // par le trigger Postgres `trg_inscriptions_camps_log_presence` sur UPDATE de presence.
+    // Voir sql/trigger-log-inscriptions-camps.sql (2026-04-23).
 
     // Update local state
     setInscriptions(prev =>
@@ -750,24 +726,8 @@ export default function InscriptionsCampsPage() {
       return
     }
 
-    // Log du changement
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: adminRes } = await supabase
-      .from('reservistes')
-      .select('prenom, nom')
-      .eq('user_id', user?.id || '')
-      .single()
-    const modifiePar = adminRes ? `${adminRes.prenom} ${adminRes.nom}` : 'Admin'
-
-    await supabase.from('inscriptions_camps_logs').insert({
-      inscription_id: inscriptionId,
-      benevole_id: inscription.benevole_id,
-      session_id: selectedCampId,
-      prenom_nom: inscription.prenom_nom,
-      presence_avant: inscription.presence,
-      presence_apres: newPresence,
-      modifie_par: modifiePar,
-    })
+    // Le logging dans inscriptions_camps_logs est maintenant fait automatiquement
+    // par le trigger Postgres `trg_inscriptions_camps_log_presence` sur UPDATE de presence.
 
     setInscriptions(prev =>
       prev.map(i => i.id === inscriptionId
