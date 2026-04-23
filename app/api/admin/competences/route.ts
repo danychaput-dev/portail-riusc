@@ -230,9 +230,12 @@ export async function GET(req: NextRequest) {
   }
 
   // ─── Format JSON (pour l'affichage web) ──────────────────────────────────
+  const canEdit = ['superadmin', 'admin', 'coordonnateur'].includes(user.role)
   return NextResponse.json({
     reservistes: rows,
     totaux,
     total_actifs: rows.length,
+    can_edit: canEdit,
+    user_role: user.role,
   })
 }

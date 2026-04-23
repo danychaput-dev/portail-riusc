@@ -56,8 +56,8 @@ export const COMPETENCES: CompetenceDef[] = [
   { famille: 'Premiers soins', label: 'Paramédic',          source: 'certificat_premiers_soins', patterns: [/\bg\)/i, /param[eé]dic/i] },
 
   // ─── Sécurité ──────────────────────────────────────────────────────────
-  { famille: 'Sécurité', label: 'Scie à chaîne',            source: 'competences_securite', patterns: [/scie/i, /chain ?saw/i] },
-  { famille: 'Sécurité', label: 'Cours CNESST scie',        source: 'competences_securite', patterns: [/cnesst/i, /chain saw safety/i, /s[eé]curit[eé].*scie/i] },
+  // Scie à chaîne: regroupe compétence declaree ET cours CNESST (union)
+  { famille: 'Sécurité', label: 'Scie à chaîne',            source: 'competences_securite', patterns: [/scie/i, /chain ?saw/i, /cnesst/i] },
   { famille: 'Sécurité', label: 'Contrôle routier',         source: 'competences_securite', patterns: [/contr[oô]le de la circulation/i, /traffic control/i, /flagging/i] },
   { famille: 'Sécurité', label: 'Formateur CNESST',         source: 'competences_securite', patterns: [/formateur/i] },
 

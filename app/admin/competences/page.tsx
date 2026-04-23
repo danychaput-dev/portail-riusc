@@ -29,9 +29,35 @@ interface ApiResponse {
   reservistes: ReservisteRow[]
   totaux: Record<string, number>
   total_actifs: number
+  can_edit: boolean
+  user_role: string
 }
 
 type StatusFilter = 'Approuvé' | 'Intérêt' | 'tous'
+type NiveauFilter = 0 | 1 | 2 | 3 | 4 | 'tous'
+
+const NIVEAU_DESCRIPTIONS: Array<{ niveau: 1 | 2 | 3 | 4; titre: string; texte: string }> = [
+  {
+    niveau: 1,
+    titre: 'Réserviste de base',
+    texte: 'Qualifié via camp RIUSC/MSP, bases acquises, aucune compétence spécialisée ajoutée. Peut contribuer à des tâches encadrées (distribution, inscription, logistique de centre de services).',
+  },
+  {
+    niveau: 2,
+    titre: 'Compétences de base ajoutées',
+    texte: "A enrichi son profil avec une ou plusieurs compétences complémentaires (cartographie/GPS, SCI 100 ou 200, sécurité, communication, sauvetage spécialisé à certifier) ou a accumulé plusieurs formations. Peut être affecté à des tâches demandant une compétence supplémentaire, sans responsabilité de supervision.",
+  },
+  {
+    niveau: 3,
+    titre: 'Réserviste spécialisé / opérationnel',
+    texte: "Possède une spécialité technique reconnue formellement ou une profession critique en intervention d'urgence: Recherche & sauvetage niveau 2, licence drone Transport Canada, paramédic, infirmier/ère, médecin. Peut être déployé sur des tâches techniques et compter comme ressource qualifiée en équipe.",
+  },
+  {
+    niveau: 4,
+    titre: 'Réserviste leader / expert',
+    texte: "Formation de supervision, commandement ou maîtrise avancée: Recherche & sauvetage niveau 3 (chef d'équipe), SCI 300 (supervision) ou SCI 400 (commandement stratégique). Peut prendre la responsabilité d'une équipe ou d'un secteur.",
+  },
+]
 
 export default function CompetencesPage() {
   const [data, setData] = useState<ApiResponse | null>(null)
@@ -40,12 +66,16 @@ export default function CompetencesPage() {
   const [recherche, setRecherche] = useState('')
   const [exporting, setExporting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('Approuvé')
+  const [niveauFilter, setNiveauFilter] = useState<NiveauFilter>('tous')
   const [expandedFamille, setExpandedFamille] = useState<FamilleCompetence | null>(null)
   const [competenceFilter, setCompetenceFilter] = useState<string | null>(null)
   const [familleFilter, setFamilleFilter] = useState<FamilleCompetence | null>(null)
   const [synthVisible, setSynthVisible] = useState(true)
+  const [showNiveauPanel, setShowNiveauPanel] = useState(false)
+  const [editingNiveau, setEditingNiveau] = useState<string | null>(null) // benevole_id en édition
+  const [savingNiveau, setSavingNiveau] = useState<string | null>(null)
 
-  // Double scrollbar (top + bottom) pour le tableau
+  // Double scrollbar (top + bottom)
   const topScrollRef = useRef<HTMLDivElement>(null)
   const mainScrollRef = useRef<HTMLDivElement>(null)
   const [tableWidth, setTableWidth] = useState(0)
@@ -61,35 +91,47 @@ export default function CompetencesPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Réservistes filtrés par statut (Approuvé / Intérêt / tous)
   const statusFiltered = useMemo(() => {
     if (!data) return []
     if (statusFilter === 'tous') return data.reservistes
     return data.reservistes.filter(r => r.groupe === statusFilter)
   }, [data, statusFilter])
 
-  // Totaux par compétence recalculés sur le sous-ensemble filtré par statut
+  const niveauStatusFiltered = useMemo(() => {
+    if (niveauFilter === 'tous') return statusFiltered
+    const niv = niveauFilter === 0 ? 0 : niveauFilter
+    return statusFiltered.filter(r => (r.niveau_ressource || 0) === niv)
+  }, [statusFiltered, niveauFilter])
+
   const totauxByStatus = useMemo(() => {
     const out: Record<string, number> = {}
     for (const c of COMPETENCES) {
-      out[c.label] = statusFiltered.filter(r => r.competences[c.label]).length
+      out[c.label] = niveauStatusFiltered.filter(r => r.competences[c.label]).length
     }
     return out
-  }, [statusFiltered])
+  }, [niveauStatusFiltered])
 
-  // Totaux par famille (union : compte les personnes qui ont AU MOINS UNE compétence de la famille)
   const totauxByFamille = useMemo(() => {
     const out: Record<FamilleCompetence, number> = {} as any
     for (const famille of FAMILLES) {
       const labels = COMPETENCES.filter(c => c.famille === famille).map(c => c.label)
-      out[famille] = statusFiltered.filter(r => labels.some(l => r.competences[l])).length
+      out[famille] = niveauStatusFiltered.filter(r => labels.some(l => r.competences[l])).length
+    }
+    return out
+  }, [niveauStatusFiltered])
+
+  // Compte par niveau (sur le sous-ensemble du statut sélectionné — pour la synthèse du bouton niveau)
+  const comptesParNiveau = useMemo(() => {
+    const out: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }
+    for (const r of statusFiltered) {
+      const n = r.niveau_ressource || 0
+      out[n] = (out[n] || 0) + 1
     }
     return out
   }, [statusFiltered])
 
-  // Tableau du bas : filtrage par recherche + compétence/famille active
   const rowsAffichees = useMemo(() => {
-    let list = statusFiltered
+    let list = niveauStatusFiltered
     if (competenceFilter) {
       list = list.filter(r => r.competences[competenceFilter])
     } else if (familleFilter) {
@@ -107,16 +149,14 @@ export default function CompetencesPage() {
       )
     }
     return list
-  }, [statusFiltered, recherche, competenceFilter, familleFilter])
+  }, [niveauStatusFiltered, recherche, competenceFilter, familleFilter])
 
-  // Mesurer la largeur du tableau (pour le scrollbar du haut)
   useEffect(() => {
     if (mainScrollRef.current) {
       setTableWidth(mainScrollRef.current.scrollWidth)
     }
   }, [rowsAffichees.length, synthVisible])
 
-  // Sync scroll entre haut et bas
   const handleTopScroll = () => {
     if (topScrollRef.current && mainScrollRef.current) {
       if (mainScrollRef.current.scrollLeft !== topScrollRef.current.scrollLeft) {
@@ -151,14 +191,45 @@ export default function CompetencesPage() {
     }
   }
 
+  async function saveNiveau(benevole_id: string, niveau: number | null) {
+    setSavingNiveau(benevole_id)
+    try {
+      const res = await fetch('/api/admin/competences/niveau', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ benevole_id, niveau }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Erreur ${res.status}`)
+      }
+      const updated = await res.json()
+      // Optimistic update local state
+      setData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          reservistes: prev.reservistes.map(r =>
+            r.benevole_id === benevole_id ? { ...r, niveau_ressource: updated.niveau_ressource } : r
+          ),
+        }
+      })
+      setEditingNiveau(null)
+    } catch (e: any) {
+      alert(`Impossible de sauvegarder: ${e.message}`)
+    } finally {
+      setSavingNiveau(null)
+    }
+  }
+
   if (loading) return <div className="p-8 text-center text-gray-500">Chargement...</div>
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>
   if (!data) return null
 
   const labels = getCompetenceLabels()
   const familleRuns = getFamilleRuns()
+  const canEdit = data.can_edit
 
-  // Map : pour chaque index de label, retourne la classe border accent si c'est la première colonne d'une famille, sinon ''
   const borderStartByIndex: Record<number, string> = {}
   for (const run of familleRuns) {
     borderStartByIndex[run.start] = FAMILLE_ACCENT[run.famille as FamilleCompetence]
@@ -182,23 +253,87 @@ export default function CompetencesPage() {
   const resetFilters = () => {
     setCompetenceFilter(null)
     setFamilleFilter(null)
+    setNiveauFilter('tous')
     setRecherche('')
   }
 
-  const hasActiveFilter = competenceFilter || familleFilter
+  const hasActiveFilter = !!competenceFilter || !!familleFilter || niveauFilter !== 'tous'
 
   return (
     <div className="p-4 md:p-6 max-w-full">
-      {/* En-tête */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Compétences des réservistes</h1>
-        <p className="text-sm text-gray-600">
-          Matrice des compétences. Clique sur une famille pour voir ses sous-catégories, puis sur une sous-catégorie pour filtrer le tableau.
-        </p>
+      {/* En-tête avec bouton "Voir les niveaux" à droite */}
+      <div className="mb-4 flex flex-wrap justify-between items-start gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Compétences des réservistes</h1>
+          <p className="text-sm text-gray-600">
+            Matrice des compétences. Clique sur une famille pour voir ses sous-catégories, puis sur une sous-catégorie pour filtrer le tableau.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowNiveauPanel(v => !v)}
+          className={`px-3 py-2 rounded-md border text-sm font-medium transition ${
+            showNiveauPanel
+              ? 'bg-gray-900 text-white border-gray-900'
+              : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+          }`}
+        >
+          {showNiveauPanel ? '✕ Fermer' : 'ℹ Niveaux 1-4'}
+        </button>
       </div>
 
-      {/* Filtre statut */}
-      <div className="mb-4 flex items-center gap-2 text-sm">
+      {/* Panel descriptions des niveaux (collapsible, à droite) */}
+      {showNiveauPanel && (
+        <div className="mb-4 bg-white rounded-lg border border-gray-200 p-4">
+          <div className="mb-3 flex justify-between items-center">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+              Niveaux de déployabilité — synthèse et descriptions
+            </h2>
+          </div>
+          {/* Synthèse rapide par niveau */}
+          <div className="grid grid-cols-5 gap-2 mb-4 text-sm">
+            {[0, 1, 2, 3, 4].map(n => {
+              const count = comptesParNiveau[n] || 0
+              const total = statusFiltered.length
+              const pct = total > 0 ? Math.round((count / total) * 100) : 0
+              return (
+                <button
+                  key={n}
+                  onClick={() => setNiveauFilter(niveauFilter === (n as NiveauFilter) ? 'tous' : (n as NiveauFilter))}
+                  className={`px-3 py-2 rounded border text-center transition ${
+                    niveauFilter === n
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800'
+                  }`}
+                  title={n === 0 ? 'Filtrer: non classés' : `Filtrer: niveau ${n}`}
+                >
+                  <div className="text-xs font-medium">
+                    {n === 0 ? 'Non classé' : `Niveau ${n}`}
+                  </div>
+                  <div className="text-lg font-bold tabular-nums">{count}</div>
+                  <div className={`text-xs ${niveauFilter === n ? 'text-gray-300' : 'text-gray-500'}`}>({pct}%)</div>
+                </button>
+              )
+            })}
+          </div>
+          {/* Descriptions */}
+          <div className="space-y-3 text-sm">
+            {NIVEAU_DESCRIPTIONS.map(nd => (
+              <div key={nd.niveau} className="border-l-4 border-gray-300 pl-3">
+                <div className="font-semibold text-gray-900 mb-1">Niveau {nd.niveau} — {nd.titre}</div>
+                <div className="text-gray-700">{nd.texte}</div>
+              </div>
+            ))}
+          </div>
+          {canEdit && (
+            <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-600">
+              💡 Tu peux modifier le niveau d'un réserviste en cliquant sur sa cellule dans la colonne <strong>Niv</strong> du tableau.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Filtres statut + bouton masquer synthèse */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
         <span className="text-gray-700 font-medium">Statut:</span>
         {(['Approuvé', 'Intérêt', 'tous'] as StatusFilter[]).map(s => {
           const count = s === 'tous' ? data.total_actifs : data.reservistes.filter(r => r.groupe === s).length
@@ -216,6 +351,22 @@ export default function CompetencesPage() {
             </button>
           )
         })}
+
+        <span className="text-gray-700 font-medium ml-3">Niveau:</span>
+        {(['tous', 1, 2, 3, 4, 0] as NiveauFilter[]).map(n => (
+          <button
+            key={String(n)}
+            onClick={() => setNiveauFilter(n)}
+            className={`px-2 py-1 rounded-md border transition ${
+              niveauFilter === n
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+            }`}
+          >
+            {n === 'tous' ? 'Tous' : n === 0 ? 'N/A' : `N${n}`}
+          </button>
+        ))}
+
         <div className="flex-1" />
         <button
           onClick={() => setSynthVisible(v => !v)}
@@ -226,16 +377,16 @@ export default function CompetencesPage() {
         </button>
       </div>
 
-      {/* Synthèse par famille (hiérarchique, neutre) — collapsible */}
+      {/* Synthèse par famille */}
       {synthVisible && (
         <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4">
           <h2 className="text-sm font-semibold mb-3 text-gray-700 uppercase tracking-wide">
-            Synthèse par famille — {statusFiltered.length} réservistes {statusFilter !== 'tous' ? statusFilter.toLowerCase() + 's' : ''}
+            Synthèse par famille — {niveauStatusFiltered.length} réservistes
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {FAMILLES.map(famille => {
               const total = totauxByFamille[famille]
-              const pct = statusFiltered.length > 0 ? Math.round((total / statusFiltered.length) * 100) : 0
+              const pct = niveauStatusFiltered.length > 0 ? Math.round((total / niveauStatusFiltered.length) * 100) : 0
               const isExpanded = expandedFamille === famille
               const isActiveFilter = familleFilter === famille
               const subs = COMPETENCES.filter(c => c.famille === famille)
@@ -261,7 +412,7 @@ export default function CompetencesPage() {
                     <div className="px-3 pb-2 pt-1 border-t border-gray-200">
                       {subs.map(sub => {
                         const n = totauxByStatus[sub.label]
-                        const p = statusFiltered.length > 0 ? Math.round((n / statusFiltered.length) * 100) : 0
+                        const p = niveauStatusFiltered.length > 0 ? Math.round((n / niveauStatusFiltered.length) * 100) : 0
                         const isActive = competenceFilter === sub.label
                         return (
                           <button
@@ -291,7 +442,7 @@ export default function CompetencesPage() {
       <div className="mb-3 flex flex-wrap gap-2 items-center">
         <input
           type="search"
-          placeholder="Rechercher nom, prénom, courriel, groupe..."
+          placeholder="Rechercher nom, prénom, courriel, profession..."
           value={recherche}
           onChange={e => setRecherche(e.target.value)}
           className="flex-1 min-w-[260px] px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -312,8 +463,8 @@ export default function CompetencesPage() {
           {exporting ? 'Export…' : '⬇ Exporter Excel'}
         </button>
         <div className="text-sm text-gray-600 ml-2">
-          <span className="font-semibold">{rowsAffichees.length}</span> / {statusFiltered.length}
-          {rowsAffichees.length !== statusFiltered.length && (
+          <span className="font-semibold">{rowsAffichees.length}</span> / {niveauStatusFiltered.length}
+          {rowsAffichees.length !== niveauStatusFiltered.length && (
             <span className="ml-1 text-gray-500">(filtré)</span>
           )}
         </div>
@@ -322,12 +473,15 @@ export default function CompetencesPage() {
       {/* Bandeau filtre actif */}
       {hasActiveFilter && (
         <div className="mb-3 text-sm bg-blue-50 border border-blue-200 rounded px-3 py-2 text-blue-900">
-          Filtre actif: {competenceFilter ? <strong>{competenceFilter}</strong> : <strong>{familleFilter}</strong>}
-          <span className="text-blue-700 ml-2">— clique sur "Effacer filtres" pour voir tout le monde.</span>
+          Filtres actifs:
+          {competenceFilter && <strong className="ml-1">{competenceFilter}</strong>}
+          {familleFilter && <strong className="ml-1">{familleFilter}</strong>}
+          {niveauFilter !== 'tous' && <strong className="ml-1">Niveau {niveauFilter === 0 ? 'N/A' : niveauFilter}</strong>}
+          <span className="text-blue-700 ml-2">— clique "Effacer filtres" pour voir tout le monde.</span>
         </div>
       )}
 
-      {/* Scrollbar horizontal du haut (synchronisé avec le tableau) */}
+      {/* Scrollbar horizontal du haut */}
       <div
         ref={topScrollRef}
         onScroll={handleTopScroll}
@@ -366,7 +520,9 @@ export default function CompetencesPage() {
               <th className="sticky left-0 bg-gray-50 z-20 border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[110px]" style={{ left: 120 }}>Prénom</th>
               <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium min-w-[100px]">Statut</th>
               <th className="border-b border-r border-gray-300 px-2 py-2 text-left font-medium min-w-[180px]">Profession</th>
-              <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium" title="Niveau de déployabilité (1-4)">Niv</th>
+              <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium" title={canEdit ? 'Niveau — cliquer pour éditer' : 'Niveau de déployabilité (1-4)'}>
+                Niv{canEdit && <span className="text-gray-400 text-[10px] ml-1">✎</span>}
+              </th>
               <th className="border-b border-r border-gray-300 px-2 py-2 text-center font-medium" title="Antécédents criminels">Antéc</th>
               {labels.map((label, idx) => {
                 const borderClass = borderStartByIndex[idx] ? `border-l-4 ${borderStartByIndex[idx]}` : ''
@@ -398,7 +554,37 @@ export default function CompetencesPage() {
                   </span>
                 </td>
                 <td className="border-b border-r border-gray-200 px-2 py-1 whitespace-nowrap truncate max-w-[200px]" title={r.profession}>{r.profession || <span className="text-gray-400">—</span>}</td>
-                <td className="border-b border-r border-gray-200 px-2 py-1 text-center tabular-nums">{r.niveau_ressource || <span className="text-gray-400">—</span>}</td>
+                <td className="border-b border-r border-gray-200 px-2 py-1 text-center tabular-nums">
+                  {editingNiveau === r.benevole_id ? (
+                    <select
+                      autoFocus
+                      defaultValue={String(r.niveau_ressource || 0)}
+                      disabled={savingNiveau === r.benevole_id}
+                      onBlur={() => setEditingNiveau(null)}
+                      onChange={e => {
+                        const v = parseInt(e.target.value, 10)
+                        saveNiveau(r.benevole_id, v === 0 ? 0 : v)
+                      }}
+                      className="w-full border border-gray-400 rounded px-1 py-0.5 text-center bg-white"
+                    >
+                      <option value="0">—</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                    </select>
+                  ) : canEdit ? (
+                    <button
+                      onClick={() => setEditingNiveau(r.benevole_id)}
+                      className="w-full py-0.5 rounded hover:bg-blue-100 cursor-pointer"
+                      title="Cliquer pour modifier"
+                    >
+                      {r.niveau_ressource || <span className="text-gray-400">—</span>}
+                    </button>
+                  ) : (
+                    <>{r.niveau_ressource || <span className="text-gray-400">—</span>}</>
+                  )}
+                </td>
                 <td className="border-b border-r border-gray-200 px-2 py-1 text-center">
                   {r.antecedents_statut === 'verifie' ? (
                     <span className="text-green-600" title="Vérifié">✓</span>
