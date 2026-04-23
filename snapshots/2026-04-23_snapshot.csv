@@ -1,0 +1,1001 @@
+benevole_id,prenom,nom,email,telephone,groupe,statut,camp_qualif_complete,antecedents_statut,antecedents_date_verification,antecedents_date_expiration,remboursement_bottes_date,has_dob,has_adresse,has_ville,has_region,has_urgence_nom,has_urgence_tel,nb_formations_total,nb_initiations_reussies,nb_camps_reussis,nb_certificats_avec_fichier,nb_certificats_requis_sans_fichier,nb_formations_en_attente,readiness_profil,readiness_initiation,readiness_camp,readiness_bottes,readiness_antecedents
+10518106031,Melodie,Tremblay-Gagné,melodiegagne12@hotmail.com,4182975460,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,0,true,true,false,false,false
+10518114302,Christopher,Bureau,christopher.bureau@hotmail.com,5814436995,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10522599450,Lucie,L'Heureux,lucielheureux@protonmail.com,5145731591,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10523182458,François,Michaud,fritzabul@gmail.com,8732005225,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10525432185,Serge,Létourneau,serge.letourneau@gmail.com,5148140721,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,,true,true,true,true,true,true,7,1,1,5,0,0,true,true,true,false,true
+10545091176,Hélène,Roy,roy_helene@icloud.com,4185754012,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10552706248,Luc,Joli-Coeur,luc.jc@me.com,5145728891,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10555019352,Rosaire,Lajoie,lajoie.rosaire@videotron.ca,4183300195,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10560647751,Joel,Perron,perjoe91@hotmail.com,4185909374,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+10562045722,Sebastiaan,Van Ineveld,info.svineveld@gmail.com,5142658798,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,2026-03-01,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+10563333252,David,Schonne,d.schonne@gmail.com,5144420697,Approuvé,Actif,true,verifie,2026-03-19,2029-03-19,,true,true,false,true,true,true,4,1,1,2,0,1,false,true,true,false,true
+10576286582,Zain,Malik,arshadzainmalik514@gmail.com,5147047019,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10579598873,Dave,Durand,ddurand759@gmail.com,5812341531,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,3,1,0,2,0,1,false,true,false,false,false
+10580721599,Patricia,Boily,patricia.boily.psy@outlook.com,4185492348,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10582481424,Ruby,Bissonnette,rubybissonnette@gmail.com,4182082169,Approuvé,Actif,true,verifie,2026-03-04,2029-03-04,2026-03-08,true,true,true,true,true,true,3,1,1,0,0,0,true,true,true,true,true
+10583443547,Denis,Laliberte,DENIS.LALI@HOTMAIL.COM,4182966194,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10583468228,Steve,Gagné,stevesk8@hotmail.com,4385039748,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,0,0,0,0,1,false,false,false,false,false
+10605541653,Patrick,Seguin,patrick.seguin22@hotmail.ca,5142201138,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10615008811,Maïta,Blais-Lecavalier,maita.blais@recherchesauvetage.ca,5147174590,Approuvé,Actif,true,verifie,2026-02-25,2029-02-25,2026-03-01,true,true,true,true,true,true,5,1,1,0,0,3,true,true,true,true,true
+10619546036,Harold,Michaud,michaudharold@hotmail.com,4182970096,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10620899977,Philippe,Coiteux-Boudreau,pcboudreau@gmail.com,4183789275,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10621543147,Emanuel,Lang,ejskdfx@gmail.com,5147147017,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10625881637,Jean-Phillipe,Allard,jp.allard@ambulancecam.com,8196986925,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10628176612,Vendelin,Clicques,vendelin.clicques@outlook.com,5793721414,Approuvé,Actif,true,verifie,2026-03-19,2029-03-19,2026-03-01,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+10631098382,Marie-Ève,Brousseau,brousseau.marieve@gmail.com,5147734666,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-03-01,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,true,true
+10633411351,Charles,Borelly,borellycharles30@gmail.com,2633813350,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,1,0,2,true,true,false,false,false
+10655536856,Pascal,Parent,pascal.parent@pmuquebec.com,5146525251,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10661193415,Patrice,Beaulieu,mr.patricebeaulieu@gmail.com,4503742829,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10661329572,Marimaud,Morin-Dupras,marimaud_morin_dupras@hotmail.com,4188678413,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10661679283,Samuel,Veillet,samveillet@gmail.com,5147566614,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-04-17,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+10663475999,Tommy,Roy,tommy_11roy@hotmail.com,5819099684,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10665129985,Emmanuel,Bourbeau,emmanuelbourbeau@gmail.com,4184543422,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10675297458,Steven,Berube,casto22@hotmail.com,5813089194,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+10678114041,William,Lapointe,willtermath@gmail.com,4186330888,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10678281864,Vincent,Bertrand,vincent.bertrand1@hotmail.fr,5819224061,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10682341466,Sophie,Engel,sophie.engel@outlook.fr,5816817103,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10682344331,Daniel,Kuzet,daniel_kuzet@hotmail.com,4384597730,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10683280752,Robyn,Chouinard,quebecrobyn@gmail.com,4183564005,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10683282674,Christian,Dupuis,les4dupuis@telus.net,4182937709,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10686335779,Catherine,Bourgeois-Garault,bourgeoisca@gmail.com,8196391523,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10698278249,Michel Jr,Leonard,leonardmicheljr@gmail.com,8186390692,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10704286941,Patrick,Dezainde,dezainde.patrick@hotmail.ca,4507990427,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10704324365,Doris-Gilles,Lafleur,dg.lafleur@gmail.com,4185803110,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10715248339,Sophie,Seguin-Lamarche,s.seguin@me.com,5149437893,Approuvé,Actif,true,verifie,2026-03-25,2029-03-25,2026-03-01,true,true,true,true,true,true,4,1,1,1,0,2,true,true,true,true,true
+10731619235,Isabelle,Girard,izabellejrard@gmail.com,4182955298,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10739834322,Nathalie,Leclerc,nathalieleclerc@videotron.ca,5147125891,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10768280180,Margaret,Reid,margaretreid@bell.net,5142128727,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+10771620824,Steeve,Thibeault,steevethibeault1969@gmail.com,4186189855,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10789410849,Marielle,Rivard ,mariellerivard@gmail.com,5147718788,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-01,true,true,true,true,true,true,4,1,1,0,0,2,true,true,true,true,true
+10819860597,Myriam,Gilles,miagilles@gmail.com,5142775911,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-04-14,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,true,true
+10824374606,Victor,Lamontagne,vic.lamontagne@gmail.com,5146603548,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10833141571,Gerald,Saint Firmin,gstfirmi30@hotmail.com,5819864948,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10854448584,Réjean,Roy,Rejean.Roy@live.ca,5149931329,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-24,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+10862020335,Philippe,Moisan-Gaudet,burkinafaso53@hotmail.ca,8192480798,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10867808176,Djamil,Mekentichi,Djamil.Mekentichi@uqar.ca,4384091746,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+10869254416,Relu-Marius,Dobre,relu-marius.dobre@msp.gouv.qc.ca,5145859877,Approuvé,Actif,true,verifie,2026-04-13,2029-04-13,2026-03-01,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,true,true
+10878226263,Josiane,Labrecque,josiane.labrecque@msp.gouv.qc.ca,4189289547,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,1,true,true,false,false,false
+10900538763,Guillaume Raphaël,Louis,guillaume.r.louis@outlook.com,4385257975,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,true,true,5,1,2,3,0,0,true,true,true,true,true
+10900605122,Nancy,Bouchard,nancyobouchard@yahoo.fr,4505304951,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,0,0,0,0,2,true,false,false,false,false
+10912925248,Frédérick,Turgeon,frederickturgeon@cgocable.ca,4186691343,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,7,1,0,3,0,3,true,true,false,false,false
+10921789996,Kath,Turgeon,komea_wicca@hotmail.ca,8192142700,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10941997271,Nathalie,Hamel,Nat.hamel1970@gmail.com,5142061035,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-01,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+10942009113,Frederic,Bertrand,monday.overprice550@passinbox.com,5144091870,Approuvé,Actif,true,en_attente,,,,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,false,false
+10942032176,Chloée,Joly,chloee.l.joly@gmail.com,5145574477,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,2026-03-01,true,true,true,true,true,true,5,1,1,3,0,3,true,true,true,true,true
+10942055250,Catherine,Pelletier,cuadz4@hotmail.com,5149244394,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10942068221,Pascal,Gauthier,pasgau40@gmail.com,5146524852,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-03-01,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+10942404412,Richard,Beaulieu,richarebeaulieu@gmail.com,5144352910,Approuvé,Actif,true,verifie,2026-03-04,2029-03-04,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+10958285219,Alexandra,Tardif-Morency,alexandra-tm@hotmail.com,5149786921,Approuvé,Actif,true,verifie,2026-03-24,2029-03-24,2026-03-01,true,true,true,true,true,true,6,1,1,0,0,4,true,true,true,true,true
+10959274876,Valerie,Coursault,valcourso@gmail.com,5149465691,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+10961371682,Alexandre,Simard,alexandre.andre.simard@gmail.com,5179742841,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,0,0,1,0,0,false,false,false,false,false
+10963350159,Hugo,Pelletier,hugopel12345@hotmail.com,5147948190,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,false,true
+10965216773,Jean-Francois,Dupuis,Dupuis.jf.92@gmail.com,4388867122,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10967079763,Vanessa,Pérugien,vanessa.thomasp@gmail.com,5145542053,Approuvé,Actif,true,verifie,2026-04-17,2029-04-17,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+10968770340,David,Manningham,david.manningham@msp.gouv.qc.ca,5819974473,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10969981555,Gabrielle,Martin,gabriellemartin2001@hotmail.com,5146887761,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+10975693578,Manel,Djemel,m.djemel@laval.ca,2633628415,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-01,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,true,true
+10988108771,Katryn,Grenier,katryngrenier@hotmail.fr,8196920463,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11007068948,Maxime,Frechette,frechette.maxime@gmail.com,8199672777,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11015370214,Marie-Hélène,Boudreau-Picard,mariehelene.bp@outlook.com,5144094212,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11022458695,Valentin,Migabo,v.migabo@laval.ca,5146178424,Approuvé,Actif,true,verifie,2026-03-19,2029-03-19,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11033155009,Karl,Brochu,broka@hotmail.ca,5147714066,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11054280903,Antoine,Coquard,a.coquard@gmail.com,5146479958,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-01,true,true,true,true,true,true,3,1,1,1,0,1,true,true,true,true,true
+11061614614,Alexis,Faribault,afaribault@hotmail.com,4388286984,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11064543952,Lysanne,Boudreault,lysanne_b@hotmail.com,5145750136,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-01,true,true,true,true,true,true,6,1,1,4,0,0,true,true,true,true,true
+11066295761,Christian,Girard,chris-girard@live.ca,5149758246,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,2026-03-01,true,true,true,true,true,true,4,1,1,2,0,1,true,true,true,true,true
+11076649245,Richard,Levesque,ric_levesque@hotmail.com,5148987509,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+11080476857,Bernard,Lajoie,blajoie7704@gmail.com,4188835884,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11080659897,Nathalie,Giguère,n.giguere@laval.ca,5142334965,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11080736989,Stéphane,Brunet,stephbrunet@icloud.com,4502881595,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-01,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,true,true
+11081335765,Fernanda,Custodio Pereira do Carmo,fcarmo@gmail.com,5147466904,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,false,true
+11086465090,Sébastien,Dubé,bastium@hotmail.com,8732005616,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11088778781,Claude,Lussier,artemundo1@telus.net,4185538445,Intérêt,Actif,false,en_attente,,,,true,true,false,true,true,true,3,1,0,0,0,2,false,true,false,false,false
+11090563187,Francis,Stamand,fsta1@live.ca,4502307662,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,1,true,true,false,false,false
+11092487524,Nathalie,Vadeboncoeur,nathalie.vadeboncoeur@uqtr.ca,4507580035,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11093125208,Marilou,Claveau,marilou.claveau11@gmail.com,4505592624,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11093243045,Stephane,Lheureux,slheureux.avocats@outlook.com,5145743300,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11093892706,Patricia,Genois,pat_genois73@hotmail.com,4182849585,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11100579860,Philippe,Poisson,poisson_philippe@hotmail.com,8193933362,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11100812436,Réjean,Bellemare,rmb1013@live.ca,5149421792,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11104220032,Jeanfrancois,Bernier,bernier.jeanfrancois@videotron.ca,4507530945,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11115566305,Marie Claude,Bédard,maricyve@hotmail.com,8196217565,Approuvé,Actif,true,verifie,2026-04-03,2029-04-03,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11115753751,Yves,Payette,maricyve@gmail.com,8196216042,Approuvé,Actif,true,verifie,2026-04-03,2029-04-03,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11115766121,Patrick,Guy,patrick.guy7312@gmail.com,2633815829,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11116326155,Joël,Dubé,joeldube@me.com,4187141030,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,1,0,0,0,4,true,true,false,false,false
+11116557323,Stéphane,Suzor,stsuz3294@gmail.com,5144586449,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11120054332,Josee,Choinière,zen.460@hotmail.com,5143474947,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11127324283,Jeanne,Charette,jeanne.charette02@gmail.com,5147038824,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,1,true,true,false,false,false
+11127994037,Jenny,Leclair,jennyleclair25@gmail.com,4502303001,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11128417754,Jean-Pierre,Goyer,jean.pierre.goyer@ssss.gouv.qc.ca,4189334986,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,6,1,0,0,0,4,false,true,false,false,false
+11130784313,Alexandre,Kozminski-Martin,koza@clicfocus.com,5142263088,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,false,true
+11131379681,Martin,Milette,marmil02@hotmail.com,8196960507,Approuvé,Actif,true,verifie,2026-03-31,2029-03-31,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11137829985,Raymond,Lavoie,lavoie_raymond@hotmail.com,4507757657,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11137950216,Pierre,Dionne,pierre.dionne28@gmail.com,4507795645,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,false,true
+11146362698,Yoan,Borlet,mr.frenchcanadien@hotmail.com,8197193279,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11151970733,David,Philips,philipsfamilly@gmail.com,8198167738,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11151977037,Sandy,Juhoor Philips,sandyjuhoor@icloud.com,8733441643,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11152012072,Pierre,Tchakoua,pierre.tchakoua@gmail.com,8197635063,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11152876733,Arsène,Tchouaffi,arsenetchouaffi@yahoo.fr,2498796155,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-01,true,true,false,true,false,false,4,1,1,1,0,1,false,true,true,true,true
+11153881858,Kémène,Pouffa Mbouwe,kemenembouwe@gmail.com,2498796155,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11155339072,Catherine,Bastille Rousseau,cbastillerousse@gmail.con,8192694139,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11156404915,Gabriela Michelle,Celarié,gm.celarie@hotmail.com,5142379383,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11156903397,Fred,Simoneau,fred.simoneau@rsestrie.org,,Intérêt,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+11156903418,Tristan,Leblanc,tristan.leblanc@rsestrie.org,,Intérêt,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+11159031812,Vincent,St-Amour,vincentstamour4@gmail.com,5147790321,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11159052552,Luc,Trepanier,lucmp72@gmail.com,4182857656,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11171648366,Paul-Emile,Leblond,pe_leblond@outlook.com,8199602693,Approuvé,Actif,true,en_attente,,,2026-03-01,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,true,false
+11172397084,Luc,Gaignard,gaignardl900@gmail.com,4505219831,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11192337247,Alberto,Martinez Polis,dr.polis@icloud.com,4385261968,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11193229109,Faustin,Ntangano,mubalamantangano@gmail.com,5819957873,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11203145204,Anessa,Kimball,anessa.kimball@gmail.com,4182650216,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11203562962,Denis,Paquin,paquin.denis@videotron.ca,5146885046,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11209660643,Kathya,Veilleux,vkathya@hotmail.com,5148132796,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-25,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11216044357,Marc-Antoine,Frechette,mamrenovations@gmail.com,5146998764,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11216100171,Nikolas,Molaret,Nikolasmolaret@gmail.com,5142484775,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11217754095,Marie-Paula,Poulin,marie-paula19@hotmail.com,4502266820,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11219495903,Peggy,Lafond,lafondpeggy@gmail.com,4189977126,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11231207815,Frédérique,Brulotte,fredb14@hotmail.com,4182657371,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11238692626,Sara,Boivin-Chabot,saraboivin@gmail.com,5146542295,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11241821266,Jean,Gosselin,gosselinjean4@gmail.com,4185728479,Approuvé,Actif,true,verifie,2026-04-15,2029-04-15,,true,true,false,true,false,false,4,1,1,1,0,0,false,true,true,false,true
+11254815316,Vi-Hoan,Wuong,vihoanwuong@gmail.com,5148357886,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11266899954,Mathieu,Binette,mathieu_binette84@hotmail.com,8194600723,Approuvé,Actif,true,verifie,2026-04-13,2029-04-13,2026-03-01,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,true,true
+11267016685,Sylvain,David,entretiensylvaindavid@gmail.com,5149419126,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11273116391,Ève,Gagnon,eve.gagnn@gmail.com,5146499290,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11276580886,Dominique,Vanesse,dvanesse@hotmail.com,8198169387,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11276685267,Atse Yanick Fourier,Atse,yanickfourier@gmail.com,4382268492,Approuvé,Actif,true,verifie,2026-04-16,2029-04-16,,true,true,true,true,false,false,3,1,1,2,0,0,false,true,true,false,true
+11278357603,Robenson,Louigene,louigenerobenson@gmail.com,4383367282,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11281058368,Richard,Frohlich,dauphindispo@hotmail.com,8196929778,Approuvé,Actif,true,en_attente,,,2026-03-01,true,true,true,true,true,true,5,1,1,0,0,3,true,true,true,true,false
+11286087819,Kenny,Millar,kennymillar6@hotmail.com,8193344487,Intérêt,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11286590969,Laurence,Goulet-Beaudry,lgoulet@sopfeu.qc.ca,3677632298,Partenaires,Actif,false,en_attente,,,,false,true,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11293233221,Nancy,Grenier,nancygrenier069@gmail.com,4388260776,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11294250673,Eric,Hani,eric.hani@mifi.gouv.qc.ca,5146555804,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11294286785,Alexandre,Roy,alexandreroy111@gmail.com,4384049818,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11294714162,Dany,Chaput,bretonedith@gmail.com,8195716846,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11303981692,Henri,Levesque,henrilevesque@foretsolution.com,5819904567,Approuvé,Actif,true,en_attente,,,,false,true,true,true,true,true,4,0,1,1,0,2,false,false,true,false,false
+11311804224,Pierre-Gabriel,Laurendeau,pierregabriel@telus.net,4183612229,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11316832558,Valerie,Cloutier,cloutier.valerie01@outlook.com,4184450140,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11318373012,Jacques,Mailhot,jacquesmailhot@hotmail.com,4182976640,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,false,false,false
+11319317402,Steven,Belanger,stebel1961@gmail.com,4182826167,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,1,1,0,0,0,0,false,true,false,false,false
+11321903300,Jean,Bouchard,bouchard.jean@telus.net,4182955255,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11323017715,Kalliel,Karres,kalliel.karres@gmail.com,4183789766,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11326453000,François,Savard,savardfrancoisbbq@gmail.com,4182974285,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,0,0,2,true,false,false,false,false
+11328423727,Marc-Antoine,L'Heureux Voyer,marcus4337@icloud.com,4187326139,Intérêt,Actif,false,en_attente,,,,true,false,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11329395091,Yanick,Savard,yanicksavard9@gmail.com,4183785054,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11334163470,Dominique,St-Hilaire,dominique.sthilaire@hotmail.com,4185730805,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11334194379,Daniel Kevin,Perron,daniel.kevin.perron@gmail.com,4186372873,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11334227428,Alexandre,Lamarre-Tellier,alexx.lamatell@gmail.com,6138750665,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11335297299,Samuel,Bourque,bourque.samuel@outlook.fr,4182978620,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11337089467,Tommy,Arsenault,tommy.lego@hotmail.com,4183788675,Intérêt,Actif,false,en_attente,,,,true,false,true,true,true,true,1,1,0,0,0,0,false,true,false,false,false
+11344582923,François,Thiffault,fr.thiffault@gmail.com,8199963307,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11345582884,Robert,Branchaud,rbranchaud001@gmail.com,4188747799,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,false,false,false
+11346716787,Rachid Abdoulaye,Sore,winrach@yahoo.com,6479235946,Approuvé,Actif,true,en_attente,,,,false,true,true,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+11347007762,Matt,Tennant,reno_atlantique@yahoo.ca,5148135888,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,false,true
+11347491145,Jason,Rodgers,unite56gcac@gmail.com,5142069265,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,0,1,0,0,3,true,false,true,false,false
+11347504205,Sacha,Bertola,sacha.bertola1@gmail.com,5149803483,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,false,true
+11347657138,Nathalie,Bouffard,n_bouffard@icloud.com,5143778696,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-04-10,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11347786800,Dany,Chicoine,danychicoine@me.com,5143778398,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-04-10,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+11347868690,Patrick,Dorsonnens,patrick6331@hotmail.com,5149178268,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-18,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+11348122547,Pascale,Jobidon,pascalejobidon@outlook.com,8195821940,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,0,0,0,0,1,false,false,false,false,false
+11348129301,Stéphan,Gourley,sgourley60@gmail.com,5142315927,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,false,false
+11348338192,Vanessa,L'écuyer,lecuyer.vanessa@gmail.com,5147099690,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+11348406052,Florent,Charpentier,florent.prmsr@gmail.com,5142264305,Approuvé,Actif,true,verifie,2026-04-13,2029-04-13,,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,false,true
+11348447285,Philippe,Serafino,philippeserafinophotos@videotron.ca,5148507230,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11348496708,Vitalie,Podolean,vitaliepodolean@hotmail.com,5147977392,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11348653635,Michaël,Rivard,michael.rivard05@gmail.com,5149722073,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11348724435,Michel,Fitzback,michel.fitzback@hotmail.com,4385315424,Approuvé,Actif,true,verifie,2026-04-13,2029-04-13,,true,true,true,true,true,true,6,1,1,4,0,0,true,true,true,false,true
+11348814548,Mamadou Lanki,Ndiaye,mamadoulankindiaye@gmail.com,5144300708,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11350424533,Tomy,Daigneault,tomydaigneault@gmail.com,8199439191,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,0,0,0,0,0,0,true,false,false,false,false
+11350756937,Guy,Janneteau,gjanneteau@gmail.com,4383678290,Approuvé,Actif,true,verifie,2026-03-28,2029-03-28,2026-04-07,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+11351995098,Gildardo Antonio,Cadenas Mejia,pompier2601@outlook.com,4385184228,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11352891323,David,Turcotte,david.turcotte@outlook.com,4507585427,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11353561382,Simon,Miousse-Fortier,simon.miousse1986@outlook.com,5142659843,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11353844061,Mireille,Thibeault,mireillethibeault52@gmail.com,4186181174,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,1,true,true,false,false,false
+11354167274,Alexandre,Aupin,a_aupin@hotmail.com,5144636995,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,1,0,2,0,3,true,true,false,false,false
+11354507556,Marie Eve,Ethier,marieeve.ethier@hotmail.com,4189561194,Intérêt,Actif,false,en_attente,,,,true,false,true,true,true,true,2,1,0,1,0,0,false,true,false,false,false
+11354816402,Michael,Martel,michael-martel1@hotmail.com,4182972485,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11355579766,Cedrik,Gagnon,gagnoncedrik@gmail.com,4189992671,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11359046672,Frédéric,Senez,fredsenez@hotmail.com,5144345838,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+11359093090,Tristan,Lavoie,tristan.lavoie17@gmail.com,8195745482,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11359551957,Komlan Djiko,Samlan,djikokomlan@gmail.com,5145947354,Approuvé,Actif,true,verifie,2026-04-16,2029-04-16,,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,false,true
+11359598118,Kashif,Mohammed,kashifom@gmail.com,5146517861,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11360887845,Etienne,Rellier,etienne.rellier@gmail.com,4183760442,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11361105103,Benoit,Tardif,benoitardif@outlook.com,5146049911,Approuvé,Actif,true,verifie,2026-04-16,2029-04-16,,true,true,true,true,true,true,7,1,1,0,0,5,true,true,true,false,true
+11361490049,Danielle,Daneau,guiness93@hotmail.com,5146086931,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,1,0,1,true,true,false,false,false
+11362523608,Dominique,Drouin,brewgoodcoffee@gmail.com,5819858544,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11363449190,Hassan,Ensari,ensarihassan@yahoo.ca,5149997012,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11364129962,Eric,Francoeur,efanco71@gmail.com,5819882508,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11365635680,Lucie,Couture,lucicou@hotmail.com,4186812673,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11365798389,Liette,Béchard,liette.bechard@gmail.com,4505313961,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,1,true,true,false,false,false
+11367365127,Ceder,Simon,sim.ceder@gmail.com,5144762683,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11368019155,Caroline,Cauchon,carolinecauchon160@gmail.com,4189981483,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11368202148,Maxime,Dion,maximedion01@gmail.com,4389857543,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,false,2,1,0,0,0,1,false,true,false,false,false
+11369017512,Chantal,St-Arnaud,chantalsta.ed.sp@outlook.com,4389333871,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11369151914,Mathilde,Verdier,missfire23@hotmail.fr,4383892524,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11369221832,Kathleen,Landry,kathleen.landry@live.ca,4188827146,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11369961421,Jonathan,Truchon,canadienprice@outlook.com,4388879350,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11370040341,Lous-Philippe,Langlois,langloislp@gmail.com,5146089707,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,,true,true,true,true,true,true,7,1,1,4,0,2,true,true,true,false,true
+11370126287,Maxime,Ouellet,maximeouellet91@gmail.com,4182955426,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11370228314,Marc,Varsanyi,marc.varsanyi@gmail.com,5145028666,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11370373783,Guy,Le Gall,guylegall@hotmail.com,4506301274,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11370384697,Claude,Levasseur,clevasseur11@gmail.com,5149724539,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,2026-04-16,true,true,true,true,true,true,7,1,1,3,0,1,true,true,true,true,true
+11371347391,Natacha,Desroches,riv_sud@hotmail.com,5142476403,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,0,true,true,false,false,false
+11371849806,Lucie,L'Heureux,passionmediationculturelle@gmail.com,5145731591,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11372537762,Jonathan,Vidal,dasilva.jonathan93@gmail.com,5145573002,Approuvé,Actif,true,en_attente,,,,false,true,true,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+11372780958,Mario,Hamelin,hamelin_style@hotmail.com,4384955387,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11373255322,Blaise,Ndayishimiye,ndiblaise2001@yahoo.fr,5148157101,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11373354974,Huub,Beckmann,huubbeckmann@gmail.com,4386300728,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11375604304,Philippe,Normandin,ph.normandin@hotmail.com,5144627761,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,1,0,0,0,0,1,false,false,false,false,false
+11375647833,Marie-Hélène,Lippé,mhlippe@hotmail.com,5146799003,Approuvé,Actif,true,verifie,2026-04-17,2029-04-17,,true,true,true,true,true,true,4,1,1,3,0,0,true,true,true,false,true
+11377840308,Line,Lecours,mamaninde@yahoo.ca,5142079086,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11378122923,Raynald,Côté,raynald-cote@hotmail.ca,5149285698,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,4,0,0,0,0,4,false,false,false,false,false
+11378185835,Pierre,Marchand,pjmarchand64@gmail.com,5148806419,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11378807238,Leniyo,Amayao,leniyo@gmail.com,5148872768,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11379861500,Jean-Pierre,Lacombe,jplac911@gmail.com,5149162592,Approuvé,Actif,true,en_attente,,,,false,true,true,true,false,false,2,1,1,0,0,0,false,true,true,false,false
+11380513648,Brodeur,Joel,joel.brodeur@gmail.com,5148164762,Approuvé,Actif,true,verifie,2026-03-28,2029-03-28,2026-03-18,true,true,true,true,true,true,4,1,1,0,0,2,true,true,true,true,true
+11380549363,Alexis,Phillion,alexis.phillion@mail.mcgill.ca,5147100535,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-18,true,true,true,true,true,true,3,1,1,0,0,0,true,true,true,true,true
+11380986268,Noureddine,Bourazi,bourazinoureddine21@gmail.com,4384541013,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+11381381615,Brigitte,Latraverse,latbrig29@hotmail.ca,4508802409,Approuvé,Actif,true,verifie,2026-04-03,2029-04-03,,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,false,true
+11382355202,Sam Stanislas,Kouadio,kauphistanislas@hotmail.com,5144657874,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11382870643,Steeve,Thibeault,steeve-t@hotmail.com,4186189855,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,0,0,2,true,false,false,false,false
+11384039377,Pouria,Ekhteraee,pouria_ee@yahoo.com,5142940716,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,false,true
+11385409273,Francis,Pagé,francis_page2003@outlook.com,4384986816,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,3,0,2,true,true,false,false,false
+11385954522,Martin,Mudimbi,mmudimdi@outlook.com,4502753102,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11387136658,Marie-Pier,Dumas,marie-pier.dumas@hotmail.ca,4388709446,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11388801675,Mehdi,Ait Abderrahmane,mehdi.ait1405@gmail.com,5145013057,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11389818583,Guillaume,Pelletier,guipel1234@hotmail.com,4187141222,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11390388760,Jean,Picard,johnny.picard@gmail.com,4504447250,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11390404841,Gino Paoly,Nunez Prado,ginopaoly214@hotmail.com,5142679822,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,0,0,0,0,0,0,true,false,false,false,false
+11391716724,Sylvie,Giroux,syv_001@hotmail.com,5147997553,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,0,0,3,true,true,false,false,false
+11391907604,Fritznel,Lauremar,flauremar91@gmail.com,4385041304,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11392057529,Mickayla,Boselawa,mickaylaboselawa@gmail.com,2638803068,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11392292705,Elizabeth,Chouinard,elizabethchouinard2003@gmail.com,4383907843,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,false,false,false
+11392311399,Maria Luisa,Morais,morais.marialuisa@yahoo.com,8199964678,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11392355545,Michel,Paquette,paqmiche@hotmail.com,4388275701,Approuvé,Actif,true,verifie,2026-04-01,2029-04-01,,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,false,true
+11392500629,Gabriel,Lemieux,gablemieux@gmail.com,4185751561,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,0,0,2,true,false,false,false,false
+11393114896,Dalila,Bergeron,dalila.bergeron@hotmail.com,8196997217,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,false,true
+11395075676,Jean-François,Beaulé,beaule.jeff@gmail.com,8195829602,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11395917775,Elizabeth,Robidoux,eliza.robidoux@gmail.com,5147461907,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,0,0,0,0,3,true,false,false,false,false
+11400592567,Philippe,Rouleau,prouleau@sopfeu.qc.ca,4185632809,Partenaires,Actif,false,en_attente,,,,true,true,true,true,true,true,6,0,0,0,0,6,true,false,false,false,false
+11406604620,Frédéric,Groulx,f.groulx@gmail.com,5149757913,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11413711589,Thomas,Pignol,thomas.pgl@live.com,2633828108,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11415427378,Frédérick,Giroux,frederick.giroux.03@gmail.com,5813091487,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11417036573,Nehme,Bechalani,nehmebechalani@gmail.com,5145764606,Retrait temporaire,Actif,false,en_attente,,,,true,true,true,true,true,true,6,0,0,0,0,6,true,false,false,false,false
+11438616786,Chantal,Roberge,chantal.roberge@croixrouge.ca,4182843369,Partenaires,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11440692253,Melanie,Genest,genestmgmg@gmail.com,4189336866,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11440982633,Alain,Levesque,grizzly2645@gmail.com,5149090885,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11441442497,Jérémy,Laforest,laforestjeremy75@gmail.com,5817280879,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11443422434,Georges,Grenon,georges.grenon22@gmail.com,5815609577,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11450310562,Frederic,Beaudette,f.beaudette@hotmail.com,5143492739,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11450323226,Matis,Tudeau,matis.tudeau@gmail.com,4187501799,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+11451413793,Yves,Corbeil,manijycorb@gmail.com,5143474755,Approuvé,Actif,true,verifie,2026-04-03,2029-04-03,,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,false,true
+11457351370,Larry,Lecomte,larry_aka_bob@hotmail.com,4502800735,Approuvé,Actif,true,verifie,2026-04-05,2029-04-05,,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,false,true
+11467400624,Francis,Henley,francis.henley@gmail.com,4383958535,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11472182686,Denis,Dion,denisdion1932@gmail.com,4187942315,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11472190913,Christophe,Marquis,chmarquis@hotmail.com,4183306053,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11476328439,Guillaume,Bérubé,guib80@hotmail.com,4183183236,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11476909010,Emy,Brunet,brunet.emy04@gmail.com,8196600646,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11476912036,Victor,Winninger,victor.winninger@gmail.com,8194408045,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,0,true,true,false,false,false
+11480698428,François,Dallaire,frand999@hotmail.com,4185907989,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,0,0,2,true,true,false,false,false
+11483596000,Nabil,Ben Ali Ouriaghli,nabil_benali@outlook.fr,5145753802,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11484487264,Karl,Mior,karlosmior@gmail.com,4184452868,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,0,0,0,0,5,true,false,false,false,false
+11487039081,Ángel,Liriano mora,angelmorapilon@gmail.com,4385028191,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11490085398,Alain,Croteau,alaincroteau8991@gmail.com,5813989670,Intérêt,Actif,false,en_attente,,,,true,false,true,true,true,true,3,0,0,0,0,3,false,false,false,false,false
+11492538526,valerie,marcotte,valerie.marcotte@msp.gouv.qc.ca,5149512752,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11495040956,Adam,Latulippe,latulippeadam@gmail.com,4189480368,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,0,true,true,false,false,false
+11496118113,Antonia,Trendafilova,antonia.v.trendafilova@gmail.com,4386806668,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11496768750,Sophie,Trépanier,s0phiet@hotmail.com,5146093027,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,2,1,0,0,0,1,false,true,false,false,false
+11497120708,Yan,Boulianne,yanboulianne@gmail.com,4188182350,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11508827694,Stephane,Roussel,stephane.roussel@enap.ca,4383933254,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,0,0,0,0,0,0,true,false,false,false,false
+11511096442,Titouan,Hachet,hachet.titouan@gmail.com,4384655711,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,4,0,0,0,0,4,false,false,false,false,false
+11511541968,Thierry,Maisonneuve-Rocheleau,thierry.m.rocheleau@hotmail.com,5144758079,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,false,false,false
+11511750237,Amélie,Trépanier,amelietrep2016@gmail.com,4188159138,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+11518607697,Marie,Payette,mariepayettecordeau@outlook.com,5149652484,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,0,0,0,0,1,false,false,false,false,false
+11519471245,Chantale,Boudreault,chantale29.boudreault@hotmail.com,4183789654,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11521351096,Chantal,Dandurand,chanyosa@gmail.com,5148165851,Approuvé,Actif,true,en_attente,,,,false,true,true,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+11521441175,Antoine,Carre,antoine.carre@videotron.ca,5148047494,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,0,0,2,true,false,false,false,false
+11523104375,Cécile,Rigaudie,cerig1@ulaval.ca,5816810976,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,0,0,0,0,0,0,true,false,false,false,false
+11530488654,Claude,Garneau,claude.garneau@msp.gouv.qc.ca,4185802217,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11532106010,mario,ratté,marioratte1958@gmail.com,4188740174,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+11546425968,chantale,Tremblay,chantale.tremblay@msp.gouv.qc.ca,5148806089,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11547049536,Martine,Forbes,aqbrsadm@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11565660357,Pierre,Deroy,pderoy567@hotmail.com,4182975246,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,1,0,3,true,true,false,false,false
+11568780904,Ludovic,Lascelles,ludovic_lascelles@hotmail.com,5818494349,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11573577616,Sandra,Gagné,sandra.g1981@hotmail.ca,4184459935,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+11573579372,Alexis,Raymond,alexis_raymond06@outlook.com,8193420888,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,0,true,true,false,false,false
+11573768621,Caroline,Langlois,caro_line_18@hotmail.com,4182935529,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11598931935,Louise,Martel,louise.martel61@hotmail.com,4182551295,Retrait temporaire,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,0,true,true,false,false,false
+11607725595,Eric,Mailhot,tccc@hotmail.ca,7057179759,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11616246486,Chantal,Proulx,proulxch@hotmail.com,4188068066,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,0,true,true,false,false,false
+11619200180,Eric,Ménard,menard360@gmail.com,4185506491,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,9,1,0,2,0,7,true,true,false,false,false
+11620183442,Denis,Gagnon,denis3006@live.ca,4188128473,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+11621023088,ken,winterbottom,karinedesbiens@cgocable.ca,4182977347,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11621815034,Isabelle,Lamarche,isabelle0680@hotmail.com,4187194501,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,0,0,2,0,1,true,false,false,false,false
+11621831667,Corentin,Garin,corentin.garin@protonmail.com,5793731488,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11622876934,Nadia,Laroche,nlaroche808@gmail.com,5793480236,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11625756170,Luc,Lapointe,luc.lapointe@cgi.com,8195602972,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11634585575,Jean-Francois,Grégoire,jeanfgregoire74@gmail.com,4189449888,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+11634742693,Dave,Emond,dave.emond33@hotmail.com,4185501994,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11634901568,Nicolas,Fortin,me@nicolasfortin.ca,5814760434,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,1,0,4,0,3,true,true,false,false,false
+11637175515,Ludovic,Paradis,ludovic-paradis@hotmail.com,5818820710,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,4,0,0,true,true,false,false,false
+11637211082,Mathieu,Duval,mathieu.dg7@gmail.com,4185401937,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11637908969,Gaetan,Laflamme,gaetanlaflamme06@hotmail.com,4185440349,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11638009571,Daryane,Gosselin,daryanegosselin@hotmail.com,4186906779,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,0,true,true,false,false,false
+11638247400,Alyson,Lefebvre,2533332@etu.cchic.ca,4189449063,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11638403258,Clémence,Vittaut,vittautclemence@gmail.com,4189449063,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11641295078,Yves,Dufour,dufouryves@me.com,5142322009,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11642368371,Boivin,François,francoisboivin@gmail.com,4188178318,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,0,0,0,0,5,true,false,false,false,false
+11645020639,Isabelle,Tremblay,izoo76@hotmail.com,4185901475,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+11645511688,Marie-Anne,Jean,mary_ann_jean@hotmail.com,4184450659,Intérêt,Actif,false,en_attente,,,,false,false,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+11645921558,Carl,Bergeron,carlbergeron2010@gmail.com,4183766481,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,0,0,0,0,0,0,true,false,false,false,false
+11646827963,Félix,Ledoux,felixledoux9@gmail.com,4185873927,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,1,0,5,true,true,false,false,false
+11651261617,Frederic,Guerin,fred.guerin75@gmail.com,4186173838,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+11651909807,Anne-Marie,Tremblay,annemarie3360@hotmail.com,4185570038,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,false,false,false
+11653090383,Roxanne,Gaudreault,roxannegaudreault30@gmail.com,5812349515,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+13549875675,Cassy,Berguet,cassy.berguet@hotmail.com,4185695369,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,1,true,true,false,false,false
+15072947890,Olivier James,Toussaint,olivierjtoussaint@proton.me,4183506805,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,1,0,0,true,false,false,false,false
+15928777715,Gabriel,Parent,gabychou2011@hotmail.com,4388202085,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+17013025830,Charles,Dessureault,c.dessureault@siucq.net,8196909672,Intérêt,Actif,false,verifie,2026-04-08,2029-04-08,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,true
+17566184635,Frédéric,Dalphond,fredericdalphond@gmail.com,5149479577,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,false,false,false
+1776687487001,Carole,Corson,carole.corson@hotmail.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487002,Hugo,Perry,hugoperry@telus.net,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487003,André,Chouinard,president@sauvetage02.org,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487004,Clément,Caron,tourvillefeu@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487005,André,Langlois,tloyd_1122@hotmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487006,Suzanne,Marchand,suzanne.marchand@hotmail.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487007,Ghyslain,Parent,gparent150@hotmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487008,Jean-Guy,Paris,jg.paris@siucq.net,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487009,Jacques,Bédard,j.bedard@siucq.net,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487010,Pierre,Vallée,pierre.sar.mauricie@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487011,Patrick,Pilon,patrickpilon2020@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487012,Wayne,Belvedere,wbelvedere@hotmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487013,George,Motz,g.motz@hotmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487014,Bruno,Demmerle,bruno.demmerle@pointe-claire.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487015,Marianna,Ferraiuolo,marianna.ferraiuolo@pointe-claire.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487016,Steve,Sirois,steve.sirois@asjquebec.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487017,Alexandre,Sapone,alexsapone@me.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487018,Cliff,Neumann,balisebeaconk9@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487019,Vedis,Ronald,vedis.ronald@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487020,Daniel,Boulet,president@sbo-ovsar.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487021,Sandra,Schwerzmann,sandraschwerzmann@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487022,Nathalie,Desarzens,fathom.dps@gmail.com,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+1776687487023,Marco,Dénommé,marcofrance@tlb.sympatico.ca,,Partenaires RS,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+18133661055,Stéphane,Messier,S.MESSIER@VIDEOTRON.CA,5148279055,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,2,1,0,1,0,0,false,true,false,false,false
+18162666069,Jean-Philippe,Bourgoiun,jean-philippe.bourgouin@msp.gouv.qc.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18163965812,Kevin,Normandin,k.normandin@siucq.net,4388830911,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-01,true,true,true,true,true,true,8,1,1,6,0,2,true,true,true,true,true
+18164553518,Mélanie,Hamel,melaniehamel@hotmail.com,8195740774,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,2,0,0,true,false,false,false,false
+18164593826,Guillaume,Chabot,chabotguillaume@hotmail.com,4182302513,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,false,false
+18164675163,Stéphanie,Pouliot,panosa03@hotmail.com,4187742682,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18164778415,Samuel,Labrie,samuel-labrie@hotmail.com,4185602786,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18164827325,Yannick,Jalette,yannickk_jalette@icloud.com,4384641797,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18164833449,Daphné,Dagenais-Paquette,daphne.dagenais@gmail.com,4388808305,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18164961008,Eunice,Mucyo,mucyo211@hotmail.com,5817002820,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18164999732,Angel,Lirianomora,angellirianomora@gmail.com,4385028191,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18165070997,Michèle,Courteau,mimicourteau@yahoo.ca,5794926778,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18166140843,Frédéric,Dufresne,f_dufresne@hotmail.com,8192447693,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18166367281,Emilie,Laffitte,emilie.laffitte.13@gmail.com,2633834423,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18166372848,Valérie,Bergeron,valerie.bergeron@hotmail.com,8196984062,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-01,true,true,true,true,true,true,5,1,1,2,0,0,true,true,true,true,true
+18166778980,Marie-Pierre,Savard,savardmariepierre@gmail.com,5146867405,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18166800740,Kevin,Trudel - Pimparé,kevin.trudel1992@hotmail.com,4388826432,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18167101047,Daniel,Renaud,drenaud1962@gmail.com,8199216818,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18167353203,Caroline,St-Hilaire Paquet,sthilairepaquetc@live.fr,5813071723,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18167435118,Jimmy,Labrecque,labrecquejim@hotmail.ca,4185757939,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,2,1,0,1,0,0,false,true,false,false,false
+18167518189,Jean Michel,Coquillon,jeanmichel.coquillon@yahoo.ca,8194215657,Approuvé,Actif,true,verifie,2026-03-14,2029-03-14,2026-03-01,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+18169089212,Guillaume,Perron-Marier,guillaumemarier@icloud.com,4189281062,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-14,true,true,true,true,true,true,4,1,1,0,0,1,true,true,true,true,true
+18170009046,Rejean,Verret,rejeanverret@yahoo.ca,5819996101,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18170248370,Tommy,Tettaut,missu-one@hotmail.com,4183501747,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,0,0,1,0,0,false,false,false,false,false
+18171390111,François,Gougeon,francois.gougeon@live.ca,5148294250,Retrait temporaire,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,0,0,3,true,true,false,false,false
+18171786576,Marie-Hélène,Dumas,marie-helene.dumas@live.ca,8194481331,Approuvé,Actif,true,verifie,2026-04-05,2029-04-05,2026-03-25,true,true,true,true,true,true,7,1,1,0,0,5,true,true,true,true,true
+18171816872,Yan,Patry,yan.patry@hotmail.com,8193861278,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-25,true,true,true,true,true,true,8,1,1,7,0,0,true,true,true,true,true
+18173166821,Pascal,Fournier,pascalfournier23@hotmail.com,8192306668,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18174363411,Michel,Labonte,bambam_quebec@hotmail.com,8199199711,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18174892615,Guillaume Alexis,Ratelle-Dubois,guillaume.ratelle@hotmail.com,5819802632,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18175073296,Gaetan,Verret,g.verret@videotron.ca,5819969565,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,false,true
+18175485727,Donald,St-Germain,donaldstgermain@yahoo.ca,5147578654,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18175645222,Francis,Prévost,francisprevost8@gmail.com,8195986122,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18176018982,Louise,Poirier,louisepoirier10@hotmail.com,4188128240,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18176365151,Frédéric,Demers,demers_frederick@hotmail.com,4188025097,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-02-23,true,true,true,true,true,true,5,1,1,1,0,1,true,true,true,true,true
+18176716354,Chaouki,Boulelli,boulelli81@gmail.com,5157083923,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18177106885,Jocelyn,Boudreault,Chris_kazer@hotmail.com,8198801422,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18177260073,Guy,Mercier,gmercier1963@gmail.com,4185751818,Approuvé,Actif,true,verifie,2026-03-24,2029-03-24,2026-03-14,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18179000762,Kathleen,Yergeau,kathleenyergeau@hotmail.com,5149703637,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18179336949,Rick,Juteau,rickjuteau@hotmail.com,4504360794,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18179966274,Alexandre,Bélanger,alexbelanger78@gmail.com,4382752006,Approuvé,Actif,true,verifie,2026-03-06,2029-03-06,2026-03-01,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+18180084672,Samuel,Dupont-Desbiens,samuel.dup.des@gmail.com,8195789229,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18180193153,Caroline,Fortier,fortiercaroline@hotmail.com,5149158133,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18180213680,Alvaro,Jimenez,varojimenez@gmail.com,5147100818,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18180356840,Rémy,Roy,recherche@remyroy.com,4189741050,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+18180604212,Marcelle,Ouimet,milaniemarcelle@hotmail.com,5142999331,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18180712306,Pascale,Daigle,pass9331@outlook.com,8195787638,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,4,0,0,true,true,false,false,false
+18181625622,Laurence,Durniak,laurence.durniak7@gmail.com,5149709462,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18181749284,Marie-Eve,Proulx,v_minie17@hotmail.com,5148306884,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18181760703,Yohan,Beaulieu,yohanbeaulieu3@gmail.com,8194524302,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18182368856,Eric,Bellemare,eric.bellemare001@gmail.com,5819893194,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18183563535,Martin,Gauthier,mart.police@gmail.com,4188088423,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,4,0,2,true,true,false,false,false
+18183683047,Eric,Dutil,eric.dutil@hotmail.com,8193249117,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18183683615,Lizanne,Bussières,lizannebussieres@yahoo.com,6049024781,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18184751206,André,Girard,girard_andre@hotmail.com,4185649207,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,,true,true,true,true,true,true,5,1,1,1,0,1,true,true,true,false,true
+18185218593,Patrick,Septembre,patrick.septembre@bell.net,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218613,Paul-Émile,Auger,info@interops.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218686,Vicky,Stankovich,vicky.stankovich@croixrouge.ca,4394393493,Retrait temporaire,Actif,true,en_attente,,,,true,true,true,true,true,true,2,0,1,0,0,1,true,false,true,false,false
+18185218706,Suzie,Lavoie,suzie.lavoie@croixrouge.ca,4188096805,Retrait temporaire,Actif,true,en_attente,,,,true,true,true,true,true,true,1,0,1,0,0,0,true,false,true,false,false
+18185218764,Caroline,Turpin,caroline.turpin@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218782,Jean-François,Meilleur,jfmeilleur2015@gmail.com,8192781484,Partenaires,Actif,true,en_attente,,,,true,false,true,true,true,true,5,0,1,0,0,4,false,false,true,false,false
+18185218786,Chantale,Bilodeau,chantale.bilodeau@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218839,Claire,Versailles,cversailles56@gmail.com,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218870,Sarah-Shan,Millier,sarah-shan.millier@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218874,Jean-Michel,Roch,jmroch@sopfeu.qc.ca,8194446168,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218931,Sébastien,LaBranche,sebastien.labranche@croixrouge.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218964,Véronique,Chabot Allard,veronique.chabotallard@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185218972,Guillaume,Legault,glegault@sopfeu.qc.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219013,Emanuel,Brie,emanuel.brie@croixrouge.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219048,Jacques,Drewitz,jacques.drewitz@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219061,Julie,Brisson,jbrisson@sopfeu.qc.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219115,Blandine,Meneyamelu Tumba,blandine.meneyamelutumba@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219140,Simon,Dumas,simon.dumas@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219193,Mychaël,Ridley Freitas,mychael.ridleyfreitas@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219246,Denis,Gagné,papa_gagne@hotmail.com,5145544703,Retrait temporaire,Actif,true,en_attente,,,,true,true,true,true,true,true,1,0,1,0,0,0,true,false,true,false,false
+18185219284,Étienne,Tessier,etienne.tessier@croixrouge.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219375,Flavio,Gavidia,flavio.gavidia@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219384,Simon,Dansereau,simisajas@gmail.com,4187514707,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219487,Nathalie,Hamel,n.hamel63@gmail.com,,Retrait temporaire,Actif,true,en_attente,,,,false,true,true,true,false,false,2,1,1,0,0,0,false,true,true,false,false
+18185219497,Stéphane,Leblanc,leblancpyro@gmail.com,4183916886,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219608,Fouzia,Bazid,fouzia.bazid@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219621,Rémi,Barriault,rbarriault@sopfeu.qc.ca,4185802204,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219735,Christian,Lemay,christian.lemay@croixrouge.ca,5142077010,Retrait temporaire,Actif,true,en_attente,,,,true,true,true,true,true,true,3,0,1,0,0,2,true,false,true,false,false
+18185219746,Gabriel,Thibault,gabexperience@gmail.com,,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219840,Oli,Pero,oli.pero@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219855,Steve,Grand Maison,sgrandmaison@sopfeu.qc.ca,4186186284,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185219996,Santi,Sananikone,santi.sananikone@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,2,1,1,0,0,0,false,true,true,false,false
+18185220152,Alexandre,Paquin,alexandre.paquin@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220158,Michel,Bédard,mbedard@sopfeu.qc.ca,8192158428,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220316,Maxime,Perreault-Varin,maxime.perreault-varin@croixrouge.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220318,Mélissa,Miron,mmiron@sopfeu.qc.ca,8192158417,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220456,Fanny,Provencher,fanny.provencher@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220669,Sylvie,Mayeu,sylvie.mayeu@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220785,Mathieu,Tremblay,mathieu.tremblay@hotmail.fr,4186181252,Partenaires,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185220861,Jacques,Roy,cj.roy@bell.net,5813086113,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,2026-02-23,true,true,true,true,true,true,5,1,1,2,0,0,true,true,true,true,true
+18185221014,Edith,Roussy,edith.roussy@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18185703358,Denis,Pugin,denis.pugin@gmail.com,8736606328,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18186235185,Samuel,Caron,mumucaron@hotmail.com,8199953082,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18186465522,Jean-Louis,Brulotte,jlb064@hotmail.com,4182546733,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,0,0,1,true,true,false,false,false
+18186736844,Sandy,Levesque Ratte,san-lev@live.com,3673821775,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18186792708,Sylvain,Fiset,sfiset@gmail.com,5147135687,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18186923207,Delphine,Plante,delphineplante@gmail.com,4383453478,Approuvé,Actif,true,verifie,2026-03-31,2029-03-31,,true,true,true,true,true,true,6,1,1,4,0,0,true,true,true,false,true
+18187007037,Cesar Augusto,Salazar Navarro,cesarsalazarnavarro@gmail.com,5813728584,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18187045392,Yves,Paulin,pau-per5@hotmail.com,4185802424,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18187097686,Julie,Cadorette,jucadorette@hotmail.com,4507751818,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18187139686,Frédéric,Paquet,fred_paquet24@hotmail.com,4185648720,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18187394154,Cathy,Anctil,cathy_anctil@msn.com,4189536068,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18187453805,Kevin,Petrin,kevinpetrin@hotmail.com,8193345219,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18187554332,Sarah Claudie,Nolet,sarahc.n@hotmail.com,8196953708,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-01,true,true,true,true,true,true,3,1,1,0,0,0,true,true,true,true,true
+18187769823,Dominic,Labarre,thedoomno1@hotmail.com,5148244925,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18188516215,Marc-Andre,Alles,allesmarcandre@gmail.com,8198414748,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18189248445,Aboubakar Kadher,Dosso,aboubakardosso832@gmail.com,5813066712,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18189495492,Alexandre,Gagné,alex.papamedic@gmail.com,8195003863,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18189865218,Muriel,Mercier,cocomumu_23@hotmail.com,4188069989,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18190605325,Edith,Begin,spirelis@hotmail.com,4188684660,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18190777115,Yves,Desjardins,yvesdesjardins23@gmail.com,4506754853,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-01,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+18192176206,Luc,Vigneault,poney259@gmail.com,4182937600,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18192888643,Pierre,Bertrand,pierrebertrand2014@gmail.com,4189072257,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18195871608,Chafic,LaRochelle-Eid,chafic.laro@gmail.com,5145166288,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,,true,true,true,true,false,false,2,2,1,0,0,0,false,true,true,false,true
+18196175365,Hélène,Hamel,helenehamel8@sympatico.ca,8195075080,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18196231499,Steve,Gauthier,stevegauthier311@gmail.com,8193776694,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18196294770,Patrick,Bertrand,pat_bertrand@hotmail.com,5794889456,Approuvé,Actif,true,verifie,2026-04-01,2029-04-01,,true,true,true,true,true,true,8,1,1,2,0,5,true,true,true,false,true
+18196349420,Colombe,St-André,cocalif03@hotmail.com,4185519580,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18196658714,Lauriane,Prévost,lprevost87@gmail.com,4388716860,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,2026-03-01,true,true,true,true,true,true,4,1,1,3,0,0,true,true,true,true,true
+18196747022,Norbert,Morneau,morneau.norbert@gmail.com,4388673636,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18199283152,Annie,Marcouiller,amarcouiller79@gmail.com,8198528286,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18199441037,Stephane Manuel,Lapointe,stephlapointe1@gmail.com,5147573069,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18200499925,Noémie,Robichaud,noemie.robichaud31@outlook.com,4188172586,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,0,0,3,true,true,false,false,false
+18200834172,Karine,Gingras Royer,karine_canada@hotmail.com,4186337566,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18204062281,Sylvain,Gagné,sg2ic2rcha@hotmail.com,4389891801,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,7,1,0,0,0,6,true,true,false,false,false
+18204142055,Christophe,Aumand,christophe.aumand@gmail.com,4187140602,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18204463719,Manon,Laplante,mlaplante67@hotmail.com,5794886713,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18206041021,Marie-Josée,Vouligny,mariejoseevouligny@gmail.com,4383978232,Approuvé,Actif,true,verifie,2026-03-29,2029-03-29,,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,false,true
+18207012227,Marek,Abaji,marek.abaji1@gmail.com,8199438679,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,3,0,0,true,true,false,false,false
+18207720445,Daniel,Lortie,daniellortie3@gmail.com,4383706427,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,false,true
+18212794535,Loic,Derrien,coupiac@hotmail.fr,4508304176,Approuvé,Actif,true,verifie,2026-03-28,2029-03-28,,true,true,true,true,true,true,5,1,1,0,0,3,true,true,true,false,true
+18214273573,Jonathan,Raymond,jonathan.raymond@hotmail.com,4182623163,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,false,true
+18214461054,Sacha,Simoneau-Roy,ssrinspection@gmail.com,4184868811,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18214651704,Andre,Dubé,andredube29@hotmail.com,4189316977,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18215433186,Etienne,Caissy,ecaissy24@hotmail.ca,5149660453,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18216463341,Eric,Chouinard,chouine35@gmail.com,4184556402,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,true,false,false
+18216889976,Carl,Rodrigue,carlrodrigue29@hotmail.ca,4182812701,Approuvé,Actif,true,verifie,2026-04-09,2029-04-09,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,true,false,true
+18217020831,Karima,Benfekih,karima.benfekih@hotmail.com,5147705781,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18217021774,François,Blanchard,fblanchard78@gmail.com,4502049923,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18217046163,Rosie,Veresan,typhus2@gmail.com,4509161150,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18217148556,Marcel Samuel Kadima,Kalonji,kalonjimarcesamuel@gmail.com,4387793195,Approuvé,Actif,true,en_attente,,,2026-03-01,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,true,false
+18217637386,Marc,Bujold,bujoldmarc8@gmail.com,4388203319,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18217885609,Gentiane,Barbin,gentianeb@hotmail.com,5148206675,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18218227318,Steve,Boivin,steve.boivin@msp.gouv.qc.ca,4189530174,Partenaires,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18218645024,Hugo,Trottier,hugotrottier@distributel.net,5145928210,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,3,0,0,0,0,3,false,false,false,false,false
+18218701655,Paulin,Jacques,paulinjacques123@gmail.com,4188443839,Approuvé,Actif,true,verifie,2026-03-14,2029-03-14,2026-02-28,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18218809611,Lydia,Tremblay,lili04830@hotmail.com,5812346780,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18218897043,Patrick,Alary,alary.patrick@gmail.com,8193238910,Approuvé,Actif,true,verifie,2026-02-23,2029-02-23,2026-03-01,true,true,true,true,true,true,6,1,1,0,0,3,true,true,true,true,true
+18219092175,Annick,Dinelle,dinelleannick9@gmail.com,4384074569,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18219399596,Audrey,Robertson,audrey.robertson@hotmail.com,4184876766,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,false,false,false
+18219497738,Michel,Mercure,mimer2011@hotmail.ca,5145069956,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18219864020,Patrick,Chabot,patchabot@live.ca,8186901848,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18219950197,Yanik,Morin,ymorin1975@gmail.com,5147725791,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18219959625,Jacques,Côté,jackc623@hotmail.com,4182611580,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-21,true,true,true,true,true,true,4,1,0,4,0,0,true,true,true,true,true
+18220947792,Claude,Denis,claudedenis154@icloud.com,5149427081,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18221240622,Karen,Tremblay-Beaulieu,beaulieuk9@gmail.com,8199911852,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18221323692,Hugo,Bondu,incendie@localiteradisson.com,8196389150,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18221901566,Renée,Le Breton,renee33445@hotmail.com,4187140781,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18222589195,France,Monniere-Charbonneau,leolau0810@gmail.com,5146525922,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18224733088,Élizabeth,Godbout,zelabeth@hotmail.com,4508581571,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18229237385,Patrick,Reuter,preuter@live.ca,4502754286,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,true,true,4,1,1,3,0,0,true,true,true,true,true
+18233889792,Jasmin,Gill-Fortin,jasmingillfortin@gmail.com,5819902177,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18238844335,Simon,Couture,sim.couture@hotmail.ca,4182550523,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18239132668,Esther,Lapointe,est.lapointe@gmail.com,8199838281,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,,true,true,true,true,true,true,9,2,3,1,0,3,true,true,true,false,true
+18240204756,Daniel,Blanco,danielmblanco@hotmail.com,8192396145,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18240617848,Luc,Mercier,luc.mercier@hotmail.com,4184405725,Approuvé,Actif,true,verifie,2026-03-24,2029-03-24,2026-03-07,true,true,true,true,false,false,3,1,1,0,0,0,false,true,true,true,true
+18240878819,Nancy,Dion,ndion2930@gmail.com,8195787202,Approuvé,Actif,true,verifie,2026-03-31,2029-03-31,,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,false,true
+18243223190,Khesiah,Bellili,bellilikhesiah@gmail.com,5813379887,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+18243800622,Brigitte,Garant,bridgegarant@gmail.com,4188094843,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18244137454,Tania,Bernier Bertrand,tania.bernier2306@icloud.com,8733740027,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18244416829,Joël,Lajeunesse,joellajeunesse2410@gmail.com,8194446619,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18245488952,Stephane,Marchand,stephanemarchand00@gmail.com,5147792291,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18246551699,Annie,Duquette,astrelle@hotmail.com,8197632698,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18248722154,Melyssa,Gerard,gerardmelyssa@gmail.com,5144634405,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18249531452,Line,Massicotte,line.massicotte@me.com,5145926416,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18249751620,Axel,Desbiens,axeldesbiens@gmail.com,4187174641,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18249961574,Kassandra,Gauthier,kassandra_g96@hotmail.com,4507718176,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18249978744,Michael,Morin,morin.m04@hotmail.com,4505163204,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18249981063,Nathalie,Bouffard,n_bouffard@hotmail.com,4189344026,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18250000398,Emilie,Hébert-Larue,emiliehebertlarue@gmail.com,5142454458,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18250289366,Joey,Cuerrier,cuerrierjoey@gmail.com,5142610236,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18250554088,Robert,Monk,love1011991@hotmail.ca,8196514272,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18251119870,Martin,Emond,emond76@hotmail.com,5197779756,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18252864586,Marc,Daigle,papi.daigle@gmail.com,8192382267,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18253212743,Julie,Racine,frisinette101@gmail.com,4383908686,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18253417347,Valérie,Bélanger,valerie.3.belanger@hec.ca,5149958644,Retrait temporaire,Actif,true,verifie,2026-04-09,2029-04-09,2026-03-01,true,true,true,true,true,true,3,1,0,2,0,0,true,true,true,true,true
+18255140677,Sylvie,Lauzière,sissipower@hotmail.com,8196926728,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,0,0,3,true,true,false,false,false
+18255827354,Francine,Boulet,marypoppins1960@hotmail.com,4183270146,Approuvé,Actif,true,verifie,2026-03-02,2029-03-02,2026-03-16,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18257223928,James,Tuppert,james.tuppert@gmail.com,5819835782,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18257433457,Mylène,Langlois Noël,mimi_noel_1996@hotmail.com,4504215293,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,0,0,1,0,0,false,false,false,false,false
+18257442277,Alexandra,Pineau Couturiee,alexa.couturier@gmail.com,5146325219,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18258730911,Marylène,Fortier,m240475@hotmail.com,8195678083,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18262752162,Marie-Claude,Matton,mc2matton@gmail.com,5147776842,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18264572144,Alain,Girard,algi62@hotmail.com,5819895936,Approuvé,Actif,true,verifie,2026-03-15,2029-03-15,2026-03-16,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18264838495,Maxime,Carrier,maxime.carrier.90@gmail.com,5819907795,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18265556472,Dominique,Verville,dominique.verville69@outlook.com,8198064312,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18268060966,Yoann,Bernet,yoannbernet@gmail.com,5819918198,Approuvé,Actif,true,verifie,2026-02-28,2029-02-28,2026-03-10,true,true,true,true,true,true,1,1,0,1,0,0,true,true,true,true,true
+18268731101,Michel,Laniel,mike522ml@gmail.com,5147771327,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18268775890,Grady,Songe,gradysonge70@gmail.com,8196355021,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18268826166,Sandra,Deschenes,gestionsandes@hotmail.com,4182214692,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18268854754,Martin,Lefebvre,martin233@hotmail.ca,4383451265,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+18269300976,Michael,Petit,michael.petit8627@gmail.com,5148274791,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588091,Adam,Rhéaume,adamrheaume@gmail.com,4508202741,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588092,Bryan,L Pelland,bryanlpelland@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588093,Jean,Claveau,Claveaujean22@gmail.com,4189993017,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,2026-03-09,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,true,true
+18269588094,Domink,Giasson,Dominikgiasson@gmail.com,8198015200,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588095,Josée,Provençal,jprov027@uottawa.ca,5148033062,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,true,true
+18269588096,Sylvain,Brouillard,sylvain.brouillard@gmail.com,5146992278,Approuvé,Actif,true,verifie,2026-03-28,2029-03-28,,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,false,true
+18269588097,François,Houde Côté,Francois_hc@hotmail.com,4185098229,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588099,Nicolas,Ouellet,nic_ouel@hotmail.com,8196747474,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,2,1,0,0,0,1,false,true,false,false,false
+18269588100,Martin,Bertrand,martinbertrand1@yahoo.ca,5147053359,Approuvé,Actif,true,verifie,2026-03-29,2029-03-29,,true,true,true,true,true,true,6,1,1,0,0,4,true,true,true,false,true
+18269588107,Camille,Pronovost,Camille.pronovost@gmail.com,4387634224,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18269588108,Sylvain,Goulet,Ve2syy@hotmail.com,5144979296,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,3,0,0,true,true,false,false,false
+18269588109,Martin,Fournier,mfservices@hotmail.fr,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588110,François,Lemoyne,edmund_duke_uw@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588113,Joshua,Gariepy,joshuagariepy@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588114,Ahmed,Ait El Hadj,hadj.a@hotmail.com,5142961744,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588115,Donald,Fortin,Donald.fortin@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588117,Carl,Desrosiers,fuinaround@hotmail.com,4185091575,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,false,true
+18269588118,Sébastien,Rainville,sebrainville@hotmail.com,4189533127,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588119,Martin,Laroche,martin.laroche29@gmail.com,5149432003,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588122,Sylvain,Laferrière,yukonlafy@live.com,4502884492,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588123,François,Normand,francois.normand@groupecontex.ca,5148031345,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+18269588125,Nicolas-Joseph,Carrier,nicolasjosephcarrier@gmail.com,4185765524,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588127,Julie,Kenny,sacha_kenny12@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588128,Jean,Marcel,Marceljean21@gmail.com,8199441064,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+18269588131,Alain,Doiron,alaindoiron59@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588133,Sébastien,Tardif,tardifseb@hotmail.com,8196980870,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18269588135,Mathieu,Laporte,mlaporte@promutech.ca,5142406067,Approuvé,Actif,true,en_attente,,,,true,true,true,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18269588138,Sylvain,Tremblay,syltremblay02@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588140,Francustin Nathanaël,Matadi Tsianguebeni,nathanaelmatadi91@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588143,Normand,Lefebvre,normlefebvre@yahoo.com,8196438410,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,2,1,0,1,0,0,false,true,false,false,false
+18269588146,Élizabeth,Roy,zabette.roy@gmail.com,8195784701,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588147,Alain,Rousseau,roualain.michaud@gmail.com,4505257764,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-14,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,true,true
+18269588150,Mathieu,Leblanc,math436leblanc@gmail.com,5819939310,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588152,Serge,Gauthier,serge.gauthier@arcelormittal.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588153,Tamy,Gagnon,gagnontamy@gmail.com,4182654503,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18269588154,Caroline,Dessureault,caroline.dessureault@ssss.gouv.qc.ca,8192305706,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588155,Frédéric,Ladouceur,fredericladouceur@gmail.com,4185209398,Approuvé,Actif,true,verifie,2026-03-31,2029-03-31,2026-03-01,true,true,true,true,false,false,1,1,0,0,0,0,false,true,true,true,true
+18269588157,Kenny,Turcotte,kenny.turcotte@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588159,Oleg,V. Lascov,dg@saint-mathieu.com,4383569528,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18269588160,Jean-Christophe,Giard,jean-Christophegiard@hotmail.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588161,Amélie,Boisjoly-Lavoie,amelieboisjoly@gmail.com,5148860110,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588162,Émile,Couture-Pelletier,grosmile@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588164,Maxime,Arseneau,Maxime-24@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588165,Ted,Hébert Cloutier,ted.hebert@usherbrooke.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588166,Serge,Giroux,Sergegiroux69@gmail.com,5149826649,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-01,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,true,true
+18269588167,Frédéric,Leroux,fred.leroux@hotmail.com,4189313441,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-18,true,true,true,true,true,true,4,1,1,1,0,2,true,true,true,true,true
+18269588168,Catherine,Sévigny,catherine5sevigny@gmail.com,8195750718,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,1,true,true,false,false,false
+18269588172,Olivier,Villard,perceval9985@gmail.com,4385097361,Approuvé,Actif,true,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,true,false,false
+18269588173,Jean-David,Beaulieu,Jdbeaulieu@live.ca,5813987666,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588175,Maxime,Barbeau,Maxime.barbeau@gmail.com,5142664034,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588176,Émilie,Gingras,emilie.gingras@yahoo.ca,5145620757,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,false,true
+18269588177,Frédéric,Monger,mongerf@videotron.ca,4187258056,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-04-09,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,true,true
+18269588180,Simon,Desrochers-Laplante,simondlap@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588181,Kiara,Lavoie,Kiara.constructionrenol@hotmail.com,4183211861,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18269588182,Christian,Champagne,christianc6343@icloud.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588183,Paul-Georges,Rossi,paul.georges.rossi@gmail.com,4189315472,Retrait temporaire,Actif,true,en_attente,,,,true,true,true,true,false,false,1,0,1,0,0,0,false,false,true,false,false
+18269588186,André,Caron,andrecaron1959@gmail.com,8195501050,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,1,true,true,false,false,false
+18269588187,Michaël,Barbieux,barbieux.lemieux@videotron.ca,4187170178,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588189,Victor,Bonet,vct.bonet@gmail.com,5147135597,Approuvé,Actif,true,verifie,2026-03-03,2029-03-03,2026-03-01,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,true,true
+18269588190,Emmanuel,Ross Morel,Emman913@msn.com,4188125280,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588192,Simon,Duquette,sduquette4@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588193,Christian,Viau-Souligny,ssiprevention@hotmail.com,4506017044,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,0,0,1,0,0,false,false,false,false,false
+18269588194,Kondé,Ali,Kondeablojunior@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588198,Jean-Francois,Grenon,jeanfrancoisgrenon@videotron.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588200,William,Boileau,william.boileau@gmail.com,4385257375,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,0,0,5,true,true,false,false,false
+18269588202,André,Charest,andre06charest@hotmail.com,4185530516,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588203,Michel,Fillion,michel.fillion@videotron.ca,4383700860,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+18269588204,Georges,Mouralian,georgesmouralian@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588205,Christine,Butt,christinebutt80@gmail.com,8196610788,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-04-08,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+18269588206,Lorraine,Campeau,lo.campeau@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588207,Simon,Pelletier,Simon.Pelletier.7@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588210,Jean-Pierre,De Beaumont,jeanpierre_de_beaumont@hotmail.com,8192713727,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588211,Philippe-Olivier,Belcourt,pobelcourt@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588212,Michel,Richard,MRichard.7@videotron.ca,4384972376,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-04-20,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18269588213,André,Gignac,agignac@outlook.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588215,William,Brisson,Briss7959@gmail.com,5813055958,Approuvé,Actif,true,verifie,2026-03-05,2029-03-05,,true,true,true,true,true,true,6,1,1,3,0,1,true,true,true,false,true
+18269588216,Éric,Bérubé,eric.berube@villerdl.ca,4187143899,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588217,Gilles,Brien,metcom@videotron.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588220,Louis,Weber-Houde,louis.weber-houde@tc.gc.ca,4385057819,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,4,0,1,true,true,false,false,false
+18269588221,Simon,Roy,simonroy1981@outlook.com,4182250881,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588223,Jean-Pierre,Ouellet,jpjrouellet@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588224,Pierre,Dubois,pierredubois57@hotmail.com,4182549286,Approuvé,Actif,true,verifie,2026-03-15,2029-03-15,2026-02-25,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,true,true
+18269588226,Michel,Robert,robertmichel@videotron.ca,4384965064,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588228,Eric,Boily,boily788@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588230,Claire,Verdi,verdi.claire@gmail.com,5145153003,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18269588231,André,Walters,waltersnoel73@gmail.com,4506754465,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588234,Louis-Benoît,Dutil,louis.benoit.dutil@gmail.com,5147060140,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,2,0,3,true,true,false,false,false
+18269588235,Pierre,Lessard,vmpete@outlook.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588236,William,Kruse,william.kruse@longueuil.quebec,5144661944,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588239,Michèle,Boulanger,micheleboulanger@yahoo.com,4184559918,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,0,0,0,true,true,false,false,false
+18269588240,Guy,Ménard,menard5050@gmail.com,5142928952,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588241,Jean-Pierre,Thibal,jpthibal@oricom.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588243,Eric,Campagna,rik67@videotron.ca,8197512284,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-01,true,true,true,true,true,true,6,1,1,2,0,3,true,true,true,true,true
+18269588244,Anik,St-Pierre,Astpierre@cmontmorency.qc.ca,5147137911,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588245,Stacy,Tremblay,stacenomono@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588246,Claude,Gratton,sonialemire1@gmail.com,5146556453,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-01,true,true,true,true,true,true,3,1,1,0,0,0,true,true,true,true,true
+18269588248,Luc,Belzil,Lucbelzil@hotmail.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588249,Roch,Gauthier,A.roch.gauthier@gmail.com,5142342580,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-23,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+18269588250,Yann,Vézina,yanndek47@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588253,Miguel,Chalifoux Beaudry,miguelchalifoux.b@protonmail.com,8194302275,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,2026-03-01,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,true,true
+18269588254,Guy,Ruel,guyruelavocat@videotron.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588256,Jean-Robert,Jacques,pleinair35@gmail.com,5145180275,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588258,Annie,Lapierre,a8.lapierre@gmail.com,4385038479,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588259,Claude,Jean,cjolimax@hotmail.ca,4189524919,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-02-25,true,true,true,true,true,true,5,1,1,4,0,0,true,true,true,true,true
+18269588262,Steeve,Petiquay,steevepetiquay@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588263,Luc,Lefebvre,Lefebvreluc@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588264,Roula,Yammine,Ryammine.csssl@ssss.gouv.qc.ca,5149652252,Approuvé,Actif,true,verifie,2026-04-15,2029-04-15,2026-03-01,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,true,true
+18269588267,Monique,Marier,mmarier104@gmail.com,4186334075,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588268,Hubert,Couture Rivard,Hubert.Couture.rivard@gmail.com,4189298758,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-03-01,true,true,true,true,true,true,1,1,0,0,0,0,true,true,true,true,true
+18269588270,Yannick,Bourgoin,Yan.bourgoin@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588271,Jérémie,Martin,Jeremie.martin.1@outlook.com,5148202041,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+18269588272,Claude,Leblanc,claudeleblanc1956@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588273,Antoine,Lamoureux,antoine.lamoureux@icloud.com,4505588245,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,1,0,2,true,true,false,false,false
+18269588275,Stephan,Gravel,b-ver@hotmail.com,4185723487,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,false,true
+18269588278,Eric,Poirier,re.key@hotmail.com,5147995154,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-01,true,true,true,true,false,false,1,1,0,0,0,0,false,true,true,true,true
+18269588279,Ludwig,Poupeney,loudg13@orange.fr,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588283,Isabelle,Rivard,i.rivard77@hotmail.com,5146075232,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588284,Nathaniel,Boudet,nathanielboudet@gmail.com,4506267045,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588286,Claude,Levert,clevert@mrcrouville.qc.ca,4383546731,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588287,Antoine,Ortuso,Aortuso@gmail.com,5147772451,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588288,Jeremie,Verville,jeremie.verville@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588290,Stéphane,Cadrin,stephcadrin@gmail.com,8197978715,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+18269588292,Marc,Bournival-Sauro,msauro@gmail.com,5148853635,Approuvé,Actif,true,verifie,2026-03-31,2029-03-31,,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,false,true
+18269588293,Yannick,Desruisseaux,yannick.desruisseaux@hotmail.com,8195602658,Intérêt,Actif,false,en_attente,,,,true,true,false,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18269588294,Nawal,Smail,Smail.nawal@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588295,Samuel,Arnosti,kinghck0@gmail.com,5813099911,Approuvé,Actif,true,verifie,2026-02-23,2029-02-23,,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,false,true
+18269588296,Ismaël,Lessard-Lacombe,4423702@gmail.com,8194422647,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588297,Eric,Bouchard,Heyrique@live.ca,4183607629,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,4,1,0,4,0,1,false,true,false,false,false
+18269588299,Antonia,Athanassiadis,a_athanassiadis@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588300,Daniel,Huard,gaspeabi@gmail.com,4507580199,Retrait temporaire,Actif,false,en_attente,,,,true,true,true,true,false,false,2,1,0,0,0,0,false,true,false,false,false
+18269588301,Stéphane,Campeau,s.campeau@villelapeche.qc.ca,8199621831,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588302,Nicola,Corbo-Tremblay,nicocorbo@gmail.com,5142688261,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588303,Marc-Antoine,Bouffard,mabouffard10@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588305,Yvan,Côté,ypcote@me.com,5147996724,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-01,true,true,true,true,true,true,6,1,0,0,0,5,true,true,true,true,true
+18269588306,Sandra,Dionne,Sandionne09@hotmail.com,8193504895,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,0,0,0,0,3,true,false,false,false,false
+18269588307,Jacques,Grondin,Jacques.grondin@hotmail.ca,4188056871,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-02-23,true,true,true,true,true,true,4,1,1,1,0,2,true,true,true,true,true
+18269588308,Stephane,Comeau,scomeau13@gmail.com,4185716606,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18269588309,Arnaud,Savary,Arnaudsavary@outlook.fr,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588311,Eric,Von Kleinsorgen,ericvonkleinsorgen@yahoo.ca,4186545019,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588313,Dany,G. Kendall,Dkendall@live.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588314,Marcel,Ethier,ethier.marcel@gmail.com,4186655050,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-03-11,true,true,true,true,true,true,4,1,1,1,0,1,true,true,true,true,true
+18269588315,Nicolas,Ghiran,Jedinic@hotmail.com,5145151178,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+18269588316,Jimmy,Guénette,jimmyguenette@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588320,Sandra,Matte,mattesandra@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588321,Janiq,Boulanger,Boulangerjaniq@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588324,Yves,Lapointe,Yveslapointe125@icloud.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588328,Béatrice,Reid,beatrix.reid@gmail.com,4385263003,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-17,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+18269588330,David,Crête,david.crete.4@gmail.com,5145713719,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,,true,true,true,true,true,true,6,1,1,0,0,4,true,true,true,false,true
+18269588331,Fabien,Marier,fab.marier@gmail.com,5819096499,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,false,true
+18269588333,Nicolas,Lachapelle Plamondon,ng.lachapelle@gmail.com,4184094029,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588335,Jocelyn,Labelle,josslabelle@hotmail.com,5149196320,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-01,true,true,true,true,true,true,4,1,1,0,0,2,true,true,true,true,true
+18269588337,Sara,Boissonnault,saraboissonnault@hotmail.com,4383491181,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-03-01,true,true,true,true,true,true,2,1,0,0,0,1,true,true,true,true,true
+18269588338,Jany,Lehoux,janylehoux@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588339,Zachary,Lefebvre,zach.lefebvre@live.fr,5142099053,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,3,1,0,0,0,2,true,true,true,false,false
+18269588342,Marie-Helene,Drolet,mh_drolet@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588344,Stéphann,Grégoire,Plongeestg@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588347,Dominic,Vautier,dominic.asur@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588348,Florent,Gascom,Florent.gascon@hotmail.com,5145865870,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18269588349,Nicolas,Léonard-Bouchard,nicoo15@live.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588351,Johanne,Bernard,jobernard0707@hotmail.com,8198164822,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588355,Sarah,Tanguay,sarah.tanguay@email.com,4182550814,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588356,Jasmin,Randlett,jasmin.randlett@gmail.com,5819999991,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588359,Steve,Drapeau,info@djskip.ca,5147063370,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,3,1,0,2,0,0,false,true,false,false,false
+18269588360,Dominique,Poisson,Dominique.poisson@dfo-mpo.gc.ca,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588363,Francine,Truong,francine.truong@hotmail.com,5145672855,Approuvé,Actif,true,verifie,2026-03-24,2029-03-24,2026-03-01,true,true,true,true,true,true,3,1,1,0,0,0,true,true,true,true,true
+18269588365,Benoit,Maréchal,benoit.marechal@live.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588367,Jonathan,Fortier,fortierjonathan@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588370,Sarah-Gabrielle,Ignatieff,sg.ignatieff@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588374,Francis,Bellegarde,francis.bellegarde@infc.gc.ca,4388827671,Approuvé,Actif,true,verifie,2026-03-04,2029-03-04,2026-03-01,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,true,true
+18269588375,Steve,Ralph,Srafaelli01@gmail.com,8198087299,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18269588376,Brandon,Luden,Brandonluden@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588378,Sébastien,Blais,sblaisfernandez@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588379,Jonathan,Lacasse,j22lacasse@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588382,Steve,Rouillier,s.rouillier24@gmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269588385,Francois,Hallé,francoishalle@sympatico.ca,5149230466,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,0,0,1,true,true,false,false,false
+18269588389,Jonathan,Leblanc,thewhitepage@hotmail.com,,Intérêt,Actif,false,en_attente,,,,false,false,false,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18269786170,Serge,Turcotte,serge_turcotte@hotmail.com,5145928490,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,1,0,4,0,0,true,true,false,false,false
+18269839709,Louis Philippe,Coulombe,super.louis@hotmail.com,5147159340,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-01,true,true,true,true,true,true,3,1,0,1,0,2,true,true,true,true,true
+18270165317,Marc,Boivin,marc.boivin@leqel.ca,4189319684,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270222549,Marlene,Levesque,marlene.levesque038@gmail.com,5145036938,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270242788,Dany,Caron,danycaron100@hotmail.com,4188203427,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270261182,Ulrich,Josserand,ulrichjj@icloud.com,5818883436,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270402041,Jonathan,Caron,caron009@gmail.com,8197639145,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270459865,Manon,Lavergne,manonlavergne32@gmail.com,8194417170,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270464898,Anouk,Dion,an.dion@hotmail.com,4185240342,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18270674226,Derek,Danis,derek.danis@gmail.com,8193606250,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18272246106,Gabrielle,Fontaine,gabriellefontaine16@gmail.com,8195719659,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18272825780,Mario,Taillon,sauvetageplage@gmail.com,5144976844,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,1,0,1,true,true,false,false,false
+18272933696,France,Leblanc,claire.france19@gmail.com,4503598544,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18272952766,Daniel,Truchon,dantruchon@yahoo.com,5142967262,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-01,true,true,true,true,true,true,7,1,1,0,5,0,true,true,true,true,true
+18273253126,Jean-François,Cloutier,1jeanfrancoiscloutier1@gmail.com,8199932568,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,4,0,0,true,true,false,false,false
+18274377346,Audrey,Dessureault,assembleparaudrey@gmail.com,8196994169,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18275867601,Martial,Laberge,mlaberge@royaume.com,4186906358,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,2,1,0,2,0,0,false,true,false,false,false
+18276033113,Stéphane,Huriet,shuriet@sopfeu.qc.ca,4185731531,Partenaires,Actif,true,en_attente,,,,true,true,true,true,false,false,2,1,1,0,0,0,false,true,true,false,false
+18279424125,Tapé Roméo,Zadi,taperomeo12@gmail.com,3433648502,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-01,true,true,true,true,true,true,2,1,0,1,0,0,true,true,true,true,true
+18281316451,Denis,Matton,denismatton54@gmail.com,4505510687,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18282201220,Cinthia,Gagnon,cinthia_gagnon@hotmail.com,4183300222,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18282880169,Stéphane,Jacques,Stja1966@hotmail.com,4184274747,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18282993163,Samuel,Bélanger,sam6_81@hotmail.com,5819958253,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18283802927,Sonia,Auger,bibi_og@hotmail.com,5145739311,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18286641333,Jean-Bastien,Houde,jeanbastienhoude@gmail.com,4382744325,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18288385123,Mathieu,Légaré,mlegare1982@gmail.com,4389277848,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18289135215,Thomas,Lebreux,thomas.lebreux@hotmail.com,4387647615,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18292443505,Karoline,Bergeron,karoline.bergeron@gmail.com,5148915912,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-01,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+18296665275,Andréanne,Sylvain,asylvain321@gmail.com,4182952092,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,1,0,1,true,true,false,false,false
+18297682762,Jérôme,Quintyn,jerome.quintyn@hotmail.com,8195805870,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18305001206,Alex,Robichaud,alexrobichaud07@outlook.com,4188179915,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,2,0,2,true,true,false,false,false
+18312437422,Jean Michel,Dupuis,jeanmichel.dupuis@gmail.com,5149283911,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18318680184,Jean-Max,St-Fleur,stfleurjeanmax@gmail.com,4389898329,Approuvé,Actif,true,verifie,2026-04-02,2029-04-02,2026-03-01,true,true,true,true,true,true,2,1,1,0,0,0,true,true,true,true,true
+18321707856,Martin,Sanfacon,martinsanfacon@outlook.com,8194729029,Approuvé,Actif,true,en_attente,,,2026-03-19,true,true,true,true,true,true,3,1,1,0,0,1,true,true,true,true,false
+18346924172,Alec,Blondin Stewart,alec.blondin.stewart@gmail.com,5819835058,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+18350587778,Alexandre,Villeneuve,villeneuve418@hotmail.ca,4182970569,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,3,0,0,0,0,3,false,false,false,false,false
+18354001442,Denis,Perrier,denis.perrier507@gmail.com,5142996853,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-03-01,true,true,true,true,true,true,6,2,1,1,0,3,true,true,true,true,true
+18356912925,Joey,Currie,directeurincendie@denholm.ca,8199625658,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18359568010,Dany,Appleby,danyappleby@hotmail.com,4185721736,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,1,1,0,0,0,0,false,true,false,false,false
+18360146123,Frederic,Vachon,vachonfrederic@gmail.com,4188068154,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18360148965,Eric,Paiement,e.pim.p@hotmail.com,8194362567,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18360226901,Geneviève,Bouchard,Bouchardgenevieve@icloud.com,5147137718,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18363253988,Charles,Deschênes-Potvin,war-charles@hotmail.ca,4186186037,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18366788263,Marc,Chassé,marc_chasse@hotmail.com,4188680522,Intérêt,Actif,false,en_attente,,,,true,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+18374572090,François,Bisson,fbisson7@gmail.com,5812463975,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-09,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,true,true
+18375603071,François,Denis,Francois.Denis@croixrouge.ca,,Partenaires,Actif,true,en_attente,,,,false,false,false,false,false,false,2,1,1,0,0,0,false,true,true,false,false
+18376037330,Denis,Gagné,Denis.Gagne@croixrouge.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18376037962,Sarah-Shan,Millier,Sarah-Shan.Millier@redcross.ca,,Retrait temporaire,Actif,true,en_attente,,,,false,false,false,false,false,false,1,0,1,0,0,0,false,false,true,false,false
+18376154008,Carol,Desrosiers,rechercheetsauvetagell@hotmail.com,5149270911,Approuvé,Actif,true,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,true,false,false
+19635168450,Manon,Boudreault,manonboudro@hotmail.com,4188184503,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+21314093988,Jasmin,Larouche,csimard200@gmail.com,4183217234,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,1,true,true,false,false,false
+21654948599,Michelle,Corcos,mcorcos@gmail.com,8196795178,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+22699667334,Robert,Fortin,ti.bon1967@hotmail.fr,,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+26443693762,Natasha,Villeneuve,nats2507@hotmail.com,5818824792,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,1,0,1,true,false,false,false,false
+27360959385,Simon,Trudeau,adaptaregion@gmail.com,8192781308,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,0,0,0,0,3,true,false,false,false,false
+27734477224,Louis,Mc Donald Blanchet,loumcdo2002@gmail.com,5819911630,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,0,0,0,0,3,true,false,false,false,false
+28679257398,Mona,Francoeur,mfrancoeur@mrcdescollines.com,8192309072,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,0,0,0,0,0,0,true,false,false,false,false
+29414994280,Berthin,Munger,bmunger1611@gmail.com,4183212465,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+30098112997,Robert,Fortin,ti.bob1967@hotmail.fr,4187205472,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+32235680320,Jean-François,Simard,skynet2040@hotmail.com,5812350219,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+32276188720,Dominic,Lapointe,lapointeplourde@hotmail.com,4187187306,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,false,4,1,0,1,0,3,false,true,false,false,false
+33726642320,Danny,Michaud,madamemisho@hotmail.com,4182936058,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,0,0,5,0,0,true,false,false,false,false
+33837936189,Olivier,Lancup,olivierlancup@yahoo.com,4386866420,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+34848215905,Michel,Asselin,asselinmichel6@gmail.com,5146046407,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+37029162294,Eve,Tremblay Morel,evetmorel@gmail.com,4184124806,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,5,1,0,5,0,0,true,true,false,false,false
+3c281c1e-4cd3-4d64-adec-42930f0fb3fe,Alexandre,Breton,abreton@sopfeu.qc.ca,4388073137,Partenaires,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+42464328644,Céléna,Tremblay-Villeneuve,kigne23@gmail.com,4183520667,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+44289674497,Sylvain,Dufour,dufoursylvain@hotmail.com,4188171099,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+46481451945,Kelly,Launière,launiere5012@live.ca,4188799666,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+49085709463,François,Corbeil,biquette@live.ca,4187194682,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+49686800883,Alexandre,Grenon,alexandre-grenon@hotmail.com,5815746144,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,3,0,0,true,true,false,false,false
+50554551918,Pierre,Duchesne,pierrehonda30@hotmail.com,5814452086,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,3,0,0,true,true,false,false,false
+50866332030,Mathieu,Paquin,mathieu.paquin030406@gmail.com,5143485456,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+52472778474,Serge,Pelletier,sergepelletier1969@gmail.com,4182974777,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+52623600115,Nicolas,Gagnon,nigag1759@gmail.com,4189298285,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,false,false,false
+52691335365,Ayoub,El Ghoudane,techincendie96@gmail.com,5146084036,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,0,0,0,0,4,true,false,false,false,false
+53066163976,Pascal,Morin,pascalmorin24@gmail.com,5815748985,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,4,1,0,1,0,3,true,true,false,false,false
+55417471453,Robert,Boudreault,robertboudreault@bell.net,8195768466,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,0,true,true,false,false,false
+55627553930,Dave,Bouchard,gold_men1@hotmail.com,4182181444,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+55982473014,Maryse,Gagné,maryse13.gagne@gmail.com,4182973451,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+57079174731,Test,Inscription Camp,dany.chaput+test@aqbrs.ca,,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+57282635108,Mathieu,Turcotte,ve2ogc@outlook.com,5812351187,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,0,true,true,false,false,false
+57778021046,David,Lavoie,lavoiedavid915@gmail.com,4188176021,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+59224421582,Marco,Morissette,marcomorissette@hotmail.ca,5819740118,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,3,0,0,true,true,false,false,false
+59355620597,Jean-François,Circé,jfrancoiscirce@gmail.com,5143891117,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+60275667006,Marc-Andre,Laroche,marc_andre_laroche@hotmail.com,5814476319,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,false,false,false
+60747890646,Wesley,Landry,wesley.j.landry@gmail.com,4185401428,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+61493161275,Alexandre,Simard,carpenter12@hotmail.fr,4187192656,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,7,1,0,3,0,4,true,true,false,false,false
+61717514976,Maxime,Butts-Tremblay,maxbutts@outlook.fr,5145949007,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+64506285844,Gabriel,Hamel,gabriel_hamel_bolduc@hotmail.com,5819850702,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,4,0,0,0,0,4,false,false,false,false,false
+64952531517,Cheri,Seng,sercricher@hotmail.com,4183767794,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+66634304326,Mikael,Tardif,mik_40@hotmail.com,4182627128,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,2,0,0,true,false,false,false,false
+66820572158,Annick,Leclerc,annickdesigner@hotmail.com,4183769857,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,false,false,false
+67648135948,Laurent,Joseph,ljoseph@sopfeu.qc.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+68036395834,Édouard,Savoie,esavoie@sopfeu.qc.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+69022244799,Test,Delete,dany.chaput@test-aqbrs.ca,5145557964,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+72347385840,Laurie,Simard,lauriesimard96@hotmail.com,4187207037,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+72668286179,Danis,Rouleau,danis.rouleau@videotron.ca,4185691572,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+74035924292,Philippe,Beaudry,philippe.beaudry@globodrone.com,8192080340,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+74696095909,Josée,Demers,jodemers@sopfeu.qc.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+75b53971-21ee-4c07-90cd-e8b63353b55f,Edouard,Savoir,esavoir@sopfeu.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+76952015583,Antoine,Guilbault-Houde,antoine.guilbaulthoude@gmail.com,5147788711,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,2,0,1,true,true,false,false,false
+77612324479,Benjamin,Beaupre,dogofdoom@live.ca,5812307120,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+78123250603,Dany,Clement,investissement.danyclement@gmail.com,5815799098,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+78422835535,Mathieu,Tremblay,themecanicdc5@outlook.com,4187202545,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+78804848832,Pierre luc,Cantin,plcantin@hotmail.ca,4189555152,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,8,0,0,0,0,8,true,false,false,false,false
+79548935342,Jacynthe,Brassard,jacynthe_brassard@hotmail.com,4186371448,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+79563022232,Marc-Antoine,Larouche,marcantoinelarouche99@gmail.com,4187207971,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,false,false,false
+79716857053,Sarah,Maitre,sarah.j.t.maitre@gmail.com,5816686842,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+79859338560,Laurence,Lacerte,laurencelacerte@gmail.com,4182900835,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+7d41fd36-119a-4fc4-9466-ec4197085dba,Joshua,Ménard-Suarez,joshua.menard-suarez@msp.gouv.qc.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+80586572052,Marlyn,Bouchard,marlynbouchard25@gmail.com,5814473550,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+83753096612,Steeve,Gagnon,chabot32@live.ca,4187328996,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+84730817187,Eric,Hani,erichani@hotmail.com,5146555807,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+85352978231,Kévin,Bégin,beginkevin22@hotmail.com,5819995321,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,false,false,false
+85712092817,Charles,Grenon,charles.grenon@outlook.com,4384689442,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,0,0,2,0,2,true,false,false,false,false
+8733021666,Guy,Lapointe,aqbrs1@gmail.com,4505304770,Approuvé,Actif,true,verifie,2026-03-14,2029-03-14,,true,true,true,true,true,true,8,1,3,1,0,3,true,true,true,false,true
+8733490072,Olivier,Jolicoeur,oligym.jolicoeur@gmail.com,4388317249,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-22,true,true,true,true,true,true,3,1,0,2,0,0,true,true,true,true,true
+8733520698,Jonathan,Dupuis,jonathandupuis.quebecsecours@hotmail.com,4507509138,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-02-25,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,true,true
+8733555892,Joey,Courcelles,joey.courcelles@gmail.com,4506750663,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-30,true,true,true,true,true,true,5,1,0,4,0,0,true,true,true,true,true
+8733595477,Hélène,Bernier,bernierhelene@gmail.com,4189553398,Approuvé,Actif,true,verifie,2026-03-09,2029-03-09,2026-02-24,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+8733663327,Marianne,Marcotte,mariannetremblay0@gmail.com,5814471085,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,,true,true,true,true,true,true,5,1,1,0,0,2,true,true,true,false,true
+8733718454,Cindy,Marcil,mccindy20@hotmail.com,5146612732,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,2026-03-30,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+8733820506,Pascal,Savard,savard_pascal@hotmail.com,8196352502,Approuvé,Actif,true,verifie,2026-03-19,2029-03-19,2026-03-17,true,true,true,true,true,true,5,1,0,4,0,0,true,true,true,true,true
+8733901452,Mario,Ferland,gestionmarioferland@gmail.com,4188019504,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,,true,true,true,true,true,true,5,1,1,3,0,1,true,true,true,false,true
+8733945336,Daven,Noel,d.noel@live.ca,4182099580,Approuvé,Actif,true,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,true,false,false
+8733965562,Danielle,Charest,daniellecha12@hotmail.com,8195668403,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-04-07,true,true,true,true,true,true,5,1,2,2,0,1,true,true,true,true,true
+8734058699,Félix,Milot,felixmilot@hotmail.com,4388283332,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,,true,true,true,true,true,true,3,1,0,1,0,1,true,true,true,false,true
+8734078736,Genevieve,Bisson,genevieve-bisson@hotmail.com,4187740384,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-03-10,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,true,true
+8734083495,Marie,Cauchon,mcauchon@videotron.ca,4188344001,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-02-28,true,true,true,true,true,true,6,1,2,2,0,0,true,true,true,true,true
+8734156258,Jacques,Goulet,jacques.goulet66@outlook.com,8198601917,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,,true,true,true,true,true,true,6,1,1,4,0,0,true,true,true,false,true
+8734223951,Sebastien,Bolduc,sebastien.bolduc@rsestrie.org,4185757033,Approuvé,Actif,true,verifie,2026-03-04,2029-03-04,2026-04-21,true,true,true,true,true,true,6,1,1,5,0,3,true,true,true,true,true
+8734513495,Jean,Huot,jeanhuotjh@gmail.com,4188052289,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-02-27,true,true,true,true,true,true,4,1,0,2,0,1,true,true,true,true,true
+8734547954,Tom,Cortado,tomcortado@outlook.fr,5816686842,Approuvé,Actif,true,verifie,2026-04-17,2029-04-17,2026-04-08,true,true,true,true,true,true,6,1,1,0,0,3,true,true,true,true,true
+8734683153,Scott,Ednie,edniescott@gmail.com,4385181852,Approuvé,Actif,true,verifie,2026-03-21,2029-03-21,2026-02-24,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,true,true
+8735043379,Rosalind,Barrington Craggs,rosalind.bc@gmail.com,4386305206,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-16,true,true,true,true,true,true,5,1,1,4,0,0,true,true,true,true,true
+8735176892,Mario,Beauchemin,mbrse@icloud.com,8196741812,Approuvé,Actif,true,verifie,2026-03-03,2029-03-03,2026-03-06,true,true,true,true,true,true,4,1,1,1,0,1,true,true,true,true,true
+8735225573,Manon,Goudreau,manon.goudreau@hotmail.com,4189330500,Approuvé,Actif,true,verifie,2026-03-14,2029-03-14,2026-02-23,true,true,true,true,true,true,7,1,1,5,0,0,true,true,true,true,true
+8735476875,Marcel,Côté,cote.marcel@hotmail.com,4187301588,Approuvé,Actif,true,en_attente,,,2026-03-12,true,true,true,true,true,true,5,1,1,2,0,1,true,true,true,true,false
+8735660126,Melissa,Chaptini,chaptinimelissa@gmail.com,5149651090,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-03-30,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,true,true
+8735956184,René,Roy,reneroy11@telus.net,4187507844,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-05,true,true,true,true,true,true,2,1,0,2,0,0,true,true,true,true,true
+8736463988,Mario,L'Archevêque,canard-caza@live.ca,8196991136,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-13,true,true,true,true,true,true,6,0,2,2,1,3,true,false,true,true,true
+8737006784,Jean-Guy,Paris,parisjeanguy@gmail.com,8199608600,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-02-26,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,true,true
+8737031352,Martin,Chicoine,martinchicoine1@outlook.com,5142950927,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-23,true,true,true,true,true,true,5,1,1,2,1,0,true,true,true,true,true
+8737391555,Christophe,Guillemette-Leclerc,christopheguillemetteleclerc@gmail.com,5149736047,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-30,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+8737588361,Daniel,Ouellette,ouelletted03@gmail.com,8199930724,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-15,true,true,true,true,true,true,6,1,1,4,0,0,true,true,true,true,true
+8737669521,David,Tremblay,davidos101@hotmail.com,5819907976,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,3,0,1,0,0,2,true,false,true,false,false
+8737868185,Guy,Fournier,guy.fournier@videotron.ca,8195714192,Approuvé,Actif,true,en_attente,,,2026-03-16,true,true,true,true,true,true,7,1,1,2,0,2,true,true,true,true,false
+8738003813,Audrey,Williams,audreywilli@icloud.com,5148930071,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-09,true,true,true,true,true,true,8,1,0,6,0,0,true,true,true,true,true
+8738028204,Jacques,Boily,jacoboily@icloud.com,5143868090,Approuvé,Actif,true,verifie,2026-03-10,2029-03-10,2026-03-11,true,true,true,true,true,true,7,1,0,6,0,0,true,true,true,true,true
+8738174928,Dany,Chaput,dany.chaput@aqbrs.ca,8195717313,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,,true,true,true,true,true,true,13,1,7,4,0,0,true,true,true,false,true
+8738241665,Lisa,Morin,lalisa33@yahoo.com,8195706659,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,,true,true,true,true,true,true,2,1,0,1,0,0,true,true,true,false,true
+8738289164,Valérie,Lacroix,valerie_lacroix_@outlook.com,4507750769,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-08,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,true,true
+8738462032,Kevin,Morin,kevinmorin916@hotmail.com,8194758336,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,5,0,1,0,0,3,true,false,true,false,false
+8738468971,François,Arsenault,farsenault@videotron.ca,4184560528,Approuvé,Actif,true,verifie,2026-02-25,2029-02-25,2026-02-25,true,true,true,true,true,true,7,2,0,6,0,0,true,true,true,true,true
+8738619404,Thierry,Gaudron,formation@sauvetage02.org,4185405360,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,,true,true,true,true,true,true,6,1,1,3,0,2,true,true,true,false,true
+8738754583,Alan,Besco,alanbesco@hotmail.com,4189033467,Approuvé,Actif,true,verifie,2026-03-03,2029-03-03,2026-03-18,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,true,true
+8738948324,Stéphane,Charbonneau,rongalf.3786@gmail.com,5148385261,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,,true,true,true,true,true,true,7,2,1,0,0,4,true,true,true,false,true
+8739099254,Christian,Duguay,cduguay19@gmail.com,8193505666,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-06,true,true,true,true,true,true,5,1,1,4,0,0,true,true,true,true,true
+8741197792,Sylvie-Anne,Bureau,sabureau@hotmail.com,5819900401,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,,true,true,true,true,true,true,5,1,1,1,0,2,true,true,true,false,true
+8741253110,Éric,Laviolette,ericlaviolette29@gmail.com,8193492901,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-10,true,true,true,true,true,true,5,1,1,2,0,1,true,true,true,true,true
+8741293826,Martin,Pruneau,martpru72@hotmail.com,4185403016,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,,true,true,true,true,true,true,6,1,1,3,0,1,true,true,true,false,true
+8741363257,Christian,Mercure,cmercure@uqac.ca,5812342889,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-18,true,true,true,true,true,true,5,1,1,2,0,1,true,true,true,true,true
+8742168972,Jean-Pierre,Tremblay,jeanpierretremblay88@sympatico.ca,4189511774,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-02-28,true,true,true,true,true,true,4,1,1,1,1,0,true,true,true,true,true
+8743285603,Stéphanie,Déragon,stephaniedrechercheetsauvetage@gmail.com,8195786094,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,3,1,1,1,0,1,true,true,true,false,false
+8743728630,Camille,Héroux,camilleheroux@outlook.com,4388889441,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-02-23,true,true,true,true,true,true,2,1,1,1,0,0,true,true,true,true,true
+8744417800,Pierre-André,Therrien,therrienpa@gmail.com,8196749240,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,2026-03-12,true,true,true,true,true,true,3,1,0,3,0,1,true,true,true,true,true
+8747508364,Chantal,Laliberté,rosedvents@hotmail.com,5149498861,Approuvé,Actif,true,en_attente,,,2026-03-17,true,true,true,true,true,true,3,0,0,0,0,2,true,false,true,true,false
+8747885475,Danny,Thériault,dtheriault14@gmail.com,8195788016,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-18,true,true,true,true,true,true,3,1,0,1,0,1,true,true,true,true,true
+8748409832,Alain,Tessier,altess22@outlook.com,5813053617,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,2026-03-20,true,true,true,true,true,true,5,1,1,2,0,1,true,true,true,true,true
+8748466118,William,Des Rivières,desrivieres96@gmail.com,5145756097,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,0,1,0,0,2,true,false,true,false,false
+8748786235,Philippe,Lambert,plambert.contact@gmail.com,9054836063,Approuvé,Actif,true,en_attente,,,2026-03-08,true,true,true,true,true,true,6,1,0,4,0,1,true,true,true,true,false
+8750432283,Stephanie,Paquette,paquettestephanie@yahoo.fr,5817771727,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,5,1,1,1,0,2,true,true,true,false,false
+8752266871,Gabriel,Dion,dion.gabriel100@gmail.com,4385302683,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-30,true,true,true,true,true,true,6,1,1,2,0,0,true,true,true,true,true
+8752947762,Marvin,Vauge,wmarvin035@gmail.com,4384103997,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,1,1,3,0,0,true,true,true,false,false
+8754352613,Jean-François,Canciani,jf_canciani@hotmail.com,4388893334,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,2026-03-11,true,true,true,true,true,true,4,1,0,1,0,2,true,true,true,true,true
+8754419012,Sami-Ayad,Bachir,sami-bs@hotmail.com,5149943295,Approuvé,Actif,true,verifie,2026-03-04,2029-03-04,,true,true,true,true,true,true,6,1,1,1,0,3,true,true,true,false,true
+8757106455,Marie-Claude,Daoust,mcdaoust44@gmail.com,4505673230,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,,true,true,true,true,true,true,4,1,0,1,0,2,true,true,true,false,true
+8757738255,Jimmy,Emond,jimmy.emond@gmail.com,4189990646,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-04-10,true,true,true,true,true,true,5,1,1,1,0,3,true,true,true,true,true
+8757853352,Robert,Auger,a.robert22222@gmail.com,6137200946,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,1,1,1,0,1,true,true,true,false,false
+8757932623,Vincent,Lessard,vlessardca@Gmail.com,4185640144,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,,true,true,true,true,true,true,7,1,1,1,0,4,true,true,true,false,true
+8758311093,Jean,Labbé,jeanlou.lapins@videotron.ca,8197407314,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-03-17,true,true,true,true,true,true,3,1,0,1,0,0,true,true,true,true,true
+8758640625,Luc,Prevost,L450pr@gmail.com,5142463664,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,2026-03-15,true,true,true,true,true,true,4,1,1,3,0,0,true,true,true,true,true
+8758876135,Daniel,Gosselin,daniel-gosselin@hotmail.com,4182612238,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,,true,true,true,true,true,true,7,1,1,0,0,4,true,true,true,false,true
+8759013723,Dany,Héon,heond@hotmail.com,4187500120,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-05,true,true,true,true,true,true,3,1,0,2,0,0,true,true,true,true,true
+8759824387,Sylvain,Boisjoly,sboisjoly@videotron.ca,4185694482,Approuvé,Actif,true,verifie,2026-03-15,2029-03-15,2026-03-14,true,true,true,true,true,true,3,1,0,2,0,0,true,true,true,true,true
+8759945025,Claude,Marois,Claudemarois4@gmail.com,4186676225,Approuvé,Actif,true,verifie,2026-03-25,2029-03-25,,true,true,true,true,true,true,4,1,0,2,0,2,true,true,true,false,true
+8759999268,Alain,Desaulniers,lesalain2010@hotmail.com,8192690952,Approuvé,Actif,true,verifie,2026-03-13,2029-03-13,2026-03-18,true,true,true,true,true,true,5,1,1,3,0,0,true,true,true,true,true
+8760430056,Keven,Rioux,riouxkeven12@hotmail.com,5819998376,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,2026-03-15,true,true,true,true,true,true,5,1,1,0,0,2,true,true,true,true,true
+8760885732,Pierluc,Seguin,pseguin@sbo-ovsar.ca,6132944499,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,5,0,1,0,0,3,true,false,true,false,false
+8761216828,Gert-Jan,Lamers,lamers@me.com,5819966952,Formation incomplète,Actif,true,en_attente,,,,true,true,true,true,true,true,2,0,0,0,0,1,true,false,true,false,false
+8761285518,Nancy,Bisson,mmechocolat@hotmail.com,8195706207,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-17,true,true,true,true,true,true,3,1,1,1,0,0,true,true,true,true,true
+8763960691,Michael,Cormier,mcormier1@bell.net,5819935433,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-07,true,true,true,true,true,true,4,1,1,2,0,0,true,true,true,true,true
+8765810939,Jason,Chapdelaine,chapdelainejason@hotmail.com,5813086050,Approuvé,Actif,true,verifie,2026-03-15,2029-03-15,2026-02-25,true,true,true,true,true,true,7,1,2,2,0,2,true,true,true,true,true
+8767784364,Annie,Lacroix,annie.lacroix@hotmail.com,4507190737,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-30,true,true,true,true,true,true,6,1,1,3,0,1,true,true,true,true,true
+8768447395,Isabelle,Robert,irobert@sbo-ovsar.ca,8192103835,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-02-26,true,true,true,true,true,true,4,1,0,4,0,0,true,true,true,true,true
+8770186626,Elisa,Rietzschel,elisa.rietzschel@gmail.com,4504332527,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-02-28,true,true,true,true,true,true,3,1,1,1,0,1,true,true,true,true,true
+8770547220,Gerard (Jerry),Drouin,jerrydrouin58@gmail.com,4385012449,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-06,true,true,true,true,true,true,5,1,1,3,0,1,true,true,true,true,true
+8772054384,Héloise,Dostie,heloise.dostie@gmail.com,5819950869,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-03-08,true,true,true,true,true,true,3,1,1,1,0,1,true,true,true,true,true
+8772425774,Eric,Tessier,securitecrow@gmail.com,5148203279,Approuvé,Actif,true,verifie,2026-03-23,2029-03-23,2026-03-30,true,true,true,true,true,true,4,1,0,2,0,1,true,true,true,true,true
+8774121326,Celine,Ouattara,celine.ouattara@gmail.com,4383463715,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-13,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,true,true
+8774275110,Olivier,Thériault,olithe@gmail.com,4188911170,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-03-16,true,true,true,true,true,true,4,1,0,3,0,0,true,true,true,true,true
+8779769942,Pierre,Gagnon,pierrogagnon@hotmail.com,4187308044,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-03-06,true,true,true,true,true,true,5,1,1,4,0,0,true,true,true,true,true
+8786433845,Carole,Corson,carole.corson@hotmail.com,4188633336,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,,true,true,true,true,true,true,8,1,2,5,0,1,true,true,true,false,true
+8791675296,Claude,Tourville,tourville.claude@gmail.com,5148959953,Approuvé,Actif,true,verifie,2026-03-24,2029-03-24,2026-03-19,true,true,true,true,true,true,4,0,1,0,0,2,true,false,true,true,true
+8818093332,Renaude,Samson,renaudesamson@hotmail.com,4185512879,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-18,true,true,true,true,true,true,5,1,1,4,0,3,true,true,true,true,true
+8825487830,Denis,Tessier,tessierd587@gmail.com,4505122566,Approuvé,Actif,true,verifie,2026-04-08,2029-04-08,,true,true,true,true,true,true,2,0,1,0,0,1,true,false,true,false,true
+8837525127,Martin,Simard,martinsimard999@gmail.com,4184563808,Approuvé,Actif,true,verifie,2026-03-30,2029-03-30,2026-03-22,true,true,true,true,true,true,6,1,1,3,0,1,true,true,true,true,true
+88449471091,E2E,Admin,e2e-admin@aqbrs.ca,,Partenaires,Actif,false,verifie,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,true
+88784481808,Andrée,Moreau,amoreau007@gmail.com,5812352311,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,1,1,0,1,0,0,false,true,false,false,false
+8897168296,Jean,Lefebvre,jeanlefebvre1@hotmail.ca,8195713412,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,3,0,1,0,0,1,true,false,true,false,false
+8899917265,Daniel,Martin,danielmartin1@telus.net,4187503143,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-11,true,true,true,true,true,true,3,1,0,2,0,0,true,true,true,true,true
+8925467645,Martin,Roy,martroy@live.ca,8198163464,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,2,0,1,0,0,1,true,false,true,false,false
+8931473843,Clémence,Godon,clemence.godon@outlook.com,4185517641,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,1,1,0,0,1,true,true,true,false,false
+8931669386,Jocelyne,Picotin,juju99picotin@gmail.com,8736611332,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-03-19,true,true,true,true,true,true,3,1,0,1,0,1,true,true,true,true,true
+8952956618,Francine,Chaput,fchaput303@gmail.com,4508223484,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-03-11,true,true,true,true,true,true,3,1,0,3,0,0,true,true,true,true,true
+8953522302,Alexis,Rollin,alexis209@hotmail.com,8732005482,Approuvé,Actif,true,verifie,2026-03-17,2029-03-17,2026-03-19,true,true,true,true,true,true,6,1,0,3,0,1,true,true,true,true,true
+8954328509,Sophie,Pellerin,sophiepellerin18@gmail.com,6139817342,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,0,1,0,0,3,true,false,true,false,false
+8954458833,Christian,Mireault,christianmireault@hotmail.ca,5149686596,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,2026-03-18,true,true,true,true,true,true,10,0,1,2,0,5,true,false,true,true,true
+8954662554,Philip,Daoust,philip.daoust@gmail.com,7782280445,Approuvé,Actif,true,en_attente,,,2026-03-21,true,true,true,true,true,true,3,1,0,1,0,2,true,true,true,true,false
+8955227558,Félix,Vanier,felixvanier27@gmail.com,4388694729,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,2,0,0,0,0,1,true,false,true,false,false
+89649203778,William,Bouchard-Tremblay,williambt663@live.ca,5812359251,Intérêt,Actif,false,en_attente,,,,false,true,true,true,true,true,3,1,0,2,0,1,false,true,false,false,false
+8968424903,Jacques,Dumont,jacquesdumont10@outlook.fr,4187238997,Approuvé,Actif,true,verifie,2026-03-14,2029-03-14,2026-03-14,true,true,true,true,true,true,3,0,1,0,0,1,true,false,true,true,true
+8969940808,Catherine,Brousseau,renetane@hotmail.com,4188943001,Approuvé,Actif,true,verifie,2026-03-11,2029-03-11,2026-03-05,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,true,true
+8970263650,Jean-Marc,Tétreault-Renaud,jmarc.trenaud@gmail.com,5144757441,Approuvé,Actif,true,verifie,2026-03-24,2029-03-24,2026-03-30,true,true,true,true,true,true,7,1,0,4,0,5,true,true,true,true,true
+8977711380,Catherine,Roberge,catherinebw1997@outlook.com,8193888458,Approuvé,Actif,true,verifie,2026-04-15,2029-04-15,,true,true,true,true,true,true,3,1,0,1,0,2,true,true,true,false,true
+8977753626,Dong Pivoine,Van,kvan@sbo-ovsar.ca,3439997966,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,4,1,0,1,0,2,true,true,true,false,false
+8977764118,Rehan,Mian,mian_r@hotmail.com,5143485329,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-23,true,true,true,true,true,true,6,1,2,3,0,0,true,true,true,true,true
+8978756430,Raynald,Leclerc,raynald.leclerc.siucq@gmail.com,8196995773,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,,true,true,true,true,true,true,5,1,1,1,0,1,true,true,true,false,true
+8980192843,Catherine,Chouinard-Litalien,cath.chouli@gmail.com,5147170565,Approuvé,Actif,true,verifie,2026-03-20,2029-03-20,,true,true,true,true,true,true,3,1,1,2,0,0,true,true,true,false,true
+8981472209,Jacinthe,Tremblay,tremblayjacinthe@hotmail.com,8195368885,Approuvé,Actif,true,verifie,2026-03-18,2029-03-18,2026-03-18,true,true,true,true,true,true,2,0,0,2,0,2,true,false,true,true,true
+8982652302,Sylvain,Julien,s.julien00@gmail.com,5142202969,Approuvé,Actif,true,verifie,2026-03-14,2029-03-14,2026-03-12,true,true,true,true,true,true,6,1,1,1,0,3,true,true,true,true,true
+8983182181,Charles,Dessureault,entreprisedar@hotmail.com,8196909672,Approuvé,Actif,true,verifie,2026-04-07,2029-04-07,,true,true,true,true,true,true,3,0,1,0,0,1,true,false,true,false,true
+8983864464,Lixia,Ye,rsll303@hotmail.com,5145463668,Approuvé,Actif,true,en_attente,,,2026-03-18,true,true,true,true,true,true,2,0,0,0,0,1,true,false,true,true,false
+8993601679,Gwennyth,Carroll,gwennyth.carroll@yahoo.ca,6476360977,Approuvé,Actif,true,verifie,2026-03-29,2029-03-29,,true,true,true,true,true,true,3,1,0,2,0,0,true,true,true,false,true
+8993877020,Carole,Desrosiers,c.desrosiers14@hotmail.com,5149270911,Approuvé,Actif,true,en_attente,,,2026-03-23,true,true,true,true,true,true,4,0,0,0,0,4,true,false,true,true,false
+8995843972,Serge,Cote,cotese04@cgocable.ca,8194724642,Approuvé,Actif,true,verifie,2026-03-12,2029-03-12,2026-02-27,true,true,true,true,true,true,4,1,0,1,0,2,true,true,true,true,true
+8998468261,Jacques,Bedard,jbedard06@hotmail.com,8193576613,Approuvé,Actif,true,verifie,2026-03-27,2029-03-27,2026-02-26,true,true,true,true,true,true,3,0,1,2,0,0,true,false,true,true,true
+9001807604,Daniel,LaBranche,dlabranche@cooptel.qc.ca,8194712098,Approuvé,Actif,true,verifie,2026-03-25,2029-03-25,2026-03-25,true,true,true,true,true,true,3,0,1,0,0,2,true,false,true,true,true
+9010647396,Yves,Gareau,yvesgareau05@hotmail.com,8196049298,Approuvé,Actif,true,verifie,2026-03-16,2029-03-16,2026-03-06,true,true,true,true,true,true,3,1,1,1,0,1,true,true,true,true,true
+9014455054,Nelson,Eddingfield,eddingfield@gmx.com,8193294653,Approuvé,Actif,true,en_attente,,,2026-03-23,true,true,true,true,true,true,4,1,0,0,0,2,true,true,true,true,false
+9032415711,Francis,Durette,francisdurette@hotmail.com,8196995005,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,1,0,0,0,0,1,true,false,true,false,false
+9064533045,Danny,Martel,d.martel@siucq.net,8194716847,Approuvé,Actif,true,en_attente,,,,true,true,true,true,true,true,5,0,1,0,0,4,true,false,true,false,false
+9108719239,Carlie,Boisvert,carlie.boisvert@hotmail.com,8733548528,Approuvé,Actif,true,en_attente,,,2026-03-18,true,true,true,true,true,true,4,0,1,0,0,2,true,false,true,true,false
+93284210436,Stéphane,Allaire,stephane.allaire.rt@gmail.com,4188181988,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,6,1,0,4,0,2,true,true,false,false,false
+93520948947,Steeve,Soucy,steeve.soucy@gmail.com,4182965364,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,3,1,0,3,0,0,true,true,false,false,false
+94525202694,Jonathan,Després,jonathan_despres@yahoo.com,5147128057,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,1,1,0,1,0,0,true,true,false,false,false
+94876302704,Portail,AQBRS (Secours),portail@aqbrs.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+94972758216,Laura-Pascal,Tremblay,laurapascaltremblay@outlook.fr,4183763941,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+95274056038,Matthieu,Tremblay,team35mat@gmail.com,3673484617,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+95352964168,Marie,Villeneuve,marievilleneuve38@gmail.com,4184902517,Intérêt,Actif,false,en_attente,,,,false,true,true,true,false,false,0,0,0,0,0,0,false,false,false,false,false
+96234911965,Sabrina,Marceau,sabmarceau@hotmail.com,4188126284,Intérêt,Actif,false,en_attente,,,,true,true,true,true,true,true,2,1,0,1,0,1,true,true,false,false,false
+9950725846,Serge,Coiteux,serge.coiteux@icloud.com,5819881206,Approuvé,Actif,true,verifie,2026-03-26,2029-03-26,2026-03-20,true,true,true,true,false,false,1,1,0,0,0,0,false,true,true,true,true
+ad2283b3-3c60-433f-bc11-43297a380856,Vincent,Duquette,vincent.duquette02@msp.gouv.qc.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+c94683f2-29a3-414b-a2c1-2b420fabb7f6,Corinne,Doré,Corinne.Dore@croixrouge.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
+d0032b63-1e88-4fc5-bc85-2da05e1d9ee3,Guillaume,Auclair,guillaume.auclair@msp.gouv.qc.ca,,Partenaires,Actif,false,en_attente,,,,false,false,false,false,false,false,0,0,0,0,0,0,false,false,false,false,false
