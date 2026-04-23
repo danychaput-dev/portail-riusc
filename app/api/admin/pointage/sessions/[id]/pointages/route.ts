@@ -44,11 +44,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
   if (!session) return NextResponse.json({ error: 'Session introuvable' }, { status: 404 })
 
-  // Si partenaire(_lect), restreindre : il peut voir seulement les sessions
-  // dont il est l'approuveur désigné (ou lecture si partenaire_lect)
-  if ((user.role === 'partenaire' || user.role === 'partenaire_lect') && session.approuveur_id !== user.benevole_id) {
-    return NextResponse.json({ error: 'Accès restreint à vos sessions' }, { status: 403 })
-  }
+  // Aucune restriction par approuveur_id: tous les admin/superadmin/coordonnateur/
+  // partenaire/partenaire_lect peuvent voir les pointages de n'importe quelle session.
+  // Justification (2026-04-23): les partenaires doivent pouvoir approuver pour leurs
+  // collègues (ex: Laurence SOPFEU absente le samedi, un autre partenaire prend le relais).
 
   // Approbateur info
   let approuveur = null
@@ -108,10 +107,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     .eq('id', sessionId)
     .single()
   if (!session) return NextResponse.json({ error: 'Session introuvable' }, { status: 404 })
+  // partenaire_lect reste en lecture seule (ne peut pas créer un pointage manuel)
   if (user.role === 'partenaire_lect') return NextResponse.json({ error: 'Lecture seule' }, { status: 403 })
-  if (user.role === 'partenaire' && session.approuveur_id !== user.benevole_id) {
-    return NextResponse.json({ error: 'Accès restreint à vos sessions' }, { status: 403 })
-  }
+  // partenaire (écriture) peut créer pour n'importe quelle session (pas de restriction approuveur_id)
 
   // Vérif benevole existe
   const { data: benef } = await supabaseAdmin

@@ -64,11 +64,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     .single()
   if (!session) return NextResponse.json({ error: 'Session introuvable' }, { status: 404 })
 
-  if (user.role === 'partenaire_lect' || user.role === 'partenaire') {
-    if (session.approuveur_id !== user.benevole_id) {
-      return NextResponse.json({ error: 'Accès restreint' }, { status: 403 })
-    }
-  }
+  // Aucune restriction par approuveur_id pour les partenaires (2026-04-23):
+  // tout partenaire peut exporter les pointages (cas: Laurence absente, collègue
+  // partenaire prend le relais).
 
   let query = supabaseAdmin
     .from('pointages')
