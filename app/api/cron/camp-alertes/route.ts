@@ -89,11 +89,19 @@ function escapeHtml(s: unknown): string {
   }[c]!))
 }
 
+// presence_avant = NULL signifie une nouvelle inscription (INSERT, pas UPDATE)
+function isNouvelleInscription(c: Changement): boolean {
+  return c.presence_avant === null || c.presence_avant === undefined
+}
+
 function buildSubject(c: Changement): string {
   const nom = c.prenom_nom || 'Reserviste'
+  const camp = c.camp_nom || 'Camp'
+  if (isNouvelleInscription(c)) {
+    return `[RIUSC] Nouvelle inscription: ${nom} (${c.presence_apres || 'confirme'}) · ${camp}`
+  }
   const av = c.presence_avant || '(vide)'
   const ap = c.presence_apres || '(vide)'
-  const camp = c.camp_nom || 'Camp'
   return `[RIUSC] ${nom} : ${av} -> ${ap} · ${camp}`
 }
 
@@ -101,9 +109,11 @@ function buildHtml(c: Changement): string {
   const heuresAvant = typeof c.heures_avant_camp === 'number'
     ? Math.round(c.heures_avant_camp)
     : null
+  const nouvelle = isNouvelleInscription(c)
+  const titre = nouvelle ? 'Nouvelle inscription au camp' : 'Changement d\'inscription camp'
   const bandeauSousTitre = heuresAvant !== null
     ? `A ${heuresAvant}h du debut du camp`
-    : 'Changement d\'inscription'
+    : (nouvelle ? 'Nouveau participant' : 'Changement d\'inscription')
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -112,15 +122,15 @@ function buildHtml(c: Changement): string {
 <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:24px 16px;">
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-<tr><td style="background:linear-gradient(135deg,#92400e 0%,#b45309 100%);padding:24px 32px;">
-<h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">Changement d'inscription camp</h1>
+<tr><td style="background:linear-gradient(135deg,${nouvelle ? '#065f46 0%,#047857' : '#92400e 0%,#b45309'} 100%);padding:24px 32px;">
+<h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:700;">${escapeHtml(titre)}</h1>
 <p style="margin:4px 0 0 0;color:rgba(255,255,255,0.85);font-size:13px;">${escapeHtml(bandeauSousTitre)}</p>
 </td></tr>
 <tr><td style="padding:24px 32px;">
 <table width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">Reserviste :</strong> <span style="color:#111827;">${escapeHtml(c.prenom_nom)}</span></td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">Courriel :</strong> ${c.reserviste_courriel ? `<a href="mailto:${escapeHtml(c.reserviste_courriel)}" style="color:#2563eb;">${escapeHtml(c.reserviste_courriel)}</a>` : '<em style="color:#9ca3af">non renseigne</em>'}</td></tr>
-<tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">Changement :</strong> <code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;">${escapeHtml(c.presence_avant || '(vide)')}</code> -> <code style="background:#fef3c7;padding:2px 8px;border-radius:4px;">${escapeHtml(c.presence_apres || '(vide)')}</code></td></tr>
+<tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">${nouvelle ? 'Statut initial' : 'Changement'} :</strong> ${nouvelle ? '' : `<code style="background:#f3f4f6;padding:2px 8px;border-radius:4px;">${escapeHtml(c.presence_avant!)}</code> -> `}<code style="background:${nouvelle ? '#dcfce7' : '#fef3c7'};padding:2px 8px;border-radius:4px;">${escapeHtml(c.presence_apres || '(vide)')}</code></td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">Camp :</strong> <span style="color:#111827;">${escapeHtml(c.camp_nom || 'Non specifie')}</span></td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">Date debut :</strong> <span style="color:#111827;">${escapeHtml(c.camp_date_debut)}</span></td></tr>
 <tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;"><strong style="color:#374151;">Lieu :</strong> <span style="color:#111827;">${escapeHtml(c.camp_lieu) || '·'}</span></td></tr>
