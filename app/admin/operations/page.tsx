@@ -164,8 +164,6 @@ export default function OperationsPage() {
   const [fDem, setFDem] = useState({ organisme:'', type_mission:'', lieu:'', nb_personnes_requis:'', date_debut:'', date_fin_estimee:'', priorite:'Normale', contact_nom:'', contact_telephone:'' })
   const [fDep, setFDep] = useState({ nom:'', lieu:'', date_debut:'', date_fin:'', duree_preset:'', nb_personnes_par_vague:'', point_rassemblement:'', notes_logistique:'', mode_dates:'plage_continue' as 'plage_continue' | 'jours_individuels', jours_proposes:[] as string[], branding:'RIUSC' as 'RIUSC' | 'AQBRS', heures_limite_reponse:'8' })
 
-  // Mapping des durées prédéfinies vers un nombre de jours calendrier.
-  // 24h = 1 jour, 36h et 48h = 2 jours (inclusif), puis X jours = X jours.
   const DUREE_EN_JOURS: Record<string, number> = {
     '24h': 1, '36h': 2, '48h': 2,
     '3j': 3, '4j': 4, '5j': 5, '6j': 6, '7j': 7, '14j': 14,
@@ -723,12 +721,11 @@ export default function OperationsPage() {
   }
   const editDeployment = (d: Deployment) => {
     setEditingDepId(d.id)
-    // Déduire le preset de durée à partir des dates existantes
     let duree_preset = ''
     if (d.date_debut && d.date_fin) {
       const deb = new Date(d.date_debut + 'T00:00:00')
       const fin = new Date(d.date_fin + 'T00:00:00')
-      const nbJours = Math.round((fin.getTime() - deb.getTime()) / (24*3600*1000)) + 1
+      const nbJours = Math.round((fin.getTime() - deb.getTime()) / 86400000) + 1
       const mapInverse: Record<number, string> = { 1:'24h', 2:'48h', 3:'3j', 4:'4j', 5:'5j', 6:'6j', 7:'7j', 14:'14j' }
       duree_preset = mapInverse[nbJours] || 'custom'
     }
@@ -1252,59 +1249,46 @@ export default function OperationsPage() {
                     </div>
                     <div style={G2}>
                       <Field label="Date de début">
-                        <input type="date" style={IS} value={fDep.date_debut}
-                          onChange={e=>setFDep(f=>{
-                            const nouvelleDate = e.target.value
-                            // Si une durée prédéfinie est active, recalculer date_fin
-                            const duree = f.duree_preset
-                            if (duree && duree !== 'custom' && nouvelleDate) {
-                              const jours = DUREE_EN_JOURS[duree] || 1
-                              const d = new Date(nouvelleDate + 'T00:00:00')
-                              d.setDate(d.getDate() + jours - 1)
-                              return { ...f, date_debut: nouvelleDate, date_fin: d.toISOString().slice(0,10) }
+                        <input type="date" style={IS} value={fDep.date_debut} onChange={e=>{
+                          const d = e.target.value
+                          setFDep(f => {
+                            if (f.duree_preset && f.duree_preset !== 'custom' && d) {
+                              const nJ = DUREE_EN_JOURS[f.duree_preset] || 1
+                              const dt = new Date(d + 'T00:00:00'); dt.setDate(dt.getDate() + nJ - 1)
+                              return { ...f, date_debut: d, date_fin: dt.toISOString().slice(0,10) }
                             }
-                            return { ...f, date_debut: nouvelleDate }
-                          })}/>
+                            return { ...f, date_debut: d }
+                          })
+                        }}/>
                       </Field>
                       <Field label="Durée">
-                        <select style={IS} value={fDep.duree_preset}
-                          onChange={e=>setFDep(f=>{
-                            const preset = e.target.value
-                            if (preset === 'custom') {
-                              return { ...f, duree_preset: preset }
-                            }
-                            if (!f.date_debut) {
-                              return { ...f, duree_preset: preset }
-                            }
-                            const jours = DUREE_EN_JOURS[preset] || 1
-                            const d = new Date(f.date_debut + 'T00:00:00')
-                            d.setDate(d.getDate() + jours - 1)
-                            return { ...f, duree_preset: preset, date_fin: d.toISOString().slice(0,10) }
-                          })}>
+                        <select style={IS} value={fDep.duree_preset} onChange={e=>{
+                          const p = e.target.value
+                          setFDep(f => {
+                            if (p === 'custom' || p === '' || !f.date_debut) return { ...f, duree_preset: p }
+                            const nJ = DUREE_EN_JOURS[p] || 1
+                            const dt = new Date(f.date_debut + 'T00:00:00'); dt.setDate(dt.getDate() + nJ - 1)
+                            return { ...f, duree_preset: p, date_fin: dt.toISOString().slice(0,10) }
+                          })
+                        }}>
                           <option value="">-- Sélectionner --</option>
-                          <option value="24h">24 heures (1 jour)</option>
-                          <option value="36h">36 heures (2 jours)</option>
-                          <option value="48h">48 heures (2 jours)</option>
+                          <option value="24h">24 heures</option>
+                          <option value="36h">36 heures</option>
+                          <option value="48h">48 heures</option>
                           <option value="3j">3 jours</option>
                           <option value="4j">4 jours</option>
                           <option value="5j">5 jours</option>
                           <option value="6j">6 jours</option>
-                          <option value="7j">7 jours (1 semaine)</option>
-                          <option value="14j">14 jours (maximum RIUSC)</option>
-                          <option value="custom">Personnalisée (saisir date de fin)</option>
+                          <option value="7j">7 jours</option>
+                          <option value="14j">14 jours (max)</option>
+                          <option value="custom">Personnalisée</option>
                         </select>
                       </Field>
                     </div>
                     {fDep.duree_preset === 'custom' && (
                       <Field label="Date de fin">
-                        <input type="date" style={IS} value={fDep.date_fin}
-                          onChange={e=>setFDep(f=>({...f,date_fin:e.target.value}))}/>
+                        <input type="date" style={IS} value={fDep.date_fin} onChange={e=>setFDep(f=>({...f,date_fin:e.target.value}))}/>
                       </Field>
-                    )}
-                    {fDep.duree_preset && fDep.duree_preset !== 'custom' && fDep.date_fin && (
-                      <div style={{ fontSize:11, color:'#64748b', marginTop:-6 }}>
-                        Date de fin calculée : <strong>{fDep.date_fin}</strong>
-                      </div>
                     )}
 
                     {/* Note: la config cycle (branding, mode dates, heures limite) est geree via le bouton ⚙️ de la card,
@@ -1846,4 +1830,61 @@ export default function OperationsPage() {
                       checked={fConfig.mode_dates === 'jours_individuels'}
                       onChange={() => setFConfig(f => ({ ...f, mode_dates: 'jours_individuels' }))} />
                     <div>
-                      <div style={{ fontWeight:600, fontSize:13 }}>📆 Jours individuels</div
+                      <div style={{ fontWeight:600, fontSize:13 }}>📆 Jours individuels</div>
+                      <div style={{ fontSize:11, color:'#64748b' }}>Le réserviste coche les jours qui lui conviennent (ex: 19 et 21 sans le 20).</div>
+                    </div>
+                  </label>
+                </div>
+              </Field>
+
+              {/* Jours proposes (si jours_individuels) */}
+              {fConfig.mode_dates === 'jours_individuels' && (
+                <Field label="Jours proposés aux réservistes">
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {(fConfig.jours_proposes.length > 0 ? fConfig.jours_proposes : ['']).map((jour, idx) => (
+                      <div key={idx} style={{ display:'flex', gap:6, alignItems:'center' }}>
+                        <input type="date" style={{ ...IS, flex:1 }} value={jour}
+                          onChange={e => setFConfig(f => {
+                            const base = f.jours_proposes.length > 0 ? f.jours_proposes : ['']
+                            const arr = [...base]
+                            arr[idx] = e.target.value
+                            return { ...f, jours_proposes: arr }
+                          })} />
+                        <button type="button" onClick={() => setFConfig(f => ({
+                          ...f,
+                          jours_proposes: f.jours_proposes.filter((_, i) => i !== idx),
+                        }))} style={{ padding:'4px 10px', fontSize:12, border:'1px solid #e5e7eb', borderRadius:6, background:'#fff', cursor:'pointer', color:'#ef4444' }}>✕</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setFConfig(f => ({
+                      ...f,
+                      jours_proposes: [...(f.jours_proposes.length > 0 ? f.jours_proposes : ['']), ''],
+                    }))} style={{ alignSelf:'flex-start', padding:'4px 10px', fontSize:12, border:'1px dashed #cbd5e1', borderRadius:6, background:'#fff', cursor:'pointer', color:'#475569' }}>+ Ajouter un jour</button>
+                  </div>
+                </Field>
+              )}
+
+              {/* Heures limite */}
+              <Field label="Délai de réponse (heures)">
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <input type="number" min="1" max="168" style={{ ...IS, width:80 }}
+                    value={fConfig.heures_limite_reponse}
+                    onChange={e => setFConfig(f => ({ ...f, heures_limite_reponse: e.target.value }))} />
+                  <span style={{ fontSize:12, color:'#64748b' }}>
+                    heures après l'envoi de la notification. Défaut : 8h. La date limite exacte sera calculée au moment de l'envoi (étape 5).
+                  </span>
+                </div>
+              </Field>
+            </div>
+
+            {/* Boutons */}
+            <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end', borderTop:'1px solid #e5e7eb', paddingTop:16 }}>
+              <Btn onClick={() => setConfigDepId(null)} outline color="#6b7280" disabled={savConfig}>Annuler</Btn>
+              <Btn onClick={saveConfig} loading={savConfig} color="#1e3a5f">💾 Enregistrer la config</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
