@@ -58,6 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
       { titre: 'Dashboard',        icone: '📈', href: '/admin/dashboard',            statut: 'actif' },
       { titre: 'Statistiques',     icone: '📊', href: '/admin/stats',                statut: 'actif' },
       { titre: 'Compétences',      icone: '🧭', href: '/admin/competences',          statut: 'actif' },
+      { titre: 'Import SOPFEU',    icone: '📥', href: '/admin/demandes/importer-sopfeu', statut: 'actif' },
       { titre: 'Resp. de groupes', icone: '🎖️', href: '/admin/responsables-groupes', statut: 'actif' },
       { titre: 'Partenaires',      icone: '🤝', href: '/admin/partenaires',          statut: 'bientot' },
     ],
