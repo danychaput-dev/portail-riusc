@@ -13,6 +13,8 @@ interface NavItem {
   externe?: boolean       // lien hors /admin (ex: /communaute)
   statut: 'actif' | 'bientot'
   superadminOnly?: boolean
+  /** Sous-items affichés indentés sous le parent (ex: Opérations > Import SOPFEU) */
+  children?: Omit<NavItem, 'children'>[]
 }
 
 interface NavSection {
@@ -41,7 +43,13 @@ const NAV_SECTIONS: NavSection[] = [
     id: 'principal',
     items: [
       { titre: 'Reservistes',   icone: '👥', href: '/admin/reservistes',        statut: 'actif' },
-      { titre: 'Operations',    icone: '🚨', href: '/admin/operations',         statut: 'actif' },
+      {
+        titre: 'Operations',    icone: '🚨', href: '/admin/operations',         statut: 'actif',
+        children: [
+          { titre: 'Import SOPFEU', icone: '📥', href: '/admin/demandes/importer-sopfeu', statut: 'actif' },
+          // { titre: 'Import Croix-Rouge', icone: '📥', href: '/admin/demandes/importer-croix-rouge', statut: 'bientot' },
+        ],
+      },
       { titre: 'Sinistres',     icone: '🌊', href: '/admin/sinistres',          statut: 'actif' },
       { titre: 'Présences',     icone: '📋', href: '/admin/pointage',           statut: 'actif' },
       { titre: 'Courriels',     icone: '✉️', href: '/admin/courriels',          statut: 'actif' },
@@ -58,7 +66,6 @@ const NAV_SECTIONS: NavSection[] = [
       { titre: 'Dashboard',        icone: '📈', href: '/admin/dashboard',            statut: 'actif' },
       { titre: 'Statistiques',     icone: '📊', href: '/admin/stats',                statut: 'actif' },
       { titre: 'Compétences',      icone: '🧭', href: '/admin/competences',          statut: 'actif' },
-      { titre: 'Import SOPFEU',    icone: '📥', href: '/admin/demandes/importer-sopfeu', statut: 'actif' },
       { titre: 'Resp. de groupes', icone: '🎖️', href: '/admin/responsables-groupes', statut: 'actif' },
       { titre: 'Partenaires',      icone: '🤝', href: '/admin/partenaires',          statut: 'bientot' },
     ],
@@ -202,72 +209,120 @@ export default function AdminSidebar({ stats, userRole }: Props) {
 
                 {/* Items de la section */}
                 {isOpen && items.map(item => {
-                  const active = isActive(item.href)
+                  // Parent actif si le chemin courant pointe sur lui OU sur un de ses sous-items
+                  const active = isActive(item.href) || (item.children?.some(c => isActive(c.href)) ?? false)
                   const disabled = item.statut === 'bientot'
                   const badgeInfo = getBadge(item)
                   const badge = badgeInfo?.count
                   const badgeColor = badgeInfo?.color || '#dc2626'
 
                   return (
-                    <button
-                      key={item.href}
-                      onClick={() => !disabled && (item.externe ? window.open(item.href, '_blank') : router.push(item.href))}
-                      disabled={disabled}
-                      title={collapsed ? item.titre : undefined}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: collapsed ? '10px 0' : '9px 12px',
-                        justifyContent: collapsed ? 'center' : 'flex-start',
-                        background: active ? '#eff6ff' : 'transparent',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: disabled ? 'default' : 'pointer',
-                        opacity: disabled ? 0.45 : 1,
-                        transition: 'background-color 0.12s',
-                        width: '100%',
-                        textAlign: 'left',
-                        position: 'relative',
-                      }}
-                      onMouseOver={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = '#f9fafb' }}
-                      onMouseOut={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
-                    >
-                      <span style={{ fontSize: '17px', flexShrink: 0, lineHeight: 1 }}>{item.icone}</span>
-                      {!collapsed && (
-                        <span style={{
-                          fontSize: '13px',
-                          fontWeight: active ? '700' : '500',
-                          color: active ? C : '#374151',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          flex: 1,
-                        }}>
-                          {item.titre}
-                        </span>
-                      )}
-                      {badge !== undefined && badge > 0 && (
-                        <span style={{
-                          position: collapsed ? 'absolute' : 'relative',
-                          top: collapsed ? '4px' : 'auto',
-                          right: collapsed ? '4px' : 'auto',
-                          backgroundColor: badgeColor,
-                          color: 'white',
-                          borderRadius: '10px',
-                          padding: '1px 6px',
-                          fontSize: '10px',
-                          fontWeight: '700',
-                          lineHeight: '1.4',
-                          flexShrink: 0,
-                        }}>
-                          {badge}
-                        </span>
-                      )}
-                      {!collapsed && disabled && (
-                        <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>Bientôt</span>
-                      )}
-                    </button>
+                    <div key={item.href} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <button
+                        onClick={() => !disabled && (item.externe ? window.open(item.href, '_blank') : router.push(item.href))}
+                        disabled={disabled}
+                        title={collapsed ? item.titre : undefined}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: collapsed ? '10px 0' : '9px 12px',
+                          justifyContent: collapsed ? 'center' : 'flex-start',
+                          background: active ? '#eff6ff' : 'transparent',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: disabled ? 'default' : 'pointer',
+                          opacity: disabled ? 0.45 : 1,
+                          transition: 'background-color 0.12s',
+                          width: '100%',
+                          textAlign: 'left',
+                          position: 'relative',
+                        }}
+                        onMouseOver={e => { if (!active && !disabled) e.currentTarget.style.backgroundColor = '#f9fafb' }}
+                        onMouseOut={e => { if (!active) e.currentTarget.style.backgroundColor = 'transparent' }}
+                      >
+                        <span style={{ fontSize: '17px', flexShrink: 0, lineHeight: 1 }}>{item.icone}</span>
+                        {!collapsed && (
+                          <span style={{
+                            fontSize: '13px',
+                            fontWeight: active ? '700' : '500',
+                            color: active ? C : '#374151',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            flex: 1,
+                          }}>
+                            {item.titre}
+                          </span>
+                        )}
+                        {badge !== undefined && badge > 0 && (
+                          <span style={{
+                            position: collapsed ? 'absolute' : 'relative',
+                            top: collapsed ? '4px' : 'auto',
+                            right: collapsed ? '4px' : 'auto',
+                            backgroundColor: badgeColor,
+                            color: 'white',
+                            borderRadius: '10px',
+                            padding: '1px 6px',
+                            fontSize: '10px',
+                            fontWeight: '700',
+                            lineHeight: '1.4',
+                            flexShrink: 0,
+                          }}>
+                            {badge}
+                          </span>
+                        )}
+                        {!collapsed && disabled && (
+                          <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>Bientôt</span>
+                        )}
+                      </button>
+
+                      {/* Sous-items (indentés, affichés seulement en mode développé) */}
+                      {!collapsed && item.children && item.children.length > 0 && item.children.map(child => {
+                        const childActive = isActive(child.href)
+                        const childDisabled = child.statut === 'bientot'
+                        return (
+                          <button
+                            key={child.href}
+                            onClick={() => !childDisabled && (child.externe ? window.open(child.href, '_blank') : router.push(child.href))}
+                            disabled={childDisabled}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '6px 12px 6px 28px',
+                              background: childActive ? '#eff6ff' : 'transparent',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: childDisabled ? 'default' : 'pointer',
+                              opacity: childDisabled ? 0.45 : 1,
+                              transition: 'background-color 0.12s',
+                              width: '100%',
+                              textAlign: 'left',
+                              position: 'relative',
+                            }}
+                            onMouseOver={e => { if (!childActive && !childDisabled) e.currentTarget.style.backgroundColor = '#f9fafb' }}
+                            onMouseOut={e => { if (!childActive) e.currentTarget.style.backgroundColor = 'transparent' }}
+                          >
+                            <span style={{ fontSize: '14px', flexShrink: 0, lineHeight: 1, opacity: 0.85 }}>{child.icone}</span>
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: childActive ? '700' : '500',
+                              color: childActive ? C : '#4b5563',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              flex: 1,
+                            }}>
+                              {child.titre}
+                            </span>
+                            {childDisabled && (
+                              <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: '600', whiteSpace: 'nowrap' }}>Bientôt</span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   )
                 })}
               </div>
