@@ -1004,7 +1004,22 @@ export default function AdminSinistresPage() {
                   <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '2px solid #ddd6fe', overflow: 'hidden' }}>
                     <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6', backgroundColor: '#faf5ff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontWeight: '700', fontSize: '13px', color: '#7c3aed' }}>🚁 Déploiements ({deployments.length})</div>
-                      <button onClick={() => { setEditDeployment(null); setShowFormDeployment(true); if (!deployments.length) chargerDeployments(selectedId!) }} style={{ padding: '4px 10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>+ Nouveau</button>
+                      {/* Redirige vers le wizard /admin/operations qui gère branding, mode_dates,
+                          heures_limite_reponse et duree_preset. L'ancien FormDeployment local est
+                          conservé en dessous en code mort pour rollback facile — à nettoyer dans un
+                          commit ultérieur une fois la redirection validée en prod. */}
+                      <button
+                        onClick={() => {
+                          const params = new URLSearchParams()
+                          if (selectedId) params.set('sin', selectedId)
+                          if (selectedDemandeId) params.set('dems', selectedDemandeId)
+                          router.push(`/admin/operations?${params.toString()}`)
+                        }}
+                        style={{ padding: '4px 10px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        title="Créer un déploiement via le wizard opérations"
+                      >
+                        🚁 Créer via le wizard →
+                      </button>
                     </div>
                     {showFormDeployment && (
                       <div style={{ padding: '10px 16px', borderBottom: '1px solid #f3f4f6' }}>
@@ -1019,7 +1034,7 @@ export default function AdminSinistresPage() {
                       </div>
                     )}
                     {deployments.length === 0 && !showFormDeployment ? (
-                      <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>Aucun déploiement — cliquez "+ Nouveau" pour en créer un</div>
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>Aucun déploiement — cliquez sur <strong>🚁 Créer via le wizard →</strong> pour en ajouter un</div>
                     ) : (
                       deployments.map(dep => (
                         <div key={dep.id}
@@ -1032,7 +1047,17 @@ export default function AdminSinistresPage() {
                             </div>
                             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                               <Badge label={dep.statut} />
-                              <button onClick={e => { e.stopPropagation(); setEditDeployment(dep); setShowFormDeployment(true) }} style={{ padding: '2px 6px', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✏️</button>
+                              <button
+                                onClick={e => {
+                                  e.stopPropagation()
+                                  const params = new URLSearchParams()
+                                  if (selectedId) params.set('sin', selectedId)
+                                  params.set('dep', dep.id)
+                                  router.push(`/admin/operations?${params.toString()}`)
+                                }}
+                                style={{ padding: '2px 6px', backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', color: '#7c3aed', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}
+                                title="Modifier dans le wizard opérations"
+                              >✏️</button>
                               <button onClick={e => { e.stopPropagation(); setConfirmDelete({ type: 'deploiement' as any, id: dep.id, nom: dep.nom }) }} style={{ padding: '2px 6px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>🗑️</button>
                             </div>
                           </div>
