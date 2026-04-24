@@ -46,11 +46,11 @@ const NAV_SECTIONS: NavSection[] = [
       {
         titre: 'Operations',    icone: '🚨', href: '/admin/operations',         statut: 'actif',
         children: [
+          { titre: 'Sinistres',     icone: '🌊', href: '/admin/sinistres',               statut: 'actif' },
           { titre: 'Import SOPFEU', icone: '📥', href: '/admin/demandes/importer-sopfeu', statut: 'actif' },
           // { titre: 'Import Croix-Rouge', icone: '📥', href: '/admin/demandes/importer-croix-rouge', statut: 'bientot' },
         ],
       },
-      { titre: 'Sinistres',     icone: '🌊', href: '/admin/sinistres',          statut: 'actif' },
       { titre: 'Présences',     icone: '📋', href: '/admin/pointage',           statut: 'actif' },
       { titre: 'Courriels',     icone: '✉️', href: '/admin/courriels',          statut: 'actif' },
       { titre: 'Camps',         icone: '🏕️', href: '/admin/inscriptions-camps', statut: 'actif' },
