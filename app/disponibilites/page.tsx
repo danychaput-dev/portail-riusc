@@ -186,9 +186,11 @@ function DisponibilitesContent() {
   }
 
   async function fetchDisponibilites(benevoleId: string) {
-    // Lire depuis disponibilites_v2 (nouveau système)
+    // Lire depuis disponibilites_v2 (nouveau système). Inclut transport pour
+    // que le bouton ✏️ Modifier puisse pré-remplir le formulaire avec les
+    // choix existants (sinon le cleanup-chevauchement écraserait le commentaire/transport).
     const { data: v2data } = await supabase.from('disponibilites_v2')
-      .select('id, benevole_id, deployment_id, date_jour, disponible, a_confirmer, commentaire')
+      .select('id, benevole_id, deployment_id, date_jour, disponible, a_confirmer, commentaire, transport')
       .eq('benevole_id', benevoleId).order('date_jour', { ascending: true });
     // FIX 2026-04-26: si v2data vide (toutes les dispos supprimées), on doit
     // RESET le state à [] sinon les anciennes plages restent affichées et il
@@ -224,7 +226,7 @@ function DisponibilitesContent() {
           date_fin: fin,
           statut: sorted[idx].a_confirmer ? 'En attente' : sorted[idx].disponible ? 'Disponible' : 'Non disponible',
           commentaire: sorted[idx].commentaire,
-          transport: null,
+          transport: (sorted[idx] as any).transport ?? null,
         });
         for (let i = 1; i < sorted.length; i++) {
           const prev = new Date(end); prev.setDate(prev.getDate() + 1);
@@ -643,7 +645,7 @@ function DisponibilitesContent() {
                                   {actionLoading === `confirmer-${dispo.id}` ? '⏳' : '✅ Confirmer'}
                                 </button>
                               )}
-                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}&date_debut=${dispo.date_debut}&date_fin=${dispo.date_fin}`}
+                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}&date_debut=${dispo.date_debut}&date_fin=${dispo.date_fin}${dispo.transport ? '&transport=' + encodeURIComponent(dispo.transport) : ''}${dispo.commentaire ? '&commentaire=' + encodeURIComponent(dispo.commentaire) : ''}`}
                                 style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }}>
                                 ✏️ Modifier
                               </a>

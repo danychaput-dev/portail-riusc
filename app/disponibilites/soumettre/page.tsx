@@ -125,18 +125,27 @@ function SoumettreContent() {
   const supabase = createClient()
   const deploiementId = searchParams.get('deploiement') ?? ''
 
-  // Mode modification: lit les dates de l'URL au montage et les utilise pour
-  // pré-remplir le formulaire. Auto-sélectionne "Disponible" pour épargner un clic.
+  // Mode modification: lit les dates + transport + commentaire de l'URL au
+  // montage et pré-remplit le formulaire complet. Auto-sélectionne "Disponible"
+  // et pré-coche engagement/aptitude (l'utilisateur les a déjà acceptés la 1re
+  // fois, on évite de les forcer à cocher à chaque modif).
   useEffect(() => {
     const dDebut = searchParams.get('date_debut')
     const dFin = searchParams.get('date_fin')
+    const tParam = searchParams.get('transport')
+    const cParam = searchParams.get('commentaire')
     if (dDebut && dFin) {
       setOriginalDebut(dDebut)
       setOriginalFin(dFin)
       setPlageDebut(dDebut)
       setPlageFin(dFin)
       setReponse('disponible')
+      // Pré-cocher les acceptations (déjà acceptées lors de la 1re soumission)
+      setEngagementAccepte(true)
+      setAptitudeAcceptee(true)
     }
+    if (tParam) setTransport(tParam)
+    if (cParam) setCommentaires(cParam)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
