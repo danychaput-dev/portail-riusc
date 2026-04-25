@@ -49,8 +49,11 @@ describe('tplNotif - structure et contenu', () => {
 
     expect(out).toContain('Vous êtes sollicité(e) pour un déploiement')
     expect(out).toContain('[EXERCICE] Soutien op. terrain - Inondation Chicoutimi')
-    expect(out).toContain('📍 Boul. Saguenay Ouest, secteur Bassin')
     expect(out).toContain('À partir du 28/04/2026')
+    // SÉCURITÉ OPÉRATIONNELLE : le lieu ne doit PAS apparaître dans tplNotif().
+    // Le réserviste ne doit pas être tenté de se déplacer avant la mobilisation.
+    expect(out).not.toContain('📍')
+    expect(out).not.toContain('Boul. Saguenay Ouest')
     // PAS de "du X au Y" pour plage ouverte
     expect(out).not.toMatch(/Du \d+\/\d+\/\d+ au \d+\/\d+\/\d+/)
   })
@@ -90,16 +93,18 @@ describe('tplNotif - structure et contenu', () => {
     expect(out).not.toMatch(/Du \d+\/\d+\/\d+ au/)
   })
 
-  it('cas 4: lieu absent — pas de ligne 📍', () => {
+  it('cas 4: lieu jamais affiché même si fourni (sécurité opérationnelle)', () => {
     const out = tplNotif({
       sinNom: 'X',
-      depNom: 'Dep sans lieu',
+      depNom: 'Dep avec lieu',
       dateDebut: '2026-04-28',
+      lieu: 'Adresse précise quelque part',
       branding: 'AQBRS',
       dateEnvoi: DATE_ENVOI_FIXE,
     })
 
     expect(out).not.toContain('📍')
+    expect(out).not.toContain('Adresse précise')
   })
 })
 
@@ -182,5 +187,13 @@ describe('tplNotif - règles éditoriales (anti-régression)', () => {
   it('contient une date limite formatée', () => {
     // Avec heuresLimite=8 et envoi 14h00 EDT, limite = 22h00 même jour
     expect(sample).toMatch(/avant \d{2}h\d{2}/)
+  })
+
+  it('SÉCURITÉ: ne révèle pas le lieu d\'intervention même si fourni', () => {
+    // Le lieu précis est réservé à tplMobil() (étape 8 mobilisation),
+    // jamais dans tplNotif() (étape 5 demande de dispos).
+    // Voir tâche #17 (séparation region vs lieu).
+    expect(sample).not.toContain('📍')
+    expect(sample).not.toContain('Boul. Saguenay Ouest')
   })
 })

@@ -38,7 +38,15 @@ export interface TplNotifContext {
   dateDebut?: string
   /** Date de fin du déploiement (ISO YYYY-MM-DD). NULL = ops ouverte. */
   dateFin?: string
-  /** Lieu d'intervention. Affiché avec un pin 📍. */
+  /**
+   * Lieu d'intervention — DÉLIBÉRÉMENT NON UTILISÉ par tplNotif() depuis 2026-04-25.
+   * Risque opérationnel: un réserviste motivé verrait l'adresse précise et pourrait
+   * s'y rendre avant d'être officiellement mobilisé (étape 8). Le lieu est révélé
+   * uniquement à la mobilisation via tplMobil(). Voir tâche #17 pour la séparation
+   * propre region (étape 5) vs lieu précis (étape 8).
+   * Le champ reste sur l'interface pour préserver la signature, et l'admin peut
+   * toujours ajouter une indication régionale en éditant manuellement le textarea.
+   */
   lieu?: string
   branding?: Branding
   heuresLimite?: number
@@ -55,7 +63,8 @@ export interface TplNotifContext {
  * - Pas de mention « sinistre » lourde au début (info redondante avec nom_deploiement
  *   qui contient déjà "Soutien op. terrain - Inondation Chicoutimi" par exemple)
  * - "plages de disponibilités" au pluriel (le réserviste soumet PLUSIEURS plages, pas une seule date)
- * - Le lieu est mis en évidence sur sa propre ligne avec un pin
+ * - PAS de lieu dans ce template (sécurité opérationnelle: éviter qu'un réserviste
+ *   se déplace avant la mobilisation officielle). Le lieu apparaît dans tplMobil() seulement.
  * - Aucune mention SOPFEU/Croix-Rouge — admin contrôle via depNom
  *
  * Compat ascendante: ancienne signature tplNotif(sinNom, depNom, dateDebut) supportée.
@@ -72,9 +81,6 @@ export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, d
   const limite = calculerDateLimite(dateEnvoi, heures)
   const limiteStr = formatDateLimite(limite, dateEnvoi)
 
-  // Lieu sur sa propre ligne (vide si non fourni)
-  const lieuLigne = ctx.lieu ? `\n📍 ${ctx.lieu}` : ''
-
   // Description du mode dates (sur sa propre ligne)
   let datesLigne = ''
   if (ctx.modeDates === 'jours_individuels' && ctx.joursProposes?.length) {
@@ -90,7 +96,7 @@ export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, d
 
 Vous êtes sollicité(e) pour un déploiement.
 
-${ctx.depNom}${lieuLigne}${datesLigne}
+${ctx.depNom}${datesLigne}
 
 Veuillez soumettre vos plages de disponibilités ${limiteStr} via le portail :
 https://${branding.urlPortail}/disponibilites
