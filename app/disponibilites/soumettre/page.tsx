@@ -405,17 +405,30 @@ function SoumettreContent() {
     const prenom = reserviste?.prenom ?? ''
     const contact = reserviste?.telephone ? 'SMS' : 'courriel'
 
-    const datesChoisies = Array.from(datesCochees).sort()
-      .map(d => joursDisponibles.find(x => x.iso === d)?.label || labelJour(d))
-      .join(', ')
+    // En plage_continue, afficher la plage globale (compacte) plutôt que la
+    // liste exhaustive des N jours qui devient illisible au-delà de 5-6 dates.
+    // En jours_individuels, lister les jours cochés (utile pour vérifier sa sélection).
+    const datesTriees = Array.from(datesCochees).sort()
+    const isPlageContinue = deploiement?.mode_dates === 'plage_continue'
+    const datesChoisies = isPlageContinue && datesTriees.length > 0
+      ? `du ${labelJour(datesTriees[0])} au ${labelJour(datesTriees[datesTriees.length - 1])} (${datesTriees.length} jour${datesTriees.length > 1 ? 's' : ''})`
+      : datesTriees
+          .map(d => joursDisponibles.find(x => x.iso === d)?.label || labelJour(d))
+          .join(', ')
+
+    // Note d'après-soumission : adaptée au mode plage_continue qui est ouvert
+    // (le réserviste peut revenir soumettre d'autres plages plus tard).
+    const noteRevenirOuPlanif = isPlageContinue
+      ? `Vous pouvez revenir à tout moment ajouter d'autres plages de disponibilité. Si vous êtes sélectionné(e) pour ce déploiement, vous en serez informé(e) par ${contact}.`
+      : `La planification débute rapidement après la fermeture des disponibilités. Si vous êtes sélectionné pour ce déploiement, vous en serez informé par ${contact}.`
 
     const messages: Record<ReponseType, MsgConfig> = {
       disponible: {
         titre: 'Disponibilité enregistrée',
         icon: '✅',
         bg: '#d1fae5',
-        texte: `Merci, ${prenom} ! Vos dates ont bien été reçues : ${datesChoisies}.`,
-        note: `La planification débute rapidement après la fermeture des disponibilités. Si vous êtes sélectionné pour ce déploiement, vous en serez informé par ${contact}.`,
+        texte: `Merci, ${prenom} ! Votre plage a bien été reçue : ${datesChoisies}.`,
+        note: noteRevenirOuPlanif,
       },
       non_disponible: {
         titre: 'Réponse enregistrée',
@@ -428,8 +441,10 @@ function SoumettreContent() {
         titre: 'Dates soumises',
         icon: '⏳',
         bg: '#fef3c7',
-        texte: `Merci, ${prenom} ! Vos dates ont été reçues sous réserve de confirmation : ${datesChoisies}.`,
-        note: 'Un suivi sera fait dans les 48 prochaines heures pour confirmer votre disponibilité.',
+        texte: `Merci, ${prenom} ! Votre plage a été reçue sous réserve de confirmation : ${datesChoisies}.`,
+        note: isPlageContinue
+          ? 'Un suivi sera fait dans les 48 prochaines heures pour confirmer votre disponibilité. Vous pouvez aussi revenir ajouter d\'autres plages.'
+          : 'Un suivi sera fait dans les 48 prochaines heures pour confirmer votre disponibilité.',
       },
     }
 
