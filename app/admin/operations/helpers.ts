@@ -30,10 +30,16 @@ export function genDeployId(existing: Deployment[]): string {
 }
 
 export interface TplNotifContext {
+  /** Nom du sinistre — gardé pour compat ascendante mais plus utilisé dans le template (redondant avec depNom). */
   sinNom: string
+  /** Nom du déploiement (admin-controlled, ex: "Soutien op. terrain - Inondation Chicoutimi"). Affiché en évidence. */
   depNom: string
+  /** Date de début du déploiement (ISO YYYY-MM-DD). */
   dateDebut?: string
+  /** Date de fin du déploiement (ISO YYYY-MM-DD). NULL = ops ouverte. */
   dateFin?: string
+  /** Lieu d'intervention. Affiché avec un pin 📍. */
+  lieu?: string
   branding?: Branding
   heuresLimite?: number
   modeDates?: 'plage_continue' | 'jours_individuels'
@@ -42,9 +48,17 @@ export interface TplNotifContext {
 }
 
 /**
- * Template notification dispos (etape 5). Adapte au branding, au delai configure,
- * au mode plage/jours individuels. La date limite est calculee a partir de
- * l'heure d'envoi + heuresLimite et formatee en francais naturel.
+ * Template notification dispos (etape 5).
+ *
+ * DESIGN (refonte 2026-04-25 inspirée du courriel propre du 14 mars + retour terrain Dany):
+ * - Pas de redondance "déploiement X" suivi du nom (qui peut commencer par "Déploiement")
+ * - Pas de mention « sinistre » lourde au début (info redondante avec nom_deploiement
+ *   qui contient déjà "Soutien op. terrain - Inondation Chicoutimi" par exemple)
+ * - "plages de disponibilités" au pluriel (le réserviste soumet PLUSIEURS plages, pas une seule date)
+ * - Le lieu est mis en évidence sur sa propre ligne avec un pin
+ * - Aucune mention SOPFEU/Croix-Rouge — admin contrôle via depNom
+ *
+ * Compat ascendante: ancienne signature tplNotif(sinNom, depNom, dateDebut) supportée.
  */
 export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, dateDebutLegacy?: string): string {
   // Retrocompat: ancienne signature (sinNom, depNom, dateDebut)
@@ -58,25 +72,29 @@ export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, d
   const limite = calculerDateLimite(dateEnvoi, heures)
   const limiteStr = formatDateLimite(limite, dateEnvoi)
 
-  // Description du mode dates
-  let modePhrase = ''
+  // Lieu sur sa propre ligne (vide si non fourni)
+  const lieuLigne = ctx.lieu ? `\n📍 ${ctx.lieu}` : ''
+
+  // Description du mode dates (sur sa propre ligne)
+  let datesLigne = ''
   if (ctx.modeDates === 'jours_individuels' && ctx.joursProposes?.length) {
     const joursFr = ctx.joursProposes.map(dateFr).join(', ')
-    modePhrase = `\nJours proposés : ${joursFr}.`
+    datesLigne = `\nJours proposés : ${joursFr}.`
   } else if (ctx.dateDebut && ctx.dateFin && ctx.dateDebut !== ctx.dateFin) {
-    modePhrase = `\nDates du déploiement : du ${dateFr(ctx.dateDebut)} au ${dateFr(ctx.dateFin)}.`
+    datesLigne = `\nDu ${dateFr(ctx.dateDebut)} au ${dateFr(ctx.dateFin)}.`
   } else if (ctx.dateDebut) {
-    modePhrase = `\nDate du déploiement : ${dateFr(ctx.dateDebut)}.`
+    datesLigne = `\nÀ partir du ${dateFr(ctx.dateDebut)}.`
   }
 
   return `Bonjour,
 
-Dans le cadre du sinistre « ${ctx.sinNom} », nous sollicitons votre disponibilité pour le déploiement ${ctx.depNom}.${modePhrase}
+Vous êtes sollicité(e) pour un déploiement.
 
-Veuillez soumettre vos disponibilités ${limiteStr} via le portail :
+${ctx.depNom}${lieuLigne}${datesLigne}
+
+Veuillez soumettre vos plages de disponibilités ${limiteStr} via le portail :
 https://${branding.urlPortail}/disponibilites
 
-Merci pour votre engagement.
 ${branding.signatureNotif}`
 }
 
