@@ -483,30 +483,44 @@ export default function OperationsPage() {
     })()
   }, [depId, sinId, demIds.length])
 
+  // Loader extrait pour pouvoir être appelé manuellement (bouton 🔄 Rafraîchir)
+  // ET en auto-refresh polling toutes les 30 s tant que l'admin reste sur l'étape 6.
+  // Avant cette refonte, le useEffect ne re-fetchait que si depId changeait —
+  // donc les dispos soumises pendant que l'admin regardait l'étape 6 n'apparaissaient
+  // jamais sans F5 manuel.
+  const loadDisposEtCiblages = useCallback(async (depIdArg: string) => {
+    try {
+      const r = await fetch(`/api/admin/operations/dispos?dep=${encodeURIComponent(depIdArg)}`, { credentials: 'include' })
+      if (!r.ok) return
+      const data: { ciblages: any[], reservistes: any[], dispos: any[] } = await r.json()
+      const resMap: Record<string, any> = {}
+      for (const r2 of (data.reservistes || [])) { if (r2.benevole_id) resMap[r2.benevole_id] = r2 }
+      if (data.ciblages?.length) {
+        setCiblages(data.ciblages.map(c => ({
+          ...c,
+          reservistes: (c.benevole_id && resMap[c.benevole_id]) || { prenom: '?', nom: '?', telephone: '' }
+        })) as any)
+      } else {
+        setCiblages(prev => prev.length > 0 ? prev : [])
+      }
+      setDispos((data.dispos || []) as any)
+    } catch (err) {
+      console.error('Erreur fetch dispos admin:', err)
+    }
+  }, [])
+
   useEffect(() => {
     if (!depId) { setCiblages([]); setDispos([]); setVagues([]); setStep6Ok(false); setMobilSent(false); setAiSugg(null); return }
-    // Utiliser l'API admin (service_role) pour bypass les RLS auth browser qui
-    // ne propagent pas toujours correctement auth.uid() côté client.
-    fetch(`/api/admin/operations/dispos?dep=${encodeURIComponent(depId)}`, { credentials: 'include' })
-      .then(r => r.ok ? r.json() : null)
-      .then((data: { ciblages: any[], reservistes: any[], dispos: any[] } | null) => {
-        if (!data) return
-        const resMap: Record<string, any> = {}
-        for (const r of (data.reservistes || [])) { if (r.benevole_id) resMap[r.benevole_id] = r }
-        if (data.ciblages?.length) {
-          setCiblages(data.ciblages.map(c => ({
-            ...c,
-            reservistes: (c.benevole_id && resMap[c.benevole_id]) || { prenom: '?', nom: '?', telephone: '' }
-          })) as any)
-        } else {
-          setCiblages(prev => prev.length > 0 ? prev : [])
-        }
-        setDispos((data.dispos || []) as any)
-      })
-      .catch(err => console.error('Erreur fetch dispos admin:', err))
+    loadDisposEtCiblages(depId)
     supabase.from('vagues').select('*').eq('deployment_id',depId).order('numero')
       .then(({data})=>{ if(data) setVagues(data as any) })
-  }, [depId, step4Override])
+    // Auto-refresh toutes les 30 s pour voir les nouvelles dispos arriver en quasi-temps réel.
+    // Pause quand l'onglet est masqué (économie d'appels réseau).
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && !document.hidden) loadDisposEtCiblages(depId)
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [depId, step4Override, loadDisposEtCiblages])
 
   // Helper exposé pour rafraîchir les vagues à la demande (bouton Refresh étape 7)
   const rafraichirVagues = async () => {
