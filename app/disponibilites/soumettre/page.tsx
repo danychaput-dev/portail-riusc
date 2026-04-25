@@ -508,12 +508,12 @@ function SoumettreContent() {
                     <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e3a5f', fontSize: '14px' }}>
                       {deploiement?.mode_dates === 'jours_individuels'
                         ? 'Cochez les jours où vous êtes disponible'
-                        : 'Confirmez votre disponibilité pour la plage complète'}
+                        : 'Indiquez les plages où vous êtes disponible'}
                     </p>
                     <p style={{ margin: 0, fontSize: '13px', color: '#6b7280', lineHeight: '1.6' }}>
                       {deploiement?.mode_dates === 'jours_individuels'
-                        ? 'Vous pouvez cocher un seul jour ou plusieurs selon votre disponibilité.'
-                        : 'Cette opération demande un engagement sur toute la plage de dates proposée (tout ou rien).'}
+                        ? 'Cochez vos journées disponibles. Idéalement, regroupez vos jours en blocs consécutifs pour faciliter la planification des rotations.'
+                        : 'Soumettez toutes les plages de dates où vous êtes disponible pour ce déploiement. Vous pourrez ajouter d\'autres plages après votre première soumission.'}
                     </p>
                   </div>
                 </div>
