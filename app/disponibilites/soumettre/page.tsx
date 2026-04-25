@@ -904,19 +904,27 @@ function SoumettreContent() {
               </div>
             )}
 
-            <button
-              ref={submitButtonRef}
-              onClick={handleSubmit}
-              disabled={submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee))}
-              style={{
-                width: '100%', padding: '16px 24px', scrollMarginTop: '24px',
-                backgroundColor: (submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee)))
-                  ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706',
-                color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600',
-                cursor: (submitting || datesCochees.size === 0 || !transport || (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee))) ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.2s'
-              }}>
-              {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? `Envoyer mes disponibilités (${datesCochees.size} jour${datesCochees.size > 1 ? 's' : ''})` : `Soumettre mes dates à confirmer (${datesCochees.size} jour${datesCochees.size > 1 ? 's' : ''})`}
+            {/* Calcul du nombre de jours pour le label du bouton — fonctionne pour les 2 modes:
+                en plage_continue, datesCochees est vide jusqu'au submit, donc on utilise plageDebut/plageFin */}
+            {(() => {
+              const nbJoursLabel = deploiement?.mode_dates === 'plage_continue' && plageDebut && plageFin && plageDebut <= plageFin
+                ? genererPlage(plageDebut, plageFin).length
+                : datesCochees.size
+              const isDisabled = submitting || !isReadyToSubmit
+              return (
+                <button
+                  ref={submitButtonRef}
+                  onClick={handleSubmit}
+                  disabled={isDisabled}
+                  style={{
+                    width: '100%', padding: '16px 24px', scrollMarginTop: '24px',
+                    backgroundColor: isDisabled
+                      ? '#9ca3af' : reponse === 'disponible' ? '#059669' : '#d97706',
+                    color: 'white', border: 'none', borderRadius: '10px', fontSize: '16px', fontWeight: '600',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}>
+                  {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? `Envoyer mes disponibilités (${nbJoursLabel} jour${nbJoursLabel > 1 ? 's' : ''})` : `Soumettre mes dates à confirmer (${nbJoursLabel} jour${nbJoursLabel > 1 ? 's' : ''})`}
             </button>
           </div>
         )}
