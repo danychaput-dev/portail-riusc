@@ -1408,8 +1408,16 @@ export default function OperationsPage() {
                 </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <Btn onClick={sendNotifications} disabled={!ciblages.length||ciblages.every(c=>c.statut==='notifie')} loading={sendingNotif} color="#1d4ed8">
-                  📨 Envoyer via n8n ({ciblages.filter(c=>c.statut!=='notifie').length})
+                <Btn
+                  onClick={() => {
+                    const nbCibles = ciblages.filter(c => c.statut !== 'notifie').length
+                    const confirme = confirm(`⚠️ Êtes-vous sûr ?\n\nVous êtes sur le point d'envoyer une demande de disponibilités à ${nbCibles} réserviste${nbCibles > 1 ? 's' : ''} (SMS + courriel).\n\nCette action est irréversible — chacun recevra un message immédiatement.\n\nContinuer ?`)
+                    if (confirme) sendNotifications()
+                  }}
+                  disabled={!ciblages.length||ciblages.every(c=>c.statut==='notifie')}
+                  loading={sendingNotif}
+                  color="#1d4ed8">
+                  📨 Envoyer demandes de dispo ({ciblages.filter(c=>c.statut!=='notifie').length})
                 </Btn>
                 {/* Test : envoi SMS+courriel à l'admin courant uniquement, aucune modif DB */}
                 <Btn onClick={sendTestCiblage} disabled={!depId} loading={sendingNotif} outline color="#d97706">
