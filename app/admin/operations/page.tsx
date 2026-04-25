@@ -554,6 +554,8 @@ export default function OperationsPage() {
       heuresLimite: selDep.heures_limite_reponse ?? 8,
       modeDates: (selDep.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
       joursProposes: selDep.jours_proposes,
+      // Défaut 5 jours en attendant la colonne DB dédiée (#15). Admin peut éditer.
+      dureeMinRotationJours: 5,
     }))
   }, [selSin?.id, selDep?.id, selDep?.branding, selDep?.mode_dates, selDep?.heures_limite_reponse, sinId])
 
@@ -1393,6 +1395,7 @@ export default function OperationsPage() {
                         heuresLimite: selDep.heures_limite_reponse ?? 8,
                         modeDates: (selDep.mode_dates || 'plage_continue') as 'plage_continue' | 'jours_individuels',
                         joursProposes: selDep.jours_proposes,
+                        dureeMinRotationJours: 5,
                       }))
                     }}
                     style={{ padding:'4px 10px', fontSize:11, fontWeight:600, borderRadius:6, border:'1px solid #cbd5e1', backgroundColor:'white', color:'#475569', cursor:'pointer' }}>

@@ -36,16 +36,13 @@ export interface TplNotifContext {
   depNom: string
   /** Date de début du déploiement (ISO YYYY-MM-DD). */
   dateDebut?: string
-  /** Date de fin du déploiement (ISO YYYY-MM-DD). NULL = ops ouverte. */
+  /** Date de fin du déploiement (ISO YYYY-MM-DD). NULL = ops ouverte → ajoute "(durée déterminée selon les besoins)". */
   dateFin?: string
   /**
    * Lieu d'intervention — DÉLIBÉRÉMENT NON UTILISÉ par tplNotif() depuis 2026-04-25.
    * Risque opérationnel: un réserviste motivé verrait l'adresse précise et pourrait
    * s'y rendre avant d'être officiellement mobilisé (étape 8). Le lieu est révélé
-   * uniquement à la mobilisation via tplMobil(). Voir tâche #17 pour la séparation
-   * propre region (étape 5) vs lieu précis (étape 8).
-   * Le champ reste sur l'interface pour préserver la signature, et l'admin peut
-   * toujours ajouter une indication régionale en éditant manuellement le textarea.
+   * uniquement à la mobilisation via tplMobil(). Voir tâche #17.
    */
   lieu?: string
   branding?: Branding
@@ -53,6 +50,21 @@ export interface TplNotifContext {
   modeDates?: 'plage_continue' | 'jours_individuels'
   joursProposes?: string[] | null
   dateEnvoi?: Date
+  /**
+   * Durée minimum recommandée d'une rotation, en jours. Si fournie, ajoute la phrase
+   * « Pour ce déploiement, une rotation typique dure au minimum N jours. ».
+   * En attente de la colonne DB dédiée (#15), peut être passé en dur depuis le wizard.
+   */
+  dureeMinRotationJours?: number
+}
+
+/**
+ * Détecte si un nom de déploiement ou de sinistre contient le marqueur [EXERCICE].
+ * Quand vrai, tplNotif() ajoute un en-tête et un avertissement de simulation.
+ */
+function estExercice(depNom: string, sinNom: string): boolean {
+  const re = /\[EXERCICE\]/i
+  return re.test(depNom) || re.test(sinNom)
 }
 
 /**
@@ -80,8 +92,10 @@ export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, d
   const dateEnvoi = ctx.dateEnvoi ?? new Date()
   const limite = calculerDateLimite(dateEnvoi, heures)
   const limiteStr = formatDateLimite(limite, dateEnvoi)
+  const exercice = estExercice(ctx.depNom, ctx.sinNom)
 
-  // Description du mode dates (sur sa propre ligne)
+  // Description du mode dates (sur sa propre ligne).
+  // Pour plage ouverte (dateFin null), ajoute "(durée déterminée selon les besoins)".
   let datesLigne = ''
   if (ctx.modeDates === 'jours_individuels' && ctx.joursProposes?.length) {
     const joursFr = ctx.joursProposes.map(dateFr).join(', ')
@@ -89,17 +103,30 @@ export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, d
   } else if (ctx.dateDebut && ctx.dateFin && ctx.dateDebut !== ctx.dateFin) {
     datesLigne = `\nDu ${dateFr(ctx.dateDebut)} au ${dateFr(ctx.dateFin)}.`
   } else if (ctx.dateDebut) {
-    datesLigne = `\nÀ partir du ${dateFr(ctx.dateDebut)}.`
+    datesLigne = `\nÀ partir du ${dateFr(ctx.dateDebut)} (durée déterminée selon les besoins).`
   }
 
-  return `Bonjour,
+  // Phrase rotation typique si la donnée est fournie
+  const rotationLigne = ctx.dureeMinRotationJours && ctx.dureeMinRotationJours > 0
+    ? `\n\nPour ce déploiement, une rotation typique dure au minimum ${ctx.dureeMinRotationJours} jours.`
+    : ''
+
+  // En-tête EXERCICE (mode simulation)
+  const headerExercice = exercice ? `[EXERCICE — SIMULATION]\n\n` : ''
+
+  // Pied de page d'avertissement EXERCICE
+  const footerExercice = exercice
+    ? `\n\n⚠️ Ceci est un EXERCICE — aucun déplacement réel requis. Le but est de tester le portail comme dans une vraie mobilisation.`
+    : ''
+
+  return `${headerExercice}Bonjour,
 
 Vous êtes sollicité(e) pour un déploiement.
 
-${ctx.depNom}${datesLigne}
+${ctx.depNom}${datesLigne}${rotationLigne}
 
 Veuillez soumettre vos plages de disponibilités ${limiteStr} via le portail :
-https://${branding.urlPortail}/disponibilites
+https://${branding.urlPortail}/disponibilites${footerExercice}
 
 ${branding.signatureNotif}`
 }

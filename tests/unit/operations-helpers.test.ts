@@ -50,11 +50,11 @@ describe('tplNotif - structure et contenu', () => {
     expect(out).toContain('Vous êtes sollicité(e) pour un déploiement')
     expect(out).toContain('[EXERCICE] Soutien op. terrain - Inondation Chicoutimi')
     expect(out).toContain('À partir du 28/04/2026')
+    // Plage ouverte → mention "(durée déterminée selon les besoins)"
+    expect(out).toContain('(durée déterminée selon les besoins)')
     // SÉCURITÉ OPÉRATIONNELLE : le lieu ne doit PAS apparaître dans tplNotif().
-    // Le réserviste ne doit pas être tenté de se déplacer avant la mobilisation.
     expect(out).not.toContain('📍')
     expect(out).not.toContain('Boul. Saguenay Ouest')
-    // PAS de "du X au Y" pour plage ouverte
     expect(out).not.toMatch(/Du \d+\/\d+\/\d+ au \d+\/\d+\/\d+/)
   })
 
@@ -195,5 +195,124 @@ describe('tplNotif - règles éditoriales (anti-régression)', () => {
     // Voir tâche #17 (séparation region vs lieu).
     expect(sample).not.toContain('📍')
     expect(sample).not.toContain('Boul. Saguenay Ouest')
+  })
+})
+
+describe('tplNotif - mode EXERCICE (auto-détection)', () => {
+  it('si depNom contient [EXERCICE] → header et footer EXERCICE ajoutés', () => {
+    const out = tplNotif({
+      sinNom: 'Sinistre normal',
+      depNom: '[EXERCICE] Test',
+      dateDebut: '2026-04-28',
+      branding: 'AQBRS',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toContain('[EXERCICE — SIMULATION]')
+    expect(out).toContain('aucun déplacement réel requis')
+  })
+
+  it('si sinNom contient [EXERCICE] → header et footer EXERCICE ajoutés', () => {
+    const out = tplNotif({
+      sinNom: '[EXERCICE] Sinistre simulé',
+      depNom: 'Déploiement test',
+      dateDebut: '2026-04-28',
+      branding: 'AQBRS',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toContain('[EXERCICE — SIMULATION]')
+    expect(out).toContain('aucun déplacement réel requis')
+  })
+
+  it('si NI depNom NI sinNom contiennent [EXERCICE] → pas de wrapper EXERCICE', () => {
+    const out = tplNotif({
+      sinNom: 'Vraie inondation Laval',
+      depNom: 'Soutien op. terrain Laval',
+      dateDebut: '2026-04-28',
+      branding: 'RIUSC',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).not.toContain('[EXERCICE — SIMULATION]')
+    expect(out).not.toContain('aucun déplacement réel requis')
+  })
+})
+
+describe('tplNotif - rotation typique', () => {
+  it('si dureeMinRotationJours fourni → ajoute la phrase rotation typique', () => {
+    const out = tplNotif({
+      sinNom: 'X',
+      depNom: 'Y',
+      dateDebut: '2026-04-28',
+      dureeMinRotationJours: 5,
+      branding: 'AQBRS',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toContain('Pour ce déploiement, une rotation typique dure au minimum 5 jours.')
+  })
+
+  it('si dureeMinRotationJours = 3 → "minimum 3 jours"', () => {
+    const out = tplNotif({
+      sinNom: 'X',
+      depNom: 'Y',
+      dateDebut: '2026-04-28',
+      dureeMinRotationJours: 3,
+      branding: 'AQBRS',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toContain('minimum 3 jours')
+  })
+
+  it('si dureeMinRotationJours absent → pas de phrase rotation', () => {
+    const out = tplNotif({
+      sinNom: 'X',
+      depNom: 'Y',
+      dateDebut: '2026-04-28',
+      branding: 'AQBRS',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).not.toContain('rotation typique')
+  })
+
+  it('si dureeMinRotationJours = 0 → pas de phrase rotation (garde-fou)', () => {
+    const out = tplNotif({
+      sinNom: 'X',
+      depNom: 'Y',
+      dateDebut: '2026-04-28',
+      dureeMinRotationJours: 0,
+      branding: 'AQBRS',
+      heuresLimite: 8,
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).not.toContain('rotation typique')
+  })
+})
+
+describe('tplNotif - mention durée ouverte', () => {
+  it('plage ouverte (dateFin null) → "(durée déterminée selon les besoins)"', () => {
+    const out = tplNotif({
+      sinNom: 'X',
+      depNom: 'Y',
+      dateDebut: '2026-04-28',
+      branding: 'AQBRS',
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toContain('(durée déterminée selon les besoins)')
+  })
+
+  it('plage fermée → PAS de "(durée déterminée selon les besoins)"', () => {
+    const out = tplNotif({
+      sinNom: 'X',
+      depNom: 'Y',
+      dateDebut: '2026-04-28',
+      dateFin: '2026-04-30',
+      branding: 'AQBRS',
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).not.toContain('(durée déterminée selon les besoins)')
   })
 })
