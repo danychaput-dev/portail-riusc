@@ -85,6 +85,12 @@ function SoumettreContent() {
 
   const [reponse, setReponse] = useState<ReponseType | null>(null)
   const [datesCochees, setDatesCochees] = useState<Set<string>>(new Set())
+  // En mode plage_continue (MVP restauré 2026-04-26): le réserviste saisit
+  // sa propre plage via 2 inputs date_debut + date_fin. Au submit on expand
+  // ces 2 dates en N entrées de datesCochees pour réutiliser le flow d'envoi
+  // existant (1 POST par jour vers le webhook n8n).
+  const [plageDebut, setPlageDebut] = useState('')
+  const [plageFin, setPlageFin] = useState('')
   const [transport, setTransport] = useState('')
   const [commentaires, setCommentaires] = useState('')
   const [engagementAccepte, setEngagementAccepte] = useState(false)
@@ -132,13 +138,9 @@ function SoumettreContent() {
     return []
   }, [deploiement])
 
-  // Pré-cocher tous les jours en mode plage_continue (tout ou rien)
-  useEffect(() => {
-    if (!deploiement) return
-    if (deploiement.mode_dates === 'plage_continue' && joursDisponibles.length && datesCochees.size === 0 && reponse && reponse !== 'non_disponible') {
-      setDatesCochees(new Set(joursDisponibles.map(j => j.iso)))
-    }
-  }, [deploiement, joursDisponibles, reponse])
+  // Note: pas de pré-cochage en plage_continue depuis la restauration MVP plages
+  // multiples. Le réserviste saisit ses propres dates via plageDebut/plageFin,
+  // qui sont expandées en datesCochees au moment du submit.
 
   // Formulaire verrouillé si date_limite_reponse dépassée
   const estExpire = useMemo(() => {
@@ -154,10 +156,22 @@ function SoumettreContent() {
   const isReadyToSubmit = useMemo(() => {
     if (estExpire) return false
     if (!reponse || reponse === 'non_disponible') return false
-    if (datesCochees.size === 0 || !transport) return false
+    if (!transport) return false
     if (reponse === 'disponible' && (!engagementAccepte || !aptitudeAcceptee)) return false
+    // Mode plage_continue : valider que les 2 dates de la plage sont saisies et cohérentes
+    if (deploiement?.mode_dates === 'plage_continue') {
+      if (!plageDebut || !plageFin) return false
+      if (plageDebut > plageFin) return false
+      // Borne basse : pas avant la date_debut du déploiement
+      if (deploiement.date_debut && plageDebut < deploiement.date_debut) return false
+      // Borne haute : si date_fin du déploiement set, ne pas dépasser
+      if (deploiement.date_fin && plageFin > deploiement.date_fin) return false
+      return true
+    }
+    // Mode jours_individuels : au moins une case cochée
+    if (datesCochees.size === 0) return false
     return true
-  }, [reponse, datesCochees, transport, engagementAccepte, aptitudeAcceptee, estExpire])
+  }, [reponse, datesCochees, transport, engagementAccepte, aptitudeAcceptee, estExpire, deploiement, plageDebut, plageFin])
 
   // Détecte la transition invalide → valide pour scroller UNE SEULE FOIS vers le bouton.
   // Si l'utilisateur décoche puis recoche, ça re-déclenche un scroll, ce qui est attendu.
@@ -258,8 +272,23 @@ function SoumettreContent() {
     if (!deploiement) { setError('Aucun déploiement sélectionné. Retournez à la liste.'); return }
     if (!reponse) { setError('Sélectionnez d\'abord une des 3 options : Disponible, À confirmer ou Non disponible.'); return }
 
+    // datesAEnvoyer = source de vérité pour la boucle d'envoi plus bas.
+    // - jours_individuels: contient les cases cochées (datesCochees)
+    // - plage_continue: contient les jours expandés depuis [plageDebut, plageFin]
+    let datesAEnvoyer: Set<string> = datesCochees
+
     if (reponse !== 'non_disponible') {
-      if (datesCochees.size === 0) { setError('Cochez au moins une date où vous êtes disponible.'); return }
+      if (deploiement?.mode_dates === 'plage_continue') {
+        if (!plageDebut || !plageFin) { setError('Indiquez votre date de début et votre date de fin de disponibilité.'); return }
+        if (plageDebut > plageFin) { setError('La date de fin doit être après la date de début.'); return }
+        if (deploiement.date_debut && plageDebut < deploiement.date_debut) { setError(`La date de début ne peut pas être avant le ${formatDate(deploiement.date_debut)}.`); return }
+        if (deploiement.date_fin && plageFin > deploiement.date_fin) { setError(`La date de fin ne peut pas être après le ${formatDate(deploiement.date_fin)}.`); return }
+        datesAEnvoyer = new Set(genererPlage(plageDebut, plageFin))
+        // Mémoriser pour l'écran de confirmation (qui lit datesCochees)
+        setDatesCochees(datesAEnvoyer)
+      } else {
+        if (datesCochees.size === 0) { setError('Cochez au moins une date où vous êtes disponible.'); return }
+      }
       if (!transport) { setError('Veuillez indiquer votre situation de transport.'); return }
       if (reponse === 'disponible' && !engagementAccepte) { setError('Veuillez cocher la case d\'engagement de disponibilité.'); return }
       if (reponse === 'disponible' && !aptitudeAcceptee) { setError('Veuillez cocher la case d\'aptitude physique et mentale.'); return }
@@ -301,8 +330,10 @@ function SoumettreContent() {
         return
       }
 
-      // Cas DISPONIBLE / À CONFIRMER : un appel par date cochée
-      const datesTriees = Array.from(datesCochees).sort()
+      // Cas DISPONIBLE / À CONFIRMER : un appel par date.
+      // En plage_continue, datesAEnvoyer a été remplie depuis [plageDebut, plageFin]
+      // au moment de la validation. En jours_individuels, c'est datesCochees.
+      const datesTriees = Array.from(datesAEnvoyer).sort()
       const erreurs: string[] = []
       for (const date of datesTriees) {
         const response = await fetch(n8nUrl('/webhook/riusc-disponibilite'), {
@@ -405,6 +436,30 @@ function SoumettreContent() {
               {msg.note}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              {/* Bouton "+ Ajouter une autre plage" — seulement en mode plage_continue
+                  et seulement si la réponse est positive (pas pour les non disponibles) */}
+              {reponse !== 'non_disponible' && deploiement?.mode_dates === 'plage_continue' && (
+                <button
+                  onClick={() => {
+                    // Reset du formulaire pour saisir une 2e plage. On garde
+                    // la réponse (Disponible / À confirmer) et le transport — ce
+                    // sont des préférences globales qui ne changent pas d'une plage
+                    // à l'autre. Les dates sont remises à zéro pour la nouvelle saisie.
+                    setSubmitted(false)
+                    setPlageDebut('')
+                    setPlageFin('')
+                    setDatesCochees(new Set())
+                    setError('')
+                  }}
+                  style={{
+                    display: 'inline-block', padding: '12px 28px', backgroundColor: '#f0f4f8',
+                    color: '#1e3a5f', border: '1px solid #1e3a5f', borderRadius: '8px',
+                    fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                  }}
+                >
+                  + Ajouter une autre plage de disponibilité
+                </button>
+              )}
               <a
                 href="/disponibilites"
                 style={{ display: 'inline-block', padding: '12px 32px', backgroundColor: '#1e3a5f', color: 'white', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}
@@ -662,25 +717,58 @@ function SoumettreContent() {
               {deploiement?.mode_dates === 'plage_continue' ? (
                 <>
                   <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
-                    Plage du déploiement
+                    Vos dates de disponibilité
                   </h3>
+                  <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#6b7280', lineHeight: 1.5 }}>
+                    Indiquez la plage de dates où vous êtes disponible pour ce déploiement.
+                    {deploiement.date_debut && (
+                      <> Le déploiement débute le <strong>{formatDate(deploiement.date_debut)}</strong>{deploiement.date_fin ? <> et se termine au plus tard le <strong>{formatDate(deploiement.date_fin)}</strong></> : <> et n'a pas de date de fin déterminée</>}.</>
+                    )}
+                  </p>
                   <div style={{
-                    backgroundColor: '#ecfdf5', border: '2px solid #059669', borderRadius: '10px',
-                    padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px'
+                    backgroundColor: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: '10px',
+                    padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px',
                   }}>
-                    <span style={{ fontSize: '28px', flexShrink: 0 }}>📅</span>
                     <div>
-                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#065f46', marginBottom: '4px' }}>
-                        {joursDisponibles.length === 1
-                          ? joursDisponibles[0].label
-                          : joursDisponibles.length > 0
-                            ? `${joursDisponibles[0].label} → ${joursDisponibles[joursDisponibles.length - 1].label}`
-                            : 'Aucune date définie'}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#4b5563' }}>
-                        En choisissant "{reponse === 'disponible' ? 'Je suis disponible' : 'Je dois confirmer'}", vous vous engagez pour <strong>toute la plage</strong> ({joursDisponibles.length} jour{joursDisponibles.length > 1 ? 's' : ''}).
-                      </div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#1e3a5f', marginBottom: '6px' }}>
+                        📅 Date de début
+                      </label>
+                      <input
+                        type="date"
+                        value={plageDebut}
+                        min={deploiement.date_debut || undefined}
+                        max={deploiement.date_fin || undefined}
+                        onChange={(e) => { setPlageDebut(e.target.value); setError('') }}
+                        style={{
+                          width: '100%', padding: '10px 12px', fontSize: '14px',
+                          border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', boxSizing: 'border-box',
+                        }}
+                      />
                     </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#1e3a5f', marginBottom: '6px' }}>
+                        📅 Date de fin
+                      </label>
+                      <input
+                        type="date"
+                        value={plageFin}
+                        min={plageDebut || deploiement.date_debut || undefined}
+                        max={deploiement.date_fin || undefined}
+                        onChange={(e) => { setPlageFin(e.target.value); setError('') }}
+                        style={{
+                          width: '100%', padding: '10px 12px', fontSize: '14px',
+                          border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', boxSizing: 'border-box',
+                        }}
+                      />
+                    </div>
+                    {plageDebut && plageFin && plageDebut <= plageFin && (
+                      <div style={{
+                        gridColumn: '1 / -1', backgroundColor: '#ecfdf5', border: '1px solid #059669',
+                        borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#065f46',
+                      }}>
+                        ✓ Vous serez disponible pendant <strong>{genererPlage(plageDebut, plageFin).length} jour{genererPlage(plageDebut, plageFin).length > 1 ? 's' : ''}</strong>, du {formatDate(plageDebut)} au {formatDate(plageFin)}.
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
