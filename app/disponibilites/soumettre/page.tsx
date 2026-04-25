@@ -541,13 +541,13 @@ function SoumettreContent() {
                 {deploiement.nom_sinistre}
               </div>
             )}
-            {/* Titre + date à droite (sur la même ligne, wrap sur mobile).
+            {/* Titre + date à droite (alignés verticalement au centre, wrap sur mobile).
                 Lieu volontairement retiré ici: risque opérationnel de déplacement
                 avant mobilisation. Le lieu est révélé uniquement à l'étape 8 via tplMobil(). */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', flex: '1 1 auto' }}>{deploiement.nom_deploiement}</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', flex: '1 1 auto', lineHeight: 1.3 }}>{deploiement.nom_deploiement}</h2>
               {deploiement.date_debut && (
-                <div style={{ fontSize: '14px', opacity: 0.95, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <div style={{ fontSize: '14px', opacity: 0.95, whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1.3 }}>
                   📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` au ${formatDate(deploiement.date_fin)}` : ''}
                 </div>
               )}
