@@ -98,7 +98,7 @@ function SoumettreContent() {
   const [error, setError] = useState('')
   const [reserviste, setReserviste] = useState<Reserviste | null>(null)
   const [deploiement, setDeploiement] = useState<DeploiementInfo | null>(null)
-  const [showAide, setShowAide] = useState(false)
+  const [showAide, setShowAide] = useState(true)
 
   const [reponse, setReponse] = useState<ReponseType | null>(null)
   const [datesCochees, setDatesCochees] = useState<Set<string>>(new Set())
@@ -571,8 +571,8 @@ function SoumettreContent() {
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>💡</span>
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a5f' }}>Comment fonctionne la soumission de disponibilité ?</span>
+              <span style={{ fontSize: '20px' }}>💡</span>
+              <span style={{ fontSize: '16px', fontWeight: '600', color: '#1e3a5f' }}>Comment fonctionne la soumission de disponibilité ?</span>
             </div>
             <svg width="16" height="16" fill="none" stroke="#9ca3af" strokeWidth="2" viewBox="0 0 24 24"
               style={{ transform: showAide ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
@@ -766,18 +766,14 @@ function SoumettreContent() {
                         min={deploiement.date_debut || undefined}
                         max={deploiement.date_fin || undefined}
                         onChange={(e) => {
-                          const v = e.target.value
-                          setPlageDebut(v)
+                          setPlageDebut(e.target.value)
                           setError('')
-                          // Auto-fill plageFin avec un engagement minimum de DUREE_MIN_ROTATION_JOURS
-                          // (sauf si l'utilisateur a déjà saisi une plageFin explicitement plus longue).
-                          if (v) {
-                            const finAuto = ajouterJours(v, DUREE_MIN_ROTATION_JOURS - 1)
-                            if (!plageFin || plageFin < finAuto) {
-                              // Borne haute si le déploiement a une date_fin
-                              const cap = deploiement.date_fin && finAuto > deploiement.date_fin ? deploiement.date_fin : finAuto
-                              setPlageFin(cap)
-                            }
+                          // Si la plageFin précédente devient invalide (< plageDebut + DUREE_MIN), on la reset.
+                          // L'utilisateur la choisira librement à l'ouverture du picker (le min du picker
+                          // l'empêchera de choisir trop court).
+                          if (e.target.value && plageFin) {
+                            const minFin = ajouterJours(e.target.value, DUREE_MIN_ROTATION_JOURS - 1)
+                            if (plageFin < minFin) setPlageFin('')
                           }
                         }}
                         style={{
