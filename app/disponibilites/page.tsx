@@ -190,6 +190,13 @@ function DisponibilitesContent() {
     const { data: v2data } = await supabase.from('disponibilites_v2')
       .select('id, benevole_id, deployment_id, date_jour, disponible, a_confirmer, commentaire')
       .eq('benevole_id', benevoleId).order('date_jour', { ascending: true });
+    // FIX 2026-04-26: si v2data vide (toutes les dispos supprimées), on doit
+    // RESET le state à [] sinon les anciennes plages restent affichées et il
+    // faut un refresh manuel pour les voir disparaître.
+    if (!v2data || v2data.length === 0) {
+      setDisponibilites([]);
+      return;
+    }
     if (v2data && v2data.length > 0) {
       // Grouper les jours consécutifs en plages par deployment_id
       const grouped: Record<string, typeof v2data> = {};
@@ -636,7 +643,7 @@ function DisponibilitesContent() {
                                   {actionLoading === `confirmer-${dispo.id}` ? '⏳' : '✅ Confirmer'}
                                 </button>
                               )}
-                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}`}
+                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}&date_debut=${dispo.date_debut}&date_fin=${dispo.date_fin}`}
                                 style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }}>
                                 ✏️ Modifier
                               </a>

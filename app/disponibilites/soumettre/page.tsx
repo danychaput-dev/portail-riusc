@@ -108,6 +108,13 @@ function SoumettreContent() {
   // existant (1 POST par jour vers le webhook n8n).
   const [plageDebut, setPlageDebut] = useState('')
   const [plageFin, setPlageFin] = useState('')
+  // Mode "modification d'une plage existante": l'utilisateur arrive depuis le
+  // bouton ✏️ Modifier de /disponibilites avec ?date_debut=...&date_fin=...
+  // dans l'URL. On pré-remplit plageDebut/plageFin avec ces valeurs ET on les
+  // mémorise dans original* pour pouvoir DELETE l'ancienne plage au submit
+  // (sinon création de doublons).
+  const [originalDebut, setOriginalDebut] = useState('')
+  const [originalFin, setOriginalFin] = useState('')
   const [transport, setTransport] = useState('')
   const [commentaires, setCommentaires] = useState('')
   const [engagementAccepte, setEngagementAccepte] = useState(false)
@@ -117,6 +124,21 @@ function SoumettreContent() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const deploiementId = searchParams.get('deploiement') ?? ''
+
+  // Mode modification: lit les dates de l'URL au montage et les utilise pour
+  // pré-remplir le formulaire. Auto-sélectionne "Disponible" pour épargner un clic.
+  useEffect(() => {
+    const dDebut = searchParams.get('date_debut')
+    const dFin = searchParams.get('date_fin')
+    if (dDebut && dFin) {
+      setOriginalDebut(dDebut)
+      setOriginalFin(dFin)
+      setPlageDebut(dDebut)
+      setPlageFin(dFin)
+      setReponse('disponible')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Ref vers la section formulaire (qui apparaît après choix d'une option)
   // Permet de scroller automatiquement la page vers la suite du formulaire
@@ -349,6 +371,28 @@ function SoumettreContent() {
         }
         setSubmitting(false)
         return
+      }
+
+      // Mode plage_continue: AVANT d'insérer la nouvelle plage, on supprime
+      // toutes les plages existantes qui chevauchent (chacune entièrement, pas
+      // tronquée — règle métier articulée par Dany). Couvre les 2 cas:
+      //   - Modification via bouton ✏️ Modifier (l'ancienne plage chevauche par défaut)
+      //   - Ajout d'une plage qui chevauche accidentellement une plage déjà soumise
+      // Le mode jours_individuels n'a pas besoin de cleanup car les jours sont distincts.
+      if (deploiement?.mode_dates === 'plage_continue' && plageDebut && plageFin) {
+        try {
+          await fetch('/api/disponibilites/cleanup-chevauchement', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              benevole_id: reserviste.benevole_id,
+              deployment_id: deploiement.deploiement_id,
+              date_debut: plageDebut,
+              date_fin: plageFin,
+            }),
+          })
+        } catch (e) {
+          console.warn('Cleanup chevauchement échoué (continue avec INSERT):', e)
+        }
       }
 
       // Cas DISPONIBLE / À CONFIRMER : un appel par date.
@@ -761,6 +805,15 @@ function SoumettreContent() {
                   <h3 style={{ color: '#1e3a5f', margin: '0 0 12px 0', fontSize: '16px', fontWeight: '600' }}>
                     Vos dates de disponibilité
                   </h3>
+                  {originalDebut && originalFin && (
+                    <div style={{
+                      backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px',
+                      padding: '12px 16px', marginBottom: '14px', fontSize: '13px', color: '#1e40af',
+                    }}>
+                      ✏️ <strong>Modification de votre plage existante</strong> du {formatDate(originalDebut)} au {formatDate(originalFin)}.
+                      Saisissez les nouvelles dates ci-dessous pour remplacer cette plage.
+                    </div>
+                  )}
                   <p style={{ margin: '0 0 14px 0', fontSize: '13px', color: '#6b7280', lineHeight: 1.5 }}>
                     Indiquez la plage de dates où vous êtes disponible pour ce déploiement.
                     {deploiement.date_debut && (
