@@ -1353,7 +1353,7 @@ export default function OperationsPage() {
 
           {/* ─── ÉTAPE 5 : Notification dispos ──────────────────────────── */}
           <StepCard id="step-5" n={5} status={ss(5)} title="Notification des disponibilités"
-            subtitle={ciblages.some(c=>c.statut==='notifie') ? `${ciblages.filter(c=>c.statut==='notifie').length}/${ciblages.length} notifié(s) — envoyé via n8n` : ciblages.length > 0 ? `${ciblages.length} réserviste(s) à notifier` : 'Chargement des ciblages…'}>
+            subtitle={ciblages.some(c=>c.statut==='notifie') ? `${ciblages.filter(c=>c.statut==='notifie').length}/${ciblages.length} notifié(s) par SMS + courriel` : ciblages.length > 0 ? `${ciblages.length} réserviste(s) à notifier` : 'Chargement des ciblages…'}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {selDep && (() => {
                 const branding = selDep.branding || 'RIUSC'
@@ -1377,7 +1377,7 @@ export default function OperationsPage() {
               })()}
               <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px', fontSize:12, color:'#64748b' }}>
                 <strong style={{ color:'#1e3a5f' }}>📨 {ciblages.filter(c=>c.statut!=='notifie').length} destinataire(s)</strong>
-                {' '}— Envoi via n8n (SMS Twilio + courriel SMTP).
+                {' '}— Envoi simultané par SMS et courriel.
               </div>
               <Field label="Aperçu du message (éditable)">
                 <textarea style={TA} value={msgNotif} onChange={e=>setMsgNotif(e.target.value)}/>
@@ -1674,7 +1674,7 @@ export default function OperationsPage() {
 
           {/* ─── ÉTAPE 8 : Mobilisation ──────────────────────────────────── */}
           <StepCard id="step-8" n={8} status={ss(8)} title="Mobilisation confirmée"
-            subtitle={mobilSentDerived?'Confirmations envoyées via n8n ✓':'Envoyer les confirmations de mobilisation'}>
+            subtitle={mobilSentDerived?'Confirmations envoyées par SMS + courriel ✓':'Envoyer les confirmations de mobilisation'}>
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               {vagues.length>0 && (
                 <div style={{ backgroundColor:'#fafafa', borderRadius:8, border:'1px solid #e5e7eb', padding:'10px 14px' }}>
@@ -1762,8 +1762,17 @@ export default function OperationsPage() {
                 </div>
               </Field>
               <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <Btn onClick={sendMobilisation} disabled={vagues.length===0||mobilSentDerived} loading={sendingMobil} color="#065f46">
-                  {mobilSentDerived?'✅ Mobilisation envoyée':'🚀 Envoyer via n8n'}
+                <Btn
+                  onClick={() => {
+                    if (mobilSentDerived) return
+                    const nbAssignations = vagues.reduce((sum, v) => sum + (v.nb_personnes_requis || 0), 0)
+                    const confirme = confirm(`⚠️ Êtes-vous sûr ?\n\nVous êtes sur le point d'envoyer la confirmation de mobilisation aux réservistes assignés (${nbAssignations} personne${nbAssignations > 1 ? 's' : ''} environ, SMS + courriel).\n\nCette action est irréversible — les mobilisés recevront leur confirmation immédiatement.\n\nContinuer ?`)
+                    if (confirme) sendMobilisation()
+                  }}
+                  disabled={vagues.length===0||mobilSentDerived}
+                  loading={sendingMobil}
+                  color="#065f46">
+                  {mobilSentDerived?'✅ Mobilisation envoyée':'🚀 Envoyer la mobilisation'}
                 </Btn>
                 {/* Test : envoi SMS+courriel à l'admin courant uniquement, aucune modif DB */}
                 <Btn onClick={sendTestMobilisation} disabled={vagues.length===0} loading={sendingMobil} outline color="#d97706">
@@ -1773,7 +1782,7 @@ export default function OperationsPage() {
               </div>
               {mobilSentDerived && (
                 <div style={{ backgroundColor:'#d1fae5', borderRadius:8, border:'1px solid #6ee7b7', padding:'12px 16px', fontSize:13, color:'#065f46', fontWeight:600 }}>
-                  🎉 Opération complète — La mobilisation est confirmée et les notifications ont été envoyées via n8n.
+                  🎉 Opération complète — La mobilisation est confirmée et les notifications ont été envoyées par SMS + courriel.
                 </div>
               )}
             </div>
