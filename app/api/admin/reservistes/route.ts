@@ -45,14 +45,12 @@ export async function GET(req: NextRequest) {
   const statut       = searchParams.get('statut')
   const ids          = searchParams.get('ids')
 
-  // IMPORTANT : .range(0, 4999) pour depasser la limite par defaut de 1000 lignes Supabase.
-  let query = supabaseAdmin
-    .from('reservistes_actifs')
-    .select('benevole_id, user_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche, responsable_groupe, dispo_veille, dispo_veille_note, latitude, longitude')
-    .not('nom', 'is', null)
-    .neq('nom', '')
-    .order('nom')
-    .range(0, 4999)
+  // IMPORTANT : le .range() ne contourne PAS le Max Rows de Supabase (1000 par
+  // défaut). On pagine proprement en appliquant les filtres à CHAQUE page pour
+  // que le compte final corresponde au réel et qu'on ne tronque aucun réserviste
+  // qui matche les filtres (bug détecté 2026-04-24 : API retournait 1000 lignes
+  // alors qu'il y en a 1050, donc 50 réservistes invisibles dont 14 Approuvés).
+  const RES_SELECT = 'benevole_id, user_id, prenom, nom, email, telephone, telephone_secondaire, adresse, ville, region, code_postal, groupe, statut, created_at, remboursement_bottes_date, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, date_naissance, contact_urgence_nom, contact_urgence_telephone, camp_qualif_complete, groupe_recherche, responsable_groupe, dispo_veille, dispo_veille_note, latitude, longitude'
 
   // Export par IDs spécifiques (sélection)
   if (ids) {
@@ -136,49 +134,68 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (statut) {
-    query = query.eq('statut', statut)
-  }
+  // Appliquer tous les filtres à une query fraîche — utilisé par le loop de pagination.
+  const applyFilters = (q: any) => {
+    if (statut) q = q.eq('statut', statut)
 
-  if (groupes) {
-    const liste = groupes.split(',').map(g => g.trim()).filter(Boolean)
-    if (liste.length > 0) query = query.in('groupe', liste)
-  }
-
-  if (recherche) {
-    query = query.or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%,ville.ilike.%${recherche}%,telephone.ilike.%${recherche}%`)
-  }
-
-  if (region) {
-    query = query.ilike('region', region)
-  }
-
-  if (antecedents) {
-    if (antecedents === 'en_attente') {
-      query = query.or('antecedents_statut.is.null,antecedents_statut.eq.en_attente')
-    } else {
-      query = query.eq('antecedents_statut', antecedents)
+    if (groupes) {
+      const liste = groupes.split(',').map(g => g.trim()).filter(Boolean)
+      if (liste.length > 0) q = q.in('groupe', liste)
     }
-  }
 
-  if (bottes === 'oui') {
-    query = query.not('remboursement_bottes_date', 'is', null)
-  } else if (bottes === 'non') {
-    query = query.is('remboursement_bottes_date', null)
-  }
-
-  // Filtre par période d'inscription (24h, 7j, 30j)
-  if (inscritDepuis) {
-    const now = new Date()
-    const jours = parseInt(inscritDepuis)
-    if (!isNaN(jours)) {
-      const depuis = new Date(now.getTime() - jours * 86400000).toISOString()
-      query = query.or(`monday_created_at.gte.${depuis},created_at.gte.${depuis}`)
+    if (recherche) {
+      q = q.or(`nom.ilike.%${recherche}%,prenom.ilike.%${recherche}%,email.ilike.%${recherche}%,ville.ilike.%${recherche}%,telephone.ilike.%${recherche}%`)
     }
+
+    if (region) q = q.ilike('region', region)
+
+    if (antecedents) {
+      if (antecedents === 'en_attente') {
+        q = q.or('antecedents_statut.is.null,antecedents_statut.eq.en_attente')
+      } else {
+        q = q.eq('antecedents_statut', antecedents)
+      }
+    }
+
+    if (bottes === 'oui') q = q.not('remboursement_bottes_date', 'is', null)
+    else if (bottes === 'non') q = q.is('remboursement_bottes_date', null)
+
+    if (inscritDepuis) {
+      const now = new Date()
+      const jours = parseInt(inscritDepuis)
+      if (!isNaN(jours)) {
+        const depuis = new Date(now.getTime() - jours * 86400000).toISOString()
+        q = q.or(`monday_created_at.gte.${depuis},created_at.gte.${depuis}`)
+      }
+    }
+
+    return q
   }
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  // Paginer pour contourner le Max Rows de Supabase (typiquement 1000). Build une
+  // query fraîche à chaque page avec les mêmes filtres + range différent.
+  const PAGE_SIZE = 1000
+  const allData: any[] = []
+  let pageStart = 0
+  while (true) {
+    const pageQuery = applyFilters(
+      supabaseAdmin
+        .from('reservistes_actifs')
+        .select(RES_SELECT)
+        .not('nom', 'is', null)
+        .neq('nom', '')
+        .order('nom')
+    ).range(pageStart, pageStart + PAGE_SIZE - 1)
+
+    const { data: pageData, error } = await pageQuery
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!pageData || pageData.length === 0) break
+    allData.push(...pageData)
+    if (pageData.length < PAGE_SIZE) break
+    pageStart += PAGE_SIZE
+    if (pageStart >= 10000) break  // safety cap : max 10k réservistes
+  }
+  const data = allData
 
   // Filtre par camp (nécessite jointure avec inscriptions_camps)
   let reservistes = data || []
