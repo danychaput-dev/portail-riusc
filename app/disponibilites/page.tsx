@@ -201,23 +201,36 @@ function DisponibilitesContent() {
       const plages: any[] = [];
       for (const rows of Object.values(grouped)) {
         const sorted = rows.sort((a, b) => a.date_jour.localeCompare(b.date_jour));
+        // FIX 2026-04-26: trackes l'index du PREMIER jour de la PLAGE COURANTE
+        // (pas du premier jour du group). Avant, toutes les plages d'un même
+        // group partageaient le même id = sorted[0].id, ce qui cassait l'action
+        // Annuler quand un user avait plusieurs plages distinctes sur le même
+        // déploiement+statut.
+        let startIdx = 0;
         let start = sorted[0].date_jour;
         let end = sorted[0].date_jour;
+        const buildPlage = (idx: number, debut: string, fin: string) => ({
+          id: sorted[idx].id,
+          benevole_id: sorted[idx].benevole_id,
+          deploiement_id: sorted[idx].deployment_id,
+          date_debut: debut,
+          date_fin: fin,
+          statut: sorted[idx].a_confirmer ? 'En attente' : sorted[idx].disponible ? 'Disponible' : 'Non disponible',
+          commentaire: sorted[idx].commentaire,
+          transport: null,
+        });
         for (let i = 1; i < sorted.length; i++) {
           const prev = new Date(end); prev.setDate(prev.getDate() + 1);
-          const cur = new Date(sorted[i].date_jour);
           if (prev.toISOString().split('T')[0] === sorted[i].date_jour) {
             end = sorted[i].date_jour;
           } else {
-            plages.push({ id: sorted[0].id, benevole_id: sorted[0].benevole_id, deploiement_id: sorted[0].deployment_id,
-              date_debut: start, date_fin: end, statut: sorted[0].a_confirmer ? 'En attente' : sorted[0].disponible ? 'Disponible' : 'Non disponible',
-              commentaire: sorted[0].commentaire, transport: null });
-            start = sorted[i].date_jour; end = sorted[i].date_jour;
+            plages.push(buildPlage(startIdx, start, end));
+            startIdx = i;
+            start = sorted[i].date_jour;
+            end = sorted[i].date_jour;
           }
         }
-        plages.push({ id: sorted[0].id, benevole_id: sorted[0].benevole_id, deploiement_id: sorted[0].deployment_id,
-          date_debut: start, date_fin: end, statut: sorted[0].a_confirmer ? 'En attente' : sorted[0].disponible ? 'Disponible' : 'Non disponible',
-          commentaire: sorted[0].commentaire, transport: null });
+        plages.push(buildPlage(startIdx, start, end));
       }
       setDisponibilites(plages);
     }
