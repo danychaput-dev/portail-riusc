@@ -925,7 +925,9 @@ function SoumettreContent() {
                     transition: 'background-color 0.2s'
                   }}>
                   {submitting ? 'Soumission en cours...' : reponse === 'disponible' ? `Envoyer mes disponibilités (${nbJoursLabel} jour${nbJoursLabel > 1 ? 's' : ''})` : `Soumettre mes dates à confirmer (${nbJoursLabel} jour${nbJoursLabel > 1 ? 's' : ''})`}
-            </button>
+                </button>
+              )
+            })()}
           </div>
         )}
 
