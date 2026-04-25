@@ -60,6 +60,30 @@ interface Approuveur {
 
 type OngletPointage = 'actives' | 'archives'
 
+interface ActifLigne {
+  pointage_id: string
+  benevole_id: string
+  prenom: string
+  nom: string
+  groupe: string
+  heure_arrivee: string | null
+  duree_minutes: number | null
+  session_id: string
+  contexte_nom: string
+  titre: string | null
+  date_shift: string | null
+  shift: string | null
+}
+
+interface SessionActiveCount {
+  id: string
+  contexte_nom: string
+  titre: string | null
+  date_shift: string | null
+  shift: string | null
+  nb_actifs: number
+}
+
 export default function PointagePage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,6 +94,40 @@ export default function PointagePage() {
   const [editSession, setEditSession] = useState<Session | null>(null)
   const [onglet, setOnglet] = useState<OngletPointage>('actives')
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Bloc "👥 Personnes actuellement actives" — vue agrégée en haut de la page,
+  // avec dropdown pour filtrer par session QR. Filtre Approuvé+Intérêt côté API.
+  const [actifs, setActifs] = useState<ActifLigne[]>([])
+  const [sessionsActifs, setSessionsActifs] = useState<SessionActiveCount[]>([])
+  const [filtreSessionId, setFiltreSessionId] = useState<string>('') // '' = toutes
+  const [loadingActifs, setLoadingActifs] = useState(true)
+
+  const loadActifs = async () => {
+    try {
+      const res = await fetch('/api/admin/pointage/actifs')
+      const json = await res.json()
+      if (res.ok) {
+        setActifs(json.actifs || [])
+        setSessionsActifs(json.sessions || [])
+      }
+    } catch (e) {
+      console.error('Erreur chargement actifs:', e)
+    } finally {
+      setLoadingActifs(false)
+    }
+  }
+
+  useEffect(() => {
+    loadActifs()
+    // Auto-refresh toutes les 30s pour suivre les arrivées/départs en temps quasi-réel
+    const interval = setInterval(loadActifs, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const actifsFiltres = useMemo(
+    () => filtreSessionId ? actifs.filter(a => a.session_id === filtreSessionId) : actifs,
+    [actifs, filtreSessionId]
+  )
 
   // Le bouton Supprimer est reserve aux admin/superadmin (coord et partenaire
   // doivent utiliser Archiver). On se fie au role retourne par l'API GET.
@@ -249,6 +307,81 @@ export default function PointagePage() {
           {error}
         </div>
       )}
+
+      {/* Bloc "👥 Personnes actuellement actives" — vue agrégée temps réel */}
+      <div style={{ backgroundColor: 'white', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 auto' }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C }}>
+              👥 Personnes actuellement actives
+              <span style={{ marginLeft: 8, fontSize: 13, color: MUTED, fontWeight: 500 }}>
+                ({actifsFiltres.length}{filtreSessionId ? ` sur ce QR` : ' au total'})
+              </span>
+            </h2>
+            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+              Réservistes (Approuvé + Intérêt) avec un pointage ouvert sur un QR actif. Mise à jour automatique toutes les 30 s.
+            </div>
+          </div>
+          {sessionsActifs.length > 0 && (
+            <select
+              value={filtreSessionId}
+              onChange={(e) => setFiltreSessionId(e.target.value)}
+              style={{
+                padding: '8px 12px', fontSize: 13, fontWeight: 500,
+                border: `1px solid ${BORDER}`, borderRadius: 8, backgroundColor: 'white',
+                color: C, cursor: 'pointer', minWidth: 240,
+              }}
+            >
+              <option value="">— Toutes les sessions QR —</option>
+              {sessionsActifs.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.titre || s.contexte_nom}{s.shift ? ` · ${s.shift}` : ''} ({s.nb_actifs} actif{s.nb_actifs > 1 ? 's' : ''})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        {loadingActifs ? (
+          <div style={{ padding: 20, textAlign: 'center', color: MUTED, fontSize: 13 }}>Chargement…</div>
+        ) : actifsFiltres.length === 0 ? (
+          <div style={{ padding: 20, textAlign: 'center', color: MUTED, fontSize: 13, backgroundColor: '#f9fafb', borderRadius: 8 }}>
+            Personne pointé en ce moment{filtreSessionId ? ' sur ce QR' : ''}.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {actifsFiltres.map(a => (
+              <div key={a.pointage_id} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                backgroundColor: '#f9fafb', borderRadius: 6, fontSize: 13, flexWrap: 'wrap',
+              }}>
+                <span style={{ fontWeight: 600, color: C, minWidth: 0, flex: '0 1 auto' }}>
+                  {a.prenom} {a.nom}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                  backgroundColor: a.groupe === 'Approuvé' ? '#dcfce7' : '#fef3c7',
+                  color: a.groupe === 'Approuvé' ? '#166534' : '#92400e',
+                }}>
+                  {a.groupe}
+                </span>
+                {!filtreSessionId && (
+                  <span style={{ color: MUTED, fontSize: 12, flex: '1 1 200px' }}>
+                    📋 {a.titre || a.contexte_nom}{a.shift ? ` · ${a.shift}` : ''}
+                  </span>
+                )}
+                <span style={{ color: MUTED, fontSize: 12, marginLeft: filtreSessionId ? 'auto' : 0 }}>
+                  {a.duree_minutes != null
+                    ? `🕐 depuis ${a.duree_minutes < 60
+                        ? `${a.duree_minutes} min`
+                        : `${Math.floor(a.duree_minutes / 60)}h${String(a.duree_minutes % 60).padStart(2, '0')}`}`
+                    : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Onglets */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: `2px solid ${BORDER}` }}>
