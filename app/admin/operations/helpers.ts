@@ -56,6 +56,14 @@ export interface TplNotifContext {
    * En attente de la colonne DB dédiée (#15), peut être passé en dur depuis le wizard.
    */
   dureeMinRotationJours?: number
+  /**
+   * UUID du déploiement. Si fourni, le lien dans le message pointe directement
+   * vers le formulaire de soumission pré-filtré sur ce déploiement
+   * (/disponibilites/soumettre?deploiement=X). Sinon, lien générique vers la
+   * liste des dispos (/disponibilites). Toujours préférer fournir l'ID — ça
+   * évite au réserviste de devoir chercher dans la liste.
+   */
+  deploymentId?: string
 }
 
 /**
@@ -119,6 +127,12 @@ export function tplNotif(ctx: TplNotifContext | string, depNomLegacy?: string, d
     ? `\n\n⚠️ Ceci est un EXERCICE — aucun déplacement réel requis. Le but est de tester le portail comme dans une vraie mobilisation.`
     : ''
 
+  // Lien direct vers le formulaire de soumission pour ce déploiement précis
+  // (sinon le réserviste atterrit sur la liste générale et doit chercher).
+  const lienPortail = ctx.deploymentId
+    ? `https://${branding.urlPortail}/disponibilites/soumettre?deploiement=${ctx.deploymentId}`
+    : `https://${branding.urlPortail}/disponibilites`
+
   return `${headerExercice}Bonjour,
 
 Vous êtes sollicité(e) pour un déploiement.
@@ -126,7 +140,7 @@ Vous êtes sollicité(e) pour un déploiement.
 ${ctx.depNom}${datesLigne}${rotationLigne}
 
 Veuillez soumettre vos plages de disponibilités ${limiteStr} via le portail :
-https://${branding.urlPortail}/disponibilites${footerExercice}
+${lienPortail}${footerExercice}
 
 ${branding.signatureNotif}`
 }

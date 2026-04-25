@@ -184,6 +184,24 @@ describe('tplNotif - règles éditoriales (anti-régression)', () => {
     expect(sample).toContain('portail.riusc.ca/disponibilites')
   })
 
+  it('si deploymentId fourni → lien direct vers /soumettre?deploiement=X', () => {
+    const out = tplNotif({
+      sinNom: 'X', depNom: 'Y',
+      deploymentId: 'abc-123-def-456',
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toContain('https://portail.riusc.ca/disponibilites/soumettre?deploiement=abc-123-def-456')
+  })
+
+  it('si deploymentId NON fourni → lien générique vers /disponibilites', () => {
+    const out = tplNotif({
+      sinNom: 'X', depNom: 'Y',
+      dateEnvoi: DATE_ENVOI_FIXE,
+    })
+    expect(out).toMatch(/portail\.riusc\.ca\/disponibilites$/m)
+    expect(out).not.toContain('/disponibilites/soumettre')
+  })
+
   it('contient une date limite formatée', () => {
     // Avec heuresLimite=8 et envoi 14h00 EDT, limite = 22h00 même jour
     expect(sample).toMatch(/avant \d{2}h\d{2}/)
