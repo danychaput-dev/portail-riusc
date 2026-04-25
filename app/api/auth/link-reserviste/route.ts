@@ -95,24 +95,24 @@ export async function POST(_req: NextRequest) {
     if (digits.startsWith('1')) variants.add(digits.slice(1))
     if (!digits.startsWith('1') && digits.length === 10) variants.add('1' + digits)
 
-    // On normalise côté DB avec regexp_replace pour matcher peu importe le formatage
-    const { data } = await supabaseAdmin
-      .rpc('match_reservistes_by_phone_digits', { phone_variants: Array.from(variants) })
-      .then(r => r as any)
-      .catch(() => ({ data: null } as any))
-
-    // Fallback si la RPC n'existe pas : fetch en mémoire (plus lourd mais robuste)
-    if (!data) {
-      const { data: all } = await supabaseAdmin
+    // Match en mémoire — robuste peu importe le formatage du tel en DB.
+    // Pagination pour contourner le Max Rows Supabase (1000 par défaut).
+    let pageStart = 0
+    while (true) {
+      const { data: page } = await supabaseAdmin
         .from('reservistes')
         .select('benevole_id, user_id, email, telephone')
         .is('deleted_at', null)
-      ;(all || []).forEach((r: any) => {
+        .order('benevole_id')
+        .range(pageStart, pageStart + 999)
+      if (!page || page.length === 0) break
+      for (const r of page as ReservisteMin[]) {
         const rDigits = (r.telephone || '').replace(/\D/g, '')
         if (variants.has(rDigits)) candidates.push(r)
-      })
-    } else {
-      candidates.push(...(data as ReservisteMin[]))
+      }
+      if (page.length < 1000) break
+      pageStart += 1000
+      if (pageStart >= 10000) break
     }
   }
 
@@ -140,8 +140,13 @@ export async function POST(_req: NextRequest) {
   // ─── 3. Safety: ne pas écraser un user_id déjà lié à un autre auth ───
   if (target.user_id && target.user_id !== user.id) {
     // Vérifier si c'est un UUID fantôme (pas de auth.users correspondant) → OK d'écraser
-    const { data: { user: existingAuth } } = await supabaseAdmin.auth.admin.getUserById(target.user_id)
-      .catch(() => ({ data: { user: null } } as any))
+    let existingAuth: any = null
+    try {
+      const result = await supabaseAdmin.auth.admin.getUserById(target.user_id)
+      existingAuth = result?.data?.user ?? null
+    } catch {
+      existingAuth = null
+    }
 
     if (existingAuth) {
       return NextResponse.json({
