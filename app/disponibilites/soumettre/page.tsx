@@ -57,6 +57,23 @@ function labelJour(iso: string): string {
   return `${JOURS_FR[date.getDay()]} ${d} ${MOIS_FR[m - 1]} ${y}`
 }
 
+// Durée minimum recommandée par engagement (rotation typique).
+// MVP: hardcode 5 jours, à remplacer par lecture deployment.duree_min_rotation_jours
+// quand la colonne DB sera créée (voir tâche #15). Cohérent avec la valeur passée
+// par défaut au wizard étape 5 (tplNotif dureeMinRotationJours: 5).
+const DUREE_MIN_ROTATION_JOURS = 5
+
+// Calcule l'ISO d'une date + N jours
+function ajouterJours(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  dt.setDate(dt.getDate() + n)
+  const yyyy = dt.getFullYear()
+  const mm = String(dt.getMonth() + 1).padStart(2, '0')
+  const dd = String(dt.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
 // Génère toutes les dates entre debut et fin inclusivement (YYYY-MM-DD)
 function genererPlage(debut: string, fin: string): string[] {
   const dates: string[] = []
@@ -166,6 +183,8 @@ function SoumettreContent() {
       if (deploiement.date_debut && plageDebut < deploiement.date_debut) return false
       // Borne haute : si date_fin du déploiement set, ne pas dépasser
       if (deploiement.date_fin && plageFin > deploiement.date_fin) return false
+      // Durée minimum: rotation typique
+      if (genererPlage(plageDebut, plageFin).length < DUREE_MIN_ROTATION_JOURS) return false
       return true
     }
     // Mode jours_individuels : au moins une case cochée
@@ -283,6 +302,8 @@ function SoumettreContent() {
         if (plageDebut > plageFin) { setError('La date de fin doit être après la date de début.'); return }
         if (deploiement.date_debut && plageDebut < deploiement.date_debut) { setError(`La date de début ne peut pas être avant le ${formatDate(deploiement.date_debut)}.`); return }
         if (deploiement.date_fin && plageFin > deploiement.date_fin) { setError(`La date de fin ne peut pas être après le ${formatDate(deploiement.date_fin)}.`); return }
+        const nbJoursPlage = genererPlage(plageDebut, plageFin).length
+        if (nbJoursPlage < DUREE_MIN_ROTATION_JOURS) { setError(`La rotation minimale pour ce déploiement est de ${DUREE_MIN_ROTATION_JOURS} jours. Votre plage actuelle ne dure que ${nbJoursPlage} jour${nbJoursPlage > 1 ? 's' : ''}.`); return }
         datesAEnvoyer = new Set(genererPlage(plageDebut, plageFin))
         // Mémoriser pour l'écran de confirmation (qui lit datesCochees)
         setDatesCochees(datesAEnvoyer)
@@ -520,14 +541,20 @@ function SoumettreContent() {
                 {deploiement.nom_sinistre}
               </div>
             )}
-            <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600' }}>{deploiement.nom_deploiement}</h2>
+            {/* Titre + date à droite (sur la même ligne, wrap sur mobile).
+                Lieu volontairement retiré ici: risque opérationnel de déplacement
+                avant mobilisation. Le lieu est révélé uniquement à l'étape 8 via tplMobil(). */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', flex: '1 1 auto' }}>{deploiement.nom_deploiement}</h2>
+              {deploiement.date_debut && (
+                <div style={{ fontSize: '14px', opacity: 0.95, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` au ${formatDate(deploiement.date_fin)}` : ''}
+                </div>
+              )}
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '14px', opacity: 0.9 }}>
               {deploiement.type_incident && <div>🔥 {deploiement.type_incident}</div>}
-              {deploiement.lieu && <div>📍 {deploiement.lieu}</div>}
               {deploiement.organisme && <div>🏢 {deploiement.organisme}</div>}
-              {deploiement.date_debut && (
-                <div>📅 {formatDate(deploiement.date_debut)}{deploiement.date_fin ? ` au ${formatDate(deploiement.date_fin)}` : ''}</div>
-              )}
               {deploiement.date_limite_reponse && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: estExpire ? 'rgba(220,38,38,0.3)' : 'rgba(255,255,255,0.15)', padding: '3px 10px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' }}>
                   🕐 {estExpire ? 'Délai expiré' : 'Répondre ' + formatDateLimite(new Date(deploiement.date_limite_reponse))}
@@ -738,7 +765,21 @@ function SoumettreContent() {
                         value={plageDebut}
                         min={deploiement.date_debut || undefined}
                         max={deploiement.date_fin || undefined}
-                        onChange={(e) => { setPlageDebut(e.target.value); setError('') }}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setPlageDebut(v)
+                          setError('')
+                          // Auto-fill plageFin avec un engagement minimum de DUREE_MIN_ROTATION_JOURS
+                          // (sauf si l'utilisateur a déjà saisi une plageFin explicitement plus longue).
+                          if (v) {
+                            const finAuto = ajouterJours(v, DUREE_MIN_ROTATION_JOURS - 1)
+                            if (!plageFin || plageFin < finAuto) {
+                              // Borne haute si le déploiement a une date_fin
+                              const cap = deploiement.date_fin && finAuto > deploiement.date_fin ? deploiement.date_fin : finAuto
+                              setPlageFin(cap)
+                            }
+                          }
+                        }}
                         style={{
                           width: '100%', padding: '10px 12px', fontSize: '14px',
                           border: '1px solid #cbd5e1', borderRadius: '8px', outline: 'none', boxSizing: 'border-box',
@@ -747,12 +788,12 @@ function SoumettreContent() {
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#1e3a5f', marginBottom: '6px' }}>
-                        📅 Date de fin
+                        📅 Date de fin <span style={{ fontWeight: 400, color: '#9ca3af' }}>(min. {DUREE_MIN_ROTATION_JOURS}j)</span>
                       </label>
                       <input
                         type="date"
                         value={plageFin}
-                        min={plageDebut || deploiement.date_debut || undefined}
+                        min={plageDebut ? ajouterJours(plageDebut, DUREE_MIN_ROTATION_JOURS - 1) : (deploiement.date_debut || undefined)}
                         max={deploiement.date_fin || undefined}
                         onChange={(e) => { setPlageFin(e.target.value); setError('') }}
                         style={{
@@ -761,14 +802,23 @@ function SoumettreContent() {
                         }}
                       />
                     </div>
-                    {plageDebut && plageFin && plageDebut <= plageFin && (
-                      <div style={{
-                        gridColumn: '1 / -1', backgroundColor: '#ecfdf5', border: '1px solid #059669',
-                        borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#065f46',
-                      }}>
-                        ✓ Vous serez disponible pendant <strong>{genererPlage(plageDebut, plageFin).length} jour{genererPlage(plageDebut, plageFin).length > 1 ? 's' : ''}</strong>, du {formatDate(plageDebut)} au {formatDate(plageFin)}.
-                      </div>
-                    )}
+                    {plageDebut && plageFin && plageDebut <= plageFin && (() => {
+                      const nbJours = genererPlage(plageDebut, plageFin).length
+                      const trop_court = nbJours < DUREE_MIN_ROTATION_JOURS
+                      return (
+                        <div style={{
+                          gridColumn: '1 / -1',
+                          backgroundColor: trop_court ? '#fef2f2' : '#ecfdf5',
+                          border: `1px solid ${trop_court ? '#dc2626' : '#059669'}`,
+                          borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
+                          color: trop_court ? '#991b1b' : '#065f46',
+                        }}>
+                          {trop_court
+                            ? <>⚠️ Cette plage de <strong>{nbJours} jour{nbJours > 1 ? 's' : ''}</strong> est trop courte. La rotation minimale est de <strong>{DUREE_MIN_ROTATION_JOURS} jours</strong> pour ce déploiement.</>
+                            : <>✓ Vous serez disponible pendant <strong>{nbJours} jour{nbJours > 1 ? 's' : ''}</strong>, du {formatDate(plageDebut)} au {formatDate(plageFin)}.</>}
+                        </div>
+                      )
+                    })()}
                   </div>
                 </>
               ) : (
