@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, isAuthError } from '@/utils/auth-api'
 import { createClient } from '@supabase/supabase-js'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
   if (!targetCamp) {
     return NextResponse.json({ error: 'Session de camp invalide' }, { status: 400 })
   }
+
+  await setActingUser(supabaseAdmin, auth.user_id, auth.email)
 
   const results: { benevole_id: string; ok: boolean; message: string }[] = []
 

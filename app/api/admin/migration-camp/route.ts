@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +14,7 @@ const supabaseAdmin = createClient(
 
 const N8N_BASE = process.env.NEXT_PUBLIC_N8N_BASE_URL || 'https://n8n.aqbrs.ca'
 
-async function verifierAdmin(): Promise<string | null> {
+async function verifierAdmin(): Promise<{ benevole_id: string, user_id: string, email: string | null } | null> {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,14 +29,14 @@ async function verifierAdmin(): Promise<string | null> {
     .eq('user_id', user.id)
     .single()
   if (!res || !['superadmin', 'admin'].includes(res.role)) return null
-  return res.benevole_id
+  return { benevole_id: res.benevole_id, user_id: user.id, email: user.email ?? null }
 }
 
 // GET  → mode « dry run » : montre ce qui serait migré sans écrire
 // POST → exécute la migration
 export async function GET(req: NextRequest) {
-  const adminId = await verifierAdmin()
-  if (!adminId) return NextResponse.json({ error: 'Non autorisé (admin requis)' }, { status: 401 })
+  const admin = await verifierAdmin()
+  if (!admin) return NextResponse.json({ error: 'Non autorisé (admin requis)' }, { status: 401 })
 
   const dryRun = req.nextUrl.searchParams.get('execute') !== 'true'
   const BATCH_SIZE = 30 // requêtes n8n en parallèle
@@ -100,6 +101,7 @@ export async function GET(req: NextRequest) {
   // 4. Insérer dans formations_benevoles (sauf dry run)
   let inseres = 0
   if (!dryRun && certifies.length > 0) {
+    await setActingUser(supabaseAdmin, admin.user_id, admin.email)
     const rows = certifies.map(c => ({
       benevole_id: c.benevole_id,
       nom_complet: `${c.nom} ${c.prenom}`,

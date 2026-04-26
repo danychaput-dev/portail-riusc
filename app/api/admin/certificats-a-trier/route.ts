@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
+import { setActingUser } from '@/utils/audit'
 //maj du text dans le fichier pour forcer un update
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
 
     const auth = await verifierAdmin(admin_benevole_id)
     if (!auth.ok) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    await setActingUser(supabaseAdmin, auth.user_id, auth.email)
 
     // Récupérer la ligne queue
     const { data: item, error: fetchErr } = await supabaseAdmin
@@ -218,6 +220,7 @@ export async function DELETE(request: NextRequest) {
     if (!auth.ok) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     if (!id) return NextResponse.json({ error: 'id requis' }, { status: 400 })
     if (!note.trim()) return NextResponse.json({ error: 'note requise' }, { status: 400 })
+    await setActingUser(supabaseAdmin, auth.user_id, auth.email)
 
     // Récupérer storage_path pour supprimer le fichier
     const { data: item } = await supabaseAdmin

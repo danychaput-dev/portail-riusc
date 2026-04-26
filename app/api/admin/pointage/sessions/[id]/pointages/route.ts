@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +27,7 @@ async function verifierRole() {
     .eq('user_id', user.id)
     .single()
   if (!res || !['superadmin', 'admin', 'coordonnateur', 'partenaire', 'partenaire_lect'].includes(res.role)) return null
-  return res
+  return { ...res, user_id: user.id, email: user.email }
 }
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -89,6 +90,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const user = await verifierRole()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  await setActingUser(supabaseAdmin, user.user_id, user.email)
 
   const { id: sessionId } = await ctx.params
   const { benevole_id, heure_arrivee, heure_depart, notes } = await req.json()

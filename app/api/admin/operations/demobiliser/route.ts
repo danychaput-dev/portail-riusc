@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,12 +31,13 @@ async function verifierAdmin() {
     .eq('user_id', user.id)
     .single()
   if (!res || !['superadmin', 'admin', 'coordonnateur'].includes(res.role)) return null
-  return res
+  return { ...res, user_id: user.id, email: user.email }
 }
 
 export async function POST(req: NextRequest) {
   const admin = await verifierAdmin()
   if (!admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+  await setActingUser(supabaseAdmin, admin.user_id, admin.email)
 
   const body = await req.json()
   const { vague_id, deployment_id, all_vagues, all_deployment, close_deployment, benevole_id } = body

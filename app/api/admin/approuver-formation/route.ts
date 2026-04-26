@@ -1,19 +1,22 @@
 // app/api/admin/approuver-formation/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-async function verifierAdmin(benevole_id: string): Promise<boolean> {
+// Retourne null si pas admin, sinon { user_id, email } pour traçabilité audit_log
+async function verifierAdmin(benevole_id: string): Promise<{ user_id: string | null, email: string | null } | null> {
   const { data } = await supabaseAdmin
     .from('reservistes')
-    .select('role')
+    .select('role, user_id, email')
     .eq('benevole_id', benevole_id)
     .single()
-  return ['superadmin', 'admin'].includes(data?.role)
+  if (!data || !['superadmin', 'admin'].includes(data.role)) return null
+  return { user_id: data.user_id, email: data.email }
 }
 
 export async function POST(request: NextRequest) {
@@ -25,9 +28,11 @@ export async function POST(request: NextRequest) {
       initiation_sc_completee, admin_benevole_id
     } = body
 
-    if (!await verifierAdmin(admin_benevole_id)) {
+    const admin = await verifierAdmin(admin_benevole_id)
+    if (!admin) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
+    await setActingUser(supabaseAdmin, admin.user_id, admin.email)
 
     const { error } = await supabaseAdmin.from('formations_benevoles').insert({
       benevole_id,
@@ -56,13 +61,16 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { id, admin_benevole_id, motif } = body
 
-    if (!await verifierAdmin(admin_benevole_id)) {
+    const admin = await verifierAdmin(admin_benevole_id)
+    if (!admin) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
     if (!id) {
       return NextResponse.json({ error: 'id requis' }, { status: 400 })
     }
+
+    await setActingUser(supabaseAdmin, admin.user_id, admin.email)
 
     const { error } = await supabaseAdmin
       .from('formations_benevoles')
@@ -89,13 +97,19 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id')
     const admin_benevole_id = searchParams.get('admin_benevole_id')
 
-    if (!admin_benevole_id || !await verifierAdmin(admin_benevole_id)) {
+    if (!admin_benevole_id) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+    }
+    const admin = await verifierAdmin(admin_benevole_id)
+    if (!admin) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
     if (!id) {
       return NextResponse.json({ error: 'id requis' }, { status: 400 })
     }
+
+    await setActingUser(supabaseAdmin, admin.user_id, admin.email)
 
     // Recuperer le certificat_url pour supprimer le fichier du storage
     const { data: formation } = await supabaseAdmin
@@ -135,13 +149,16 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, date_reussite, date_expiration, admin_benevole_id } = body
 
-    if (!await verifierAdmin(admin_benevole_id)) {
+    const admin = await verifierAdmin(admin_benevole_id)
+    if (!admin) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
     }
 
     if (!id || !date_reussite) {
       return NextResponse.json({ error: 'id et date_reussite requis' }, { status: 400 })
     }
+
+    await setActingUser(supabaseAdmin, admin.user_id, admin.email)
 
     const { error } = await supabaseAdmin
       .from('formations_benevoles')

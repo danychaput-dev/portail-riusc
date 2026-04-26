@@ -17,6 +17,8 @@ export interface AuthResult {
   user_id: string
   benevole_id: string
   role: Role
+  /** Courriel de l'utilisateur (depuis auth.users), utilisé pour l'audit log via setActingUser. */
+  email: string | null
 }
 
 /**
@@ -52,6 +54,7 @@ export async function getAuthUser(): Promise<AuthResult | null> {
       user_id: user.id,
       benevole_id: data.benevole_id,
       role: data.role as Role,
+      email: user.email ?? null,
     }
   } catch {
     return null
