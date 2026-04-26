@@ -1,0 +1,155 @@
+{
+  "name": "RIUSC - Notifier modifs profil",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "1a2b3c4d-0001-4000-8000-000000000001",
+      "name": "Schedule (30s)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH groupes AS (\n  SELECT\n    destinataire_benevole_id,\n    destinataire_email,\n    destinataire_prenom,\n    changed_by_email,\n    changed_by_prenom,\n    changed_by_nom,\n    MAX(changed_at) AS derniere_modif,\n    array_agg(jsonb_build_object(\n      'table', table_name,\n      'champ', field_name,\n      'avant', old_value,\n      'apres', new_value\n    ) ORDER BY changed_at) AS modifs,\n    string_agg(id::text, ',') AS queue_ids_csv\n  FROM notif_audit_queue\n  WHERE processed = false\n    -- Debounce 60s : on attend que la rafale de modifs soit terminée avant d'envoyer\n    AND created_at < now() - interval '60 seconds'\n    -- Limiter retries (eviter les boucles infinies si Resend down)\n    AND retries < 5\n  GROUP BY destinataire_benevole_id, destinataire_email, destinataire_prenom,\n           changed_by_email, changed_by_prenom, changed_by_nom\n  LIMIT 50\n)\nSELECT * FROM groupes;",
+        "options": {}
+      },
+      "id": "1a2b3c4d-0002-4000-8000-000000000002",
+      "name": "Récupérer notifs en attente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [460, 300],
+      "credentials": {
+        "postgres": {
+          "id": "REMPLACER_PAR_ID_CRED_SUPABASE",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mappe les noms de colonnes techniques vers des labels humains.\n// Champ absent du map → on garde le nom brut (mais formaté lisible).\nconst LABELS = {\n  // reservistes - identite\n  prenom: 'Prénom',\n  nom: 'Nom',\n  email: 'Adresse courriel',\n  telephone: 'Téléphone',\n  telephone_secondaire: 'Téléphone secondaire',\n  date_naissance: 'Date de naissance',\n  // Adresse\n  adresse: 'Adresse',\n  code_postal: 'Code postal',\n  ville: 'Ville',\n  region: 'Région',\n  // Contact urgence\n  contact_urgence_nom: \"Contact d'urgence (nom)\",\n  contact_urgence_telephone: \"Contact d'urgence (téléphone)\",\n  contact_urgence_courriel: \"Contact d'urgence (courriel)\",\n  contact_urgence_lien: \"Contact d'urgence (lien)\",\n  // Statuts\n  groupe: 'Groupe',\n  statut: 'Statut',\n  role: 'Rôle',\n  antecedents_statut: 'Vérification des antécédents (statut)',\n  antecedents_date_verification: 'Date vérification antécédents',\n  antecedents_date_expiration: 'Date expiration antécédents',\n  consentement_antecedents: 'Consentement antécédents',\n  // Profil\n  profession: 'Profession',\n  groupe_sanguin: 'Groupe sanguin',\n  problemes_sante: 'Problèmes de santé',\n  conditions_medicales: 'Conditions médicales',\n  allergies_alimentaires: 'Allergies alimentaires',\n  allergies_autres: 'Autres allergies',\n  experience_urgence_detail: \"Expérience en urgence\",\n  autres_competences: 'Autres compétences',\n  preference_tache: 'Préférence de tâche',\n  preference_tache_commentaire: 'Préférence de tâche (commentaire)',\n  // Compétences (arrays)\n  competence_rs: 'Compétences en recherche-sauvetage',\n  certificat_premiers_soins: 'Premiers soins',\n  vehicule_tout_terrain: 'Véhicule tout-terrain',\n  navire_marin: 'Navire/marin',\n  permis_conduire: 'Permis de conduire',\n  satp_drone: 'SATP / Drone',\n  equipe_canine: 'Équipe canine',\n  competences_securite: 'Compétences sécurité',\n  competences_sauvetage: 'Compétences sauvetage',\n  certification_csi: 'Certification SCI/ICS',\n  communication: 'Communication',\n  cartographie_sig: 'Cartographie SIG',\n  operation_urgence: \"Opération d'urgence\",\n  disponible_covoiturage: 'Disponibilité covoiturage',\n  // Bottes/équipement\n  grandeur_bottes: 'Grandeur de bottes',\n  remboursement_bottes_date: 'Date remboursement bottes',\n  // Camp\n  camp_qualif_complete: 'Camp de qualification complété',\n  groupe_recherche: 'Groupe de recherche',\n  responsable_groupe: 'Responsable de groupe',\n  // Connexion\n  methode_connexion: 'Méthode de connexion (SMS/courriel)',\n  // Consentements\n  consent_photo: 'Consentement photo',\n  consent_photos: 'Consentement photos',\n  confidentialite: 'Confidentialité',\n  j_ai_18_ans: '18 ans et plus',\n  // Formations\n  nom_formation: 'Formation',\n  resultat: 'Résultat',\n  etat_validite: 'Validité',\n  date_reussite: 'Date de réussite',\n  date_expiration: 'Date expiration',\n  certificat_url: 'Fichier certificat',\n  initiation_sc_completee: 'Initiation SC complétée',\n  date_expiration_certificat: 'Date expiration certificat',\n};\n\nfunction humanize(field) {\n  if (LABELS[field]) return LABELS[field];\n  // Fallback : remplace _ par espaces et capitalise.\n  return String(field || '').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());\n}\n\nfunction formatValue(v) {\n  if (v === null || v === undefined) return '<em>(vide)</em>';\n  if (Array.isArray(v)) {\n    if (v.length === 0) return '<em>(aucune)</em>';\n    return v.map(x => String(x)).join(', ');\n  }\n  if (typeof v === 'boolean') return v ? 'Oui' : 'Non';\n  if (typeof v === 'object') return JSON.stringify(v);\n  return String(v);\n}\n\nfunction tableLabel(t) {\n  if (t === 'reservistes') return 'votre profil';\n  if (t === 'formations_benevoles') return 'vos formations';\n  if (t === 'dossier_reserviste') return 'votre dossier';\n  return t;\n}\n\nconst results = [];\n\nfor (const item of $input.all()) {\n  const j = item.json;\n  const auteur = `${j.changed_by_prenom || ''} ${j.changed_by_nom || ''}`.trim() || 'Un administrateur';\n  const date = new Date(j.derniere_modif).toLocaleString('fr-CA', {\n    timeZone: 'America/Montreal',\n    dateStyle: 'long',\n    timeStyle: 'short',\n  });\n\n  // Grouper modifs par table pour un affichage plus propre\n  const modifs = Array.isArray(j.modifs) ? j.modifs : [];\n  const parTable = {};\n  for (const m of modifs) {\n    if (!parTable[m.table]) parTable[m.table] = [];\n    parTable[m.table].push(m);\n  }\n\n  let blocsHtml = '';\n  for (const [t, list] of Object.entries(parTable)) {\n    blocsHtml += `<p style=\"margin: 16px 0 4px; font-weight: 600; color: #1e3a5f;\">Modifications à ${tableLabel(t)} :</p>`;\n    blocsHtml += '<ul style=\"margin: 4px 0 0 16px; padding: 0;\">';\n    for (const m of list) {\n      blocsHtml += `<li style=\"margin: 6px 0;\">`;\n      blocsHtml += `<strong>${humanize(m.champ)}</strong> : `;\n      blocsHtml += `${formatValue(m.avant)} <span style=\"color:#94a3b8;\">→</span> ${formatValue(m.apres)}`;\n      blocsHtml += `</li>`;\n    }\n    blocsHtml += '</ul>';\n  }\n\n  const html = `<!DOCTYPE html><html><body style=\"font-family: Arial, sans-serif; color: #1f2937; max-width: 600px; margin: 0 auto; padding: 24px;\">\n<h2 style=\"color: #1e3a5f; margin: 0 0 16px;\">Modification à votre compte RIUSC</h2>\n<p>Bonjour ${j.destinataire_prenom || ''},</p>\n<p>Une modification a été apportée à votre compte le <strong>${date}</strong> par <strong>${auteur}</strong>.</p>\n${blocsHtml}\n<p style=\"margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;\">\nSi cette modification n'a pas été demandée par vous, contactez-nous immédiatement à <a href=\"mailto:info@riusc.ca\">info@riusc.ca</a>.\n</p>\n<p style=\"margin-top: 16px; font-size: 13px; color: #6b7280;\">— Équipe RIUSC<br><a href=\"https://portail.riusc.ca\">portail.riusc.ca</a></p>\n</body></html>`;\n\n  results.push({\n    json: {\n      ...j,\n      subject: 'RIUSC — Modification à votre profil',\n      html,\n    },\n  });\n}\n\nreturn results;"
+      },
+      "id": "1a2b3c4d-0003-4000-8000-000000000003",
+      "name": "Composer courriel HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@riusc.ca",
+        "fromName": "RIUSC",
+        "toEmail": "={{ $json.destinataire_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "1a2b3c4d-0004-4000-8000-000000000004",
+      "name": "Envoyer via SMTP (Resend)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [900, 300],
+      "continueOnFail": true,
+      "credentials": {
+        "smtp": {
+          "name": "RESEND"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Marquer processed=true si SMTP a réussi (pas de champ 'error' dans l'item).\n-- Si erreur (continueOnFail capture l'erreur dans $json.error), on incrémente retries.\nDO $$\nDECLARE\n  v_error text := NULLIF('{{ String($json.error?.message || $json.error || \"\").replace(/'/g, \"''\") }}', '');\n  v_queue_ids_csv text := '{{ $('Composer courriel HTML').item.json.queue_ids_csv }}';\nBEGIN\n  IF v_error IS NULL THEN\n    UPDATE notif_audit_queue\n    SET processed = true, processed_at = now()\n    WHERE id::text = ANY(STRING_TO_ARRAY(v_queue_ids_csv, ','));\n  ELSE\n    UPDATE notif_audit_queue\n    SET retries = retries + 1, error = v_error\n    WHERE id::text = ANY(STRING_TO_ARRAY(v_queue_ids_csv, ','));\n  END IF;\nEND $$;",
+        "options": {}
+      },
+      "id": "1a2b3c4d-0005-4000-8000-000000000005",
+      "name": "Marquer processed (ou erreur)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1120, 300],
+      "credentials": {
+        "postgres": {
+          "id": "REMPLACER_PAR_ID_CRED_SUPABASE",
+          "name": "Supabase Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule (30s)": {
+      "main": [
+        [
+          {
+            "node": "Récupérer notifs en attente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer notifs en attente": {
+      "main": [
+        [
+          {
+            "node": "Composer courriel HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Composer courriel HTML": {
+      "main": [
+        [
+          {
+            "node": "Envoyer via Resend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer via Resend": {
+      "main": [
+        [
+          {
+            "node": "Marquer processed (ou erreur)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": ""
+  },
+  "tags": [
+    {
+      "name": "RIUSC",
+      "id": "riusc"
+    },
+    {
+      "name": "Notifications",
+      "id": "notif"
+    }
+  ]
+}
