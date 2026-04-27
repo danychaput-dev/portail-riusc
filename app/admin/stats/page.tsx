@@ -212,6 +212,13 @@ export default function StatsPage() {
       @media print {
         @page { size: A4 landscape; margin: 10mm; }
         body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-size: 11px !important; }
+
+        /* CRITIQUE : detruire le confinement vertical du admin layout (height:100vh +
+           overflow:hidden) pour que le contenu se deroule sur plusieurs pages PDF */
+        html, body { height: auto !important; overflow: visible !important; }
+        #__next, #__next > *, body > div, body > div > div { height: auto !important; overflow: visible !important; min-height: 0 !important; max-height: none !important; }
+        main { height: auto !important; overflow: visible !important; flex: none !important; max-height: none !important; }
+        aside, [data-admin-sidebar] { display: none !important; }
         .no-print { display: none !important; }
         .print-only { display: block !important; }
         header { position: relative !important; }
