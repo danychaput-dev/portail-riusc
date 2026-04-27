@@ -62,9 +62,16 @@ setup('authenticate admin', async ({ page }) => {
     consoleLogs.push(`[pageerror] ${err.message}`)
   })
 
-  // Etape 1 : navigate vers /login
-  await page.goto(`${E2E_BASE_URL}/login`)
-  await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 10000 })
+  // Etape 1 : navigate vers /login et attendre que l'app React soit hydratee
+  // (en CI contre prod, Cloudflare peut servir un challenge avant la vraie page,
+  // et Next.js en prod SSR peut prendre quelques secondes a hydrater)
+  await page.goto(`${E2E_BASE_URL}/login`, { waitUntil: 'domcontentloaded' })
+  try {
+    await page.waitForLoadState('networkidle', { timeout: 15000 })
+  } catch {
+    // networkidle peut ne pas arriver si polling, on continue
+  }
+  await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 20000 })
 
   // Etape 2 : remplir l'email et declencher signInWithOtp
   await page.fill('input[name="email"]', ADMIN_EMAIL)

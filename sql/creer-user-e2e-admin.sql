@@ -6,6 +6,9 @@
 --   - Email confirme (Auto Confirm User coche)
 --
 -- Role : 'admin' pour permettre l'acces a toutes les pages /admin/*
+-- Groupe : 'Partenaires' pour rester hors de la vue par defaut
+-- /admin/reservistes (filtree sur groupe='Approuve'). Solution temporaire en
+-- attendant un vrai groupe/flag 'Systeme' dedie aux utilisateurs techniques.
 -- PAS de telephone -> login via OTP par courriel uniquement
 -- (l'app essaie SMS en premier si telephone est present)
 
@@ -26,7 +29,7 @@ INSERT INTO reservistes (
   'E2E',
   'Admin',
   'e2e-admin@aqbrs.ca',
-  'Approuvé',
+  'Partenaires',
   'Actif',
   'admin',
   'verifie',
