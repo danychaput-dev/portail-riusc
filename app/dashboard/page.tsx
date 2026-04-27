@@ -234,18 +234,29 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
   }, [])
 
   // CSS @media print injecté pour l'export PDF (bouton "Exporter PDF").
+  // CRITIQUE : le admin layout impose height:100vh + overflow:hidden/auto sur
+  // le main, donc à l'impression seul ce qui est visible s'imprime. On force
+  // overflow:visible et height:auto partout pour que le contenu se déroule
+  // sur plusieurs pages PDF.
   useEffect(() => {
     const style = document.createElement('style')
     style.setAttribute('data-print-dashboard', 'true')
     style.textContent = `
       @media print {
         @page { size: A4 landscape; margin: 10mm; }
-        body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-size: 11px !important; }
+        html, body { height: auto !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-size: 11px !important; }
+        /* Détruire le confinement vertical du admin layout pour que le contenu se déroule */
+        #__next, #__next > *, body > div, body > div > div { height: auto !important; overflow: visible !important; min-height: 0 !important; max-height: none !important; }
+        main { height: auto !important; overflow: visible !important; flex: none !important; }
+        /* Cacher la sidebar admin et les bandeaux de navigation */
+        aside, nav, header[role="banner"], [data-admin-sidebar], .partenaire-return-bar { display: none !important; }
+        /* Toggles d'affichage spécifiques au PDF */
         .no-print { display: none !important; }
         .print-only { display: block !important; }
-        aside, nav, header[role="banner"], [data-admin-sidebar], .partenaire-return-bar { display: none !important; }
+        /* Empêcher coupures dans les cartes */
         .dashboard-card { break-inside: avoid !important; page-break-inside: avoid !important; margin-bottom: 12px !important; }
         div[style*="box-shadow"] { box-shadow: none !important; }
+        /* La map ne s'imprime pas bien */
         .dashboard-map { display: none !important; }
       }
     `
