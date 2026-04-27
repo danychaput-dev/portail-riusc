@@ -175,6 +175,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('notes-badge-update', handler)
   }, [])
 
+  // CSS @media print GLOBAL pour toutes les pages admin.
+  // Le admin layout impose height:100vh + overflow:hidden sur le wrapper et
+  // overflow:auto sur le main, ce qui crée un scroll container. À l'impression,
+  // seule la portion visible s'imprime (1 seule page PDF). Ce CSS détruit le
+  // confinement vertical pour que le contenu se déroule sur autant de pages
+  // PDF que nécessaire. Cache aussi sidebar/header/bandeaux à l'impression.
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.setAttribute('data-print-admin-global', 'true')
+    style.textContent = `
+      @media print {
+        @page { size: A4 landscape; margin: 10mm; }
+        html, body { height: auto !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        #__next, #__next > *, body > div, body > div > div { height: auto !important; overflow: visible !important; min-height: 0 !important; max-height: none !important; }
+        main { height: auto !important; overflow: visible !important; flex: none !important; max-height: none !important; }
+        aside, [data-admin-sidebar] { display: none !important; }
+        header[role="banner"] { display: none !important; }
+        .partenaire-return-bar { display: none !important; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        div[style*="box-shadow"] { box-shadow: none !important; }
+      }
+    `
+    document.head.appendChild(style)
+    return () => { style.remove() }
+  }, [])
+
   if (!authorized) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

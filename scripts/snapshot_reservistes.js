@@ -72,20 +72,31 @@ async function main() {
 
   console.log(`Extraction du snapshot pour ${today}...`)
 
-  // 1. Fetch all reservistes (avec retry sur erreurs reseau)
-  const { data: reservistes, error } = await withRetry('reservistes', () => supabase
-    .from('reservistes')
-    .select('benevole_id, prenom, nom, email, telephone, groupe, statut, camp_qualif_complete, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, remboursement_bottes_date, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone')
-    .order('benevole_id')
-    .range(0, 9999)
-  )
-
-  if (error) {
-    console.error('Erreur fetch reservistes:', error.message)
-    process.exit(1)
+  // 1. Fetch all reservistes en paginant (Supabase a un Max Rows par defaut
+  //    de 1000 qui override le range(), donc on pagine par pages de 1000
+  //    pour etre sur de tout capturer meme si la table grossit).
+  const SELECT_COLS = 'benevole_id, prenom, nom, email, telephone, groupe, statut, camp_qualif_complete, antecedents_statut, antecedents_date_verification, antecedents_date_expiration, remboursement_bottes_date, date_naissance, adresse, ville, region, contact_urgence_nom, contact_urgence_telephone'
+  const PAGE_SIZE = 1000
+  const reservistes = []
+  let pageStart = 0
+  while (true) {
+    const { data: page, error } = await withRetry(`reservistes[${pageStart}]`, () => supabase
+      .from('reservistes')
+      .select(SELECT_COLS)
+      .order('benevole_id')
+      .range(pageStart, pageStart + PAGE_SIZE - 1)
+    )
+    if (error) {
+      console.error(`Erreur fetch reservistes page ${pageStart}:`, error.message)
+      process.exit(1)
+    }
+    if (!page || page.length === 0) break
+    reservistes.push(...page)
+    if (page.length < PAGE_SIZE) break
+    pageStart += PAGE_SIZE
   }
 
-  console.log(`${reservistes.length} reservistes recuperes`)
+  console.log(`${reservistes.length} reservistes recuperes (pagination completee)`)
 
   // 2. Fetch formations enrichment (par batch de 500)
   const ids = reservistes.map(r => r.benevole_id)

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { setActingUser } from '@/utils/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,10 @@ export async function POST(req: NextRequest) {
     if (!isAdmin && currentRes?.benevole_id !== benevole_id) {
       return NextResponse.json({ success: false, error: 'Accès refusé' }, { status: 403 })
     }
+
+    // Auteur de la mutation (peut être l'admin qui upload pour quelqu'un, ou
+    // le réserviste lui-même).
+    await setActingUser(supabaseAdmin, user.id, user.email)
 
     // --- Mode 1 : fichier déjà uploadé en Storage, juste mettre à jour la DB ---
     if (storage_path) {

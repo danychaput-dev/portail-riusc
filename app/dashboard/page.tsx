@@ -233,6 +233,37 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
       .catch(() => { setError(true); setLoading(false) })
   }, [])
 
+  // CSS @media print injecté pour l'export PDF (bouton "Exporter PDF").
+  // CRITIQUE : le admin layout impose height:100vh + overflow:hidden/auto sur
+  // le main, donc à l'impression seul ce qui est visible s'imprime. On force
+  // overflow:visible et height:auto partout pour que le contenu se déroule
+  // sur plusieurs pages PDF.
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.setAttribute('data-print-dashboard', 'true')
+    style.textContent = `
+      @media print {
+        @page { size: A4 landscape; margin: 10mm; }
+        html, body { height: auto !important; overflow: visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-size: 11px !important; }
+        /* Détruire le confinement vertical du admin layout pour que le contenu se déroule */
+        #__next, #__next > *, body > div, body > div > div { height: auto !important; overflow: visible !important; min-height: 0 !important; max-height: none !important; }
+        main { height: auto !important; overflow: visible !important; flex: none !important; }
+        /* Cacher la sidebar admin et les bandeaux de navigation */
+        aside, nav, header[role="banner"], [data-admin-sidebar], .partenaire-return-bar { display: none !important; }
+        /* Toggles d'affichage spécifiques au PDF */
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        /* Empêcher coupures dans les cartes */
+        .dashboard-card { break-inside: avoid !important; page-break-inside: avoid !important; margin-bottom: 12px !important; }
+        div[style*="box-shadow"] { box-shadow: none !important; }
+        /* La map ne s'imprime pas bien */
+        .dashboard-map { display: none !important; }
+      }
+    `
+    document.head.appendChild(style)
+    return () => { style.remove() }
+  }, [])
+
   // Détecter si l'utilisateur est admin pour les drill-downs
   // Respecte l'impersonation : si on emprunte un compte partenaire, isAdmin = false
   useEffect(() => {
@@ -294,11 +325,31 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
 
         {stats && (
           <>
-            {stats.updatedAt && (
-              <p style={{ margin: 0, marginBottom: 16, fontSize: 12, color: MUTED, textAlign: 'right' }}>
-                Mis à jour le {new Date(stats.updatedAt).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })} à {new Date(stats.updatedAt).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
+              <div className="print-only" style={{ display: 'none', textAlign: 'left' }}>
+                <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: NAVY }}>RIUSC - Tableau de bord</h1>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>
+                  Rapport généré le {new Date().toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'America/Montreal' })}
+                </div>
+              </div>
+              {stats.updatedAt && (
+                <p style={{ margin: 0, fontSize: 12, color: MUTED, marginLeft: 'auto' }}>
+                  Mis à jour le {new Date(stats.updatedAt).toLocaleDateString('fr-CA', { day: 'numeric', month: 'long', year: 'numeric' })} à {new Date(stats.updatedAt).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
+              <button
+                onClick={() => window.print()}
+                className="no-print"
+                style={{
+                  background: NAVY, color: 'white', border: 'none', borderRadius: 8,
+                  padding: '8px 16px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+                title="Exporter cette page en PDF (impression du navigateur)"
+              >
+                Exporter PDF
+              </button>
+            </div>
             {/* ── Badges ── */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
               <StatCard value={stats.totalReservistes} label="Réservistes" onClick={drill({ groupes: 'Approuvé,Intérêt', label: 'Tous les réservistes' })} />
@@ -406,7 +457,7 @@ export function DashboardContent({ embedded = false }: { embedded?: boolean }) {
 
             {/* ── Carte des membres ── */}
             {isAdmin && (
-              <div style={{ marginBottom: 20 }}>
+              <div className="dashboard-map" style={{ marginBottom: 20 }}>
                 <Card title="Carte des membres" subtitle="Position géographique des réservistes actifs">
                   <Suspense fallback={<div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontSize: 13 }}>Chargement de la carte...</div>}>
                     <MapMembres />

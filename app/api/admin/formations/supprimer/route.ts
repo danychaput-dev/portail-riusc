@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/utils/supabase/server'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,6 +23,8 @@ export async function POST(req: NextRequest) {
   if (!adminRes || !['superadmin', 'admin', 'coordonnateur'].includes(adminRes.role)) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
+
+  await setActingUser(supabaseAdmin, user.id, user.email)
 
   const { formation_id, benevole_id } = await req.json()
   if (!formation_id || !benevole_id) {

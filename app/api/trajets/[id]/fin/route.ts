@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,6 +56,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       benevole_id = me?.benevole_id || null
     }
     if (!benevole_id) return NextResponse.json({ error: 'Bénévole non trouvé' }, { status: 404 })
+
+    // Auteur de la mutation (la personne loggée, qu'elle agisse pour elle-même
+    // ou via impersonation admin).
+    await setActingUser(supabaseAdmin, user.id, user.email)
 
     // Vérifier que le trajet appartient au bénévole et qu'il est ouvert
     const { data: trajet } = await supabaseAdmin

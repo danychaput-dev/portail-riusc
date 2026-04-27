@@ -186,10 +186,19 @@ function DisponibilitesContent() {
   }
 
   async function fetchDisponibilites(benevoleId: string) {
-    // Lire depuis disponibilites_v2 (nouveau système)
+    // Lire depuis disponibilites_v2 (nouveau système). Inclut transport pour
+    // que le bouton ✏️ Modifier puisse pré-remplir le formulaire avec les
+    // choix existants (sinon le cleanup-chevauchement écraserait le commentaire/transport).
     const { data: v2data } = await supabase.from('disponibilites_v2')
-      .select('id, benevole_id, deployment_id, date_jour, disponible, a_confirmer, commentaire')
+      .select('id, benevole_id, deployment_id, date_jour, disponible, a_confirmer, commentaire, transport')
       .eq('benevole_id', benevoleId).order('date_jour', { ascending: true });
+    // FIX 2026-04-26: si v2data vide (toutes les dispos supprimées), on doit
+    // RESET le state à [] sinon les anciennes plages restent affichées et il
+    // faut un refresh manuel pour les voir disparaître.
+    if (!v2data || v2data.length === 0) {
+      setDisponibilites([]);
+      return;
+    }
     if (v2data && v2data.length > 0) {
       // Grouper les jours consécutifs en plages par deployment_id
       const grouped: Record<string, typeof v2data> = {};
@@ -201,23 +210,36 @@ function DisponibilitesContent() {
       const plages: any[] = [];
       for (const rows of Object.values(grouped)) {
         const sorted = rows.sort((a, b) => a.date_jour.localeCompare(b.date_jour));
+        // FIX 2026-04-26: trackes l'index du PREMIER jour de la PLAGE COURANTE
+        // (pas du premier jour du group). Avant, toutes les plages d'un même
+        // group partageaient le même id = sorted[0].id, ce qui cassait l'action
+        // Annuler quand un user avait plusieurs plages distinctes sur le même
+        // déploiement+statut.
+        let startIdx = 0;
         let start = sorted[0].date_jour;
         let end = sorted[0].date_jour;
+        const buildPlage = (idx: number, debut: string, fin: string) => ({
+          id: sorted[idx].id,
+          benevole_id: sorted[idx].benevole_id,
+          deploiement_id: sorted[idx].deployment_id,
+          date_debut: debut,
+          date_fin: fin,
+          statut: sorted[idx].a_confirmer ? 'En attente' : sorted[idx].disponible ? 'Disponible' : 'Non disponible',
+          commentaire: sorted[idx].commentaire,
+          transport: (sorted[idx] as any).transport ?? null,
+        });
         for (let i = 1; i < sorted.length; i++) {
           const prev = new Date(end); prev.setDate(prev.getDate() + 1);
-          const cur = new Date(sorted[i].date_jour);
           if (prev.toISOString().split('T')[0] === sorted[i].date_jour) {
             end = sorted[i].date_jour;
           } else {
-            plages.push({ id: sorted[0].id, benevole_id: sorted[0].benevole_id, deploiement_id: sorted[0].deployment_id,
-              date_debut: start, date_fin: end, statut: sorted[0].a_confirmer ? 'En attente' : sorted[0].disponible ? 'Disponible' : 'Non disponible',
-              commentaire: sorted[0].commentaire, transport: null });
-            start = sorted[i].date_jour; end = sorted[i].date_jour;
+            plages.push(buildPlage(startIdx, start, end));
+            startIdx = i;
+            start = sorted[i].date_jour;
+            end = sorted[i].date_jour;
           }
         }
-        plages.push({ id: sorted[0].id, benevole_id: sorted[0].benevole_id, deploiement_id: sorted[0].deployment_id,
-          date_debut: start, date_fin: end, statut: sorted[0].a_confirmer ? 'En attente' : sorted[0].disponible ? 'Disponible' : 'Non disponible',
-          commentaire: sorted[0].commentaire, transport: null });
+        plages.push(buildPlage(startIdx, start, end));
       }
       setDisponibilites(plages);
     }
@@ -623,7 +645,7 @@ function DisponibilitesContent() {
                                   {actionLoading === `confirmer-${dispo.id}` ? '⏳' : '✅ Confirmer'}
                                 </button>
                               )}
-                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}`}
+                              <a href={`/disponibilites/soumettre?deploiement=${dispo.deploiement_id}&date_debut=${dispo.date_debut}&date_fin=${dispo.date_fin}${dispo.transport ? '&transport=' + encodeURIComponent(dispo.transport) : ''}${dispo.commentaire ? '&commentaire=' + encodeURIComponent(dispo.commentaire) : ''}`}
                                 style={{ padding: '7px 14px', fontSize: '13px', fontWeight: '600', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '6px', textDecoration: 'none', display: 'inline-block' }}>
                                 ✏️ Modifier
                               </a>

@@ -97,14 +97,28 @@ export async function GET() {
   let supervisingCount = 0
   if (mesSessions && mesSessions.length > 0) {
     const sessIds = mesSessions.map((s: any) => s.id)
-    const { count: supCount } = await supabaseAdmin
+    // Étape 1: récupérer les benevole_id des pointages ouverts (sans soi-même)
+    const { data: pointagesOuverts } = await supabaseAdmin
       .from('pointages')
-      .select('id', { count: 'exact', head: true })
+      .select('benevole_id')
       .in('pointage_session_id', sessIds)
       .is('heure_depart', null)
       .neq('statut', 'annule')
       .neq('benevole_id', res.benevole_id)
-    supervisingCount = supCount || 0
+
+    if (pointagesOuverts && pointagesOuverts.length > 0) {
+      // Étape 2: filtrer pour ne compter que les réservistes en groupe pertinent.
+      // On exclut Partenaires, Retrait temporaire, Formation incomplète, Partenaires RS
+      // pour ne garder que les Approuvé + Intérêt (= les réels candidats au déploiement).
+      // Ajouté à la demande de Dany 2026-04-26.
+      const benevoleIds = pointagesOuverts.map((p: any) => p.benevole_id)
+      const { count: supCount } = await supabaseAdmin
+        .from('reservistes')
+        .select('benevole_id', { count: 'exact', head: true })
+        .in('benevole_id', benevoleIds)
+        .in('groupe', ['Approuvé', 'Intérêt'])
+      supervisingCount = supCount || 0
+    }
   }
 
   // ── Éligibilité au scan QR ────────────────────────────────────────────────

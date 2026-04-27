@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
   // Si le certificat_url avait ete archive, le restaurer aussi (cas ou c'etait
   // le reserviste qui avait "supprime" son certificat via /api/certificat/supprimer)
   if (!cible.certificat_url && cible.certificat_url_archive) {
+    await setActingUser(supabaseAdmin, admin.user_id, admin.email)
     await supabaseAdmin
       .from('formations_benevoles')
       .update({

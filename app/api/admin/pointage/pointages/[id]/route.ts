@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +26,7 @@ async function verifierRole() {
     .eq('user_id', user.id)
     .single()
   if (!res || !['superadmin', 'admin', 'coordonnateur', 'partenaire', 'partenaire_lect'].includes(res.role)) return null
-  return res
+  return { ...res, user_id: user.id, email: user.email }
 }
 
 type Action = 'edit' | 'approuver' | 'contester' | 'annuler' | 'reset'
@@ -74,6 +75,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (!isAdminLike && user.role !== 'coordonnateur') {
     return NextResponse.json({ error: 'Ton rôle ne permet pas de modifier les pointages.' }, { status: 403 })
   }
+
+  await setActingUser(supabaseAdmin, user.user_id, user.email)
 
   // Traitement selon action
   if (action === 'edit') {

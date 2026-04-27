@@ -507,14 +507,14 @@ export default function PunchPage() {
             {state === 'aucun' && (
               <button disabled={submitting} onClick={() => action('arrivee')}
                 style={{ ...bigBtn, backgroundColor: GREEN }}>
-                ▶️ Commencer mon quart
+                {session?.type_contexte === 'camp' ? '▶️ Confirmer mon arrivée' : '▶️ Commencer mon quart'}
               </button>
             )}
             {state === 'en_cours' && (
               <>
                 <button disabled={submitting} onClick={() => action('depart')}
                   style={{ ...bigBtn, backgroundColor: RED }}>
-                  ⏹️ Terminer mon quart
+                  {session?.type_contexte === 'camp' ? '⏹️ Confirmer mon départ' : '⏹️ Terminer mon quart'}
                 </button>
                 <button disabled={submitting} onClick={() => { setShowCorrection('arrivee'); setCorrectionTime(timeFromISO(pointage?.heure_arrivee)) }}
                   style={{ ...bigBtn, backgroundColor: 'white', color: C, border: `2px solid ${BORDER}` }}>

@@ -180,7 +180,10 @@ function ReservistesPage() {
 
   const defaultGroupes = urlGroupes
     ? urlGroupes.split(',').map(g => g.trim()).filter(Boolean)
-    : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt']
+    // Partenaires RS inclus par défaut depuis 2026-04-24 : les responsables de groupes R&S
+    // (comme Pierre Vallée) étaient invisibles dans la recherche admin, ce qui créait
+    // des faux "introuvables" quand on cherche un partenaire par son nom/courriel.
+    : (urlCampSession || urlCampStatut) ? [] : ['Approuvé', 'Intérêt', 'Partenaires RS']
 
   const [loading,        setLoading]        = useState(true)
   const [allData,        setAllData]        = useState<Reserviste[]>([])  // Cache complet (tous groupes)
@@ -1025,7 +1028,7 @@ function ReservistesPage() {
                   </button>
                 ))}
                 {(groupesFiltres.length > 0 || recherche) && (
-                  <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreNotesNonLues(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
+                  <button onClick={() => { setGroupesFiltres(['Approuvé', 'Intérêt', 'Partenaires RS']); setRecherche(''); setFiltreOrganisme(''); setFiltreGroupeRS(''); setFiltresReadiness({ profil: null, initiation: null, camp: null, bottes: null, antecedents: null }); setFiltreDeployable(null); setFiltreCertifsManquants(false); setFiltreNotesNonLues(false); setViewResetKey(k => k + 1) }} style={{ fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' as const }}>
                     Tout effacer
                   </button>
                 )}

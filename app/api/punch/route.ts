@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,7 +41,9 @@ async function getCurrentUser() {
     .select('benevole_id, prenom, nom, role')
     .eq('user_id', user.id)
     .single()
-  return res
+  if (!res) return null
+  // Inclure user_id et email pour la traçabilité audit_log (setActingUser).
+  return { ...res, user_id: user.id, email: user.email }
 }
 
 // Rôles autorisés à utiliser le mode "prêter son cell"
@@ -128,6 +131,11 @@ export async function POST(req: NextRequest) {
   const user = ident.reserviste!
   const identifieVia = ident.via
   const preteurBenevoleId = ident.sessionUser?.benevole_id ?? null // audit : qui a prêté le cell
+
+  // Auteur des mutations audit_log : la personne loggée (peut être le réserviste lui-même
+  // ou l'admin qui prête son cell). En mode email sans session, on tombe sur null — pas
+  // idéal mais c'est rare et pas bloquant (audit best-effort).
+  await setActingUser(supabaseAdmin, ident.sessionUser?.user_id ?? null, ident.sessionUser?.email ?? null)
 
   if (!token) return NextResponse.json({ error: 'token requis' }, { status: 400 })
   if (!VALID_ACTIONS.includes(action)) {

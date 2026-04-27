@@ -21,6 +21,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { setActingUser } from '@/utils/audit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,6 +65,10 @@ export async function POST(req: NextRequest) {
       benevole_id = me?.benevole_id || null
     }
     if (!benevole_id) return NextResponse.json({ error: 'Bénévole non trouvé' }, { status: 404 })
+
+    // Auteur de la mutation (la personne loggée, qu'elle agisse pour elle-même
+    // ou via impersonation admin).
+    await setActingUser(supabaseAdmin, user.id, user.email)
 
     const body = await req.json()
     const { type, deployment_id, camp_session_id, covoiturage, covoiturage_role, covoiturage_with, notes } = body
