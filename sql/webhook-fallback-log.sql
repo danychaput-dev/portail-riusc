@@ -39,7 +39,8 @@ CREATE INDEX IF NOT EXISTS idx_webhook_fallback_from_phone
 -- ============== RLS ==============
 ALTER TABLE public.webhook_fallback_log ENABLE ROW LEVEL SECURITY;
 
--- Superadmin + admin lisent et marquent comme traite
+-- Policies idempotentes: DROP avant CREATE pour rerun safe
+DROP POLICY IF EXISTS "Admins lisent webhook_fallback_log" ON public.webhook_fallback_log;
 CREATE POLICY "Admins lisent webhook_fallback_log"
   ON public.webhook_fallback_log
   FOR SELECT
@@ -52,6 +53,7 @@ CREATE POLICY "Admins lisent webhook_fallback_log"
     )
   );
 
+DROP POLICY IF EXISTS "Admins modifient webhook_fallback_log" ON public.webhook_fallback_log;
 CREATE POLICY "Admins modifient webhook_fallback_log"
   ON public.webhook_fallback_log
   FOR UPDATE
