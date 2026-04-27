@@ -84,6 +84,50 @@ interface SessionActiveCount {
   nb_actifs: number
 }
 
+interface Scan {
+  pointage_id: string
+  benevole_id: string
+  prenom: string
+  nom: string
+  groupe: string
+  heure_arrivee: string | null
+  heure_depart: string | null
+  duree_minutes: number | null
+  en_cours: boolean
+  session_id: string
+  contexte_nom: string
+  titre: string | null
+  type_contexte: 'camp' | 'deploiement' | null
+  date_shift: string | null
+  shift: string | null
+  date_jour: string | null
+}
+
+interface StatJour {
+  date_jour: string
+  label: string
+  nb_arrivees: number
+  nb_departs: number
+  nb_uniques: number
+}
+
+interface GroupeAbsents {
+  date_jour: string
+  label: string
+  nb_absents: number
+  reservistes: Array<{
+    benevole_id: string
+    prenom: string
+    nom: string
+    email: string | null
+    telephone: string | null
+    groupe: string | null
+  }>
+}
+
+type SortKey = 'prenom' | 'nom' | 'groupe' | 'date_jour' | 'heure_arrivee' | 'heure_depart' | 'duree_minutes'
+type SortDir = 'asc' | 'desc'
+
 export default function PointagePage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -102,6 +146,16 @@ export default function PointagePage() {
   const [filtreSessionId, setFiltreSessionId] = useState<string>('') // '' = toutes
   const [loadingActifs, setLoadingActifs] = useState(true)
 
+  // Bloc "📊 Historique complet" : tous les scans (in+out) avec stats par jour
+  // et liste des inscrits absents
+  const [scans, setScans] = useState<Scan[]>([])
+  const [statsParJour, setStatsParJour] = useState<StatJour[]>([])
+  const [inscritsAbsents, setInscritsAbsents] = useState<GroupeAbsents[]>([])
+  const [recherche, setRecherche] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('heure_arrivee')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [filtreJour, setFiltreJour] = useState<string>('') // '' = tous les jours
+
   const loadActifs = async () => {
     try {
       const res = await fetch('/api/admin/pointage/actifs')
@@ -109,6 +163,9 @@ export default function PointagePage() {
       if (res.ok) {
         setActifs(json.actifs || [])
         setSessionsActifs(json.sessions || [])
+        setScans(json.scans || [])
+        setStatsParJour(json.stats_par_jour || [])
+        setInscritsAbsents(json.inscrits_absents || [])
       }
     } catch (e) {
       console.error('Erreur chargement actifs:', e)
@@ -128,6 +185,49 @@ export default function PointagePage() {
     () => filtreSessionId ? actifs.filter(a => a.session_id === filtreSessionId) : actifs,
     [actifs, filtreSessionId]
   )
+
+  // Scans filtrés par recherche + jour, puis triés selon la colonne active.
+  // La recherche normalise (lowercase, trim, sans accent) sur prénom/nom/groupe.
+  const scansFiltresEtTries = useMemo(() => {
+    const norm = (s: string) =>
+      (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+    const q = norm(recherche)
+
+    let list = scans
+    if (filtreJour) list = list.filter(s => s.date_jour === filtreJour)
+    if (q) {
+      list = list.filter(s =>
+        norm(s.prenom).includes(q) ||
+        norm(s.nom).includes(q) ||
+        norm(s.groupe).includes(q) ||
+        norm(`${s.prenom} ${s.nom}`).includes(q)
+      )
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      const av = (a as any)[sortKey]
+      const bv = (b as any)[sortKey]
+      // Gestion null/undefined : toujours en fin
+      if (av == null && bv == null) return 0
+      if (av == null) return 1
+      if (bv == null) return -1
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return sortDir === 'asc' ? av - bv : bv - av
+      }
+      const cmp = String(av).localeCompare(String(bv), 'fr-CA')
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [scans, recherche, filtreJour, sortKey, sortDir])
+
+  const toggleSort = (k: SortKey) => {
+    if (sortKey === k) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(k)
+      setSortDir('asc')
+    }
+  }
 
   // Le bouton Supprimer est reserve aux admin/superadmin (coord et partenaire
   // doivent utiliser Archiver). On se fie au role retourne par l'API GET.
@@ -382,6 +482,185 @@ export default function PointagePage() {
           </div>
         )}
       </div>
+
+      {/* Bloc "📊 Statistiques par jour" — vue agrégée des scans par date civile */}
+      {statsParJour.length > 0 && (
+        <div style={{ backgroundColor: 'white', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C }}>
+            📊 Statistiques par jour
+          </h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8fafc' }}>
+                  <th style={{ ...thStyle, textAlign: 'left' }}>Jour</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Personnes uniques</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Arrivées (in)</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Départs (out)</th>
+                  <th style={{ ...thStyle, textAlign: 'right' }}>Encore en cours</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statsParJour.map(s => (
+                  <tr key={s.date_jour} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 600, color: C, textTransform: 'capitalize' }}>{s.label}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right' }}>{s.nb_uniques}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: GREEN }}>{s.nb_arrivees}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: RED }}>{s.nb_departs}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: AMBER }}>
+                      {s.nb_arrivees - s.nb_departs}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Bloc "🔍 Historique complet" — table sortable + recherche */}
+      {scans.length > 0 && (
+        <div style={{ backgroundColor: 'white', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C, flex: '1 1 auto' }}>
+              🔍 Historique complet des scans
+              <span style={{ marginLeft: 8, fontSize: 13, color: MUTED, fontWeight: 500 }}>
+                ({scansFiltresEtTries.length}{(recherche || filtreJour) ? ` filtrés sur ${scans.length}` : ''})
+              </span>
+            </h2>
+            <input
+              type="text"
+              placeholder="🔎 Rechercher (prénom, nom, groupe)…"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              style={{
+                padding: '8px 12px', fontSize: 13,
+                border: `1px solid ${BORDER}`, borderRadius: 8,
+                minWidth: 240, color: C,
+              }}
+            />
+            {statsParJour.length > 1 && (
+              <select
+                value={filtreJour}
+                onChange={(e) => setFiltreJour(e.target.value)}
+                style={{
+                  padding: '8px 12px', fontSize: 13, fontWeight: 500,
+                  border: `1px solid ${BORDER}`, borderRadius: 8, backgroundColor: 'white',
+                  color: C, cursor: 'pointer',
+                }}
+              >
+                <option value="">— Tous les jours —</option>
+                {statsParJour.map(s => (
+                  <option key={s.date_jour} value={s.date_jour} style={{ textTransform: 'capitalize' }}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          {scansFiltresEtTries.length === 0 ? (
+            <div style={{ padding: 20, textAlign: 'center', color: MUTED, fontSize: 13, backgroundColor: '#f9fafb', borderRadius: 8 }}>
+              Aucun scan ne correspond aux filtres.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', maxHeight: 480, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>
+                  <tr>
+                    {([
+                      { k: 'prenom' as SortKey, label: 'Prénom' },
+                      { k: 'nom' as SortKey, label: 'Nom' },
+                      { k: 'groupe' as SortKey, label: 'Groupe' },
+                      { k: 'date_jour' as SortKey, label: 'Jour' },
+                      { k: 'heure_arrivee' as SortKey, label: 'Arrivée' },
+                      { k: 'heure_depart' as SortKey, label: 'Départ' },
+                      { k: 'duree_minutes' as SortKey, label: 'Durée' },
+                    ]).map(col => (
+                      <th
+                        key={col.k}
+                        onClick={() => toggleSort(col.k)}
+                        style={{
+                          padding: '8px 10px', textAlign: 'left', cursor: 'pointer',
+                          fontWeight: 700, fontSize: 11, color: C, userSelect: 'none',
+                          borderBottom: `2px solid ${BORDER}`,
+                          backgroundColor: sortKey === col.k ? '#eff6ff' : 'transparent',
+                        }}
+                      >
+                        {col.label}{' '}
+                        {sortKey === col.k && (sortDir === 'asc' ? '▲' : '▼')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {scansFiltresEtTries.map(s => {
+                    const fmtH = (iso: string | null) =>
+                      iso ? new Date(iso).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Montreal' }) : '—'
+                    const fmtD = (m: number | null) =>
+                      m == null ? '—' : m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`
+                    return (
+                      <tr key={s.pointage_id} style={{ borderBottom: `1px solid ${BORDER}` }}>
+                        <td style={{ padding: '6px 10px' }}>{s.prenom}</td>
+                        <td style={{ padding: '6px 10px', fontWeight: 600 }}>{s.nom}</td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 8,
+                            backgroundColor: s.groupe === 'Approuvé' ? '#dcfce7' : '#fef3c7',
+                            color: s.groupe === 'Approuvé' ? '#166534' : '#92400e',
+                          }}>
+                            {s.groupe}
+                          </span>
+                        </td>
+                        <td style={{ padding: '6px 10px', color: MUTED, textTransform: 'capitalize' }}>
+                          {s.date_jour ? new Date(s.date_jour + 'T12:00:00').toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Montreal' }) : '—'}
+                        </td>
+                        <td style={{ padding: '6px 10px', color: GREEN, fontWeight: 600 }}>{fmtH(s.heure_arrivee)}</td>
+                        <td style={{ padding: '6px 10px', color: s.heure_depart ? RED : AMBER, fontWeight: 600 }}>
+                          {s.heure_depart ? fmtH(s.heure_depart) : '⏳ en cours'}
+                        </td>
+                        <td style={{ padding: '6px 10px', color: MUTED }}>{fmtD(s.duree_minutes)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bloc "❌ Inscrits absents" — par jour, ceux qui sont inscrits au camp mais n'ont pas scanné */}
+      {inscritsAbsents.length > 0 && (
+        <div style={{ backgroundColor: 'white', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: C }}>
+            ❌ Inscrits au camp absents
+          </h2>
+          <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>
+            Réservistes inscrits (présence ≠ annulé) qui n'ont aucun scan ce jour-là.
+          </div>
+          {inscritsAbsents.map(g => (
+            <details key={g.date_jour} style={{ borderTop: `1px solid ${BORDER}`, padding: '10px 0' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 600, color: C, textTransform: 'capitalize' }}>
+                {g.label}{' '}
+                <span style={{ color: RED, fontWeight: 700, marginLeft: 6 }}>{g.nb_absents} absent{g.nb_absents > 1 ? 's' : ''}</span>
+              </summary>
+              <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 6 }}>
+                {g.reservistes.map(r => (
+                  <div key={r.benevole_id} style={{
+                    padding: '6px 10px', backgroundColor: '#fef2f2', borderRadius: 6,
+                    fontSize: 12, color: C,
+                  }}>
+                    <div style={{ fontWeight: 600 }}>{r.prenom} {r.nom}</div>
+                    {r.telephone && (
+                      <div style={{ fontSize: 11, color: MUTED }}>📞 {r.telephone}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
 
       {/* Onglets */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, borderBottom: `2px solid ${BORDER}` }}>
