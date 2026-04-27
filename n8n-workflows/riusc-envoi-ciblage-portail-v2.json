@@ -1,0 +1,131 @@
+{
+  "name": "RIUSC - Envoi Ciblage depuis Portail",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## RIUSC - Envoi Ciblage depuis Portail (v2 dynamique 2026-04-22)\n\n**Trigger:** Webhook HTTP POST depuis /admin/operations (étape 5)\n\n**Changements v2:**\n- SMS et courriel utilisent `message_override` (plus de dates hardcodées Laval)\n- Support des markers `---SMS---` / `---FIN---` pour séparer SMS et courriel\n- Node 4 référence explicitement le node 2 pour récupérer isTest/supa_key\n- Courriel HTML simplifié, repose sur message_override pour le contenu dynamique\n\n**Body attendu (via proxy /api/admin/operations/n8n-webhook) :**\n```json\n{\n  \"deployment_id\": \"uuid\",\n  \"ciblage_ids\": [\"uuid1\", \"uuid2\"],\n  \"message_override\": \"Texte personnalisé\",\n  \"type_envoi\": \"disponibilites\",\n  \"supa_key\": \"<service_role_key>\",\n  \"twilio_sid\": \"<twilio_account_sid>\",\n  \"twilio_token\": \"<twilio_auth_token>\"\n}\n```\n\n**Body test (même proxy) :**\n```json\n{\n  \"test\": true,\n  \"test_destinataire\": { benevole_id, prenom, nom, email, telephone },\n  \"deployment_id\": \"uuid\",\n  \"message_override\": \"...\",\n  \"type_envoi\": \"disponibilites\"\n}\n```\n\nEn mode test : on n'envoie qu'à `test_destinataire` et on NE touche PAS\nau statut des ciblages en DB.\n\n**Twilio:** +14388073137\n**SMTP:** riusc@aqbrs.ca",
+        "height": 480,
+        "width": 440
+      },
+      "id": "179cee50-b37c-4256-bbbf-125995ea4d54",
+      "name": "Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1792, 0]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "riusc-envoi-ciblage-portail",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f5e55791-a1b6-4742-aa81-b74a2010a549",
+      "name": "1. Webhook Portail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [2272, 304],
+      "webhookId": "riusc-envoi-ciblage-portail"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Lecture du body ──────────────────────────────────────────\nconst body = $input.item.json.body || $input.item.json;\nconst deployment_id    = body.deployment_id;\nconst message_override = body.message_override || '';\nconst isTest           = body.test === true;\nconst testDest         = body.test_destinataire || null;\n\n// ── Secrets fournis par le proxy serveur Vercel ──────────────\nconst SUPA_KEY     = body.supa_key;\nconst TWILIO_SID   = body.twilio_sid;\nconst TWILIO_TOKEN = body.twilio_token;\nif (!SUPA_KEY || !TWILIO_SID || !TWILIO_TOKEN) {\n  return { json: { skip: true, reason: 'Cles manquantes dans le body (utilise le proxy du portail)' } };\n}\n\nconst H = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };\n\n// ── 0. TEST ou REEL : preparer les donnees ──────────────────\nlet ciblages = [];\nlet reservistesRaw = [];\n\nif (isTest) {\n  if (!testDest?.email && !testDest?.telephone) {\n    return { json: { skip: true, reason: 'TEST sans email ni telephone' } };\n  }\n  if (!deployment_id) {\n    return { json: { skip: true, reason: 'TEST sans deployment_id' } };\n  }\n  console.log('Mode TEST — destinataire unique:', testDest.email, testDest.telephone);\n  ciblages = [{ id: 'TEST-CIBLAGE', benevole_id: testDest.benevole_id || 'TEST', statut: 'cible' }];\n  reservistesRaw = [{\n    benevole_id: testDest.benevole_id || 'TEST',\n    prenom:      testDest.prenom || 'Test',\n    nom:         testDest.nom || '',\n    email:       testDest.email || null,\n    telephone:   testDest.telephone || null\n  }];\n} else {\n  const ciblage_ids = body.ciblage_ids || [];\n  if (!deployment_id || !ciblage_ids.length) {\n    return { json: { skip: true, reason: 'deployment_id ou ciblage_ids manquants' } };\n  }\n  console.log('Ciblage portail pour deployment:', deployment_id, '| ciblages:', ciblage_ids.length);\n  const ciblageFilter = ciblage_ids.map(id => `id.eq.${id}`).join(',');\n  ciblages = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://jtzwkmcfarxptpcoaxxl.supabase.co/rest/v1/ciblages?or=(${ciblageFilter})&select=id,benevole_id,statut`,\n    headers: H\n  });\n  if (!ciblages?.length) {\n    return { json: { skip: true, reason: 'Aucun ciblage trouve pour ces IDs' } };\n  }\n  const benevoleIds = [...new Set(ciblages.map(c => c.benevole_id))];\n  const reservisteFilter = benevoleIds.map(id => `benevole_id.eq.${id}`).join(',');\n  reservistesRaw = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://jtzwkmcfarxptpcoaxxl.supabase.co/rest/v1/reservistes?or=(${reservisteFilter})&select=benevole_id,prenom,nom,email,telephone`,\n    headers: H\n  });\n  console.log('Reservistes charges:', reservistesRaw?.length || 0);\n}\n\n// ── 1. Charger le deploiement ─────────────────────────────────\nconst deps = await this.helpers.httpRequest({\n  method: 'GET',\n  url: `https://jtzwkmcfarxptpcoaxxl.supabase.co/rest/v1/deployments?id=eq.${deployment_id}&select=id,identifiant,nom,lieu,date_debut,date_fin,branding,mode_dates,heures_limite_reponse`,\n  headers: H\n});\nconst dep = deps?.[0] || {};\nconsole.log('Deploiement:', dep.nom, '| Lieu:', dep.lieu, '| Branding:', dep.branding);\n\nconst dateDebutAff = dep.date_debut ? dep.date_debut.split('-').reverse().join('/') : '';\nconst branding = (dep.branding || 'RIUSC').toUpperCase();\n\nconst rMap = {};\nfor (const r of (reservistesRaw || [])) rMap[r.benevole_id] = r;\n\n// ── Parser le message_override pour extraire SMS et courriel ─\n// Convention: ---SMS---\\n<texte sms>\\n---FIN---\n// Si pas de markers, on utilise le message entier pour les deux.\nfunction extractSmsAndEmail(msg) {\n  const m = msg.match(/---SMS---([\\s\\S]*?)---FIN---/);\n  if (m) {\n    const sms = m[1].trim();\n    const emailClean = msg.replace(m[0], '').trim();\n    return { sms, email: emailClean };\n  }\n  return { sms: msg, email: msg };\n}\n\nconst { sms: smsCore, email: emailCore } = extractSmsAndEmail(message_override);\n\nconst timestamp_envoi = new Date().toISOString();\n\n// ── 2. Envoyer SMS ───────────────────────────────────────────\nconst resultats = [];\n\nfor (const ciblage of ciblages) {\n  const r = rMap[ciblage.benevole_id];\n  if (!r?.prenom) {\n    console.log('Reserviste introuvable pour benevole_id:', ciblage.benevole_id);\n    continue;\n  }\n\n  // Personnaliser le SMS avec le prenom du destinataire\n  // Remplace 'Bonjour,' en debut de message par 'Bonjour <prenom>,'\n  const smsPrefix = isTest ? '[TEST] ' : '';\n  const smsPersonalized = smsCore.replace(/^Bonjour,/, `Bonjour ${r.prenom},`);\n  const smsBody = smsPrefix + smsPersonalized;\n\n  if (r.telephone) {\n    try {\n      await this.helpers.httpRequest({\n        method: 'POST',\n        url: `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,\n        auth: { username: TWILIO_SID, password: TWILIO_TOKEN },\n        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n        body: `From=%2B14388073137&To=%2B1${r.telephone.replace(/\\D/g, '')}&Body=${encodeURIComponent(smsBody)}`\n      });\n      console.log(`${isTest ? 'TEST ' : ''}SMS ciblage envoye a`, r.telephone);\n    } catch (e) {\n      console.log('Erreur SMS', r.benevole_id, e.message);\n    }\n  }\n\n  // Personnaliser le texte email aussi\n  const emailPersonalized = emailCore.replace(/^Bonjour,/, `Bonjour ${r.prenom},`);\n\n  resultats.push({\n    isTest,\n    supa_key:        SUPA_KEY,\n    ciblage_id:      ciblage.id,\n    benevole_id:     r.benevole_id,\n    prenom:          r.prenom,\n    nom:             r.nom,\n    email:           r.email,\n    telephone:       r.telephone,\n    nom_deploiement: (isTest ? '[TEST] ' : '') + (dep.nom || ''),\n    lieu:            dep.lieu || '',\n    date_debut:      dateDebutAff,\n    branding,\n    message_email:   emailPersonalized,\n    deployment_id,\n    timestamp_envoi\n  });\n}\n\nif (!resultats.length) {\n  return { json: { skip: true, reason: 'Aucun reserviste avec profil complet trouve' } };\n}\n\nreturn resultats.map(r => ({ json: r }));"
+      },
+      "id": "5e3f6a23-9344-496f-9bde-f5518655d597",
+      "name": "2. Charger + SMS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2496, 304]
+    },
+    {
+      "parameters": {
+        "fromEmail": "riusc@aqbrs.ca",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.branding === 'AQBRS' ? 'AQBRS' : 'RIUSC' }} – Sollicitation de disponibilités – {{ $json.nom_deploiement }}",
+        "html": "=<!DOCTYPE html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n</head>\n<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;\">\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f4f4f7;padding:32px 16px;\">\n<tr><td align=\"center\">\n<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);\">\n<tr>\n<td style=\"background:linear-gradient(135deg,#1e3a5f 0%,#2d4a6f 100%);padding:36px 40px;text-align:center;\">\n<h1 style=\"margin:0 0 8px 0;color:#ffffff;font-size:26px;font-weight:700;\">Sollicitation de disponibilités</h1>\n<p style=\"margin:0;color:rgba(255,255,255,0.85);font-size:15px;\">{{ $json.branding === 'AQBRS' ? 'Association québécoise des bénévoles en recherche et sauvetage' : 'Réserve d\\'intervention d\\'urgence en sécurité civile' }}</p>\n</td>\n</tr>\n<tr>\n<td style=\"padding:36px 40px;\">\n<div style=\"margin:0 0 24px 0;color:#1f2937;font-size:14px;line-height:1.8;white-space:pre-line;\">{{ $json.message_email }}</div>\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 0 20px 0;\">\n<tr><td style=\"background-color:#eff6ff;border-left:4px solid #1e3a5f;padding:16px 20px;border-radius:0 8px 8px 0;\">\n<p style=\"margin:0 0 8px 0;color:#1e3a5f;font-size:15px;font-weight:700;\">{{ $json.nom_deploiement }}</p>\n{{ $json.lieu ? '<p style=\"margin:0 0 6px 0;color:#374151;font-size:14px;\">📍 <strong>Lieu :</strong> ' + $json.lieu + '</p>' : '' }}\n{{ $json.date_debut ? '<p style=\"margin:0;color:#374151;font-size:14px;\">📅 <strong>Début prévu :</strong> ' + $json.date_debut + '</p>' : '' }}\n</td></tr>\n</table>\n<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:0 0 28px 0;\">\n<tr><td align=\"center\">\n<a href=\"https://portail.riusc.ca/disponibilites/soumettre?deploiement={{ $json.deployment_id }}\" target=\"_blank\" style=\"display:inline-block;background-color:#1e3a5f;color:#ffffff;padding:14px 40px;border-radius:6px;text-decoration:none;font-size:16px;font-weight:700;\">Soumettre mes disponibilités</a>\n</td></tr>\n</table>\n<hr style=\"border:none;border-top:1px solid #e5e7eb;margin:0 0 20px 0;\">\n<p style=\"margin:0 0 6px 0;color:#6b7280;font-size:13px;\">Pour toute question, contactez-nous à <a href=\"mailto:riusc@aqbrs.ca\" style=\"color:#2563eb;text-decoration:none;\">riusc@aqbrs.ca</a></p>\n<p style=\"margin:0 0 20px 0;color:#6b7280;font-size:13px;\">Ce message a été généré automatiquement depuis le portail.</p>\n</td>\n</tr>\n<tr>\n<td style=\"background-color:#f8fafc;padding:20px 40px;text-align:center;border-top:1px solid #e5e7eb;\">\n<p style=\"margin:0 0 4px 0;color:#9ca3af;font-size:12px;\">{{ $json.branding === 'AQBRS' ? 'Association québécoise des bénévoles en recherche et sauvetage' : 'RIUSC · Réserve d\\'intervention d\\'urgence en sécurité civile' }}</p>\n<p style=\"margin:0;\"><a href=\"https://portail.riusc.ca\" style=\"color:#9ca3af;font-size:12px;\">portail.riusc.ca</a></p>\n</td>\n</tr>\n</table>\n</td></tr>\n</table>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "8241e89e-52a2-47bb-8e69-bdf06ea09d61",
+      "name": "3. Envoyer Courriel",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2720, 304],
+      "webhookId": "43e4c621-91ec-4a34-b65f-034c7f84eee0",
+      "credentials": {
+        "smtp": {
+          "id": "GPgBFn8u3hqi0e9T",
+          "name": "SMTP account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recupere les donnees du node 2 (pas $input.item.json qui est la reponse SMTP)\nconst data = $('2. Charger + SMS').item.json;\n\nif (data.skip) return { json: { skip: true } };\n\n// Mode TEST : on ne touche PAS a la DB\nif (data.isTest) {\n  console.log('TEST — skip update DB pour', data.benevole_id);\n  return { json: { success: true, benevole_id: data.benevole_id, ciblage_id: data.ciblage_id, timestamp: data.timestamp_envoi, isTest: true } };\n}\n\nconst SUPA_KEY = data.supa_key;\nif (!SUPA_KEY) {\n  console.log('supa_key manquante — skip update DB');\n  return { json: { skip: true, reason: 'supa_key manquante' } };\n}\n\nconst H = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };\n\ntry {\n  await this.helpers.httpRequest({\n    method: 'PATCH',\n    url: `https://jtzwkmcfarxptpcoaxxl.supabase.co/rest/v1/ciblages?id=eq.${data.ciblage_id}`,\n    headers: H,\n    body: JSON.stringify({\n      statut: 'notifie',\n      updated_at: data.timestamp_envoi\n    })\n  });\n  console.log('Supabase ciblage notifie:', data.benevole_id, data.ciblage_id);\n} catch (e) {\n  console.log('Erreur Supabase update ciblage:', e.message);\n}\n\nreturn { json: { success: true, benevole_id: data.benevole_id, ciblage_id: data.ciblage_id, timestamp: data.timestamp_envoi } };"
+      },
+      "id": "211d444f-8a0d-400b-be7d-8a5cffe7eb7e",
+      "name": "4. Update Supabase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2944, 304]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst nb_envoyes = items.filter(i => i.json.success).length;\nconst nb_erreurs = items.filter(i => i.json.skip).length;\nconst isTest = items.some(i => i.json.isTest);\nconsole.log(`${isTest ? 'TEST ' : ''}Ciblage portail termine: ${nb_envoyes} envoye(s), ${nb_erreurs} ignore(s)`);\nreturn { json: { done: true, nb_envoyes, nb_erreurs, isTest } };"
+      },
+      "id": "7a24cbe0-aea2-4f50-8594-a3253ed869f1",
+      "name": "5. Agréger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3152, 304]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"nb_envoyes\": $json.nb_envoyes, \"isTest\": $json.isTest || false } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "2cd04f6f-e469-43d1-a1d0-ef1c20edf023",
+      "name": "6. Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3376, 304]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Webhook Portail": {
+      "main": [[{ "node": "2. Charger + SMS", "type": "main", "index": 0 }]]
+    },
+    "2. Charger + SMS": {
+      "main": [[{ "node": "3. Envoyer Courriel", "type": "main", "index": 0 }]]
+    },
+    "3. Envoyer Courriel": {
+      "main": [[{ "node": "4. Update Supabase", "type": "main", "index": 0 }]]
+    },
+    "4. Update Supabase": {
+      "main": [[{ "node": "5. Agréger", "type": "main", "index": 0 }]]
+    },
+    "5. Agréger": {
+      "main": [[{ "node": "6. Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Z6FCzROCLXJwZtZUDb4Ql"
+  },
+  "versionId": "c2adecee-57f6-4608-910a-45f153c003da-v2",
+  "meta": {
+    "instanceId": "b415b70ea7fd552adeb2d0506e5b84ef024d64396646901413a4e2e3947d4f93"
+  },
+  "id": "JGBn6LNW0ThZ5lg_6Utnk",
+  "tags": []
+}
