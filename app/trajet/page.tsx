@@ -126,7 +126,7 @@ function TrajetPageContent() {
 
         {authorized && !loading && !contexteValide && initialContexteKey && (
           <div style={{ padding: 16, borderRadius: 10, backgroundColor: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', fontSize: 14, marginBottom: 16 }}>
-            <strong>Contexte introuvable.</strong> Le {depParam ? 'déploiement' : 'camp'} indiqué dans le lien n&apos;est pas dans ta liste de contextes actifs. Tu peux quand même déclarer un trajet sur un autre contexte ci-dessous.
+            <strong>Contexte introuvable.</strong> Le {depParam ? 'déploiement' : 'camp'}{' '}indiqué dans le lien n&apos;est pas dans ta liste de contextes actifs. Tu peux quand même déclarer un trajet sur un autre contexte ci-dessous.
           </div>
         )}
 
